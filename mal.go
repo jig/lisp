@@ -269,9 +269,9 @@ func EVAL(ast MalType, env EnvType, ctx *context.Context) (MalType, error) {
 				if a2 != nil && List_Q(a2) {
 					a2s, _ := GetSlice(a2)
 					if Symbol_Q(a2s[0]) && (a2s[0].(Symbol).Val == "catch*") {
-						switch e.(type) {
+						switch e := e.(type) {
 						case MalError:
-							exc = e.(MalError).Obj
+							exc = e.Obj
 						default:
 							exc = e.Error()
 						}
