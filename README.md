@@ -32,15 +32,11 @@ go test -benchmem -benchtime 5s -run='^$' -bench '^.+$' github.com/jig/mal
 - `(range a b)` returns a vector of integers from `a` to `b-1`
 - `(unbase64 string)`, `(unbase64 byteString)`, `(str2binary string)`, `(binary2str byteString)`
 - `(sleep ms)` sleeps 1 second
-- Support of `¬` as string terminator to simplify JSON strings. Strings that start with `{"` and end with `"}` are printed using `¬`, otherwise strings are printed as usual (with `"`)
+- Support of `¬` as string terminator to simplify JSON strings. Strings that start with `{"` and end with `"}` are printed using `¬`, otherwise strings are printed as usual (with `"`). To escape a `¬` character in a `¬` delimited string you must escape it by doubling it: `¬Hello¬¬World!¬` would be printed as `Hello¬World`. This behaviour allows to not to have to escape `"` nor `\` characters.
 - `(jsondecode ¬{"key": "value"}¬)` to decode JSON to MAL data and `(jsonencode ...)` does the opposite. Example: `(jsonencode (jsondecode  ¬{"key":"value","key1": [{"a":"b","c":"d"},2,3]}¬))`. Note that MAL vectors (e.g. `[1 2 3]`) and MAL lists (e.g. `(list 1 2 3)` are both converted to JSON vectors always. Decoding a JSON vector is done on a MAL vector always though
 - `(context* (do ...))` provides a Go context. Context contents depend on Go, and might be passed to specific functions context compatible
 - Test minimal library to be used with `maltest` interpreter (see [./cmd/maltest/](./cmd/maltest/) folder). See below test specs
-- Project compatible with GitHib CodeSpaces.
-
-# To Do
-
-- `¬` to use SQL string like escapping, not C `"` like escaping.
+- Project compatible with GitHub CodeSpaces. Press `.` on your keyboard and you are ready to deploy a CodeSpace with mal in it.
 
 # Test file specs
 

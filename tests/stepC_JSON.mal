@@ -57,7 +57,7 @@
 (str ¬abc¬)
 ;=>"abc"
 
-(str ¬\¬¬)
+(str ¬¬¬¬)
 ;=>"¬"
 
 (str "¬")
@@ -70,15 +70,15 @@
 ;=>"abc  defghi jkl"
 
 (str ¬abc\ndef\nghi¬)
-;=>"abc\ndef\nghi"
+;=>"abc\\ndef\\nghi"
 
 (str ¬abc\\def\\ghi¬)
-;=>"abc\\def\\ghi"
+;=>"abc\\\\def\\\\ghi"
 
 (str (list 1 2 ¬abc¬ ¬"¬) ¬def¬)
 ;=>"(1 2 abc \")def"
 
-(str (list 1 2 ¬abc¬ ¬\¬¬) ¬def¬)
+(str (list 1 2 ¬abc¬ ¬¬¬¬) ¬def¬)
 ;=>"(1 2 abc ¬)def"
 
 ;; Testing prn
@@ -101,7 +101,7 @@
 ;/"\\""
 ;=>nil
 
-(prn ¬\¬¬)
+(prn ¬¬¬¬)
 ;/"¬"
 ;=>nil
 
@@ -110,18 +110,18 @@
 ;=>nil
 
 (prn ¬abc\ndef\nghi¬)
-;/"abc\\ndef\\nghi"
+;/"abc\\\\ndef\\\\nghi"
 ;=>nil
 
 (prn ¬abc\\def\\ghi¬)
-;/"abc\\\\def\\\\ghi"
-nil
+;/"abc\\\\\\\\def\\\\\\\\ghi"
+;=>nil
 
 (prn (list 1 2 ¬abc¬ ¬"¬) ¬def¬)
 ;/\(1 2 "abc" "\\""\) "def"
 ;=>nil
 
-(prn (list 1 2 ¬abc¬ ¬\¬¬) ¬def¬)
+(prn (list 1 2 ¬abc¬ ¬¬¬¬) ¬def¬)
 ;/\(1 2 "abc" "¬"\) "def"
 ;=>nil
 
@@ -142,7 +142,7 @@ nil
 (println ¬abc  def¬ ¬ghi jkl¬)
 ;/abc  def ghi jkl
 
-(println ¬\¬¬)
+(println ¬¬¬¬)
 ;/¬
 ;=>nil
 

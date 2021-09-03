@@ -38,10 +38,10 @@ func (tr *TokenReader) peek() *string {
 }
 
 var (
-	tokenizerRE  = regexp.MustCompile(`[\s,]*(~@|[\[\]{}()'` + "`" + `~^@]|"(?:\\.|[^\\"])*"?|¬(?:\\.|[^\\¬])*¬?|;.*|[^\s\[\]{}('"` + "`" + `,;)]*)`)
+	tokenizerRE  = regexp.MustCompile(`[\s,]*(~@|[\[\]{}()'` + "`" + `~^@]|"(?:\\.|[^\\"])*"?|¬[^¬]*(?:(?:¬¬)[^¬]*)*¬?|;.*|[^\s\[\]{}('"` + "`" + `,;)]*)`)
 	integerRE    = regexp.MustCompile(`^-?[0-9]+$`)
 	stringRE     = regexp.MustCompile(`^"(?:\\.|[^\\"])*"$`)
-	jsonStringRE = regexp.MustCompile(`^¬(?:\\.|[^\\¬])*¬$`)
+	jsonStringRE = regexp.MustCompile(`^¬[^¬]*(?:(?:¬¬)[^¬]*)*¬$`)
 )
 
 func tokenize(str string) []string {
@@ -80,13 +80,7 @@ func read_atom(rdr Reader) (MalType, error) {
 		return nil, errors.New("expected '\"', got EOF")
 	} else if match := jsonStringRE.MatchString(*token); match {
 		str := (*token)[2 : len(*token)-2]
-		return strings.Replace(
-			strings.Replace(
-				strings.Replace(
-					strings.Replace(str, `\\`, "\u029e", -1),
-					`\¬`, `¬`, -1),
-				`\n`, "\n", -1),
-			"\u029e", "\\", -1), nil
+		return strings.Replace(str, `¬¬`, `¬`, -1), nil
 	} else if (*token)[0] == '¬' {
 		return nil, errors.New("expected '¬', got EOF")
 	} else if (*token)[0] == ':' {

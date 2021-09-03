@@ -34,11 +34,7 @@ func Pr_str(obj types.MalType, print_readably bool) string {
 			return ":" + tobj[2:]
 		} else if print_readably {
 			if strings.HasPrefix(tobj, `{"`) && strings.HasSuffix(tobj, `}`) {
-				return `¬` + strings.Replace(
-					strings.Replace(
-						strings.Replace(tobj, `\`, `\\`, -1),
-						`¬`, `\¬`, -1),
-					"\n", `\n`, -1) + `¬`
+				return `¬` + strings.Replace(tobj, `¬`, `¬¬`, -1) + `¬`
 			} else {
 				return `"` + strings.Replace(
 					strings.Replace(
