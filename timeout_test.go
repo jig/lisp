@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-func TestTimeoutFiresOnTime(t *testing.T) {
+func TestContextTimeoutFiresOnTime(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
 	defer cancel()
 
@@ -19,7 +19,7 @@ func TestTimeoutFiresOnTime(t *testing.T) {
 	}
 }
 
-func TestNoTimeout(t *testing.T) {
+func TestContextNoTimeout(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
 	defer cancel()
 

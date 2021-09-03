@@ -83,7 +83,7 @@ func parseFile(fileName string, code string, ctx context.Context) error {
 				return fmt.Errorf("%q %000d: cannot compile regex `%s` got %s", fileName, currentLine, line, err)
 			}
 			if !matched {
-				return fmt.Errorf("%q %000d: expected stdoud `%s` got `%s`", fileName, currentLine, line, stdoutResult)
+				return fmt.Errorf("%q %000d: expected stdout `%s` got `%s`", fileName, currentLine, line, stdoutResult)
 			}
 			continue
 		case strings.HasPrefix(line, ";"):

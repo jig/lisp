@@ -159,11 +159,14 @@ func EVAL(ast MalType, env EnvType, ctx *context.Context) (MalType, error) {
 			}
 		}
 
-		// fmt.Printf("EVAL: %v\n", printer.Pr_str(ast, true))
 		switch ast.(type) {
 		case List: // continue
 		default:
 			return eval_ast(ast, env, ctx)
+		}
+
+		if env.Trace() {
+			fmt.Printf("%v\n", printer.Pr_str(ast, true))
 		}
 
 		// apply list
@@ -294,6 +297,23 @@ func EVAL(ast MalType, env EnvType, ctx *context.Context) (MalType, error) {
 				defer cancel()
 				defer malRecover(&err)
 				return EVAL(a1, env, &childCtx)
+			}()
+			if e != nil {
+				return nil, e
+			}
+			return exp, nil
+		case "trace":
+			if a2 != nil {
+				return nil, fmt.Errorf("trace does not allow more than one argument")
+			}
+			exp, e := func() (res MalType, err error) {
+				newEnv, e := NewEnv(env, nil, nil)
+				if err != nil {
+					return nil, e
+				}
+				newEnv.SetTrace(true)
+				defer malRecover(&err)
+				return EVAL(a1, newEnv, ctx)
 			}()
 			if e != nil {
 				return nil, e

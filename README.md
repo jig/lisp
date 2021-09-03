@@ -37,6 +37,7 @@ go test -benchmem -benchtime 5s -run='^$' -bench '^.+$' github.com/jig/mal
 - `(context* (do ...))` provides a Go context. Context contents depend on Go, and might be passed to specific functions context compatible
 - Test minimal library to be used with `maltest` interpreter (see [./cmd/maltest/](./cmd/maltest/) folder). See below test specs
 - Project compatible with GitHub CodeSpaces. Press `.` on your keyboard and you are ready to deploy a CodeSpace with mal in it.
+- `(trace expr)` to trace the `expr` code.
 
 # Test file specs
 
