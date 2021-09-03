@@ -33,6 +33,7 @@ func main() {
 		load func(repl_env types.EnvType) error
 	}{
 		{"core mal", nscore.Load},
+		{"core mal with input", nscore.LoadInput},
 		{"command line args", nscore.LoadCmdLineArgs},
 		{"core mal extended", nscoreextended.Load},
 		{"test", nstest.Load},

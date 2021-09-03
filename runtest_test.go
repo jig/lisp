@@ -112,6 +112,9 @@ func newEnv() types.EnvType {
 	for k, v := range core.NS {
 		env.Set(types.Symbol{k}, types.Func{v.(func([]types.MalType, *context.Context) (types.MalType, error)), nil})
 	}
+	for k, v := range core.NSInput {
+		env.Set(types.Symbol{k}, types.Func{v.(func([]types.MalType, *context.Context) (types.MalType, error)), nil})
+	}
 	env.Set(types.Symbol{"eval"}, types.Func{func(a []types.MalType, ctx *context.Context) (types.MalType, error) {
 		return EVAL(a[0], env, ctx)
 	}, nil})

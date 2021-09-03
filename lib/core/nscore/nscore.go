@@ -44,10 +44,21 @@ func Load(repl_env EnvType) error {
 	if _, err := mal.REPL(repl_env, malNot, nil); err != nil {
 		return err
 	}
-	if _, err := mal.REPL(repl_env, malLoadFile, nil); err != nil {
+	if _, err := mal.REPL(repl_env, malCond, nil); err != nil {
 		return err
 	}
-	if _, err := mal.REPL(repl_env, malCond, nil); err != nil {
+	return nil
+}
+
+func LoadInput(repl_env EnvType) error {
+	for k, v := range core.NSInput {
+		repl_env.Set(Symbol{Val: k}, Func{Fn: v.(func([]MalType, *context.Context) (MalType, error))})
+	}
+	repl_env.Set(Symbol{Val: "eval"}, Func{Fn: func(a []MalType, ctx *context.Context) (MalType, error) {
+		return mal.EVAL(a[0], repl_env, ctx)
+	}})
+
+	if _, err := mal.REPL(repl_env, malLoadFile, nil); err != nil {
 		return err
 	}
 	return nil

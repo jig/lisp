@@ -478,8 +478,6 @@ var NS = map[string]MalType{
 	"prn":         CallNe(prn),
 	"println":     CallNe(println),
 	"read-string": Call1e(func(a []MalType) (MalType, error) { return reader.Read_str(a[0].(string)) }),
-	"slurp":       Call1e(slurp),
-	"readline":    Call1e(readLine),
 	"<":           Call2e(func(a []MalType) (MalType, error) { return a[0].(int) < a[1].(int), nil }),
 	"<=":          Call2e(func(a []MalType) (MalType, error) { return a[0].(int) <= a[1].(int), nil }),
 	">":           Call2e(func(a []MalType) (MalType, error) { return a[0].(int) > a[1].(int), nil }),
@@ -530,6 +528,11 @@ var NS = map[string]MalType{
 	"binary2str": Call1e(binary2str),
 	"jsondecode": Call1e(jsonDecode),
 	"jsonencode": Call1e(jsonEncode),
+}
+
+var NSInput = map[string]MalType{
+	"slurp":    Call1e(slurp),
+	"readline": Call1e(readLine),
 }
 
 // Core extended
