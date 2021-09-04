@@ -1,14 +1,5 @@
-Copyright (C) 2015 Joel Martin <github@martintribe.org>
-
-Mal (make-a-lisp) is licensed under the MPL 2.0 (Mozilla Public
-License 2.0). The text of the MPL 2.0 license is included below and
-can be found at https://www.mozilla.org/MPL/2.0/
-
-Many of the implementations run or compile using a line editing
-library. In some cases, the implementations provide an option in the
-code to switch between the GNU GPL licensed GNU readline library and
-the BSD licensed editline (libedit) library.
-
+- Copyright (C) 2015 Joel Martin <github@martintribe.org>
+- Copyright (C) 2021 Jordi Íñigo
 
 Mozilla Public License Version 2.0
 ==================================
@@ -47,7 +38,7 @@ Mozilla Public License Version 2.0
     means any form of the work other than Source Code Form.
 
 1.7. "Larger Work"
-    means a work that combines Covered Software with other material, in
+    means a work that combines Covered Software with other material, in 
     a separate file or files, that is not Covered Software.
 
 1.8. "License"
@@ -369,7 +360,7 @@ Exhibit A - Source Code Form License Notice
 
   This Source Code Form is subject to the terms of the Mozilla Public
   License, v. 2.0. If a copy of the MPL was not distributed with this
-  file, You can obtain one at http://mozilla.org/MPL/2.0/.
+  file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 If it is not possible or desirable to put the notice in a particular
 file, then You may include the notice in a location (such as a LICENSE
@@ -384,3 +375,4 @@ Exhibit B - "Incompatible With Secondary Licenses" Notice
   This Source Code Form is "Incompatible With Secondary Licenses", as
   defined by the Mozilla Public License, v. 2.0.
 
+  
