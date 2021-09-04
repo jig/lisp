@@ -41,8 +41,8 @@ go test -benchmem -benchtime 5s -bench '^.+$' github.com/jig/mal
 # Additions
 
 - `(range a b)` returns a vector of integers from `a` to `b-1`
-- `(unbase64 string)`, `(unbase64 byteString)`, `(str2binary string)`, `(binary2str byteString)`
-- `(sleep ms)` sleeps 1 second
+- `(unbase64 string)`, `(unbase64 byteString)`, `(str2binary string)`, `(binary2str byteString)` to deal with `[]byte` variables
+- `(sleep ms)` sleeps `ms` milliseconds
 - Support of `¬` as string terminator to simplify JSON strings. Strings that start with `{"` and end with `"}` are printed using `¬`, otherwise strings are printed as usual (with `"`). To escape a `¬` character in a `¬` delimited string you must escape it by doubling it: `¬Hello¬¬World!¬` would be printed as `Hello¬World`. This behaviour allows to not to have to escape `"` nor `\` characters.
 - `(jsondecode ¬{"key": "value"}¬)` to decode JSON to MAL data and `(jsonencode ...)` does the opposite. Example: `(jsonencode (jsondecode  ¬{"key":"value","key1": [{"a":"b","c":"d"},2,3]}¬))`. Note that MAL vectors (e.g. `[1 2 3]`) and MAL lists (e.g. `(list 1 2 3)` are both converted to JSON vectors always. Decoding a JSON vector is done on a MAL vector always though
 - `(context* (do ...))` provides a Go context. Context contents depend on Go, and might be passed to specific functions context compatible
