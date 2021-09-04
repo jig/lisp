@@ -1,8 +1,8 @@
-Derived from [kanaka/mal](https://github.com/kanaka/mal) Go implementation. 
-`kanaka/mal` is inspired on Clojure.
+Derived from `kanaka/mal` Go implementation. 
+`kanaka/mal` is a Clojure inspired Lisp interpreter.
 
 Keeping 100% backwards compatibility with `kanaka/mal`. 
-There almost 100 implementations on almost 100 languages available on [kanaka/mal](https://github.com/kanaka/mal). 
+There almost 100 implementations on almost 100 languages available on repository [kanaka/mal](https://github.com/kanaka/mal). 
 
 This variant implementation is focused on reusability in Go projects. 
 See [mal main](./cmd/mal) for an example on how to embed it in Go code.
