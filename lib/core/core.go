@@ -529,6 +529,7 @@ var NS = map[string]MalType{
 	"jsondecode": Call1e(jsonDecode),
 	"jsonencode": Call1e(jsonEncode),
 	"merge":      Call2e(mergeHashMap),
+	"assert":     CallNe(assert),
 }
 
 var NSInput = map[string]MalType{
@@ -537,6 +538,48 @@ var NSInput = map[string]MalType{
 }
 
 // Core extended
+func assert(a []MalType) (MalType, error) {
+	var a0, a1 MalType
+	switch len(a) {
+	case 0:
+		return nil, errors.New("one or two parameters required")
+	case 1:
+		a0 = a[0]
+	case 2:
+		a0 = a[0]
+		a1 = a[1]
+	}
+
+	switch a0 := a0.(type) {
+	case bool:
+		if a0 {
+			return nil, nil
+		}
+	default:
+		return nil, nil
+	case nil:
+	}
+
+	// assertion failed
+	switch a1 := a1.(type) {
+	case string:
+		return nil, errors.New(a1)
+	case nil:
+		switch a0.(type) {
+		case nil:
+			return nil, errors.New("assertion failed nil")
+		case bool:
+			return nil, errors.New("assertion failed false")
+		default:
+			return nil, errors.New("internal error")
+		}
+	case bool, int, int16, int32, int64, int8, float32, float64:
+		return nil, fmt.Errorf("%v", a1)
+	default:
+		return nil, fmt.Errorf("assertion failed %T", a1)
+	}
+}
+
 func mergeHashMap(a []MalType) (MalType, error) {
 	if a[0] == nil && a[1] == nil {
 		return nil, nil
