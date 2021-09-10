@@ -308,7 +308,7 @@ var pprint = `;; Pretty printer a MAL object.
                                       (pp- k kindent)
                                       " "
                                       (pp- (get obj k) vindent)))
-                        (rest (keys obj))))))
+                        (rest ks)))))
 
     pp- (fn* [obj indent]
       (cond
