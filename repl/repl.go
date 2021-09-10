@@ -66,8 +66,19 @@ func Execute(repl_env types.EnvType, ctx *context.Context) error {
 			}
 			lines = []string{}
 			l.SetPrompt("\033[32m»\033[0m ")
-			fmt.Printf("Error: %v\n", err)
-			continue
+			switch err := err.(type) {
+			case types.MalError:
+				errorString, err2 := mal.PRINT(err.Obj)
+				if err2 != nil {
+					fmt.Printf("\033[31mError:\033[0m %s\n", "UNPRINTABLE-ERROR")
+					continue
+				}
+				fmt.Printf("\033[31mError:\033[0m %s\n", errorString)
+				continue
+			default:
+				fmt.Printf("Error: %s\n", err)
+				continue
+			}
 		}
 		lines = []string{}
 		l.SetPrompt("\033[32m»\033[0m ")
@@ -82,27 +93,6 @@ func filterInput(r rune) (rune, bool) {
 		return r, false
 	}
 	return r, true
-}
-
-func listSymbols(repl_env types.EnvType) func(string) []string {
-	return func(line string) []string {
-		symbols := make([]string, 0)
-		repl_env.Map().Range(func(key, value interface{}) bool {
-			var toAppend string
-			switch value.(type) {
-			case types.Func:
-				toAppend = "(" + key.(string)
-			case types.MalFunc:
-				toAppend = "(" + key.(string)
-			default:
-				toAppend = key.(string)
-			}
-			symbols = append(symbols, toAppend)
-			return true
-		})
-		symbols = append(symbols, []string{"(do", "(try*", "(if", "(catch*", "(fn*", "(context*", "(macroexpand", "(def!", "(defmacro!", "(let*", "(trace"}...)
-		return symbols
-	}
 }
 
 type lispCompleter struct {
@@ -121,5 +111,25 @@ func (l *lispCompleter) Do(line []rune, pos int) (newLine [][]rune, length int) 
 		}
 		return true
 	})
+	for _, form := range []string{
+		"do",
+		"try*",
+		"if",
+		"catch*",
+		"fn*",
+		"context*",
+		"macroexpand",
+		"def!",
+		"defmacro!",
+		"let*",
+		"trace",
+		"quote",
+		"quasiquote",
+		"quasiquoteexpand",
+	} {
+		if strings.HasPrefix(form, lastPartial) {
+			newLine = append(newLine, []rune(form[len(lastPartial):]))
+		}
+	}
 	return newLine, len(lastPartial)
 }
