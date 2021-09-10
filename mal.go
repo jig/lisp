@@ -166,7 +166,7 @@ func EVAL(ast MalType, env EnvType, ctx *context.Context) (MalType, error) {
 		}
 
 		if env.Trace() {
-			fmt.Printf("%v\n", printer.Pr_str(ast, true))
+			fmt.Printf("> %v\n", printer.Pr_str(ast, true))
 		}
 
 		// apply list
