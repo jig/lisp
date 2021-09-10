@@ -41,6 +41,7 @@ go test -benchmem -benchtime 5s -bench '^.+$' github.com/jig/mal
 # Additions
 
 - `(range a b)` returns a vector of integers from `a` to `b-1`
+- `(merge hm1 hm2)` returns the merge of two hash maps, second takes precedence
 - `(unbase64 string)`, `(unbase64 byteString)`, `(str2binary string)`, `(binary2str byteString)` to deal with `[]byte` variables
 - `(sleep ms)` sleeps `ms` milliseconds
 - Support of `¬` as string terminator to simplify JSON strings. Strings that start with `{"` and end with `"}` are printed using `¬`, otherwise strings are printed as usual (with `"`). To escape a `¬` character in a `¬` delimited string you must escape it by doubling it: `¬Hello¬¬World!¬` would be printed as `Hello¬World`. This behaviour allows to not to have to escape `"` nor `\` characters.

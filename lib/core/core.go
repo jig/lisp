@@ -528,6 +528,7 @@ var NS = map[string]MalType{
 	"binary2str": Call1e(binary2str),
 	"jsondecode": Call1e(jsonDecode),
 	"jsonencode": Call1e(jsonEncode),
+	"merge":      Call2e(mergeHashMap),
 }
 
 var NSInput = map[string]MalType{
@@ -536,6 +537,39 @@ var NSInput = map[string]MalType{
 }
 
 // Core extended
+func mergeHashMap(a []MalType) (MalType, error) {
+	if a[0] == nil && a[1] == nil {
+		return nil, nil
+	}
+	a0, ok := a[0].(HashMap)
+	if !ok {
+		if a[0] == nil {
+			if _, ok := a[1].(HashMap); ok {
+				return a[1], nil
+			}
+		}
+		return nil, errors.New("first argument must be a map")
+	}
+	a1, ok := a[1].(HashMap)
+	if !ok {
+		if a[1] == nil {
+			if _, ok := a[0].(HashMap); ok {
+				return a[0], nil
+			}
+		}
+		return nil, errors.New("second argument must be a map")
+	}
+	merged := HashMap{
+		Val: make(map[string]MalType),
+	}
+	for k, v := range a0.Val {
+		merged.Val[k] = v
+	}
+	for k, v := range a1.Val {
+		merged.Val[k] = v
+	}
+	return merged, nil
+}
 
 func jsonEncode(a []MalType) (MalType, error) {
 	b, err := json.Marshal(a[0])
