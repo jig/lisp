@@ -30,13 +30,22 @@ func NewEnv(outer EnvType, binds_mt MalType, exprs_mt MalType) (EnvType, error) 
 		}
 		// Return a new Env with symbols in binds bound to
 		// corresponding values in exprs
-		for i := 0; i < len(binds); i += 1 {
+		var varargs bool
+		i := 0
+		for ; i < len(binds); i++ {
 			if Symbol_Q(binds[i]) && binds[i].(Symbol).Val == "&" {
-				env.data.Store(binds[i+1].(Symbol).Val, List{exprs[i:], nil})
+				env.data.Store(binds[i+1].(Symbol).Val, List{Val: exprs[i:]})
+				varargs = true
 				break
 			} else {
+				if i == len(exprs) {
+					return nil, errors.New("not enough arguments passed")
+				}
 				env.data.Store(binds[i].(Symbol).Val, exprs[i])
 			}
+		}
+		if !varargs && len(exprs) != i {
+			return nil, errors.New("too many arguments passed")
 		}
 	}
 	//return &et, nil
