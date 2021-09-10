@@ -14,6 +14,7 @@ import (
 	"github.com/jig/mal/types"
 )
 
+// Execute executes the main REPL loop
 func Execute(repl_env types.EnvType, ctx *context.Context) error {
 	dirname, err := os.UserHomeDir()
 	if err != nil {
@@ -99,7 +100,7 @@ func listSymbols(repl_env types.EnvType) func(string) []string {
 			symbols = append(symbols, toAppend)
 			return true
 		})
-		symbols = append(symbols, []string{"(do", "(try*", "(if", "(catch*", "(fn*", "(context*", "(macroexpand", "(def!", "(defmacro!", "(let*"}...)
+		symbols = append(symbols, []string{"(do", "(try*", "(if", "(catch*", "(fn*", "(context*", "(macroexpand", "(def!", "(defmacro!", "(let*", "(trace"}...)
 		return symbols
 	}
 }
