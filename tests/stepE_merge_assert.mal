@@ -60,9 +60,9 @@
 ;=>nil
 ;/^$
 (assert nil)
-;/assertion failed nil
+;/^.+assertion failed nil$
 (assert false)
-;/assertion failed false
+;/^.+assertion failed false$
 
 
 ;; with specific error
@@ -85,18 +85,17 @@
 ;=>nil
 ;/^$
 (assert nil "boom!")
-;/"boom!"
+;/^.+boom!$
 (assert false "boom!")
-;/"boom!"
+;/^.+boom!$
 
-;; TODO(jig) assert throws strings not MalTypes (Clojure supports below cases)
-;; (assert nil 3)
-;; ;/"3"
-;; (assert nil [3])
-;; ;/[3]
-;; (assert nil '(3))
-;; ;/(3)
-;; (assert nil {:3 3})
-;; ;/{:3 3}
-
-
+(assert nil 3)
+;/^.+3$
+(assert nil [3])
+;/^.+\[3\]$
+(assert nil '(3))
+;/^.+\(3\)$
+(assert nil {:3 3})
+;/^.+{:3 3}$
+(assert nil 'assert)
+;/^.+assert$

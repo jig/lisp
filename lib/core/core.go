@@ -562,8 +562,6 @@ func assert(a []MalType) (MalType, error) {
 
 	// assertion failed
 	switch a1 := a1.(type) {
-	case string:
-		return nil, errors.New(a1)
 	case nil:
 		switch a0.(type) {
 		case nil:
@@ -573,10 +571,10 @@ func assert(a []MalType) (MalType, error) {
 		default:
 			return nil, errors.New("internal error")
 		}
-	case bool, int, int16, int32, int64, int8, float32, float64:
-		return nil, fmt.Errorf("%v", a1)
+	case string:
+		return nil, errors.New(a1)
 	default:
-		return nil, fmt.Errorf("assertion failed %T", a1)
+		return nil, MalError{Obj: a1}
 	}
 }
 

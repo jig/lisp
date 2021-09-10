@@ -141,7 +141,17 @@ func captureStdout(REPL func() (types.MalType, error)) (result types.MalType, st
 
 	result, errREPL := REPL()
 	if errREPL != nil {
-		fmt.Printf("Error: %q\n", errREPL)
+		switch errREPL := errREPL.(type) {
+		case types.MalError:
+			errorString, err := PRINT(errREPL.Obj)
+			if err != nil {
+				fmt.Print("Error: UNPRINTABLE-ERROR")
+			} else {
+				fmt.Printf("Error: %s", errorString)
+			}
+		default:
+			fmt.Printf("Error: %s", errREPL)
+		}
 	}
 
 	outC := make(chan string)

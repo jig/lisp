@@ -15,7 +15,7 @@ import (
 func main() {
 	repl_env, err := env.NewEnv(nil, nil, nil)
 	if err != nil {
-		log.Fatalf("Error: %v\n", err)
+		log.Fatalf("Environment Setup Error: %v\n", err)
 	}
 
 	for _, library := range []struct {
@@ -29,7 +29,7 @@ func main() {
 		{"test", nstest.Load},
 	} {
 		if err := library.load(repl_env); err != nil {
-			log.Fatalf("Error: %v\n", err)
+			log.Fatalf("Library Load Error: %v\n", err)
 		}
 	}
 

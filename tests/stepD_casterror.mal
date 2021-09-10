@@ -1,22 +1,22 @@
 (/ 0 0)
 ;=>nil
-;/^.*integer divide by zero.*
+;/^.*integer divide by zero$
 
 (/ 1 0)
 ;=>nil
-;/^.*integer divide by zero.*
+;/^.*integer divide by zero$
 
 (+ 1 :hello)
 ;=>nil
-;/^.*interface conversion: types.MalType is string, not int.*
+;/^.*interface conversion: types.MalType is string, not int$
 
 (+ 1 "hello")
 ;=>nil
-;/^.*interface conversion: types.MalType is string, not int.*
+;/^.*interface conversion: types.MalType is string, not int$
 
 (try* (/ 1 0))
 ;=>nil
-;/^.*runtime error: integer divide by zero.*
+;/^.*runtime error: integer divide by zero$
 
 (try* (/ 1 0) (catch* e e))
 ;=>"runtime error: integer divide by zero"
@@ -24,7 +24,7 @@
 
 (context* (/ 1 0))
 ;=>nil
-;/^.*runtime error: integer divide by zero.*
+;/^.*runtime error: integer divide by zero.*$
 
 (trace (str (list 1)))
 ;/\(str \(list 1\)\)

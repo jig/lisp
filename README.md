@@ -1,10 +1,10 @@
-Derived from `kanaka/mal` Go implementation. 
-`kanaka/mal` is a Clojure inspired Lisp interpreter.
+Derived from `kanaka/mal` Go implementation of a Lisp interpreter. 
+`kanaka/mal` Lisp is _Clojure inspired_.
 
 Keeping 100% backwards compatibility with `kanaka/mal`. 
 There almost 100 implementations on almost 100 languages available on repository [kanaka/mal](https://github.com/kanaka/mal). 
 
-This variant implementation is focused on reusability in Go projects. 
+This derived implementation is focused on _embedability_ in Go projects.
 See [mal main](./cmd/mal) for an example on how to embed it in Go code.
 
 Tested on Go version 1.17.
@@ -14,7 +14,7 @@ This implementation uses [chzyer/readline](https://github.com/chzyer/readline) i
 # Changes
 
 - `atom` is multithread
-- Tests implemented in Go. Original implementation uses a `runtest.py` in Python to keep all implementations compatible. But it makes the Go development less enjoyable. Tests files are the original ones, there is simply a new `runtest_test.go` that substitutes the original Python script
+- Tests executed using Go test library. Original implementation uses a `runtest.py` in Python to keep all implementations compatible. But it makes the Go development less enjoyable. Tests files are the original ones, there is simply a new `runtest_test.go` that substitutes the original Python script
 - Some tests are actually in mal, using the macros commented in _Additions_ section (now only the test library itself). Well, actually not many at this moment, see "Test file specs" below
 - Reader regexp's are compiled once
 - `core` library moved to `lib/core`
@@ -48,8 +48,9 @@ go test -benchmem -benchtime 5s -bench '^.+$' github.com/jig/mal
 - `(jsondecode ¬{"key": "value"}¬)` to decode JSON to MAL data and `(jsonencode ...)` does the opposite. Example: `(jsonencode (jsondecode  ¬{"key":"value","key1": [{"a":"b","c":"d"},2,3]}¬))`. Note that MAL vectors (e.g. `[1 2 3]`) and MAL lists (e.g. `(list 1 2 3)` are both converted to JSON vectors always. Decoding a JSON vector is done on a MAL vector always though
 - `(context* (do ...))` provides a Go context. Context contents depend on Go, and might be passed to specific functions context compatible
 - Test minimal library to be used with `maltest` interpreter (see [./cmd/maltest/](./cmd/maltest/) folder). See below test specs
-- Project compatible with GitHub CodeSpaces. Press `.` on your keyboard and you are ready to deploy a CodeSpace with mal in it.
-- `(trace expr)` to trace the `expr` code.
+- Project compatible with GitHub CodeSpaces. Press `.` on your keyboard and you are ready to deploy a CodeSpace with mal in it
+- `(trace expr)` to trace the `expr` code
+- `(assert expr & optional-error)` asserts expression is not `nil` nor `false`, otherwise it success returning `nil`
 
 # Test file specs
 
