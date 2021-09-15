@@ -65,7 +65,11 @@ func slurp(a []MalType) (MalType, error) {
 
 // Number functions
 func time_ms(a []MalType) (MalType, error) {
-	return int(time.Now().UnixNano() / int64(time.Millisecond)), nil
+	return int(time.Now().UnixMilli()), nil
+}
+
+func time_ns(a []MalType) (MalType, error) {
+	return int(time.Now().UnixNano()), nil
 }
 
 // Hash Map functions
@@ -487,11 +491,12 @@ var NS = map[string]MalType{
 	"*":           Call2e(func(a []MalType) (MalType, error) { return a[0].(int) * a[1].(int), nil }),
 	"/":           Call2e(func(a []MalType) (MalType, error) { return a[0].(int) / a[1].(int), nil }),
 	"time-ms":     Call0e(time_ms),
-	"list":        CallNe(func(a []MalType) (MalType, error) { return List{a, nil}, nil }),
+	"time-ns":     Call0e(time_ns),
+	"list":        CallNe(func(a []MalType) (MalType, error) { return List{Val: a}, nil }),
 	"list?":       Call1b(List_Q),
-	"vector":      CallNe(func(a []MalType) (MalType, error) { return Vector{a, nil}, nil }),
+	"vector":      CallNe(func(a []MalType) (MalType, error) { return Vector{Val: a}, nil }),
 	"vector?":     Call1b(Vector_Q),
-	"hash-map":    CallNe(func(a []MalType) (MalType, error) { return NewHashMap(List{a, nil}) }),
+	"hash-map":    CallNe(func(a []MalType) (MalType, error) { return NewHashMap(List{Val: a}) }),
 	"map?":        Call1b(HashMap_Q),
 	"assoc":       CallNe(assoc),  // at least 3
 	"dissoc":      CallNe(dissoc), // at least 2
