@@ -10,7 +10,7 @@ import (
 	. "github.com/jig/mal/types"
 )
 
-var (
+const (
 	malHostLanguage = `(def! *host-language* "go")`
 	malNot          = `(def! not (fn* (a) 
 							(if a 
