@@ -110,15 +110,15 @@ func newEnv() types.EnvType {
 	}
 	// core.go: defined using go
 	for k, v := range core.NS {
-		env.Set(types.Symbol{k}, types.Func{Fn: v.(func([]types.MalType, *context.Context) (types.MalType, error))})
+		env.Set(types.Symbol{Val: k}, types.Func{Fn: v.(func([]types.MalType, *context.Context) (types.MalType, error))})
 	}
 	for k, v := range core.NSInput {
-		env.Set(types.Symbol{k}, types.Func{Fn: v.(func([]types.MalType, *context.Context) (types.MalType, error))})
+		env.Set(types.Symbol{Val: k}, types.Func{Fn: v.(func([]types.MalType, *context.Context) (types.MalType, error))})
 	}
-	env.Set(types.Symbol{"eval"}, types.Func{Fn: func(a []types.MalType, ctx *context.Context) (types.MalType, error) {
+	env.Set(types.Symbol{Val: "eval"}, types.Func{Fn: func(a []types.MalType, ctx *context.Context) (types.MalType, error) {
 		return EVAL(a[0], env, ctx)
 	}})
-	env.Set(types.Symbol{"*ARGV*"}, types.List{})
+	env.Set(types.Symbol{Val: "*ARGV*"}, types.List{})
 
 	// core.mal: defined using the language itself
 	REPL(env, `(def! *host-language* "go")`, nil)

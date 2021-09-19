@@ -50,6 +50,9 @@ func tokenize(str string, cursor *Position) []Token {
 	}
 	results := make([]Token, 0, 1)
 	for _, group := range tokenizerRE.FindAllStringSubmatch(str, -1) {
+		if group[0] == "" {
+			continue
+		}
 		if group[0][0] == '\n' {
 			cursor.Row++
 			cursor.Col = 0
@@ -104,7 +107,7 @@ func read_atom(rdr Reader) (MalType, error) {
 	} else if *token == "false" {
 		return false, nil
 	} else {
-		return Symbol{*token}, nil
+		return Symbol{Val: *token, Cursor: &tokenStruct.Cursor}, nil
 	}
 }
 
@@ -169,28 +172,28 @@ func read_form(rdr Reader) (MalType, error) {
 		if e != nil {
 			return nil, e
 		}
-		return List{[]MalType{Symbol{"quote"}, form}, nil, &tokenStruct.Cursor}, nil
+		return List{[]MalType{Symbol{Val: "quote", Cursor: &tokenStruct.Cursor}, form}, nil, &tokenStruct.Cursor}, nil
 	case "`":
 		rdr.next()
 		form, e := read_form(rdr)
 		if e != nil {
 			return nil, e
 		}
-		return List{[]MalType{Symbol{"quasiquote"}, form}, nil, &tokenStruct.Cursor}, nil
+		return List{[]MalType{Symbol{Val: "quasiquote", Cursor: &tokenStruct.Cursor}, form}, nil, &tokenStruct.Cursor}, nil
 	case `~`:
 		rdr.next()
 		form, e := read_form(rdr)
 		if e != nil {
 			return nil, e
 		}
-		return List{[]MalType{Symbol{"unquote"}, form}, nil, &tokenStruct.Cursor}, nil
+		return List{[]MalType{Symbol{Val: "unquote", Cursor: &tokenStruct.Cursor}, form}, nil, &tokenStruct.Cursor}, nil
 	case `~@`:
 		rdr.next()
 		form, e := read_form(rdr)
 		if e != nil {
 			return nil, e
 		}
-		return List{[]MalType{Symbol{"splice-unquote"}, form}, nil, &tokenStruct.Cursor}, nil
+		return List{[]MalType{Symbol{Val: "splice-unquote", Cursor: &tokenStruct.Cursor}, form}, nil, &tokenStruct.Cursor}, nil
 	case `^`:
 		rdr.next()
 		meta, e := read_form(rdr)
@@ -201,14 +204,14 @@ func read_form(rdr Reader) (MalType, error) {
 		if e != nil {
 			return nil, e
 		}
-		return List{[]MalType{Symbol{"with-meta"}, form, meta}, nil, &tokenStruct.Cursor}, nil
+		return List{[]MalType{Symbol{Val: "with-meta", Cursor: &tokenStruct.Cursor}, form, meta}, nil, &tokenStruct.Cursor}, nil
 	case `@`:
 		rdr.next()
 		form, e := read_form(rdr)
 		if e != nil {
 			return nil, e
 		}
-		return List{[]MalType{Symbol{"deref"}, form}, nil, &tokenStruct.Cursor}, nil
+		return List{[]MalType{Symbol{Val: "deref", Cursor: &tokenStruct.Cursor}, form}, nil, &tokenStruct.Cursor}, nil
 
 	// list
 	case ")":

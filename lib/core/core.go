@@ -19,7 +19,7 @@ import (
 
 // Errors/Exceptions
 func throw(a []MalType) (MalType, error) {
-	return nil, MalError{a[0]}
+	return nil, MalError{Obj: a[0]}
 }
 
 func fn_q(a []MalType) (MalType, error) {
@@ -463,7 +463,7 @@ var NS = map[string]MalType{
 	"nil?":    Call1b(Nil_Q),
 	"true?":   Call1b(True_Q),
 	"false?":  Call1b(False_Q),
-	"symbol":  Call1e(func(a []MalType) (MalType, error) { return Symbol{a[0].(string)}, nil }),
+	"symbol":  Call1e(func(a []MalType) (MalType, error) { return Symbol{Val: a[0].(string)}, nil }),
 	"symbol?": Call1b(Symbol_Q),
 	"string?": Call1e(func(a []MalType) (MalType, error) { return (String_Q(a[0]) && !Keyword_Q(a[0])), nil }),
 	"keyword": Call1e(func(a []MalType) (MalType, error) {

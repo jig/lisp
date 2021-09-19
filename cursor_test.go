@@ -16,36 +16,101 @@ func TestCursor(t *testing.T) {
 	}
 	// core.go: defined using go
 	for k, v := range core.NS {
-		bootEnv.Set(types.Symbol{k}, types.Func{Fn: v.(func([]types.MalType, *context.Context) (types.MalType, error))})
+		bootEnv.Set(types.Symbol{Val: k}, types.Func{Fn: v.(func([]types.MalType, *context.Context) (types.MalType, error))})
 	}
 	for k, v := range core.NSInput {
-		bootEnv.Set(types.Symbol{k}, types.Func{Fn: v.(func([]types.MalType, *context.Context) (types.MalType, error))})
+		bootEnv.Set(types.Symbol{Val: k}, types.Func{Fn: v.(func([]types.MalType, *context.Context) (types.MalType, error))})
 	}
-	bootEnv.Set(types.Symbol{"eval"}, types.Func{Fn: func(a []types.MalType, ctx *context.Context) (types.MalType, error) {
+	bootEnv.Set(types.Symbol{Val: "eval"}, types.Func{Fn: func(a []types.MalType, ctx *context.Context) (types.MalType, error) {
 		return EVAL(a[0], bootEnv, ctx)
 	}})
-	bootEnv.Set(types.Symbol{"*ARGV*"}, types.List{})
+	bootEnv.Set(types.Symbol{Val: "*ARGV*"}, types.List{})
 
 	// core.mal: defined using the language itself
 	REPL(bootEnv, `(def! *host-language* "go")`, nil)
 
-	for _, code := range []string{
-		codeExecutionError,
-		codeCorrect,
-		codeMissingRightBracket,
-		codeTooManyRightBrackets,
+	for _, testCase := range []struct {
+		Module string
+		Code   string
+		Error  error
+	}{
+		{
+			Module: "codeThrow",
+			Code:   codeThrow,
+			Error: types.MalError{
+				Cursor: &types.Position{Row: 4},
+			},
+		},
+		{
+			Module: "codeTryAndThrowAndCatch",
+			Code:   codeTryAndThrowAndCatch,
+			Error:  nil,
+		},
+		{
+			Module: "codeUndefinedSymbol",
+			Code:   codeUndefinedSymbol,
+			Error: types.RuntimeError{
+				Cursor: &types.Position{Row: 3},
+			},
+		},
+		{
+			Module: "codeLetIsBogus",
+			Code:   codeLetIsBogus,
+			Error: types.RuntimeError{
+				Cursor: &types.Position{Row: 4},
+			},
+		},
+		{
+			Module: "codeCorrect",
+			Code:   codeCorrect,
+			Error:  nil,
+		},
+		{
+			Module: "codeMissingRightBracket",
+			Code:   codeMissingRightBracket,
+			Error: types.RuntimeError{
+				Cursor: &types.Position{Row: 8},
+			},
+		},
+		{
+			Module: "codeTooManyRightBrackets",
+			Code:   codeTooManyRightBrackets,
+			Error:  nil,
+		},
 	} {
 		subEnv, err := env.NewEnv(bootEnv, nil, nil)
 		if err != nil {
 			panic(err)
 		}
-		ast, err := REPLPosition(subEnv, "(do\n"+code+"\na)", nil, &types.Position{Row: 0})
-		if err != nil {
-			t.Error(err)
+		ast, err := REPLPosition(subEnv, "(do\n"+testCase.Code+"\na)", nil, &types.Position{
+			Module: &testCase.Module,
+			Row:    0,
+		})
+		switch err := err.(type) {
+		case nil:
+			if testCase.Error != nil {
+				t.Fatalf("Expected error %q", testCase.Error)
+			}
+			continue
+		case types.RuntimeError:
+			if err.Cursor.Row != testCase.Error.(types.RuntimeError).Cursor.Row {
+				t.Fatal(err.ErrorVal.Error())
+			}
+			continue
+		case types.MalError:
+			if err.Cursor.Row != testCase.Error.(types.MalError).Cursor.Row {
+				t.Fatal(err.Error())
+			}
+			continue
+		default:
+			//			t.Fatal(err)
+		}
+		if ast == nil {
+			t.Error(testCase.Module, "(no error) AST is nil")
 			continue
 		}
 		if ast.(string) != "1234" {
-			t.Error("REPL didn't reach the end")
+			t.Error(testCase.Module, "(no error) REPL didn't reach the end")
 			continue
 		}
 	}
@@ -125,8 +190,42 @@ var codeTooManyRightBrackets = `;; prerequisites
 
 (def! a 1234)
 `
-var codeExecutionError = `;; this will throw an error
+var codeThrow = `;; this will throw an error
 ;; in a trivial way
 
 (throw "boo")
+`
+
+var codeTryAndThrowAndCatch = `;; throwing an error and catching 
+;; must not involve program lines
+
+(try* 
+	abc 
+	(catch* exc 
+		(str "exc is:" exc)))
+
+(def! a 1234)
+`
+
+var codeTryAndThrow = `;; throwing an error and catching 
+;; must not involve program lines
+
+(try* 
+	abc 
+	(catch* exc 
+		(str "exc is:" exc)))
+
+(def! a 1234)
+`
+
+var codeLetIsBogus = `;; let* requires a vector with even elements
+
+(let* [x 1
+	y]
+	y)
+`
+
+var codeUndefinedSymbol = `;; undefined-symbol is undefined
+
+undefined-symbol
 `

@@ -51,29 +51,30 @@ func Execute(repl_env types.EnvType, ctx *context.Context) error {
 		completeLine := strings.Join(lines, "\n")
 		out, err := mal.REPL(repl_env, completeLine, ctx)
 		if err != nil {
-			if err.Error() == "expected ')', got EOF" ||
-				err.Error() == "expected ']', got EOF" ||
-				err.Error() == "expected '}', got EOF" {
-				l.SetPrompt("\033[31m›\033[0m ")
-				continue
-			}
-			if err.Error() == "expected '}', got EOF" {
-				l.SetPrompt("\033[31m›\033[0m ")
-				continue
-			}
 			if err.Error() == "<empty line>" {
 				continue
+			}
+			if _, ok := err.(types.RuntimeError); ok {
+				if err.(types.RuntimeError).ErrorVal.Error() == "expected ')', got EOF" ||
+					err.(types.RuntimeError).ErrorVal.Error() == "expected ']', got EOF" ||
+					err.(types.RuntimeError).ErrorVal.Error() == "expected '}', got EOF" {
+					l.SetPrompt("\033[31m›\033[0m ")
+					continue
+				}
 			}
 			lines = []string{}
 			l.SetPrompt("\033[32m»\033[0m ")
 			switch err := err.(type) {
+			case types.RuntimeError:
+				fmt.Printf("\033[31mError:\033[0m %s\n", err.ErrorVal)
+				continue
 			case types.MalError:
 				errorString, err2 := mal.PRINT(err.Obj)
 				if err2 != nil {
-					fmt.Printf("\033[31mError:\033[0m %s\n", "UNPRINTABLE-ERROR")
+					fmt.Printf("\033[31mMalError:\033[0m %s\n", "UNPRINTABLE-ERROR")
 					continue
 				}
-				fmt.Printf("\033[31mError:\033[0m %s\n", errorString)
+				fmt.Printf("\033[31mMalError:\033[0m %s\n", errorString)
 				continue
 			default:
 				fmt.Printf("Error: %s\n", err)

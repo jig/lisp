@@ -23,11 +23,17 @@ type Token struct {
 
 // Errors/Exceptions
 type MalError struct {
-	Obj MalType
+	Obj    MalType
+	Cursor *Position
 }
 
 func (e MalError) Error() string {
-	return fmt.Sprintf("%#v", e.Obj)
+	switch v := e.Obj.(type) {
+	case string:
+		return v
+	default:
+		return fmt.Sprintf("%#v", v)
+	}
 }
 
 // General types
@@ -66,7 +72,8 @@ func Number_Q(obj MalType) bool {
 
 // Symbols
 type Symbol struct {
-	Val string
+	Val    string
+	Cursor *Position
 }
 
 func Symbol_Q(obj MalType) bool {

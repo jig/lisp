@@ -4,6 +4,8 @@ import (
 	"context"
 	"testing"
 	"time"
+
+	"github.com/jig/mal/types"
 )
 
 func TestContextTimeoutFiresOnTime(t *testing.T) {
@@ -13,7 +15,7 @@ func TestContextTimeoutFiresOnTime(t *testing.T) {
 	if _, err := REPL(newEnv(), `(sleep 1000)`, &ctx); err == nil {
 		t.Fatalf("Must fail")
 	} else {
-		if err.Error() != "timeout while evaluating expression" {
+		if err.(types.RuntimeError).ErrorVal.Error() != "timeout while evaluating expression" {
 			t.Fatal(err)
 		}
 	}

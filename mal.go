@@ -8,6 +8,7 @@ import (
 	. "github.com/jig/mal/env"
 	"github.com/jig/mal/printer"
 	"github.com/jig/mal/reader"
+	"github.com/jig/mal/types"
 	. "github.com/jig/mal/types"
 )
 
@@ -35,12 +36,12 @@ func qq_loop(xs []MalType) MalType {
 		switch e := elt.(type) {
 		case List:
 			if starts_with(e.Val, "splice-unquote") {
-				acc = NewList(Symbol{"concat"}, e.Val[1], acc)
+				acc = NewList(Symbol{Val: "concat"}, e.Val[1], acc)
 				continue
 			}
 		default:
 		}
-		acc = NewList(Symbol{"cons"}, quasiquote(elt), acc)
+		acc = NewList(Symbol{Val: "cons"}, quasiquote(elt), acc)
 	}
 	return acc
 }
@@ -48,9 +49,9 @@ func qq_loop(xs []MalType) MalType {
 func quasiquote(ast MalType) MalType {
 	switch a := ast.(type) {
 	case Vector:
-		return NewList(Symbol{"vec"}, qq_loop(a.Val))
+		return NewList(Symbol{Val: "vec"}, qq_loop(a.Val))
 	case HashMap, Symbol:
-		return NewList(Symbol{"quote"}, ast)
+		return NewList(Symbol{Val: "quote"}, ast)
 	case List:
 		if starts_with(a.Val, "unquote") {
 			return a.Val[1]
@@ -104,7 +105,14 @@ func macroexpand(ast MalType, env EnvType, ctx *context.Context) (MalType, error
 func eval_ast(ast MalType, env EnvType, ctx *context.Context) (MalType, error) {
 	//fmt.Printf("eval_ast: %#v\n", ast)
 	if Symbol_Q(ast) {
-		return env.Get(ast.(Symbol))
+		value, err := env.Get(ast.(Symbol))
+		if err != nil {
+			return nil, RuntimeError{
+				ErrorVal: err,
+				Cursor:   ast.(Symbol).Cursor,
+			}
+		}
+		return value, nil
 	} else if List_Q(ast) {
 		lst := []MalType{}
 		for _, a := range ast.(List).Val {
@@ -209,8 +217,10 @@ func EVAL(ast MalType, env EnvType, ctx *context.Context) (MalType, error) {
 			case Symbol:
 				return env.Set(a1, res), nil
 			default:
-				return nil, fmt.Errorf("cannot use '%T' as identifier", a1)
-
+				return nil, RuntimeError{
+					ErrorVal: fmt.Errorf("cannot use '%T' as identifier", a1),
+					Cursor:   ast.(List).Cursor,
+				}
 			}
 		case "let*":
 			let_env, e := NewEnv(env, nil, nil)
@@ -221,9 +231,18 @@ func EVAL(ast MalType, env EnvType, ctx *context.Context) (MalType, error) {
 			if e != nil {
 				return nil, e
 			}
+			if len(arr1)%2 != 0 {
+				return nil, RuntimeError{
+					ErrorVal: errors.New("let*: odd elements on binding vector"),
+					Cursor:   a1.(Vector).Cursor,
+				}
+			}
 			for i := 0; i < len(arr1); i += 2 {
 				if !Symbol_Q(arr1[i]) {
-					return nil, errors.New("non-symbol bind value")
+					return nil, RuntimeError{
+						ErrorVal: errors.New("non-symbol bind value"),
+						Cursor:   a1.(Vector).Cursor,
+					}
 				}
 				exp, e := EVAL(arr1[i+1], let_env, ctx)
 				if e != nil {
@@ -272,6 +291,8 @@ func EVAL(ast MalType, env EnvType, ctx *context.Context) (MalType, error) {
 						switch e := e.(type) {
 						case MalError:
 							exc = e.Obj
+						case RuntimeError:
+							exc = e.ErrorVal.Error()
 						default:
 							exc = e.Error()
 						}
@@ -285,12 +306,16 @@ func EVAL(ast MalType, env EnvType, ctx *context.Context) (MalType, error) {
 							return exp, nil
 						}
 					}
+					return nil, e
 				}
 				return nil, e
 			}
 		case "context*":
 			if a2 != nil {
-				return nil, fmt.Errorf("context* does not allow more than one argument")
+				return nil, RuntimeError{
+					ErrorVal: fmt.Errorf("context* does not allow more than one argument"),
+					Cursor:   a2.(Vector).Cursor,
+				}
 			}
 			childCtx, cancel := context.WithCancel(*ctx)
 			exp, e := func() (res MalType, err error) {
@@ -304,7 +329,10 @@ func EVAL(ast MalType, env EnvType, ctx *context.Context) (MalType, error) {
 			return exp, nil
 		case "trace":
 			if a2 != nil {
-				return nil, fmt.Errorf("trace does not allow more than one argument")
+				return nil, RuntimeError{
+					ErrorVal: fmt.Errorf("trace does not allow more than one argument"),
+					Cursor:   a2.(Vector).Cursor,
+				}
 			}
 			exp, e := func() (res MalType, err error) {
 				newEnv, e := NewEnv(env, nil, nil)
@@ -370,9 +398,26 @@ func EVAL(ast MalType, env EnvType, ctx *context.Context) (MalType, error) {
 			} else {
 				fn, ok := f.(Func)
 				if !ok {
-					return nil, errors.New("attempt to call non-function")
+					return nil, RuntimeError{
+						ErrorVal: errors.New("attempt to call non-function"),
+						Cursor:   ast.(List).Cursor,
+					}
 				}
-				return fn.Fn(el.(List).Val[1:], ctx)
+				result, err := fn.Fn(el.(List).Val[1:], ctx)
+				switch err := err.(type) {
+				case types.MalError:
+					if err.Cursor == nil {
+						err.Cursor = a0.(Symbol).Cursor
+					}
+					return nil, err
+				default:
+					return nil, RuntimeError{
+						ErrorVal: err,
+						Cursor:   a0.(Symbol).Cursor,
+					}
+				case nil:
+					return result, nil
+				}
 			}
 		}
 	} // TCO loop

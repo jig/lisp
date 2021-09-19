@@ -95,13 +95,3 @@ func (e *Env) Trace() bool {
 func (e *Env) SetTrace(newVal bool) {
 	e.trace = newVal
 }
-
-// func (env *Env) Get(key Symbol) (MalType, error) {
-// 	if value, ok := env.data.Load(key.Val); ok {
-// 		return value, nil
-// 	} else if env.outer != nil {
-// 		return env.outer.Get(key)
-// 	} else {
-// 		return nil, errors.New("'" + key.Val + "' not found")
-// 	}
-// }
