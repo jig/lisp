@@ -4,9 +4,9 @@ import (
 	"context"
 	"testing"
 
-	"github.com/jig/mal/env"
-	"github.com/jig/mal/lib/core"
-	"github.com/jig/mal/types"
+	"github.com/jig/lisp/env"
+	"github.com/jig/lisp/lib/core"
+	"github.com/jig/lisp/types"
 )
 
 func TestCursor(t *testing.T) {

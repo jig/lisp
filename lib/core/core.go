@@ -11,10 +11,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/jig/mal/printer"
-	"github.com/jig/mal/reader"
+	"github.com/jig/lisp/printer"
+	"github.com/jig/lisp/reader"
 
-	. "github.com/jig/mal/types"
+	. "github.com/jig/lisp/types"
 )
 
 // Errors/Exceptions

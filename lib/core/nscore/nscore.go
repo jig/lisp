@@ -4,10 +4,10 @@ import (
 	"context"
 	"os"
 
-	"github.com/jig/mal"
-	"github.com/jig/mal/lib/core"
-	"github.com/jig/mal/types"
-	. "github.com/jig/mal/types"
+	mal "github.com/jig/lisp"
+	"github.com/jig/lisp/lib/core"
+	"github.com/jig/lisp/types"
+	. "github.com/jig/lisp/types"
 )
 
 const (

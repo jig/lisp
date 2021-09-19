@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/jig/mal/types"
+	"github.com/jig/lisp/types"
 )
 
 func Pr_list(lst []types.MalType, pr bool,

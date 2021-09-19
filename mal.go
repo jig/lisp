@@ -5,11 +5,11 @@ import (
 	"errors"
 	"fmt"
 
-	. "github.com/jig/mal/env"
-	"github.com/jig/mal/printer"
-	"github.com/jig/mal/reader"
-	"github.com/jig/mal/types"
-	. "github.com/jig/mal/types"
+	. "github.com/jig/lisp/env"
+	"github.com/jig/lisp/printer"
+	"github.com/jig/lisp/reader"
+	"github.com/jig/lisp/types"
+	. "github.com/jig/lisp/types"
 )
 
 // read

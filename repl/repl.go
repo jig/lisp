@@ -10,8 +10,8 @@ import (
 	"strings"
 
 	goreadline "github.com/chzyer/readline"
-	"github.com/jig/mal"
-	"github.com/jig/mal/types"
+	mal "github.com/jig/lisp"
+	"github.com/jig/lisp/types"
 )
 
 // Execute executes the main REPL loop

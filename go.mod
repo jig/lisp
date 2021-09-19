@@ -1,4 +1,4 @@
-module github.com/jig/mal
+module github.com/jig/lisp
 
 go 1.17
 

@@ -4,12 +4,12 @@ import (
 	"log"
 	"os"
 
-	"github.com/jig/mal/command"
-	"github.com/jig/mal/env"
-	"github.com/jig/mal/lib/core/nscore"
-	"github.com/jig/mal/lib/coreextented/nscoreextended"
-	"github.com/jig/mal/lib/test/nstest"
-	"github.com/jig/mal/types"
+	"github.com/jig/lisp/command"
+	"github.com/jig/lisp/env"
+	"github.com/jig/lisp/lib/core/nscore"
+	"github.com/jig/lisp/lib/coreextented/nscoreextended"
+	"github.com/jig/lisp/lib/test/nstest"
+	"github.com/jig/lisp/types"
 )
 
 func main() {

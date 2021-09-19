@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	. "github.com/jig/mal/types"
+	. "github.com/jig/lisp/types"
 )
 
 // callXX functions check the number of arguments

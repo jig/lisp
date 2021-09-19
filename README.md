@@ -35,7 +35,7 @@ go test ./...
 There are some benchmarks as well:
 
 ```bash
-go test -benchmem -benchtime 5s -bench '^.+$' github.com/jig/mal
+go test -benchmem -benchtime 5s -bench '^.+$' github.com/jig/lisp
 ```
 
 # Additions

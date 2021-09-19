@@ -1,8 +1,8 @@
 package nscoreextended
 
 import (
-	"github.com/jig/mal"
-	"github.com/jig/mal/types"
+	mal "github.com/jig/lisp"
+	"github.com/jig/lisp/types"
 )
 
 func Load(repl_env types.EnvType) error {

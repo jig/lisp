@@ -4,7 +4,7 @@ import (
 	"errors"
 	"sync"
 
-	. "github.com/jig/mal/types"
+	. "github.com/jig/lisp/types"
 )
 
 type Env struct {

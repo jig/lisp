@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/jig/mal/types"
+	"github.com/jig/lisp/types"
 )
 
 func TestContextTimeoutFiresOnTime(t *testing.T) {

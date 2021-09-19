@@ -8,9 +8,9 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/jig/mal"
-	"github.com/jig/mal/repl"
-	"github.com/jig/mal/types"
+	mal "github.com/jig/lisp"
+	"github.com/jig/lisp/repl"
+	"github.com/jig/lisp/types"
 )
 
 // Execute is the main function of a command line MAL interpreter.
