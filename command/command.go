@@ -40,7 +40,10 @@ func Execute(args []string, repl_env types.EnvType) error {
 						if _, err := mal.REPL(repl_env, testParams, nil); err != nil {
 							return err
 						}
-						if _, err := mal.REPL(repl_env, `(load-file "`+path+`")`, nil); err != nil {
+						if _, err := mal.REPLPosition(repl_env, `(load-file "`+path+`")`, nil, &types.Position{
+							Module: &path,
+							Row:    -3, // "ugly hack: load-file implementation is 4 lines long"
+						}); err != nil {
 							return err
 						}
 					}
@@ -54,7 +57,10 @@ func Execute(args []string, repl_env types.EnvType) error {
 
 		// called with mal script to load and eval
 		ctx := context.Background()
-		result, err := mal.REPL(repl_env, `(load-file "`+os.Args[1]+`")`, &ctx)
+		result, err := mal.REPLPosition(repl_env, `(load-file "`+os.Args[1]+`")`, &ctx, &types.Position{
+			Module: &os.Args[1],
+			Row:    -3, // "ugly hack: load-file implementation is 4 lines long"
+		})
 		if err != nil {
 			return err
 		}

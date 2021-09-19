@@ -44,25 +44,24 @@ var (
 	jsonStringRE = regexp.MustCompile(`^¬[^¬]*(?:(?:¬¬)[^¬]*)*¬$`)
 )
 
-func tokenize(str string) []Token {
-	row, col := 1, 1
+func tokenize(str string, cursor *Position) []Token {
+	if cursor == nil {
+		cursor = &Position{nil, 1, 1}
+	}
 	results := make([]Token, 0, 1)
 	for _, group := range tokenizerRE.FindAllStringSubmatch(str, -1) {
 		if group[0][0] == '\n' {
-			row++
-			col = 0
+			cursor.Row++
+			cursor.Col = 0
 		}
 		if (group[1] == "") || (group[1][0] == ';') {
 			continue
 		}
 		results = append(results, Token{
-			Value: group[1],
-			Cursor: Position{
-				Row: row,
-				Col: col,
-			},
+			Value:  group[1],
+			Cursor: *cursor,
 		})
-		col += len(group[0])
+		cursor.Col += len(group[0])
 	}
 	return results
 }
@@ -118,14 +117,16 @@ func read_list(rdr Reader, start string, end string) (MalType, error) {
 	if *token != start {
 		return nil, RuntimeError{errors.New("expected '" + start + "'"), &tokenStruct.Cursor}
 	}
+	lastKnown := tokenStruct
 
 	ast_list := []MalType{}
 	tokenStruct = rdr.peek()
 	for ; true; tokenStruct = rdr.peek() {
-		token = &tokenStruct.Value
-		if token == nil {
-			return nil, RuntimeError{errors.New("expected '" + end + "', got EOF"), &tokenStruct.Cursor}
+		if tokenStruct == nil {
+			return nil, RuntimeError{errors.New("expected '" + end + "', got EOF"), &lastKnown.Cursor}
 		}
+		lastKnown = tokenStruct
+		token = &tokenStruct.Value
 		if *token == end {
 			break
 		}
@@ -231,8 +232,8 @@ func read_form(rdr Reader) (MalType, error) {
 	}
 }
 
-func Read_str(str string) (MalType, error) {
-	var tokens = tokenize(str)
+func Read_str(str string, cursor *Position) (MalType, error) {
+	var tokens = tokenize(str, cursor)
 	if len(tokens) == 0 {
 		return nil, errors.New("<empty line>")
 	}

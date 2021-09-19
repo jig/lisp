@@ -11,8 +11,9 @@ import (
 )
 
 type Position struct {
-	Row int
-	Col int
+	Module *string
+	Row    int
+	Col    int
 }
 
 type Token struct {
@@ -327,5 +328,14 @@ func (e RuntimeError) Error() string {
 	if e.Cursor.Row == 0 {
 		return e.ErrorVal.Error()
 	}
-	return fmt.Sprintf("%d:%d: %s", e.Cursor.Row, e.Cursor.Col, e.ErrorVal)
+	if e.Cursor.Col == 0 {
+		if e.Cursor.Module != nil {
+			return fmt.Sprintf("%s(L%d): %s", *e.Cursor.Module, e.Cursor.Row, e.ErrorVal)
+		}
+		return fmt.Sprintf("(L%d): %s", e.Cursor.Row, e.ErrorVal)
+	}
+	if e.Cursor.Module != nil {
+		return fmt.Sprintf("%s(L%d,%d): %s", *e.Cursor.Module, e.Cursor.Row, e.Cursor.Col, e.ErrorVal)
+	}
+	return fmt.Sprintf("(L%d,%d): %s", e.Cursor.Row, e.Cursor.Col, e.ErrorVal)
 }

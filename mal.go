@@ -12,8 +12,8 @@ import (
 )
 
 // read
-func READ(str string) (MalType, error) {
-	return reader.Read_str(str)
+func READ(str string, cursor *Position) (MalType, error) {
+	return reader.Read_str(str, cursor)
 }
 
 // eval
@@ -394,7 +394,24 @@ func REPL(repl_env EnvType, str string, ctx *context.Context) (MalType, error) {
 	var exp MalType
 	var res string
 	var e error
-	if exp, e = READ(str); e != nil {
+	if exp, e = READ(str, nil); e != nil {
+		return nil, e
+	}
+	if exp, e = EVAL(exp, repl_env, ctx); e != nil {
+		return nil, e
+	}
+	if res, e = PRINT(exp); e != nil {
+		return nil, e
+	}
+	return res, nil
+}
+
+// repl
+func REPLPosition(repl_env EnvType, str string, ctx *context.Context, cursor *Position) (MalType, error) {
+	var exp MalType
+	var res string
+	var e error
+	if exp, e = READ(str, cursor); e != nil {
 		return nil, e
 	}
 	if exp, e = EVAL(exp, repl_env, ctx); e != nil {
