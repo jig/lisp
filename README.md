@@ -51,7 +51,7 @@ go test -benchmem -benchtime 5s -bench '^.+$' github.com/jig/mal
 - Project compatible with GitHub CodeSpaces. Press `.` on your keyboard and you are ready to deploy a CodeSpace with mal in it
 - `(trace expr)` to trace the `expr` code
 - `(assert expr & optional-error)` asserts expression is not `nil` nor `false`, otherwise it success returning `nil`
-- Error are decorated with line numbers
+- Errors are decorated with line numbers
 
 # Test file specs
 
