@@ -114,7 +114,7 @@ func eval_ast(ast MalType, env EnvType, ctx *context.Context) (MalType, error) {
 			}
 			lst = append(lst, exp)
 		}
-		return List{lst, nil}, nil
+		return List{Val: lst}, nil
 	} else if Vector_Q(ast) {
 		lst := []MalType{}
 		for _, a := range ast.(Vector).Val {
@@ -124,10 +124,10 @@ func eval_ast(ast MalType, env EnvType, ctx *context.Context) (MalType, error) {
 			}
 			lst = append(lst, exp)
 		}
-		return Vector{lst, nil}, nil
+		return Vector{Val: lst}, nil
 	} else if HashMap_Q(ast) {
 		m := ast.(HashMap)
-		new_hm := HashMap{map[string]MalType{}, nil}
+		new_hm := HashMap{Val: map[string]MalType{}}
 		for k, v := range m.Val {
 			ke, e1 := EVAL(k, env, ctx)
 			if e1 != nil {
@@ -324,7 +324,7 @@ func EVAL(ast MalType, env EnvType, ctx *context.Context) (MalType, error) {
 			if len(lst) == 1 {
 				return nil, nil
 			}
-			if _, e := eval_ast(List{lst[1 : len(lst)-1], nil}, env, ctx); e != nil {
+			if _, e := eval_ast(List{Val: lst[1 : len(lst)-1]}, env, ctx); e != nil {
 				return nil, e
 			}
 			ast = lst[len(lst)-1]
@@ -343,7 +343,16 @@ func EVAL(ast MalType, env EnvType, ctx *context.Context) (MalType, error) {
 				ast = a2
 			}
 		case "fn*":
-			fn := MalFunc{EVAL, a2, env, a1, false, NewEnv, nil}
+			fn := MalFunc{
+				Eval:    EVAL,
+				Exp:     a2,
+				Env:     env,
+				Params:  a1,
+				IsMacro: false,
+				GenEnv:  NewEnv,
+				Meta:    nil,
+				Cursor:  nil,
+			}
 			return fn, nil
 		default:
 			el, e := eval_ast(ast, env, ctx)
@@ -354,7 +363,7 @@ func EVAL(ast MalType, env EnvType, ctx *context.Context) (MalType, error) {
 			if MalFunc_Q(f) {
 				fn := f.(MalFunc)
 				ast = fn.Exp
-				env, e = NewEnv(fn.Env, fn.Params, List{el.(List).Val[1:], nil})
+				env, e = NewEnv(fn.Env, fn.Params, List{Val: el.(List).Val[1:]})
 				if e != nil {
 					return nil, e
 				}

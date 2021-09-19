@@ -74,7 +74,7 @@ func time_ns(a []MalType) (MalType, error) {
 
 // Hash Map functions
 func copy_hash_map(hm HashMap) HashMap {
-	new_hm := HashMap{map[string]MalType{}, nil}
+	new_hm := HashMap{Val: map[string]MalType{}}
 	for k, v := range hm.Val {
 		new_hm.Val[k] = v
 	}
@@ -155,7 +155,7 @@ func keys(a []MalType) (MalType, error) {
 	for k, _ := range a[0].(HashMap).Val {
 		slc = append(slc, k)
 	}
-	return List{slc, nil}, nil
+	return List{Val: slc}, nil
 }
 
 func vals(a []MalType) (MalType, error) {
@@ -166,7 +166,7 @@ func vals(a []MalType) (MalType, error) {
 	for _, v := range a[0].(HashMap).Val {
 		slc = append(slc, v)
 	}
-	return List{slc, nil}, nil
+	return List{Val: slc}, nil
 }
 
 // Sequence functions
@@ -177,7 +177,7 @@ func cons(a []MalType) (MalType, error) {
 	if e != nil {
 		return nil, e
 	}
-	return List{append([]MalType{val}, lst...), nil}, nil
+	return List{Val: append([]MalType{val}, lst...)}, nil
 }
 
 func concat(a []MalType) (MalType, error) {
@@ -195,7 +195,7 @@ func concat(a []MalType) (MalType, error) {
 		}
 		slc1 = append(slc1, slc2...)
 	}
-	return List{slc1, nil}, nil
+	return List{Val: slc1}, nil
 }
 
 func vec(a []MalType) (MalType, error) {
@@ -203,7 +203,7 @@ func vec(a []MalType) (MalType, error) {
 	case Vector:
 		return obj, nil
 	case List:
-		return Vector{obj.Val, nil}, nil
+		return Vector{Val: obj.Val}, nil
 	default:
 		return nil, errors.New("vec: expects a sequence")
 	}
@@ -250,7 +250,7 @@ func rest(a []MalType) (MalType, error) {
 	if len(slc) == 0 {
 		return List{}, nil
 	}
-	return List{slc[1:], nil}, nil
+	return List{Val: slc[1:]}, nil
 }
 
 func empty_Q(a []MalType) (MalType, error) {
@@ -312,7 +312,7 @@ func do_map(a []MalType, ctx *context.Context) (MalType, error) {
 			return nil, e
 		}
 	}
-	return List{results, nil}, nil
+	return List{Val: results}, nil
 }
 
 func conj(a []MalType) (MalType, error) {
@@ -325,13 +325,13 @@ func conj(a []MalType) (MalType, error) {
 		for i := len(a) - 1; i > 0; i -= 1 {
 			new_slc = append(new_slc, a[i])
 		}
-		return List{append(new_slc, seq.Val...), nil}, nil
+		return List{Val: append(new_slc, seq.Val...)}, nil
 	case Vector:
 		new_slc := seq.Val
 		for _, x := range a[1:] {
 			new_slc = append(new_slc, x)
 		}
-		return Vector{new_slc, nil}, nil
+		return Vector{Val: new_slc}, nil
 	}
 
 	if !HashMap_Q(a[0]) {
@@ -362,7 +362,7 @@ func seq(a []MalType) (MalType, error) {
 		if len(arg.Val) == 0 {
 			return nil, nil
 		}
-		return List{arg.Val, nil}, nil
+		return List{Val: arg.Val}, nil
 	case string:
 		if len(arg) == 0 {
 			return nil, nil
@@ -371,7 +371,7 @@ func seq(a []MalType) (MalType, error) {
 		for _, ch := range strings.Split(arg, "") {
 			new_slc = append(new_slc, ch)
 		}
-		return List{new_slc, nil}, nil
+		return List{Val: new_slc}, nil
 	}
 	return nil, errors.New("seq requires string or list or vector or nil")
 }
@@ -382,13 +382,13 @@ func with_meta(a []MalType) (MalType, error) {
 	m := a[1]
 	switch tobj := obj.(type) {
 	case List:
-		return List{tobj.Val, m}, nil
+		return List{Val: tobj.Val, Meta: m}, nil
 	case Vector:
-		return Vector{tobj.Val, m}, nil
+		return Vector{Val: tobj.Val, Meta: m}, nil
 	case HashMap:
-		return HashMap{tobj.Val, m}, nil
+		return HashMap{Val: tobj.Val, Meta: m}, nil
 	case Func:
-		return Func{tobj.Fn, m}, nil
+		return Func{Fn: tobj.Fn, Meta: m}, nil
 	case MalFunc:
 		fn := tobj
 		fn.Meta = m

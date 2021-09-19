@@ -10,6 +10,16 @@ import (
 	"sync"
 )
 
+type Position struct {
+	Row int
+	Col int
+}
+
+type Token struct {
+	Value  string
+	Cursor Position
+}
+
 // Errors/Exceptions
 type MalError struct {
 	Obj MalType
@@ -81,8 +91,9 @@ func String_Q(obj MalType) bool {
 
 // Functions
 type Func struct {
-	Fn   func([]MalType, *context.Context) (MalType, error)
-	Meta MalType
+	Fn     func([]MalType, *context.Context) (MalType, error)
+	Meta   MalType
+	Cursor *Position
 }
 
 func Func_Q(obj MalType) bool {
@@ -98,6 +109,7 @@ type MalFunc struct {
 	IsMacro bool
 	GenEnv  func(EnvType, MalType, MalType) (EnvType, error)
 	Meta    MalType
+	Cursor  *Position
 }
 
 func MalFunc_Q(obj MalType) bool {
@@ -119,7 +131,7 @@ func (f MalFunc) GetMacro() bool {
 func Apply(f_mt MalType, a []MalType, ctx *context.Context) (MalType, error) {
 	switch f := f_mt.(type) {
 	case MalFunc:
-		env, e := f.GenEnv(f.Env, f.Params, List{a, nil})
+		env, e := f.GenEnv(f.Env, f.Params, List{a, nil, f.Cursor})
 		if e != nil {
 			return nil, e
 		}
@@ -135,12 +147,13 @@ func Apply(f_mt MalType, a []MalType, ctx *context.Context) (MalType, error) {
 
 // Lists
 type List struct {
-	Val  []MalType
-	Meta MalType
+	Val    []MalType
+	Meta   MalType
+	Cursor *Position
 }
 
 func NewList(a ...MalType) MalType {
-	return List{a, nil}
+	return List{Val: a}
 }
 
 func List_Q(obj MalType) bool {
@@ -150,8 +163,9 @@ func List_Q(obj MalType) bool {
 
 // Vectors
 type Vector struct {
-	Val  []MalType
-	Meta MalType
+	Val    []MalType
+	Meta   MalType
+	Cursor *Position
 }
 
 func Vector_Q(obj MalType) bool {
@@ -172,8 +186,9 @@ func GetSlice(seq MalType) ([]MalType, error) {
 
 // Hash Maps
 type HashMap struct {
-	Val  map[string]MalType
-	Meta MalType
+	Val    map[string]MalType
+	Meta   MalType
+	Cursor *Position
 }
 
 func NewHashMap(seq MalType) (MalType, error) {
@@ -192,7 +207,7 @@ func NewHashMap(seq MalType) (MalType, error) {
 		}
 		m[str] = lst[i+1]
 	}
-	return HashMap{m, nil}, nil
+	return HashMap{Val: m}, nil
 }
 
 func HashMap_Q(obj MalType) bool {
@@ -202,9 +217,10 @@ func HashMap_Q(obj MalType) bool {
 
 // Atoms
 type Atom struct {
-	Mutex sync.RWMutex
-	Val   MalType
-	Meta  MalType
+	Mutex  sync.RWMutex
+	Val    MalType
+	Meta   MalType
+	Cursor *Position
 }
 
 func (a *Atom) Set(val MalType) MalType {
@@ -297,4 +313,19 @@ func (v Vector) MarshalJSON() ([]byte, error) {
 
 func (l List) MarshalJSON() ([]byte, error) {
 	return json.Marshal(l.Val)
+}
+
+type RuntimeError struct {
+	ErrorVal error
+	Cursor   *Position
+}
+
+func (e RuntimeError) Error() string {
+	if e.Cursor == nil {
+		return e.ErrorVal.Error()
+	}
+	if e.Cursor.Row == 0 {
+		return e.ErrorVal.Error()
+	}
+	return fmt.Sprintf("%d:%d: %s", e.Cursor.Row, e.Cursor.Col, e.ErrorVal)
 }

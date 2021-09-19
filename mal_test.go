@@ -14,7 +14,7 @@ func BenchmarkLoadSymbols(b *testing.B) {
 	repl_env, _ := NewEnv(nil, nil, nil)
 	for i := 0; i < b.N; i++ {
 		for k, v := range core.NS {
-			repl_env.Set(Symbol{k}, Func{v.(func([]MalType, *context.Context) (MalType, error)), nil})
+			repl_env.Set(Symbol{k}, Func{Fn: v.(func([]MalType, *context.Context) (MalType, error))})
 		}
 	}
 }
@@ -22,12 +22,12 @@ func BenchmarkLoadSymbols(b *testing.B) {
 func BenchmarkMAL1(b *testing.B) {
 	repl_env, _ := NewEnv(nil, nil, nil)
 	for k, v := range core.NS {
-		repl_env.Set(Symbol{k}, Func{v.(func([]MalType, *context.Context) (MalType, error)), nil})
+		repl_env.Set(Symbol{k}, Func{Fn: v.(func([]MalType, *context.Context) (MalType, error))})
 	}
 	for i := 0; i < b.N; i++ {
-		repl_env.Set(Symbol{"eval"}, Func{func(a []MalType, ctx *context.Context) (MalType, error) {
+		repl_env.Set(Symbol{"eval"}, Func{Fn: func(a []MalType, ctx *context.Context) (MalType, error) {
 			return EVAL(a[0], repl_env, ctx)
-		}, nil})
+		}})
 		repl_env.Set(Symbol{"*ARGV*"}, List{})
 
 		// core.mal: defined using the language itself
@@ -41,11 +41,11 @@ func BenchmarkMAL1(b *testing.B) {
 func BenchmarkMAL2(b *testing.B) {
 	repl_env, _ := NewEnv(nil, nil, nil)
 	for k, v := range core.NS {
-		repl_env.Set(Symbol{k}, Func{v.(func([]MalType, *context.Context) (MalType, error)), nil})
+		repl_env.Set(Symbol{k}, Func{Fn: v.(func([]MalType, *context.Context) (MalType, error))})
 	}
-	repl_env.Set(Symbol{"eval"}, Func{func(a []MalType, ctx *context.Context) (MalType, error) {
+	repl_env.Set(Symbol{"eval"}, Func{Fn: func(a []MalType, ctx *context.Context) (MalType, error) {
 		return EVAL(a[0], repl_env, ctx)
-	}, nil})
+	}})
 	repl_env.Set(Symbol{"*ARGV*"}, List{})
 	for i := 0; i < b.N; i++ {
 		REPL(repl_env, `(def! not (fn* (a) (if a false true)))`, nil)
@@ -55,11 +55,11 @@ func BenchmarkMAL2(b *testing.B) {
 func BenchmarkParallelREAD(b *testing.B) {
 	repl_env, _ := NewEnv(nil, nil, nil)
 	for k, v := range core.NS {
-		repl_env.Set(Symbol{k}, Func{v.(func([]MalType, *context.Context) (MalType, error)), nil})
+		repl_env.Set(Symbol{k}, Func{Fn: v.(func([]MalType, *context.Context) (MalType, error))})
 	}
-	repl_env.Set(Symbol{"eval"}, Func{func(a []MalType, ctx *context.Context) (MalType, error) {
+	repl_env.Set(Symbol{"eval"}, Func{Fn: func(a []MalType, ctx *context.Context) (MalType, error) {
 		return EVAL(a[0], repl_env, ctx)
-	}, nil})
+	}})
 	repl_env.Set(Symbol{"*ARGV*"}, List{})
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
@@ -77,11 +77,11 @@ func BenchmarkParallelREAD(b *testing.B) {
 func BenchmarkParallelREP(b *testing.B) {
 	repl_env, _ := NewEnv(nil, nil, nil)
 	for k, v := range core.NS {
-		repl_env.Set(Symbol{k}, Func{v.(func([]MalType, *context.Context) (MalType, error)), nil})
+		repl_env.Set(Symbol{k}, Func{Fn: v.(func([]MalType, *context.Context) (MalType, error))})
 	}
-	repl_env.Set(Symbol{"eval"}, Func{func(a []MalType, ctx *context.Context) (MalType, error) {
+	repl_env.Set(Symbol{"eval"}, Func{Fn: func(a []MalType, ctx *context.Context) (MalType, error) {
 		return EVAL(a[0], repl_env, ctx)
-	}, nil})
+	}})
 	repl_env.Set(Symbol{"*ARGV*"}, List{})
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
@@ -93,11 +93,11 @@ func BenchmarkParallelREP(b *testing.B) {
 func BenchmarkREP(b *testing.B) {
 	repl_env, _ := NewEnv(nil, nil, nil)
 	for k, v := range core.NS {
-		repl_env.Set(Symbol{k}, Func{v.(func([]MalType, *context.Context) (MalType, error)), nil})
+		repl_env.Set(Symbol{k}, Func{Fn: v.(func([]MalType, *context.Context) (MalType, error))})
 	}
-	repl_env.Set(Symbol{"eval"}, Func{func(a []MalType, ctx *context.Context) (MalType, error) {
+	repl_env.Set(Symbol{"eval"}, Func{Fn: func(a []MalType, ctx *context.Context) (MalType, error) {
 		return EVAL(a[0], repl_env, ctx)
-	}, nil})
+	}})
 	repl_env.Set(Symbol{"*ARGV*"}, List{})
 	for i := 0; i < b.N; i++ {
 		REPL(repl_env, `(def! not (fn* (a) (if a false true)))`, nil)
@@ -107,7 +107,7 @@ func BenchmarkREP(b *testing.B) {
 func BenchmarkFibonacci(b *testing.B) {
 	repl_env, _ := NewEnv(nil, nil, nil)
 	for k, v := range core.NS {
-		repl_env.Set(Symbol{k}, Func{v.(func([]MalType, *context.Context) (MalType, error)), nil})
+		repl_env.Set(Symbol{k}, Func{Fn: v.(func([]MalType, *context.Context) (MalType, error))})
 	}
 	for i := 0; i < b.N; i++ {
 		REPL(repl_env, `(do
@@ -123,7 +123,7 @@ func BenchmarkFibonacci(b *testing.B) {
 func BenchmarkParallelFibonacci(b *testing.B) {
 	repl_env, _ := NewEnv(nil, nil, nil)
 	for k, v := range core.NS {
-		repl_env.Set(Symbol{k}, Func{v.(func([]MalType, *context.Context) (MalType, error)), nil})
+		repl_env.Set(Symbol{k}, Func{Fn: v.(func([]MalType, *context.Context) (MalType, error))})
 	}
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
@@ -141,7 +141,7 @@ func BenchmarkParallelFibonacci(b *testing.B) {
 func BenchmarkParallelFibonacciExec(b *testing.B) {
 	repl_env, _ := NewEnv(nil, nil, nil)
 	for k, v := range core.NS {
-		repl_env.Set(Symbol{k}, Func{v.(func([]MalType, *context.Context) (MalType, error)), nil})
+		repl_env.Set(Symbol{k}, Func{Fn: v.(func([]MalType, *context.Context) (MalType, error))})
 	}
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
@@ -161,11 +161,11 @@ func TestAtomParallel(t *testing.T) {
 
 	// core.go: defined using go
 	for k, v := range core.NS {
-		repl_env.Set(Symbol{k}, Func{v.(func([]MalType, *context.Context) (MalType, error)), nil})
+		repl_env.Set(Symbol{k}, Func{Fn: v.(func([]MalType, *context.Context) (MalType, error))})
 	}
-	repl_env.Set(Symbol{"eval"}, Func{func(a []MalType, ctx *context.Context) (MalType, error) {
+	repl_env.Set(Symbol{"eval"}, Func{Fn: func(a []MalType, ctx *context.Context) (MalType, error) {
 		return EVAL(a[0], repl_env, ctx)
-	}, nil})
+	}})
 	repl_env.Set(Symbol{"*ARGV*"}, List{})
 
 	// core.mal: defined using the language itself
@@ -197,11 +197,11 @@ func BenchmarkAtomParallel(b *testing.B) {
 
 	// core.go: defined using go
 	for k, v := range core.NS {
-		repl_env.Set(Symbol{k}, Func{v.(func([]MalType, *context.Context) (MalType, error)), nil})
+		repl_env.Set(Symbol{k}, Func{Fn: v.(func([]MalType, *context.Context) (MalType, error))})
 	}
-	repl_env.Set(Symbol{"eval"}, Func{func(a []MalType, ctx *context.Context) (MalType, error) {
+	repl_env.Set(Symbol{"eval"}, Func{Fn: func(a []MalType, ctx *context.Context) (MalType, error) {
 		return EVAL(a[0], repl_env, ctx)
-	}, nil})
+	}})
 	repl_env.Set(Symbol{"*ARGV*"}, List{})
 
 	// core.mal: defined using the language itself
