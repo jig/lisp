@@ -324,25 +324,68 @@ func (l List) MarshalJSON() ([]byte, error) {
 }
 
 type RuntimeError struct {
-	ErrorVal error
-	Cursor   *Position
+	ErrorVal error         // deep cause of the stack error
+	Trace    string        // intermediate evaluated form
+	Parent   *RuntimeError // outer stack
+	Cursor   *Position     // source code line and column
+}
+
+// Stack shows error stack. Last element on array is the original error the generated the stack
+func (e RuntimeError) Stack() []string {
+	errStack := []string{}
+	for {
+		errStack = append(errStack, Line(e.Cursor, "Trace:"+e.Trace))
+		if e.ErrorVal != nil {
+			errStack = append(errStack, e.Error())
+		}
+		if e.Parent == nil {
+			return errStack
+		}
+		e = *e.Parent
+	}
 }
 
 func (e RuntimeError) Error() string {
-	if e.Cursor == nil {
-		return e.ErrorVal.Error()
+	if e.Parent != nil {
+		return e.Parent.Error()
 	}
-	if e.Cursor.Row == 0 {
-		return e.ErrorVal.Error()
+	return Line(e.Cursor, "Error: "+e.ErrorVal.Error())
+}
+
+func (e RuntimeError) ErrorPosition() Position {
+	if e.Parent != nil {
+		return e.Parent.ErrorPosition()
 	}
-	if e.Cursor.Col == 0 {
-		if e.Cursor.Module != nil {
-			return fmt.Sprintf("%s(L%d): %s", *e.Cursor.Module, e.Cursor.Row, e.ErrorVal)
+	if e.Cursor != nil {
+		return *e.Cursor
+	}
+	return Position{}
+}
+
+const maxLengMessage = 70
+
+func Line(cursor *Position, message string) string {
+	if len(message) > maxLengMessage {
+		message = message[:maxLengMessage] + "..."
+	}
+	if cursor == nil {
+		return fmt.Sprintf("(L??): %s", message)
+	}
+	moduleName := ""
+	if cursor.Module != nil {
+		moduleName = *cursor.Module
+	}
+	if cursor.Row == 0 {
+		return fmt.Sprintf("%s(L??): %s", moduleName, message)
+	}
+	if cursor.Col == 0 {
+		if cursor.Module != nil {
+			return fmt.Sprintf("%s(L%d): %s", moduleName, cursor.Row, message)
 		}
-		return fmt.Sprintf("(L%d): %s", e.Cursor.Row, e.ErrorVal)
+		return fmt.Sprintf("(L%d): %s", cursor.Row, message)
 	}
-	if e.Cursor.Module != nil {
-		return fmt.Sprintf("%s(L%d,%d): %s", *e.Cursor.Module, e.Cursor.Row, e.Cursor.Col, e.ErrorVal)
+	if cursor.Module != nil {
+		return fmt.Sprintf("%s(L%d,%d): %s", moduleName, cursor.Row, cursor.Col, message)
 	}
-	return fmt.Sprintf("(L%d,%d): %s", e.Cursor.Row, e.Cursor.Col, e.ErrorVal)
+	return fmt.Sprintf("(L%d,%d): %s", cursor.Row, cursor.Col, message)
 }

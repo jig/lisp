@@ -60,9 +60,9 @@
 ;=>nil
 ;/^$
 (assert nil)
-;/^.+assertion failed nil$
+;/assertion failed: nil$
 (assert false)
-;/^.+assertion failed false$
+;/assertion failed: false$
 
 
 ;; with specific error

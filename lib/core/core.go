@@ -570,9 +570,9 @@ func assert(a []MalType) (MalType, error) {
 	case nil:
 		switch a0.(type) {
 		case nil:
-			return nil, errors.New("assertion failed nil")
+			return nil, errors.New("assertion failed: nil")
 		case bool:
-			return nil, errors.New("assertion failed false")
+			return nil, errors.New("assertion failed: false")
 		default:
 			return nil, errors.New("internal error")
 		}
@@ -792,6 +792,16 @@ func Call2e(f func([]MalType) (MalType, error)) func([]MalType, *context.Context
 		defer malRecover(&err)
 		if len(args) != 2 {
 			return nil, fmt.Errorf("wrong number of arguments (%d instead of 2)", len(args))
+		}
+		return f(args)
+	}
+}
+
+func Call3e(f func([]MalType) (MalType, error)) func([]MalType, *context.Context) (MalType, error) {
+	return func(args []MalType, _ *context.Context) (result MalType, err error) {
+		defer malRecover(&err)
+		if len(args) != 3 {
+			return nil, fmt.Errorf("wrong number of arguments (%d instead of 3)", len(args))
 		}
 		return f(args)
 	}

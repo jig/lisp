@@ -107,10 +107,7 @@ func eval_ast(ast MalType, env EnvType, ctx *context.Context) (MalType, error) {
 	if Symbol_Q(ast) {
 		value, err := env.Get(ast.(Symbol))
 		if err != nil {
-			return nil, RuntimeError{
-				ErrorVal: err,
-				Cursor:   ast.(Symbol).Cursor,
-			}
+			return nil, PushError(ast.(Symbol).Cursor, ast, err)
 		}
 		return value, nil
 	} else if List_Q(ast) {
@@ -118,7 +115,10 @@ func eval_ast(ast MalType, env EnvType, ctx *context.Context) (MalType, error) {
 		for _, a := range ast.(List).Val {
 			exp, e := EVAL(a, env, ctx)
 			if e != nil {
-				return nil, e
+				if a, ok := a.(List); ok {
+					return nil, PushError(a.Cursor, a, e)
+				}
+				return nil, PushError(nil, a, e)
 			}
 			lst = append(lst, exp)
 		}
@@ -128,7 +128,7 @@ func eval_ast(ast MalType, env EnvType, ctx *context.Context) (MalType, error) {
 		for _, a := range ast.(Vector).Val {
 			exp, e := EVAL(a, env, ctx)
 			if e != nil {
-				return nil, e
+				return nil, PushError(ast.(Vector).Cursor, ast, e)
 			}
 			lst = append(lst, exp)
 		}
@@ -139,14 +139,14 @@ func eval_ast(ast MalType, env EnvType, ctx *context.Context) (MalType, error) {
 		for k, v := range m.Val {
 			ke, e1 := EVAL(k, env, ctx)
 			if e1 != nil {
-				return nil, e1
+				return nil, PushError(ast.(HashMap).Cursor, ast, e1)
 			}
 			if _, ok := ke.(string); !ok {
 				return nil, errors.New("non string hash-map key")
 			}
 			kv, e2 := EVAL(v, env, ctx)
 			if e2 != nil {
-				return nil, e2
+				return nil, PushError(ast.(HashMap).Cursor, ast, e2)
 			}
 			new_hm.Val[ke.(string)] = kv
 		}
@@ -211,7 +211,7 @@ func EVAL(ast MalType, env EnvType, ctx *context.Context) (MalType, error) {
 		case "def!":
 			res, e := EVAL(a2, env, ctx)
 			if e != nil {
-				return nil, e
+				return nil, PushError(ast.(List).Cursor, ast, e)
 			}
 			switch a1 := a1.(type) {
 			case Symbol:
@@ -246,7 +246,7 @@ func EVAL(ast MalType, env EnvType, ctx *context.Context) (MalType, error) {
 				}
 				exp, e := EVAL(arr1[i+1], let_env, ctx)
 				if e != nil {
-					return nil, e
+					return nil, PushError(arr1[i].(Symbol).Cursor, arr1[i], e)
 				}
 				let_env.Set(arr1[i].(Symbol), exp)
 			}
@@ -292,7 +292,7 @@ func EVAL(ast MalType, env EnvType, ctx *context.Context) (MalType, error) {
 						case MalError:
 							exc = e.Obj
 						case RuntimeError:
-							exc = e.ErrorVal.Error()
+							exc = e.Error()
 						default:
 							exc = e.Error()
 						}
@@ -353,13 +353,13 @@ func EVAL(ast MalType, env EnvType, ctx *context.Context) (MalType, error) {
 				return nil, nil
 			}
 			if _, e := eval_ast(List{Val: lst[1 : len(lst)-1]}, env, ctx); e != nil {
-				return nil, e
+				return nil, PushError(ast.(List).Cursor, ast, e)
 			}
 			ast = lst[len(lst)-1]
 		case "if":
 			cond, e := EVAL(a1, env, ctx)
 			if e != nil {
-				return nil, e
+				return nil, PushError(ast.(List).Cursor, ast, e)
 			}
 			if cond == nil || cond == false {
 				if len(ast.(List).Val) >= 4 {
@@ -379,13 +379,13 @@ func EVAL(ast MalType, env EnvType, ctx *context.Context) (MalType, error) {
 				IsMacro: false,
 				GenEnv:  NewEnv,
 				Meta:    nil,
-				Cursor:  nil,
+				Cursor:  ast.(List).Cursor,
 			}
 			return fn, nil
 		default:
 			el, e := eval_ast(ast, env, ctx)
 			if e != nil {
-				return nil, e
+				return nil, PushError(ast.(List).Cursor, ast, e)
 			}
 			f := el.(List).Val[0]
 			if MalFunc_Q(f) {
@@ -393,7 +393,7 @@ func EVAL(ast MalType, env EnvType, ctx *context.Context) (MalType, error) {
 				ast = fn.Exp
 				env, e = NewEnv(fn.Env, fn.Params, List{Val: el.(List).Val[1:]})
 				if e != nil {
-					return nil, e
+					return nil, PushError(ast.(List).Cursor, ast, e)
 				}
 			} else {
 				fn, ok := f.(Func)
@@ -404,23 +404,38 @@ func EVAL(ast MalType, env EnvType, ctx *context.Context) (MalType, error) {
 					}
 				}
 				result, err := fn.Fn(el.(List).Val[1:], ctx)
-				switch err := err.(type) {
-				case types.MalError:
-					if err.Cursor == nil {
-						err.Cursor = a0.(Symbol).Cursor
-					}
-					return nil, err
-				default:
-					return nil, RuntimeError{
-						ErrorVal: err,
-						Cursor:   a0.(Symbol).Cursor,
-					}
-				case nil:
-					return result, nil
+				if err != nil {
+					return nil, PushError(ast.(List).Cursor, ast, err)
 				}
+				return result, nil
 			}
 		}
 	} // TCO loop
+}
+
+func PushError(cursor *Position, ast MalType, err error) error {
+	switch err := err.(type) {
+	case types.MalError:
+		if err.Cursor == nil {
+			err.Cursor = cursor
+		}
+		return err
+	case RuntimeError:
+		return RuntimeError{
+			ErrorVal: nil,
+			Parent:   &err,
+			Trace:    printer.Pr_str(ast, true),
+			Cursor:   cursor,
+		}
+	default:
+		return RuntimeError{
+			ErrorVal: err,
+			Trace:    printer.Pr_str(ast, true),
+			Cursor:   cursor,
+		}
+	case nil:
+		return nil
+	}
 }
 
 func malRecover(err *error) {

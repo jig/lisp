@@ -19,7 +19,7 @@
 ;/^.*runtime error: integer divide by zero$
 
 (try* (/ 1 0) (catch* e e))
-;=>"runtime error: integer divide by zero"
+;=>"(L1,13): Error: runtime error: integer divide by zero"
 ;/^$
 
 (context* (/ 1 0))

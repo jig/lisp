@@ -40,6 +40,7 @@ go test -benchmem -benchtime 5s -bench '^.+$' github.com/jig/lisp
 
 # Additions
 
+- Errors return line position and stack trace
 - `(range a b)` returns a vector of integers from `a` to `b-1`
 - `(merge hm1 hm2)` returns the merge of two hash maps, second takes precedence
 - `(unbase64 string)`, `(unbase64 byteString)`, `(str2binary string)`, `(binary2str byteString)` to deal with `[]byte` variables
