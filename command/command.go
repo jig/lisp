@@ -23,7 +23,7 @@ func Execute(args []string, repl_env types.EnvType) error {
 	case 1:
 		// repl loop
 		ctx := context.Background()
-		mal.REPL(repl_env, `(println (str "Mal [" *host-language* "]"))`, &ctx)
+		mal.REPL(repl_env, `(println (str "Lisp Mal [" *host-language* "]"))`, &ctx)
 		if err := repl.Execute(repl_env, &ctx); err != nil {
 			return err
 		}

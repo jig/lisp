@@ -334,7 +334,7 @@ type RuntimeError struct {
 func (e RuntimeError) Stack() []string {
 	errStack := []string{}
 	for {
-		errStack = append(errStack, Line(e.Cursor, "Trace:"+e.Trace))
+		errStack = append(errStack, Line(e.Cursor, "Trace: "+e.Trace))
 		if e.ErrorVal != nil {
 			errStack = append(errStack, e.Error())
 		}
@@ -362,11 +362,11 @@ func (e RuntimeError) ErrorPosition() Position {
 	return Position{}
 }
 
-const maxLengMessage = 70
+const maxLengMessage = 130
 
 func Line(cursor *Position, message string) string {
 	if len(message) > maxLengMessage {
-		message = message[:maxLengMessage] + "..."
+		message = message[:maxLengMessage-3] + "..."
 	}
 	if cursor == nil {
 		return fmt.Sprintf("(L??): %s", message)
