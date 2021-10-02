@@ -56,15 +56,24 @@ func Execute(args []string, repl_env types.EnvType) error {
 		}
 
 		// called with mal script to load and eval
-		ctx := context.Background()
-		result, err := mal.REPLPosition(repl_env, `(load-file "`+os.Args[1]+`")`, &ctx, &types.Position{
-			Module: &os.Args[1],
-			Row:    -3, // "ugly hack: load-file implementation is 4 lines long"
-		})
+		result, err := ExecuteFile(os.Args[1], repl_env)
 		if err != nil {
 			return err
 		}
 		fmt.Println(result)
 		return nil
 	}
+}
+
+// ExecuteFile executes a file on the given path
+func ExecuteFile(fileName string, repl_env types.EnvType) (types.MalType, error) {
+	ctx := context.Background()
+	result, err := mal.REPLPosition(repl_env, `(load-file "`+fileName+`")`, &ctx, &types.Position{
+		Module: &os.Args[1],
+		Row:    -3, // "ugly hack: load-file implementation is 4 lines long"
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result, nil
 }
