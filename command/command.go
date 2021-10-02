@@ -69,7 +69,7 @@ func Execute(args []string, repl_env types.EnvType) error {
 func ExecuteFile(fileName string, repl_env types.EnvType) (types.MalType, error) {
 	ctx := context.Background()
 	result, err := mal.REPLPosition(repl_env, `(load-file "`+fileName+`")`, &ctx, &types.Position{
-		Module: &os.Args[1],
+		Module: &fileName,
 		Row:    -3, // "ugly hack: load-file implementation is 4 lines long"
 	})
 	if err != nil {
