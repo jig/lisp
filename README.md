@@ -53,6 +53,7 @@ go test -benchmem -benchtime 5s -bench '^.+$' github.com/jig/lisp
 - `(trace expr)` to trace the `expr` code
 - `(assert expr & optional-error)` asserts expression is not `nil` nor `false`, otherwise it success returning `nil`
 - Errors are decorated with line numbers
+- `(rename-keys hm hmAlterKeys)` as in Clojure
 
 # Test file specs
 

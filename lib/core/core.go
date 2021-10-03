@@ -525,16 +525,17 @@ var NS = map[string]MalType{
 	"reset!":      Call2e(reset_BANG),
 	"swap!":       CallNeC(swap_BANG),
 
-	"range":      Call2e(rangeVector),
-	"sleep":      Call1eC(sleep),
-	"base64":     Call1e(base64encode),
-	"unbase64":   Call1e(base64decode),
-	"str2binary": Call1e(str2binary),
-	"binary2str": Call1e(binary2str),
-	"jsondecode": Call1e(jsonDecode),
-	"jsonencode": Call1e(jsonEncode),
-	"merge":      Call2e(mergeHashMap),
-	"assert":     CallNe(assert),
+	"range":       Call2e(rangeVector),
+	"sleep":       Call1eC(sleep),
+	"base64":      Call1e(base64encode),
+	"unbase64":    Call1e(base64decode),
+	"str2binary":  Call1e(str2binary),
+	"binary2str":  Call1e(binary2str),
+	"jsondecode":  Call1e(jsonDecode),
+	"jsonencode":  Call1e(jsonEncode),
+	"merge":       Call2e(mergeHashMap),
+	"assert":      CallNe(assert),
+	"rename-keys": Call2e(renameKeys),
 }
 
 var NSInput = map[string]MalType{
@@ -543,6 +544,31 @@ var NSInput = map[string]MalType{
 }
 
 // Core extended
+func renameKeys(a []MalType) (MalType, error) {
+	data, ok := a[0].(HashMap)
+	if !ok {
+		return nil, errors.New("rename-keys: first parameter must be a hash-map (data input)")
+	}
+	alternative, ok := a[1].(HashMap)
+	if !ok {
+		return nil, errors.New("rename-keys: first parameter must be a hash-map (alternative keys map)")
+	}
+	output := map[string]MalType{}
+	for k, v := range data.Val {
+		newKey, ok := alternative.Val[k]
+		if ok {
+			output[newKey.(string)] = v
+		} else {
+			output[k] = v
+		}
+	}
+	return HashMap{
+		Val:    output,
+		Meta:   data.Meta,
+		Cursor: data.Cursor,
+	}, nil
+}
+
 func assert(a []MalType) (MalType, error) {
 	var a0, a1 MalType
 	switch len(a) {
