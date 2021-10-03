@@ -211,7 +211,7 @@ func NewHashMap(seq MalType) (MalType, error) {
 	for i := 0; i < len(lst); i += 2 {
 		str, ok := lst[i].(string)
 		if !ok {
-			return nil, errors.New("expected hash-map key string")
+			return nil, fmt.Errorf("expected hash-map key string (found %T)", lst[i])
 		}
 		m[str] = lst[i+1]
 	}
