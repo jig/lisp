@@ -335,13 +335,13 @@ func conj(a []MalType) (MalType, error) {
 	}
 
 	if !HashMap_Q(a[0]) {
-		return nil, errors.New("dissoc called on non-hash map")
+		return nil, errors.New("conj called on non-hash map")
 	}
 	new_hm := copy_hash_map(a[0].(HashMap))
 	for i := 1; i < len(a); i += 1 {
 		key := a[i]
 		if !String_Q(key) {
-			return nil, errors.New("dissoc called with non-string key")
+			return nil, errors.New("conj called with non-string key")
 		}
 		delete(new_hm.Val, key.(string))
 	}
