@@ -1,7 +1,7 @@
 package nscoreextended
 
 import (
-	mal "github.com/jig/lisp"
+	"github.com/jig/lisp"
 	"github.com/jig/lisp/types"
 )
 
@@ -19,7 +19,7 @@ func Load(repl_env types.EnvType) error {
 		test_cascade,
 		load_file_once,
 	} {
-		if _, err := mal.REPL(repl_env, `(eval (read-string (str "(do "`+symbols+`" nil)"))))`, nil); err != nil {
+		if _, err := lisp.REPL(repl_env, `(eval (read-string (str "(do "`+symbols+`" nil)"))))`, nil); err != nil {
 			return err
 		}
 	}
