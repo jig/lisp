@@ -152,7 +152,7 @@ func keys(a []MalType) (MalType, error) {
 		return nil, errors.New("keys called on non-hash map")
 	}
 	slc := []MalType{}
-	for k, _ := range a[0].(HashMap).Val {
+	for k := range a[0].(HashMap).Val {
 		slc = append(slc, k)
 	}
 	return List{Val: slc}, nil
