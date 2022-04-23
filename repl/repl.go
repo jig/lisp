@@ -22,7 +22,7 @@ func Execute(repl_env types.EnvType, ctx *context.Context) error {
 	}
 	l, err := goreadline.NewEx(&goreadline.Config{
 		Prompt:          "\033[32m»\033[0m ",
-		HistoryFile:     dirname + "/.mal_history",
+		HistoryFile:     dirname + "/.lisp_history",
 		AutoComplete:    &lispCompleter{repl_env},
 		InterruptPrompt: "^C",
 		EOFPrompt:       "^D",

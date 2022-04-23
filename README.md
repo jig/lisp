@@ -7,7 +7,7 @@ Keeping 100% backwards compatibility with `kanaka/mal`.
 There almost 100 implementations on almost 100 languages available on repository [kanaka/mal](https://github.com/kanaka/mal). 
 
 This derived implementation is focused on _embedability_ in Go projects.
-See [mal main](./cmd/mal) for an example on how to embed it in Go code.
+See [lisp main](./cmd/lisp) for an example on how to embed it in Go code.
 
 Tested on Go version 1.17.
 
@@ -17,12 +17,12 @@ This implementation uses [chzyer/readline](https://github.com/chzyer/readline) i
 
 - `atom` is multithread
 - Tests executed using Go test library. Original implementation uses a `runtest.py` in Python to keep all implementations compatible. But it makes the Go development less enjoyable. Tests files are the original ones, there is simply a new `runtest_test.go` that substitutes the original Python script
-- Some tests are actually in mal, using the macros commented in _Additions_ section (now only the test library itself). Well, actually not many at this moment, see "Test file specs" below
+- Some tests are actually in lisp (mal), using the macros commented in _Additions_ section (now only the test library itself). Well, actually not many at this moment, see "Test file specs" below
 - Reader regexp's are compiled once
 - `core` library moved to `lib/core`
 - Using [chzyer/readline](https://github.com/chzyer/readline) instead of C `readline` for the mal REPL
 - Multiline REPL
-- REPL history stored in `~/.mal_history` (instead of kanaka/mal's `~/.mal-history`)
+- REPL history stored in `~/.lisp_history` (instead of kanaka/mal's `~/.mal-history`)
 - `(let* () A B C)` returns `C` as Clojure `let` instead of `A`, and evaluates `A`, `B` and `C`
 - `(do)` returns nil as Clojure instead of panicking
 
@@ -62,7 +62,7 @@ go test -benchmem -benchtime 5s -bench '^.+$' github.com/jig/lisp
 Execute the testfile with:
 
 ```bash
-$ mal --test .
+$ lisp --test .
 ```
 
 And a minimal test example `sample_test.mal`:
