@@ -152,7 +152,7 @@ func keys(a []MalType) (MalType, error) {
 		return nil, errors.New("keys called on non-hash map")
 	}
 	slc := []MalType{}
-	for k := range a[0].(HashMap).Val {
+	for k, _ := range a[0].(HashMap).Val {
 		slc = append(slc, k)
 	}
 	return List{Val: slc}, nil
@@ -321,16 +321,13 @@ func conj(a []MalType) (MalType, error) {
 	}
 	switch seq := a[0].(type) {
 	case List:
-		new_slc := append(
-			[]MalType{},
-			a[1:]...,
-		)
+		new_slc := []MalType{}
+		for i := len(a) - 1; i > 0; i -= 1 {
+			new_slc = append(new_slc, a[i])
+		}
 		return List{Val: append(new_slc, seq.Val...)}, nil
 	case Vector:
-		new_slc := seq.Val
-		for _, x := range a[1:] {
-			new_slc = append(new_slc, x)
-		}
+		new_slc := append(seq.Val, a[1:]...)
 		return Vector{Val: new_slc}, nil
 	}
 
