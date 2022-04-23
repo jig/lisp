@@ -26,24 +26,20 @@ func TestCursor2(t *testing.T) {
 	}})
 	bootEnv.Set(types.Symbol{Val: "*ARGV*"}, types.List{})
 
-	ast, err := REPLPosition(bootEnv, codeMacro, nil, &types.Position{
-		Row: 0,
-	})
+	_, err = REPLPosition(bootEnv, codeMacro, nil, &types.Position{})
 	if err != nil {
 		t.Fatal(err)
 	}
-	ast, err = REPLPosition(bootEnv, testCode, nil, &types.Position{
-		Row: 0,
-	})
+	_, err = REPLPosition(bootEnv, testCode, nil, &types.Position{})
 	switch err := err.(type) {
 	case nil:
+		t.Error("unexpected: no error returned")
 	case types.MalError:
 		t.Fatal(err)
 	case types.RuntimeError:
-		t.Fatal(err.Cursor, err)
-	}
-	if ast == nil {
-		t.Error("(no error) AST is nil")
+		if err.Cursor.Row != 12 {
+			t.Fatalf("%+v %s", err.Cursor, err)
+		}
 	}
 }
 

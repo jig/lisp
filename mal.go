@@ -137,18 +137,11 @@ func eval_ast(ast MalType, env EnvType, ctx *context.Context) (MalType, error) {
 		m := ast.(HashMap)
 		new_hm := HashMap{Val: map[string]MalType{}}
 		for k, v := range m.Val {
-			ke, e1 := EVAL(k, env, ctx)
-			if e1 != nil {
-				return nil, PushError(ast.(HashMap).Cursor, ast, e1)
-			}
-			if _, ok := ke.(string); !ok {
-				return nil, errors.New("non string hash-map key")
-			}
 			kv, e2 := EVAL(v, env, ctx)
 			if e2 != nil {
 				return nil, PushError(ast.(HashMap).Cursor, ast, e2)
 			}
-			new_hm.Val[ke.(string)] = kv
+			new_hm.Val[k] = kv
 		}
 		return new_hm, nil
 	} else {
