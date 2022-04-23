@@ -1,3 +1,5 @@
+# lisp
+
 Derived from `kanaka/mal` Go implementation of a Lisp interpreter. 
 `kanaka/mal` Lisp is _Clojure inspired_.
 
@@ -98,3 +100,7 @@ Use <kbd>Ctrl</kbd> + <kbd>D</kbd> to exit Lisp REPL.
 ```bash
 lisp helloworld.lisp
 ```
+
+# Licence
+
+This "lisp" implementation is licenced under the MPL 2.0 (Mozilla Public License 2.0). See [LICENSE](./LICENSE) for more details.
