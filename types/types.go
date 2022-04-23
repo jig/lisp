@@ -243,12 +243,12 @@ func Atom_Q(obj MalType) bool {
 
 // General functions
 
-func _obj_type(obj MalType) string {
-	if obj == nil {
-		return "nil"
-	}
-	return reflect.TypeOf(obj).Name()
-}
+// func _obj_type(obj MalType) string {
+// 	if obj == nil {
+// 		return "nil"
+// 	}
+// 	return reflect.TypeOf(obj).Name()
+// }
 
 func Sequential_Q(seq MalType) bool {
 	if seq == nil {
