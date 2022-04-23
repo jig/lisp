@@ -84,7 +84,7 @@ $ go test -bench ".+" -benchtime 2s
 
 You may generate lisp Go structures without having to parse lisp strings, by using Go `L` notation.
 
-See [./lnotation/lnotation_test.go](./lnotation/lnotation_test.go) package.
+See [./lnotation/lnotation_test.go](./lnotation/lnotation_test.go)s.
 
 # Install 
 
