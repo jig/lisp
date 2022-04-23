@@ -77,3 +77,24 @@ Some benchmark of the implementations:
 ```bash
 $ go test -bench ".+" -benchtime 2s
 ```
+
+# Install 
+
+```bash
+cd cmd/lisp
+go install
+```
+
+# Execute REPL
+
+```bash 
+lisp
+```
+
+Use <kbd>Ctrl</kbd> + <kbd>D</kbd> to exit Lisp REPL.
+
+# Execute lisp program
+
+```bash
+lisp helloworld.lisp
+```
