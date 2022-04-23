@@ -31,10 +31,18 @@ func BenchmarkMAL1(b *testing.B) {
 		repl_env.Set(Symbol{Val: "*ARGV*"}, List{})
 
 		// core.mal: defined using the language itself
-		REPL(repl_env, `(def! *host-language* "go")`, nil)
-		REPL(repl_env, `(def! not (fn* (a) (if a false true)))`, nil)
-		REPL(repl_env, `(def! load-file (fn* (f) (eval (read-string (str "(do " (slurp f) "\nnil)")))))`, nil)
-		REPL(repl_env, `(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw "odd number of forms to cond")) (cons 'cond (rest (rest xs)))))))`, nil)
+		if _, err := REPL(repl_env, `(def! *host-language* "go")`, nil); err != nil {
+			b.Fatal(err)
+		}
+		if _, err := REPL(repl_env, `(def! not (fn* (a) (if a false true)))`, nil); err != nil {
+			b.Fatal(err)
+		}
+		if _, err := REPL(repl_env, `(def! load-file (fn* (f) (eval (read-string (str "(do " (slurp f) "\nnil)")))))`, nil); err != nil {
+			b.Fatal(err)
+		}
+		if _, err := REPL(repl_env, `(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw "odd number of forms to cond")) (cons 'cond (rest (rest xs)))))))`, nil); err != nil {
+			b.Fatal(err)
+		}
 	}
 }
 
@@ -48,7 +56,9 @@ func BenchmarkMAL2(b *testing.B) {
 	}})
 	repl_env.Set(Symbol{Val: "*ARGV*"}, List{})
 	for i := 0; i < b.N; i++ {
-		REPL(repl_env, `(def! not (fn* (a) (if a false true)))`, nil)
+		if _, err := REPL(repl_env, `(def! not (fn* (a) (if a false true)))`, nil); err != nil {
+			b.Fatal(err)
+		}
 	}
 }
 
@@ -85,7 +95,9 @@ func BenchmarkParallelREP(b *testing.B) {
 	repl_env.Set(Symbol{Val: "*ARGV*"}, List{})
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
-			REPL(repl_env, `(def! not (fn* (a) (if a false true)))`, nil)
+			if _, err := REPL(repl_env, `(def! not (fn* (a) (if a false true)))`, nil); err != nil {
+				b.Fatal(err)
+			}
 		}
 	})
 }
@@ -100,7 +112,9 @@ func BenchmarkREP(b *testing.B) {
 	}})
 	repl_env.Set(Symbol{Val: "*ARGV*"}, List{})
 	for i := 0; i < b.N; i++ {
-		REPL(repl_env, `(def! not (fn* (a) (if a false true)))`, nil)
+		if _, err := REPL(repl_env, `(def! not (fn* (a) (if a false true)))`, nil); err != nil {
+			b.Fatal(err)
+		}
 	}
 }
 
@@ -110,13 +124,15 @@ func BenchmarkFibonacci(b *testing.B) {
 		repl_env.Set(Symbol{Val: k}, Func{Fn: v.(func([]MalType, *context.Context) (MalType, error))})
 	}
 	for i := 0; i < b.N; i++ {
-		REPL(repl_env, `(do
+		if _, err := REPL(repl_env, `(do
 				(def! fib
 				(fn* [n]                              ; non-negative number
 				(if (<= n 1)
 					n
 					(+ (fib (- n 1)) (fib (- n 2))))))
-				(fib 10))`, nil)
+				(fib 10))`, nil); err != nil {
+			b.Fatal(err)
+		}
 	}
 }
 
@@ -127,13 +143,15 @@ func BenchmarkParallelFibonacci(b *testing.B) {
 	}
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
-			REPL(repl_env, `(do
-				(def! fib
-				(fn* [n]                              ; non-negative number
-				(if (<= n 1)
-					n
-					(+ (fib (- n 1)) (fib (- n 2))))))
-				(fib 0))`, nil)
+			if _, err := REPL(repl_env, `(do
+					(def! fib
+					(fn* [n]                              ; non-negative number
+					(if (<= n 1)
+						n
+						(+ (fib (- n 1)) (fib (- n 2))))))
+					(fib 0))`, nil); err != nil {
+				b.Fatal(err)
+			}
 		}
 	})
 }
@@ -145,13 +163,15 @@ func BenchmarkParallelFibonacciExec(b *testing.B) {
 	}
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
-			REPL(repl_env, `(do
+			if _, err := REPL(repl_env, `(do
 				(def! fib
 				(fn* [n]                              ; non-negative number
 				(if (<= n 1)
 					n
 					(+ (fib (- n 1)) (fib (- n 2))))))
-				(fib 0))`, nil)
+				(fib 0))`, nil); err != nil {
+				b.Fatal(err)
+			}
 		}
 	})
 }
@@ -169,19 +189,33 @@ func TestAtomParallel(t *testing.T) {
 	repl_env.Set(Symbol{Val: "*ARGV*"}, List{})
 
 	// core.mal: defined using the language itself
-	REPL(repl_env, "(def! *host-language* \"go\")", nil)
-	REPL(repl_env, "(def! not (fn* (a) (if a false true)))", nil)
-	REPL(repl_env, "(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \"\nnil)\")))))", nil)
-	REPL(repl_env, "(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw \"odd number of forms to cond\")) (cons 'cond (rest (rest xs)))))))", nil)
+	if _, err := REPL(repl_env, "(def! *host-language* \"go\")", nil); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := REPL(repl_env, "(def! not (fn* (a) (if a false true)))", nil); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := REPL(repl_env, "(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \"\nnil)\")))))", nil); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := REPL(repl_env, "(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw \"odd number of forms to cond\")) (cons 'cond (rest (rest xs)))))))", nil); err != nil {
+		t.Fatal(err)
+	}
 
-	REPL(repl_env, "(def! count (atom 0))", nil)
-	REPL(repl_env, "(def! inc (fn* [x] (+ 1 x)))", nil)
+	if _, err := REPL(repl_env, "(def! count (atom 0))", nil); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := REPL(repl_env, "(def! inc (fn* [x] (+ 1 x)))", nil); err != nil {
+		t.Fatal(err)
+	}
 	wd := sync.WaitGroup{}
 	for i := 0; i < 100; i++ {
 		wd.Add(1)
 		go func() {
 			for j := 0; j < 1000; j++ {
-				REPL(repl_env, "(swap! count inc)", nil)
+				if _, err := REPL(repl_env, "(swap! count inc)", nil); err != nil {
+					return
+				}
 			}
 			wd.Done()
 		}()
@@ -205,13 +239,25 @@ func BenchmarkAtomParallel(b *testing.B) {
 	repl_env.Set(Symbol{Val: "*ARGV*"}, List{})
 
 	// core.mal: defined using the language itself
-	REPL(repl_env, "(def! *host-language* \"go\")", nil)
-	REPL(repl_env, "(def! not (fn* (a) (if a false true)))", nil)
-	REPL(repl_env, "(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \"\nnil)\")))))", nil)
-	REPL(repl_env, "(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw \"odd number of forms to cond\")) (cons 'cond (rest (rest xs)))))))", nil)
+	if _, err := REPL(repl_env, "(def! *host-language* \"go\")", nil); err != nil {
+		b.Fatal(err)
+	}
+	if _, err := REPL(repl_env, "(def! not (fn* (a) (if a false true)))", nil); err != nil {
+		b.Fatal(err)
+	}
+	if _, err := REPL(repl_env, "(def! load-file (fn* (f) (eval (read-string (str \"(do \" (slurp f) \"\nnil)\")))))", nil); err != nil {
+		b.Fatal(err)
+	}
+	if _, err := REPL(repl_env, "(defmacro! cond (fn* (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw \"odd number of forms to cond\")) (cons 'cond (rest (rest xs)))))))", nil); err != nil {
+		b.Fatal(err)
+	}
 
-	REPL(repl_env, "(def! count (atom 0))", nil)
-	REPL(repl_env, "(def! inc (fn* [x] (+ 1 x)))", nil)
+	if _, err := REPL(repl_env, "(def! count (atom 0))", nil); err != nil {
+		b.Fatal(err)
+	}
+	if _, err := REPL(repl_env, "(def! inc (fn* [x] (+ 1 x)))", nil); err != nil {
+		b.Fatal(err)
+	}
 
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {

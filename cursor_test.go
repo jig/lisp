@@ -27,8 +27,10 @@ func TestCursor(t *testing.T) {
 	bootEnv.Set(types.Symbol{Val: "*ARGV*"}, types.List{})
 
 	// core.mal: defined using the language itself
-	REPL(bootEnv, `(def! *host-language* "go")`, nil)
-
+	_, err = REPL(bootEnv, `(def! *host-language* "go")`, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
 	for _, testCase := range []struct {
 		Module string
 		Code   string
@@ -207,16 +209,16 @@ var codeTryAndThrowAndCatch = `;; throwing an error and catching
 (def! a 1234)
 `
 
-var codeTryAndThrow = `;; throwing an error and catching 
-;; must not involve program lines
+// var codeTryAndThrow = `;; throwing an error and catching
+// ;; must not involve program lines
 
-(try* 
-	abc 
-	(catch* exc 
-		(str "exc is:" exc)))
+// (try*
+// 	abc
+// 	(catch* exc
+// 		(str "exc is:" exc)))
 
-(def! a 1234)
-`
+// (def! a 1234)
+// `
 
 var codeLetIsBogus = `;; let* requires a vector with even elements
 

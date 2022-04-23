@@ -183,8 +183,8 @@ func EVAL(ast MalType, env EnvType, ctx *context.Context) (MalType, error) {
 		}
 
 		a0 := ast.(List).Val[0]
-		var a1 MalType = nil
-		var a2 MalType = nil
+		var a1 MalType
+		var a2 MalType
 		switch len(ast.(List).Val) {
 		case 1:
 			a1 = nil

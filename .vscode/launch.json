@@ -11,8 +11,7 @@
             "mode": "test",
             "program": "${workspaceFolder}",
             "args": [
-                "-test.run",
-                "TestCursor2"
+                "./..."
             ]
         },
         {

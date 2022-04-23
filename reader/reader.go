@@ -46,7 +46,7 @@ var (
 
 func tokenize(str string, cursor *Position) []Token {
 	if cursor == nil {
-		cursor = &Position{nil, 1, 1}
+		cursor = &Position{Row: 1, Col: 1}
 	}
 	results := make([]Token, 0, 1)
 	for _, group := range tokenizerRE.FindAllStringSubmatch(str, -1) {
@@ -72,14 +72,14 @@ func tokenize(str string, cursor *Position) []Token {
 func read_atom(rdr Reader) (MalType, error) {
 	tokenStruct := rdr.next()
 	if tokenStruct == nil {
-		return nil, RuntimeError{errors.New("read_atom underflow"), "", nil, &tokenStruct.Cursor}
+		return nil, RuntimeError{ErrorVal: errors.New("read_atom underflow"), Cursor: &tokenStruct.Cursor}
 	}
 	token := &tokenStruct.Value
 	if match := integerRE.MatchString(*token); match {
 		var i int
 		var e error
 		if i, e = strconv.Atoi(*token); e != nil {
-			return nil, RuntimeError{errors.New("number parse error"), "", nil, &tokenStruct.Cursor}
+			return nil, RuntimeError{ErrorVal: errors.New("number parse error"), Cursor: &tokenStruct.Cursor}
 		}
 		return i, nil
 	} else if match := stringRE.MatchString(*token); match {
@@ -92,12 +92,12 @@ func read_atom(rdr Reader) (MalType, error) {
 				`\n`, "\n", -1),
 			"\u029e", "\\", -1), nil
 	} else if (*token)[0] == '"' {
-		return nil, RuntimeError{errors.New("expected '\"', got EOF"), "", nil, &tokenStruct.Cursor}
+		return nil, RuntimeError{ErrorVal: errors.New("expected '\"', got EOF"), Cursor: &tokenStruct.Cursor}
 	} else if match := jsonStringRE.MatchString(*token); match {
 		str := (*token)[2 : len(*token)-2]
 		return strings.Replace(str, `¬¬`, `¬`, -1), nil
 	} else if (*token)[0] == '¬' {
-		return nil, RuntimeError{errors.New("expected '¬', got EOF"), "", nil, &tokenStruct.Cursor}
+		return nil, RuntimeError{ErrorVal: errors.New("expected '¬', got EOF"), Cursor: &tokenStruct.Cursor}
 	} else if (*token)[0] == ':' {
 		return NewKeyword((*token)[1:len(*token)])
 	} else if *token == "nil" {
@@ -114,11 +114,11 @@ func read_atom(rdr Reader) (MalType, error) {
 func read_list(rdr Reader, start string, end string) (MalType, error) {
 	tokenStruct := rdr.next()
 	if tokenStruct == nil {
-		return nil, RuntimeError{errors.New("read_list underflow"), "", nil, &tokenStruct.Cursor}
+		return nil, RuntimeError{ErrorVal: errors.New("read_list underflow"), Cursor: &tokenStruct.Cursor}
 	}
 	token := &tokenStruct.Value
 	if *token != start {
-		return nil, RuntimeError{errors.New("expected '" + start + "'"), "", nil, &tokenStruct.Cursor}
+		return nil, RuntimeError{ErrorVal: errors.New("expected '" + start + "'"), Cursor: &tokenStruct.Cursor}
 	}
 	lastKnown := tokenStruct
 
@@ -126,7 +126,7 @@ func read_list(rdr Reader, start string, end string) (MalType, error) {
 	tokenStruct = rdr.peek()
 	for ; true; tokenStruct = rdr.peek() {
 		if tokenStruct == nil {
-			return nil, RuntimeError{errors.New("expected '" + end + "', got EOF"), "", nil, &lastKnown.Cursor}
+			return nil, RuntimeError{ErrorVal: errors.New("expected '" + end + "', got EOF"), Cursor: &lastKnown.Cursor}
 		}
 		lastKnown = tokenStruct
 		token = &tokenStruct.Value
@@ -140,7 +140,7 @@ func read_list(rdr Reader, start string, end string) (MalType, error) {
 		ast_list = append(ast_list, f)
 	}
 	rdr.next()
-	return List{ast_list, nil, &tokenStruct.Cursor}, nil
+	return List{Val: ast_list, Cursor: &tokenStruct.Cursor}, nil
 }
 
 func read_vector(rdr Reader) (MalType, error) {
@@ -148,7 +148,7 @@ func read_vector(rdr Reader) (MalType, error) {
 	if e != nil {
 		return nil, e
 	}
-	vec := Vector{lst.(List).Val, nil, lst.(List).Cursor}
+	vec := Vector{Val: lst.(List).Val, Cursor: lst.(List).Cursor}
 	return vec, nil
 }
 
@@ -163,7 +163,7 @@ func read_hash_map(rdr Reader) (MalType, error) {
 func read_form(rdr Reader) (MalType, error) {
 	tokenStruct := rdr.peek()
 	if tokenStruct == nil {
-		return nil, RuntimeError{errors.New("read_form underflow"), "", nil, &tokenStruct.Cursor}
+		return nil, RuntimeError{ErrorVal: errors.New("read_form underflow"), Cursor: &tokenStruct.Cursor}
 	}
 	switch tokenStruct.Value {
 	case `'`:
@@ -172,28 +172,28 @@ func read_form(rdr Reader) (MalType, error) {
 		if e != nil {
 			return nil, e
 		}
-		return List{[]MalType{Symbol{Val: "quote", Cursor: &tokenStruct.Cursor}, form}, nil, &tokenStruct.Cursor}, nil
+		return List{Val: []MalType{Symbol{Val: "quote", Cursor: &tokenStruct.Cursor}, form}, Cursor: &tokenStruct.Cursor}, nil
 	case "`":
 		rdr.next()
 		form, e := read_form(rdr)
 		if e != nil {
 			return nil, e
 		}
-		return List{[]MalType{Symbol{Val: "quasiquote", Cursor: &tokenStruct.Cursor}, form}, nil, &tokenStruct.Cursor}, nil
+		return List{Val: []MalType{Symbol{Val: "quasiquote", Cursor: &tokenStruct.Cursor}, form}, Cursor: &tokenStruct.Cursor}, nil
 	case `~`:
 		rdr.next()
 		form, e := read_form(rdr)
 		if e != nil {
 			return nil, e
 		}
-		return List{[]MalType{Symbol{Val: "unquote", Cursor: &tokenStruct.Cursor}, form}, nil, &tokenStruct.Cursor}, nil
+		return List{Val: []MalType{Symbol{Val: "unquote", Cursor: &tokenStruct.Cursor}, form}, Cursor: &tokenStruct.Cursor}, nil
 	case `~@`:
 		rdr.next()
 		form, e := read_form(rdr)
 		if e != nil {
 			return nil, e
 		}
-		return List{[]MalType{Symbol{Val: "splice-unquote", Cursor: &tokenStruct.Cursor}, form}, nil, &tokenStruct.Cursor}, nil
+		return List{Val: []MalType{Symbol{Val: "splice-unquote", Cursor: &tokenStruct.Cursor}, form}, Cursor: &tokenStruct.Cursor}, nil
 	case `^`:
 		rdr.next()
 		meta, e := read_form(rdr)
@@ -204,30 +204,30 @@ func read_form(rdr Reader) (MalType, error) {
 		if e != nil {
 			return nil, e
 		}
-		return List{[]MalType{Symbol{Val: "with-meta", Cursor: &tokenStruct.Cursor}, form, meta}, nil, &tokenStruct.Cursor}, nil
+		return List{Val: []MalType{Symbol{Val: "with-meta", Cursor: &tokenStruct.Cursor}, form, meta}, Cursor: &tokenStruct.Cursor}, nil
 	case `@`:
 		rdr.next()
 		form, e := read_form(rdr)
 		if e != nil {
 			return nil, e
 		}
-		return List{[]MalType{Symbol{Val: "deref", Cursor: &tokenStruct.Cursor}, form}, nil, &tokenStruct.Cursor}, nil
+		return List{Val: []MalType{Symbol{Val: "deref", Cursor: &tokenStruct.Cursor}, form}, Cursor: &tokenStruct.Cursor}, nil
 
 	// list
 	case ")":
-		return nil, RuntimeError{errors.New("unexpected ')'"), "", nil, &tokenStruct.Cursor}
+		return nil, RuntimeError{ErrorVal: errors.New("unexpected ')'"), Cursor: &tokenStruct.Cursor}
 	case "(":
 		return read_list(rdr, "(", ")")
 
 	// vector
 	case "]":
-		return nil, RuntimeError{errors.New("unexpected ']'"), "", nil, &tokenStruct.Cursor}
+		return nil, RuntimeError{ErrorVal: errors.New("unexpected ']'"), Cursor: &tokenStruct.Cursor}
 	case "[":
 		return read_vector(rdr)
 
 	// hash-map
 	case "}":
-		return nil, RuntimeError{errors.New("unexpected '}'"), "", nil, &tokenStruct.Cursor}
+		return nil, RuntimeError{ErrorVal: errors.New("unexpected '}'"), Cursor: &tokenStruct.Cursor}
 	case "{":
 		return read_hash_map(rdr)
 	default:
