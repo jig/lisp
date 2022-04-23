@@ -369,14 +369,17 @@ func Line(cursor *Position, message string) string {
 		message = message[:maxLengMessage-3] + "..."
 	}
 	if cursor == nil {
-		return fmt.Sprintf("(L??): %s", message)
+		return message
 	}
 	moduleName := ""
 	if cursor.Module != nil {
 		moduleName = *cursor.Module
 	}
 	if cursor.Row == 0 {
-		return fmt.Sprintf("%s(L??): %s", moduleName, message)
+		if moduleName != "" {
+			return fmt.Sprintf("%s: %s", moduleName, message)
+		}
+		return message
 	}
 	if cursor.Col == 0 {
 		if cursor.Module != nil {

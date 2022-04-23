@@ -391,9 +391,27 @@ func EVAL(ast MalType, env EnvType, ctx *context.Context) (MalType, error) {
 			} else {
 				fn, ok := f.(Func)
 				if !ok {
-					return nil, RuntimeError{
-						ErrorVal: errors.New("attempt to call non-function"),
-						Cursor:   ast.(List).Cursor,
+					switch f := f.(type) {
+					case int:
+						return nil, RuntimeError{
+							ErrorVal: fmt.Errorf("attempt to call non-function (was integer %v)", f),
+							Cursor:   ast.(List).Cursor,
+						}
+					case string:
+						return nil, RuntimeError{
+							ErrorVal: fmt.Errorf("attempt to call non-function (was string %q)", f),
+							Cursor:   ast.(List).Cursor,
+						}
+					case Symbol:
+						return nil, RuntimeError{
+							ErrorVal: fmt.Errorf("attempt to call non-function (was symbol %q)", f.Val),
+							Cursor:   ast.(List).Cursor,
+						}
+					default:
+						return nil, RuntimeError{
+							ErrorVal: fmt.Errorf("attempt to call non-function (was %T)", f),
+							Cursor:   ast.(List).Cursor,
+						}
 					}
 				}
 				result, err := fn.Fn(el.(List).Val[1:], ctx)

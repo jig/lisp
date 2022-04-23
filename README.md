@@ -80,6 +80,12 @@ Some benchmark of the implementations:
 $ go test -bench ".+" -benchtime 2s
 ```
 
+# L notation
+
+You may generate lisp Go structures without having to parse lisp strings, by using Go `L` notation.
+
+See [./lnotation/lnotation_test.go](./lnotation/lnotation_test.go) package.
+
 # Install 
 
 ```bash
