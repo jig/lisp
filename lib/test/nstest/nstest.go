@@ -1,12 +1,12 @@
 package nstest
 
 import (
-	mal "github.com/jig/lisp"
+	"github.com/jig/lisp"
 	. "github.com/jig/lisp/types"
 )
 
 func Load(repl_env EnvType) error {
-	if _, err := mal.REPL(repl_env, `(eval (read-string (str "(do "`+AssertMacros+`" nil)"))))`, nil); err != nil {
+	if _, err := lisp.REPL(repl_env, `(eval (read-string (str "(do "`+AssertMacros+`" nil)"))))`, nil); err != nil {
 		return err
 	}
 	return nil

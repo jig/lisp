@@ -4,7 +4,7 @@ import (
 	"context"
 	"os"
 
-	mal "github.com/jig/lisp"
+	"github.com/jig/lisp"
 	"github.com/jig/lisp/lib/core"
 	"github.com/jig/lisp/types"
 	. "github.com/jig/lisp/types"
@@ -35,16 +35,16 @@ func Load(repl_env EnvType) error {
 		repl_env.Set(Symbol{Val: k}, Func{Fn: v.(func([]MalType, *context.Context) (MalType, error))})
 	}
 	repl_env.Set(Symbol{Val: "eval"}, Func{Fn: func(a []MalType, ctx *context.Context) (MalType, error) {
-		return mal.EVAL(a[0], repl_env, ctx)
+		return lisp.EVAL(a[0], repl_env, ctx)
 	}})
 
-	if _, err := mal.REPL(repl_env, malHostLanguage, nil); err != nil {
+	if _, err := lisp.REPL(repl_env, malHostLanguage, nil); err != nil {
 		return err
 	}
-	if _, err := mal.REPL(repl_env, malNot, nil); err != nil {
+	if _, err := lisp.REPL(repl_env, malNot, nil); err != nil {
 		return err
 	}
-	if _, err := mal.REPL(repl_env, malCond, nil); err != nil {
+	if _, err := lisp.REPL(repl_env, malCond, nil); err != nil {
 		return err
 	}
 	return nil
@@ -55,10 +55,10 @@ func LoadInput(repl_env EnvType) error {
 		repl_env.Set(Symbol{Val: k}, Func{Fn: v.(func([]MalType, *context.Context) (MalType, error))})
 	}
 	repl_env.Set(Symbol{Val: "eval"}, Func{Fn: func(a []MalType, ctx *context.Context) (MalType, error) {
-		return mal.EVAL(a[0], repl_env, ctx)
+		return lisp.EVAL(a[0], repl_env, ctx)
 	}})
 
-	if _, err := mal.REPL(repl_env, malLoadFile, nil); err != nil {
+	if _, err := lisp.REPL(repl_env, malLoadFile, nil); err != nil {
 		return err
 	}
 	return nil

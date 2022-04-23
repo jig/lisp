@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	mal "github.com/jig/lisp"
+	"github.com/jig/lisp"
 	"github.com/jig/lisp/repl"
 	"github.com/jig/lisp/types"
 )
@@ -23,7 +23,7 @@ func Execute(args []string, repl_env types.EnvType) error {
 	case 1:
 		// repl loop
 		ctx := context.Background()
-		mal.REPL(repl_env, `(println (str "Mal [" *host-language* "]"))`, &ctx)
+		lisp.REPL(repl_env, `(println (str "Lisp Mal [" *host-language* "]"))`, &ctx)
 		if err := repl.Execute(repl_env, &ctx); err != nil {
 			return err
 		}
@@ -37,10 +37,10 @@ func Execute(args []string, repl_env types.EnvType) error {
 				if !info.IsDir() {
 					if strings.HasSuffix(info.Name(), "_test.mal") {
 						testParams := fmt.Sprintf(`(def! *test-params* {:test-file %q :test-absolute-path %q})`, info.Name(), path)
-						if _, err := mal.REPL(repl_env, testParams, nil); err != nil {
+						if _, err := lisp.REPL(repl_env, testParams, nil); err != nil {
 							return err
 						}
-						if _, err := mal.REPLPosition(repl_env, `(load-file "`+path+`")`, nil, &types.Position{
+						if _, err := lisp.REPLPosition(repl_env, `(load-file "`+path+`")`, nil, &types.Position{
 							Module: &path,
 							Row:    -3, // "ugly hack: load-file implementation is 4 lines long"
 						}); err != nil {
@@ -56,15 +56,24 @@ func Execute(args []string, repl_env types.EnvType) error {
 		}
 
 		// called with mal script to load and eval
-		ctx := context.Background()
-		result, err := mal.REPLPosition(repl_env, `(load-file "`+os.Args[1]+`")`, &ctx, &types.Position{
-			Module: &os.Args[1],
-			Row:    -3, // "ugly hack: load-file implementation is 4 lines long"
-		})
+		result, err := ExecuteFile(os.Args[1], repl_env)
 		if err != nil {
 			return err
 		}
 		fmt.Println(result)
 		return nil
 	}
+}
+
+// ExecuteFile executes a file on the given path
+func ExecuteFile(fileName string, repl_env types.EnvType) (types.MalType, error) {
+	ctx := context.Background()
+	result, err := lisp.REPLPosition(repl_env, `(load-file "`+fileName+`")`, &ctx, &types.Position{
+		Module: &fileName,
+		Row:    -3, // "ugly hack: load-file implementation is 4 lines long"
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result, nil
 }

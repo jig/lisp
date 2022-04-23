@@ -10,7 +10,7 @@ import (
 	"strings"
 
 	goreadline "github.com/chzyer/readline"
-	mal "github.com/jig/lisp"
+	"github.com/jig/lisp"
 	"github.com/jig/lisp/types"
 )
 
@@ -49,7 +49,7 @@ func Execute(repl_env types.EnvType, ctx *context.Context) error {
 		line = strings.TrimSpace(line)
 		lines = append(lines, line)
 		completeLine := strings.Join(lines, "\n")
-		out, err := mal.REPL(repl_env, completeLine, ctx)
+		out, err := lisp.REPL(repl_env, completeLine, ctx)
 		if err != nil {
 			if err.Error() == "<empty line>" {
 				continue
@@ -69,7 +69,7 @@ func Execute(repl_env types.EnvType, ctx *context.Context) error {
 				fmt.Printf("\033[31mError:\033[0m %s\n", err.ErrorVal)
 				continue
 			case types.MalError:
-				errorString, err2 := mal.PRINT(err.Obj)
+				errorString, err2 := lisp.PRINT(err.Obj)
 				if err2 != nil {
 					fmt.Printf("\033[31mMalError:\033[0m %s\n", "UNPRINTABLE-ERROR")
 					continue

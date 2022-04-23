@@ -1,4 +1,4 @@
-package mal
+package lisp
 
 import (
 	"context"
@@ -93,13 +93,13 @@ func TestCursor(t *testing.T) {
 			}
 			continue
 		case types.RuntimeError:
-			if err.Cursor.Row != testCase.Error.(types.RuntimeError).Cursor.Row {
-				t.Fatal(err.ErrorVal.Error())
+			if err.ErrorPosition().Row != testCase.Error.(types.RuntimeError).Cursor.Row {
+				t.Fatal(err.Error(), err.ErrorPosition().Row, testCase.Error.(types.RuntimeError).Cursor.Row)
 			}
 			continue
 		case types.MalError:
 			if err.Cursor.Row != testCase.Error.(types.MalError).Cursor.Row {
-				t.Fatal(err.Error())
+				t.Fatal(err.Error(), err.Cursor.Row, testCase.Error.(types.MalError).Cursor.Row)
 			}
 			continue
 		default:

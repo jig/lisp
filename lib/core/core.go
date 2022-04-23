@@ -335,13 +335,13 @@ func conj(a []MalType) (MalType, error) {
 	}
 
 	if !HashMap_Q(a[0]) {
-		return nil, errors.New("dissoc called on non-hash map")
+		return nil, errors.New("conj called on non-hash map")
 	}
 	new_hm := copy_hash_map(a[0].(HashMap))
 	for i := 1; i < len(a); i += 1 {
 		key := a[i]
 		if !String_Q(key) {
-			return nil, errors.New("dissoc called with non-string key")
+			return nil, errors.New("conj called with non-string key")
 		}
 		delete(new_hm.Val, key.(string))
 	}
@@ -525,16 +525,17 @@ var NS = map[string]MalType{
 	"reset!":      Call2e(reset_BANG),
 	"swap!":       CallNeC(swap_BANG),
 
-	"range":      Call2e(rangeVector),
-	"sleep":      Call1eC(sleep),
-	"base64":     Call1e(base64encode),
-	"unbase64":   Call1e(base64decode),
-	"str2binary": Call1e(str2binary),
-	"binary2str": Call1e(binary2str),
-	"jsondecode": Call1e(jsonDecode),
-	"jsonencode": Call1e(jsonEncode),
-	"merge":      Call2e(mergeHashMap),
-	"assert":     CallNe(assert),
+	"range":       Call2e(rangeVector),
+	"sleep":       Call1eC(sleep),
+	"base64":      Call1e(base64encode),
+	"unbase64":    Call1e(base64decode),
+	"str2binary":  Call1e(str2binary),
+	"binary2str":  Call1e(binary2str),
+	"jsondecode":  Call1e(jsonDecode),
+	"jsonencode":  Call1e(jsonEncode),
+	"merge":       Call2e(mergeHashMap),
+	"assert":      CallNe(assert),
+	"rename-keys": Call2e(renameKeys),
 }
 
 var NSInput = map[string]MalType{
@@ -543,6 +544,31 @@ var NSInput = map[string]MalType{
 }
 
 // Core extended
+func renameKeys(a []MalType) (MalType, error) {
+	data, ok := a[0].(HashMap)
+	if !ok {
+		return nil, errors.New("rename-keys: first parameter must be a hash-map (data input)")
+	}
+	alternative, ok := a[1].(HashMap)
+	if !ok {
+		return nil, errors.New("rename-keys: first parameter must be a hash-map (alternative keys map)")
+	}
+	output := map[string]MalType{}
+	for k, v := range data.Val {
+		newKey, ok := alternative.Val[k]
+		if ok {
+			output[newKey.(string)] = v
+		} else {
+			output[k] = v
+		}
+	}
+	return HashMap{
+		Val:    output,
+		Meta:   data.Meta,
+		Cursor: data.Cursor,
+	}, nil
+}
+
 func assert(a []MalType) (MalType, error) {
 	var a0, a1 MalType
 	switch len(a) {
@@ -570,9 +596,9 @@ func assert(a []MalType) (MalType, error) {
 	case nil:
 		switch a0.(type) {
 		case nil:
-			return nil, errors.New("assertion failed nil")
+			return nil, errors.New("assertion failed: nil")
 		case bool:
-			return nil, errors.New("assertion failed false")
+			return nil, errors.New("assertion failed: false")
 		default:
 			return nil, errors.New("internal error")
 		}
@@ -792,6 +818,16 @@ func Call2e(f func([]MalType) (MalType, error)) func([]MalType, *context.Context
 		defer malRecover(&err)
 		if len(args) != 2 {
 			return nil, fmt.Errorf("wrong number of arguments (%d instead of 2)", len(args))
+		}
+		return f(args)
+	}
+}
+
+func Call3e(f func([]MalType) (MalType, error)) func([]MalType, *context.Context) (MalType, error) {
+	return func(args []MalType, _ *context.Context) (result MalType, err error) {
+		defer malRecover(&err)
+		if len(args) != 3 {
+			return nil, fmt.Errorf("wrong number of arguments (%d instead of 3)", len(args))
 		}
 		return f(args)
 	}

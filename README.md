@@ -40,6 +40,7 @@ go test -benchmem -benchtime 5s -bench '^.+$' github.com/jig/lisp
 
 # Additions
 
+- Errors return line position and stack trace
 - `(range a b)` returns a vector of integers from `a` to `b-1`
 - `(merge hm1 hm2)` returns the merge of two hash maps, second takes precedence
 - `(unbase64 string)`, `(unbase64 byteString)`, `(str2binary string)`, `(binary2str byteString)` to deal with `[]byte` variables
@@ -52,6 +53,7 @@ go test -benchmem -benchtime 5s -bench '^.+$' github.com/jig/lisp
 - `(trace expr)` to trace the `expr` code
 - `(assert expr & optional-error)` asserts expression is not `nil` nor `false`, otherwise it success returning `nil`
 - Errors are decorated with line numbers
+- `(rename-keys hm hmAlterKeys)` as in Clojure
 
 # Test file specs
 
@@ -74,4 +76,25 @@ Some benchmark of the implementations:
 
 ```bash
 $ go test -bench ".+" -benchtime 2s
+```
+
+# Install 
+
+```bash
+cd cmd/lisp
+go install
+```
+
+# Execute REPL
+
+```bash 
+lisp
+```
+
+Use <kbd>Ctrl</kbd> + <kbd>D</kbd> to exit Lisp REPL.
+
+# Execute lisp program
+
+```bash
+lisp helloworld.lisp
 ```
