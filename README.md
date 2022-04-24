@@ -122,6 +122,8 @@ var (
     prn = S("prn")
     str = S("str")
 )
+
+// (prn (str "hello" " " "world!"))
 sampleCode := L(prn, L(str, "hello", " ", "world!"))
 
 EVAL(sampleCode, newTestEnv(), nil)
