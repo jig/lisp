@@ -6,7 +6,7 @@ Derived from `kanaka/mal` Go implementation of a Lisp interpreter.
 Keeping 100% backwards compatibility with `kanaka/mal`. 
 There almost 100 implementations on almost 100 languages available on repository [kanaka/mal](https://github.com/kanaka/mal). 
 
-This derived implementation is focused on _embedability_ in Go projects.
+This derived implementation is focused on _embeddability_ in Go projects.
 See [lisp main](./cmd/lisp) for an example on how to embed it in Go code.
 
 Tested on Go version 1.17.
@@ -14,6 +14,8 @@ Tested on Go version 1.17.
 This implementation uses [chzyer/readline](https://github.com/chzyer/readline) instead of C implented readline or libedit, making this implementation pure Go.
 
 # Changes
+
+Changes respect to [kanaka/mal](https://github.com/kanaka/mal):
 
 - `atom` is multithread
 - Tests executed using Go test library. Original implementation uses a `runtest.py` in Python to keep all implementations compatible. But it makes the Go development less enjoyable. Tests files are the original ones, there is simply a new `runtest_test.go` that substitutes the original Python script
@@ -57,6 +59,77 @@ go test -benchmem -benchtime 5s -bench '^.+$' github.com/jig/lisp
 - Errors are decorated with line numbers
 - `(rename-keys hm hmAlterKeys)` as in Clojure
 
+# Embed Lisp in Go code
+
+You execute lisp from Go code and get results from it back to Go. Example from [./example_test/example_test.go](./example_test/example_test.go):
+
+```go
+func ExampleEVAL() {
+	newEnv, err := env.NewEnv(nil, nil, nil)
+	if err != nil {
+		log.Fatalf("Environment Setup Error: %v", err)
+	}
+
+	// Load required lisp libraries
+	for _, library := range []struct {
+		name string
+		load func(newEnv types.EnvType) error
+	}{
+		{"core mal", nscore.Load},
+		{"core mal with input", nscore.LoadInput},
+		{"command line args", nscore.LoadCmdLineArgs},
+		{"core mal extended", nscoreextended.Load},
+		{"test", nstest.Load},
+	} {
+		if err := library.load(newEnv); err != nil {
+			log.Fatalf("Library Load Error: %v", err)
+		}
+	}
+
+	// parse (READ) lisp code
+	ast, err := lisp.READ(`(+ 2 2)`, nil)
+	if err != nil {
+		log.Fatalf("READ error: %v", err)
+	}
+
+	// eval AST
+	result, err := lisp.EVAL(ast, newEnv, nil)
+	if err != nil {
+		log.Fatalf("EVAL error: %v", err)
+	}
+
+	// use result
+	if result.(int) != 4 {
+		log.Fatalf("Result check error: %v", err)
+	}
+
+	// optionally print resulting AST
+	resultString, err := lisp.PRINT(result)
+	if err != nil {
+		log.Fatalf("PRINT error: %v", err)
+	}
+	fmt.Println(resultString)
+	// Output: 4
+}
+```
+
+# L notation
+
+You may generate lisp Go structures without having to parse lisp strings, by using Go `L` notation.
+
+```go
+	var (
+		prn = S("prn")
+		str = S("str")
+	)
+	
+    sampleCode := L(prn, L(str, "hello", " ", "world!"))
+
+	EVAL(sampleCode, newTestEnv(), nil)
+```
+
+See [./helloworldlnotationexample_test.go](./helloworldlnotationexample_test.go) and [./lnotation/lnotation_test.go](./lnotation/lnotation_test.go).
+
 # Test file specs
 
 Execute the testfile with:
@@ -79,12 +152,6 @@ Some benchmark of the implementations:
 ```bash
 $ go test -bench ".+" -benchtime 2s
 ```
-
-# L notation
-
-You may generate lisp Go structures without having to parse lisp strings, by using Go `L` notation.
-
-See [./lnotation/lnotation_test.go](./lnotation/lnotation_test.go)s.
 
 # Install 
 
