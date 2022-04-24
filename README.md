@@ -118,14 +118,13 @@ func ExampleEVAL() {
 You may generate lisp Go structures without having to parse lisp strings, by using Go `L` notation.
 
 ```go
-	var (
-		prn = S("prn")
-		str = S("str")
-	)
-	
-    sampleCode := L(prn, L(str, "hello", " ", "world!"))
+var (
+    prn = S("prn")
+    str = S("str")
+)
+sampleCode := L(prn, L(str, "hello", " ", "world!"))
 
-	EVAL(sampleCode, newTestEnv(), nil)
+EVAL(sampleCode, newTestEnv(), nil)
 ```
 
 See [./helloworldlnotationexample_test.go](./helloworldlnotationexample_test.go) and [./lnotation/lnotation_test.go](./lnotation/lnotation_test.go).
