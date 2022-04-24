@@ -175,4 +175,4 @@ lisp helloworld.lisp
 
 # Licence
 
-This "lisp" implementation is licenced under the MPL 2.0 (Mozilla Public License 2.0). See [LICENSE](./LICENSE) for more details.
+This "lisp" implementation is licensed under the MPL 2.0 (Mozilla Public License 2.0). See [LICENCE](./LICENCE) for more details.
