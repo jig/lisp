@@ -8,7 +8,6 @@ import (
 	. "github.com/jig/lisp/env"
 	"github.com/jig/lisp/printer"
 	"github.com/jig/lisp/reader"
-	"github.com/jig/lisp/types"
 	. "github.com/jig/lisp/types"
 )
 
@@ -426,7 +425,7 @@ func EVAL(ast MalType, env EnvType, ctx *context.Context) (MalType, error) {
 
 func PushError(cursor *Position, ast MalType, err error) error {
 	switch err := err.(type) {
-	case types.MalError:
+	case MalError:
 		if err.Cursor == nil {
 			err.Cursor = cursor
 		}
