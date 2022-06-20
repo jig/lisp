@@ -789,7 +789,7 @@ func rangeVector(a []MalType) (MalType, error) {
 	return Vector{Val: value}, nil
 }
 
-// callXX functions check the number of arguments
+// Call0e returns a function that checks there are 0 arguments and calls f
 func Call0e(f func([]MalType) (MalType, error)) func([]MalType, *context.Context) (MalType, error) {
 	return func(args []MalType, _ *context.Context) (result MalType, err error) {
 		defer malRecover(&err)
@@ -800,6 +800,7 @@ func Call0e(f func([]MalType) (MalType, error)) func([]MalType, *context.Context
 	}
 }
 
+// Call1e returns a function that checks there is 1 argument and calls f
 func Call1e(f func([]MalType) (MalType, error)) func([]MalType, *context.Context) (MalType, error) {
 	return func(args []MalType, _ *context.Context) (result MalType, err error) {
 		defer malRecover(&err)
@@ -810,6 +811,7 @@ func Call1e(f func([]MalType) (MalType, error)) func([]MalType, *context.Context
 	}
 }
 
+// Call2e returns a function that checks there are 2 arguments and calls f
 func Call2e(f func([]MalType) (MalType, error)) func([]MalType, *context.Context) (MalType, error) {
 	return func(args []MalType, _ *context.Context) (result MalType, err error) {
 		defer malRecover(&err)
@@ -820,6 +822,7 @@ func Call2e(f func([]MalType) (MalType, error)) func([]MalType, *context.Context
 	}
 }
 
+// Call3e returns a function that checks there are 3 arguments and calls f
 func Call3e(f func([]MalType) (MalType, error)) func([]MalType, *context.Context) (MalType, error) {
 	return func(args []MalType, _ *context.Context) (result MalType, err error) {
 		defer malRecover(&err)
@@ -830,6 +833,7 @@ func Call3e(f func([]MalType) (MalType, error)) func([]MalType, *context.Context
 	}
 }
 
+// CallNe returns a function that checks there are N arguments and calls f... so it does not check anything
 func CallNe(f func([]MalType) (MalType, error)) func([]MalType, *context.Context) (MalType, error) {
 	// just for documenting purposes, does not check anything
 	return func(args []MalType, _ *context.Context) (result MalType, err error) {
@@ -838,6 +842,7 @@ func CallNe(f func([]MalType) (MalType, error)) func([]MalType, *context.Context
 	}
 }
 
+// Call1b returns a function that checks there is 1 argument and calls f func() bool
 func Call1b(f func(MalType) bool) func([]MalType, *context.Context) (MalType, error) {
 	return func(args []MalType, _ *context.Context) (result MalType, err error) {
 		defer malRecover(&err)
@@ -848,6 +853,7 @@ func Call1b(f func(MalType) bool) func([]MalType, *context.Context) (MalType, er
 	}
 }
 
+// Call2b returns a function that checks there are 2 arguments and calls f func() bool
 func Call2b(f func(MalType, MalType) bool) func([]MalType, *context.Context) (MalType, error) {
 	return func(args []MalType, _ *context.Context) (result MalType, err error) {
 		defer malRecover(&err)
@@ -858,6 +864,7 @@ func Call2b(f func(MalType, MalType) bool) func([]MalType, *context.Context) (Ma
 	}
 }
 
+// CallNeC returns a function that checks there are N arguments and calls f (that requires *context.Context)
 func CallNeC(f func([]MalType, *context.Context) (MalType, error)) func([]MalType, *context.Context) (MalType, error) {
 	// just for documenting purposes, does not check anything
 	return func(args []MalType, ctx *context.Context) (result MalType, err error) {
@@ -866,6 +873,7 @@ func CallNeC(f func([]MalType, *context.Context) (MalType, error)) func([]MalTyp
 	}
 }
 
+// Call0eC returns a function that checks there are 0 arguments and calls f (that requires *context.Context)
 func Call0eC(f func([]MalType, *context.Context) (MalType, error)) func([]MalType, *context.Context) (MalType, error) {
 	return func(args []MalType, ctx *context.Context) (result MalType, err error) {
 		defer malRecover(&err)
@@ -876,6 +884,7 @@ func Call0eC(f func([]MalType, *context.Context) (MalType, error)) func([]MalTyp
 	}
 }
 
+// Call1eC returns a function that checks there is 1 argument and calls f (that requires *context.Context)
 func Call1eC(f func([]MalType, *context.Context) (MalType, error)) func([]MalType, *context.Context) (MalType, error) {
 	return func(args []MalType, ctx *context.Context) (result MalType, err error) {
 		defer malRecover(&err)
@@ -886,6 +895,7 @@ func Call1eC(f func([]MalType, *context.Context) (MalType, error)) func([]MalTyp
 	}
 }
 
+// Call2eC returns a function that checks there are 2 arguments and calls f (that requires *context.Context)
 func Call2eC(f func([]MalType, *context.Context) (MalType, error)) func([]MalType, *context.Context) (MalType, error) {
 	return func(args []MalType, ctx *context.Context) (result MalType, err error) {
 		defer malRecover(&err)
