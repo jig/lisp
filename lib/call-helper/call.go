@@ -124,7 +124,7 @@ func Call2eC(f func([]MalType, *context.Context) (MalType, error)) func([]MalTyp
 	}
 }
 
-// Call2eC returns a function that checks there are 2 arguments and calls f (that requires *context.Context)
+// Call3eC returns a function that checks there are 2 arguments and calls f (that requires *context.Context)
 func Call3eC(f func([]MalType, *context.Context) (MalType, error)) func([]MalType, *context.Context) (MalType, error) {
 	return func(args []MalType, ctx *context.Context) (result MalType, err error) {
 		defer malRecover(&err)
