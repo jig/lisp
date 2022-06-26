@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/jig/lisp/lib/call-helper"
 	"github.com/jig/lisp/printer"
 	"github.com/jig/lisp/reader"
 
@@ -455,89 +456,89 @@ func swap_BANG(a []MalType, ctx *context.Context) (MalType, error) {
 
 // core namespace
 var NS = map[string]MalType{
-	"=":       Call2b(Equal_Q),
-	"throw":   Call1e(throw),
-	"nil?":    Call1b(Nil_Q),
-	"true?":   Call1b(True_Q),
-	"false?":  Call1b(False_Q),
-	"symbol":  Call1e(func(a []MalType) (MalType, error) { return Symbol{Val: a[0].(string)}, nil }),
-	"symbol?": Call1b(Symbol_Q),
-	"string?": Call1e(func(a []MalType) (MalType, error) { return (String_Q(a[0]) && !Keyword_Q(a[0])), nil }),
-	"keyword": Call1e(func(a []MalType) (MalType, error) {
+	"=":       call.Call2b(Equal_Q),
+	"throw":   call.Call1e(throw),
+	"nil?":    call.Call1b(Nil_Q),
+	"true?":   call.Call1b(True_Q),
+	"false?":  call.Call1b(False_Q),
+	"symbol":  call.Call1e(func(a []MalType) (MalType, error) { return Symbol{Val: a[0].(string)}, nil }),
+	"symbol?": call.Call1b(Symbol_Q),
+	"string?": call.Call1e(func(a []MalType) (MalType, error) { return (String_Q(a[0]) && !Keyword_Q(a[0])), nil }),
+	"keyword": call.Call1e(func(a []MalType) (MalType, error) {
 		if Keyword_Q(a[0]) {
 			return a[0], nil
 		} else {
 			return NewKeyword(a[0].(string))
 		}
 	}),
-	"keyword?":    Call1b(Keyword_Q),
-	"number?":     Call1b(Number_Q),
-	"fn?":         Call1e(fn_q),
-	"macro?":      Call1e(func(a []MalType) (MalType, error) { return MalFunc_Q(a[0]) && a[0].(MalFunc).GetMacro(), nil }),
-	"pr-str":      CallNe(pr_str),
-	"str":         CallNe(str),
-	"prn":         CallNe(prn),
-	"println":     CallNe(println),
-	"read-string": Call1e(func(a []MalType) (MalType, error) { return reader.Read_str(a[0].(string), nil) }),
-	"<":           Call2e(func(a []MalType) (MalType, error) { return a[0].(int) < a[1].(int), nil }),
-	"<=":          Call2e(func(a []MalType) (MalType, error) { return a[0].(int) <= a[1].(int), nil }),
-	">":           Call2e(func(a []MalType) (MalType, error) { return a[0].(int) > a[1].(int), nil }),
-	">=":          Call2e(func(a []MalType) (MalType, error) { return a[0].(int) >= a[1].(int), nil }),
-	"+":           Call2e(func(a []MalType) (MalType, error) { return a[0].(int) + a[1].(int), nil }),
-	"-":           Call2e(func(a []MalType) (MalType, error) { return a[0].(int) - a[1].(int), nil }),
-	"*":           Call2e(func(a []MalType) (MalType, error) { return a[0].(int) * a[1].(int), nil }),
-	"/":           Call2e(func(a []MalType) (MalType, error) { return a[0].(int) / a[1].(int), nil }),
-	"time-ms":     Call0e(time_ms),
-	"time-ns":     Call0e(time_ns),
-	"list":        CallNe(func(a []MalType) (MalType, error) { return List{Val: a}, nil }),
-	"list?":       Call1b(List_Q),
-	"vector":      CallNe(func(a []MalType) (MalType, error) { return Vector{Val: a}, nil }),
-	"vector?":     Call1b(Vector_Q),
-	"hash-map":    CallNe(func(a []MalType) (MalType, error) { return NewHashMap(List{Val: a}) }),
-	"map?":        Call1b(HashMap_Q),
-	"assoc":       CallNe(assoc),  // at least 3
-	"dissoc":      CallNe(dissoc), // at least 2
-	"get":         Call2e(get),
-	"contains?":   Call2e(func(a []MalType) (MalType, error) { return contains_Q(a[0], a[1]) }),
-	"keys":        Call1e(keys),
-	"vals":        Call1e(vals),
-	"sequential?": Call1b(Sequential_Q),
-	"cons":        Call2e(cons),
-	"concat":      CallNe(concat),
-	"vec":         Call1e(vec),
-	"nth":         Call2e(nth),
-	"first":       Call1e(first),
-	"rest":        Call1e(rest),
-	"empty?":      Call1e(empty_Q),
-	"count":       Call1e(count),
-	"apply":       CallNeC(apply), // at least 2
-	"map":         Call2eC(do_map),
-	"conj":        CallNe(conj), // at least 2
-	"seq":         Call1e(seq),
-	"with-meta":   Call2e(with_meta),
-	"meta":        Call1e(meta),
-	"atom":        Call1e(func(a []MalType) (MalType, error) { return &Atom{Val: a[0]}, nil }),
-	"atom?":       Call1b(Atom_Q),
-	"deref":       Call1e(deref),
-	"reset!":      Call2e(reset_BANG),
-	"swap!":       CallNeC(swap_BANG),
+	"keyword?":    call.Call1b(Keyword_Q),
+	"number?":     call.Call1b(Number_Q),
+	"fn?":         call.Call1e(fn_q),
+	"macro?":      call.Call1e(func(a []MalType) (MalType, error) { return MalFunc_Q(a[0]) && a[0].(MalFunc).GetMacro(), nil }),
+	"pr-str":      call.CallNe(pr_str),
+	"str":         call.CallNe(str),
+	"prn":         call.CallNe(prn),
+	"println":     call.CallNe(println),
+	"read-string": call.Call1e(func(a []MalType) (MalType, error) { return reader.Read_str(a[0].(string), nil) }),
+	"<":           call.Call2e(func(a []MalType) (MalType, error) { return a[0].(int) < a[1].(int), nil }),
+	"<=":          call.Call2e(func(a []MalType) (MalType, error) { return a[0].(int) <= a[1].(int), nil }),
+	">":           call.Call2e(func(a []MalType) (MalType, error) { return a[0].(int) > a[1].(int), nil }),
+	">=":          call.Call2e(func(a []MalType) (MalType, error) { return a[0].(int) >= a[1].(int), nil }),
+	"+":           call.Call2e(func(a []MalType) (MalType, error) { return a[0].(int) + a[1].(int), nil }),
+	"-":           call.Call2e(func(a []MalType) (MalType, error) { return a[0].(int) - a[1].(int), nil }),
+	"*":           call.Call2e(func(a []MalType) (MalType, error) { return a[0].(int) * a[1].(int), nil }),
+	"/":           call.Call2e(func(a []MalType) (MalType, error) { return a[0].(int) / a[1].(int), nil }),
+	"time-ms":     call.Call0e(time_ms),
+	"time-ns":     call.Call0e(time_ns),
+	"list":        call.CallNe(func(a []MalType) (MalType, error) { return List{Val: a}, nil }),
+	"list?":       call.Call1b(List_Q),
+	"vector":      call.CallNe(func(a []MalType) (MalType, error) { return Vector{Val: a}, nil }),
+	"vector?":     call.Call1b(Vector_Q),
+	"hash-map":    call.CallNe(func(a []MalType) (MalType, error) { return NewHashMap(List{Val: a}) }),
+	"map?":        call.Call1b(HashMap_Q),
+	"assoc":       call.CallNe(assoc),  // at least 3
+	"dissoc":      call.CallNe(dissoc), // at least 2
+	"get":         call.Call2e(get),
+	"contains?":   call.Call2e(func(a []MalType) (MalType, error) { return contains_Q(a[0], a[1]) }),
+	"keys":        call.Call1e(keys),
+	"vals":        call.Call1e(vals),
+	"sequential?": call.Call1b(Sequential_Q),
+	"cons":        call.Call2e(cons),
+	"concat":      call.CallNe(concat),
+	"vec":         call.Call1e(vec),
+	"nth":         call.Call2e(nth),
+	"first":       call.Call1e(first),
+	"rest":        call.Call1e(rest),
+	"empty?":      call.Call1e(empty_Q),
+	"count":       call.Call1e(count),
+	"apply":       call.CallNeC(apply), // at least 2
+	"map":         call.Call2eC(do_map),
+	"conj":        call.CallNe(conj), // at least 2
+	"seq":         call.Call1e(seq),
+	"with-meta":   call.Call2e(with_meta),
+	"meta":        call.Call1e(meta),
+	"atom":        call.Call1e(func(a []MalType) (MalType, error) { return &Atom{Val: a[0]}, nil }),
+	"atom?":       call.Call1b(Atom_Q),
+	"deref":       call.Call1e(deref),
+	"reset!":      call.Call2e(reset_BANG),
+	"swap!":       call.CallNeC(swap_BANG),
 
-	"range":       Call2e(rangeVector),
-	"sleep":       Call1eC(sleep),
-	"base64":      Call1e(base64encode),
-	"unbase64":    Call1e(base64decode),
-	"str2binary":  Call1e(str2binary),
-	"binary2str":  Call1e(binary2str),
-	"jsondecode":  Call1e(jsonDecode),
-	"jsonencode":  Call1e(jsonEncode),
-	"merge":       Call2e(mergeHashMap),
-	"assert":      CallNe(assert),
-	"rename-keys": Call2e(renameKeys),
+	"range":       call.Call2e(rangeVector),
+	"sleep":       call.Call1eC(sleep),
+	"base64":      call.Call1e(base64encode),
+	"unbase64":    call.Call1e(base64decode),
+	"str2binary":  call.Call1e(str2binary),
+	"binary2str":  call.Call1e(binary2str),
+	"jsondecode":  call.Call1e(jsonDecode),
+	"jsonencode":  call.Call1e(jsonEncode),
+	"merge":       call.Call2e(mergeHashMap),
+	"assert":      call.CallNe(assert),
+	"rename-keys": call.Call2e(renameKeys),
 }
 
 var NSInput = map[string]MalType{
-	"slurp":    Call1e(slurp),
-	"readline": Call1e(readLine),
+	"slurp":    call.Call1e(slurp),
+	"readline": call.Call1e(readLine),
 }
 
 // Core extended
@@ -787,127 +788,4 @@ func rangeVector(a []MalType) (MalType, error) {
 		value = append(value, i)
 	}
 	return Vector{Val: value}, nil
-}
-
-// Call0e returns a function that checks there are 0 arguments and calls f
-func Call0e(f func([]MalType) (MalType, error)) func([]MalType, *context.Context) (MalType, error) {
-	return func(args []MalType, _ *context.Context) (result MalType, err error) {
-		defer malRecover(&err)
-		if len(args) != 0 {
-			return nil, fmt.Errorf("wrong number of arguments (%d instead of 0)", len(args))
-		}
-		return f(args)
-	}
-}
-
-// Call1e returns a function that checks there is 1 argument and calls f
-func Call1e(f func([]MalType) (MalType, error)) func([]MalType, *context.Context) (MalType, error) {
-	return func(args []MalType, _ *context.Context) (result MalType, err error) {
-		defer malRecover(&err)
-		if len(args) != 1 {
-			return nil, fmt.Errorf("wrong number of arguments (%d instead of 1)", len(args))
-		}
-		return f(args)
-	}
-}
-
-// Call2e returns a function that checks there are 2 arguments and calls f
-func Call2e(f func([]MalType) (MalType, error)) func([]MalType, *context.Context) (MalType, error) {
-	return func(args []MalType, _ *context.Context) (result MalType, err error) {
-		defer malRecover(&err)
-		if len(args) != 2 {
-			return nil, fmt.Errorf("wrong number of arguments (%d instead of 2)", len(args))
-		}
-		return f(args)
-	}
-}
-
-// Call3e returns a function that checks there are 3 arguments and calls f
-func Call3e(f func([]MalType) (MalType, error)) func([]MalType, *context.Context) (MalType, error) {
-	return func(args []MalType, _ *context.Context) (result MalType, err error) {
-		defer malRecover(&err)
-		if len(args) != 3 {
-			return nil, fmt.Errorf("wrong number of arguments (%d instead of 3)", len(args))
-		}
-		return f(args)
-	}
-}
-
-// CallNe returns a function that checks there are N arguments and calls f... so it does not check anything
-func CallNe(f func([]MalType) (MalType, error)) func([]MalType, *context.Context) (MalType, error) {
-	// just for documenting purposes, does not check anything
-	return func(args []MalType, _ *context.Context) (result MalType, err error) {
-		defer malRecover(&err)
-		return f(args)
-	}
-}
-
-// Call1b returns a function that checks there is 1 argument and calls f func() bool
-func Call1b(f func(MalType) bool) func([]MalType, *context.Context) (MalType, error) {
-	return func(args []MalType, _ *context.Context) (result MalType, err error) {
-		defer malRecover(&err)
-		if len(args) != 1 {
-			return nil, fmt.Errorf("wrong number of arguments (%d instead of 1)", len(args))
-		}
-		return f(args[0]), nil
-	}
-}
-
-// Call2b returns a function that checks there are 2 arguments and calls f func() bool
-func Call2b(f func(MalType, MalType) bool) func([]MalType, *context.Context) (MalType, error) {
-	return func(args []MalType, _ *context.Context) (result MalType, err error) {
-		defer malRecover(&err)
-		if len(args) != 2 {
-			return nil, fmt.Errorf("wrong number of arguments (%d instead of 2)", len(args))
-		}
-		return f(args[0], args[1]), nil
-	}
-}
-
-// CallNeC returns a function that checks there are N arguments and calls f (that requires *context.Context)
-func CallNeC(f func([]MalType, *context.Context) (MalType, error)) func([]MalType, *context.Context) (MalType, error) {
-	// just for documenting purposes, does not check anything
-	return func(args []MalType, ctx *context.Context) (result MalType, err error) {
-		defer malRecover(&err)
-		return f(args, ctx)
-	}
-}
-
-// Call0eC returns a function that checks there are 0 arguments and calls f (that requires *context.Context)
-func Call0eC(f func([]MalType, *context.Context) (MalType, error)) func([]MalType, *context.Context) (MalType, error) {
-	return func(args []MalType, ctx *context.Context) (result MalType, err error) {
-		defer malRecover(&err)
-		if len(args) != 0 {
-			return nil, fmt.Errorf("wrong number of arguments (%d instead of 0", len(args))
-		}
-		return f(args, ctx)
-	}
-}
-
-// Call1eC returns a function that checks there is 1 argument and calls f (that requires *context.Context)
-func Call1eC(f func([]MalType, *context.Context) (MalType, error)) func([]MalType, *context.Context) (MalType, error) {
-	return func(args []MalType, ctx *context.Context) (result MalType, err error) {
-		defer malRecover(&err)
-		if len(args) != 1 {
-			return nil, fmt.Errorf("wrong number of arguments (%d instead of 1)", len(args))
-		}
-		return f(args, ctx)
-	}
-}
-
-// Call2eC returns a function that checks there are 2 arguments and calls f (that requires *context.Context)
-func Call2eC(f func([]MalType, *context.Context) (MalType, error)) func([]MalType, *context.Context) (MalType, error) {
-	return func(args []MalType, ctx *context.Context) (result MalType, err error) {
-		defer malRecover(&err)
-		if len(args) != 2 {
-			return nil, fmt.Errorf("wrong number of arguments (%d instead of 2)", len(args))
-		}
-		return f(args, ctx)
-	}
-}
-
-func malRecover(err *error) {
-	if rerr := recover(); rerr != nil {
-		*err = rerr.(error)
-	}
 }
