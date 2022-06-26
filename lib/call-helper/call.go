@@ -135,6 +135,17 @@ func Call3eC(f func([]MalType, *context.Context) (MalType, error)) func([]MalTyp
 	}
 }
 
+// Call4eC returns a function that checks there are 2 arguments and calls f (that requires *context.Context)
+func Call4eC(f func([]MalType, *context.Context) (MalType, error)) func([]MalType, *context.Context) (MalType, error) {
+	return func(args []MalType, ctx *context.Context) (result MalType, err error) {
+		defer malRecover(&err)
+		if len(args) != 4 {
+			return nil, fmt.Errorf("wrong number of arguments (%d instead of 4)", len(args))
+		}
+		return f(args, ctx)
+	}
+}
+
 func malRecover(err *error) {
 	if rerr := recover(); rerr != nil {
 		*err = rerr.(error)
