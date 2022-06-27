@@ -60,6 +60,17 @@ func CallNe(f func([]MalType) (MalType, error)) func([]MalType, *context.Context
 	}
 }
 
+// CallVe returns a function that checks there are a variable number of arguments between minArg and maxArg (both of them included)
+func CallVe(minArg, maxArg int, f func([]MalType) (MalType, error)) func([]MalType, *context.Context) (MalType, error) {
+	return func(args []MalType, _ *context.Context) (result MalType, err error) {
+		defer malRecover(&err)
+		if l := len(args); l > maxArg || l < minArg {
+			return nil, fmt.Errorf("wrong number of arguments (%d is out of range [%d,%d])", len(args), minArg, maxArg)
+		}
+		return f(args)
+	}
+}
+
 // Call1b returns a function that checks there is 1 argument and calls f func() bool
 func Call1b(f func(MalType) bool) func([]MalType, *context.Context) (MalType, error) {
 	return func(args []MalType, _ *context.Context) (result MalType, err error) {

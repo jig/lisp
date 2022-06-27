@@ -134,6 +134,27 @@ func get(a []MalType) (MalType, error) {
 	return a[0].(HashMap).Val[a[1].(string)], nil
 }
 
+func getIn(a []MalType) (MalType, error) {
+	if Nil_Q(a[0]) {
+		return nil, nil
+	}
+	if !HashMap_Q(a[0]) {
+		return nil, errors.New("get called on non-hash map")
+	}
+	if !Vector_Q(a[1]) {
+		return nil, errors.New("get called with non-vector")
+	}
+	var err error
+	m := a[0]
+	for _, k := range a[1].(Vector).Val {
+		m, err = get([]MalType{m, k})
+		if err != nil {
+			return nil, err
+		}
+	}
+	return m, nil
+}
+
 func contains_Q(hm MalType, key MalType) (MalType, error) {
 	if Nil_Q(hm) {
 		return false, nil
@@ -499,6 +520,7 @@ var NS = map[string]MalType{
 	"assoc":       call.CallNe(assoc),  // at least 3
 	"dissoc":      call.CallNe(dissoc), // at least 2
 	"get":         call.Call2e(get),
+	"get-in":      call.Call2e(getIn),
 	"contains?":   call.Call2e(func(a []MalType) (MalType, error) { return contains_Q(a[0], a[1]) }),
 	"keys":        call.Call1e(keys),
 	"vals":        call.Call1e(vals),
