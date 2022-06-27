@@ -1,10 +1,10 @@
 # lisp
 
-Derived from `kanaka/mal` Go implementation of a Lisp interpreter. 
+Derived from `kanaka/mal` Go implementation of a Lisp interpreter.
 `kanaka/mal` Lisp is _Clojure inspired_.
 
-Keeping 100% backwards compatibility with `kanaka/mal`. 
-There almost 100 implementations on almost 100 languages available on repository [kanaka/mal](https://github.com/kanaka/mal). 
+Keeping 100% backwards compatibility with `kanaka/mal`.
+There almost 100 implementations on almost 100 languages available on repository [kanaka/mal](https://github.com/kanaka/mal).
 
 This derived implementation is focused on _embeddability_ in Go projects.
 See [lisp main](./cmd/lisp) for an example on how to embed it in Go code.
@@ -58,6 +58,7 @@ go test -benchmem -benchtime 5s -bench '^.+$' github.com/jig/lisp
 - `(assert expr & optional-error)` asserts expression is not `nil` nor `false`, otherwise it success returning `nil`
 - Errors are decorated with line numbers
 - `(rename-keys hm hmAlterKeys)` as in Clojure
+- `(get-in m ks)` to access nested values from a map
 
 # Embed Lisp in Go code
 
@@ -154,7 +155,7 @@ Some benchmark of the implementations:
 $ go test -bench ".+" -benchtime 2s
 ```
 
-# Install 
+# Install
 
 ```bash
 cd cmd/lisp
@@ -163,7 +164,7 @@ go install
 
 # Execute REPL
 
-```bash 
+```bash
 lisp
 ```
 
