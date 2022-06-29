@@ -58,7 +58,8 @@ go test -benchmem -benchtime 5s -bench '^.+$' github.com/jig/lisp
 - `(assert expr & optional-error)` asserts expression is not `nil` nor `false`, otherwise it success returning `nil`
 - Errors are decorated with line numbers
 - `(rename-keys hm hmAlterKeys)` as in Clojure
-- `(get-in m ks)` to access nested values from a map
+- `(get-in m ks)` to access nested values from a `m` map; `ks` must be a vector of hash map keys
+- `(uuid)` returns an 128 bit rfc4122 random UUID
 
 # Embed Lisp in Go code
 

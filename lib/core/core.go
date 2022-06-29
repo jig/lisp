@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/jig/lisp/lib/call-helper"
 	"github.com/jig/lisp/printer"
 	"github.com/jig/lisp/reader"
@@ -556,6 +557,7 @@ var NS = map[string]MalType{
 	"merge":       call.Call2e(mergeHashMap),
 	"assert":      call.CallNe(assert),
 	"rename-keys": call.Call2e(renameKeys),
+	"uuid":        call.Call0e(genUUID),
 }
 
 var NSInput = map[string]MalType{
@@ -564,6 +566,11 @@ var NSInput = map[string]MalType{
 }
 
 // Core extended
+
+func genUUID(a []MalType) (MalType, error) {
+	return uuid.New().String(), nil
+}
+
 func renameKeys(a []MalType) (MalType, error) {
 	data, ok := a[0].(HashMap)
 	if !ok {
