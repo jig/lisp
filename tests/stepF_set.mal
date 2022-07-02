@@ -228,3 +228,6 @@
 ;=>true
 (contains? (hash-set :a :b :c) :z)
 ;=>false
+
+(str (jsonencode {"val" #{"a" "a" "a"}}))
+;=>¬{"val":["a"]}¬

@@ -368,6 +368,14 @@ func (l List) MarshalJSON() ([]byte, error) {
 	return json.Marshal(l.Val)
 }
 
+func (s Set) MarshalJSON() ([]byte, error) {
+	keys := make([]string, 0, len(s.Val))
+	for k := range s.Val {
+		keys = append(keys, k)
+	}
+	return json.Marshal(keys)
+}
+
 type RuntimeError struct {
 	ErrorVal error         // deep cause of the stack error
 	Trace    string        // intermediate evaluated form
