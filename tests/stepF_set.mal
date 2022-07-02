@@ -167,6 +167,14 @@
 ;=>true
 (= #{:a :b} (set [:a :b]))
 ;=>true
+(= #{:a :c} (set [:a :b]))
+;=>false
+(= #{:b :c} (set [:a :b]))
+;=>false
+(= #{:b :a} (set [:a :b]))
+;=>true
+(= #{:b} (set [:a]))
+;=>false
 (= #{:a :b "c" "d"} (set [:a "c" :b "d"]))
 ;=>true
 (= #{:a :b} (set [:a]))

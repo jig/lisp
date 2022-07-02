@@ -345,8 +345,8 @@ func Equal_Q(a MalType, b MalType) bool {
 		if len(am) != len(bm) {
 			return false
 		}
-		for i, key := range am {
-			if !Equal_Q(key, bm[i]) {
+		for key := range am {
+			if _, ok := bm[key]; !ok {
 				return false
 			}
 		}
