@@ -8,8 +8,14 @@
 
 ;;
 ;; Testing sets
-(set "a")
+(set ["a"])
 ;=>#{"a"}
+
+(set '("a"))
+;=>#{"a"}
+
+(set nil)
+;=>#{}
 
 #{"a"}
 ;=>#{"a"}
@@ -20,7 +26,7 @@
 (get (assoc (assoc #{"a"} "b") "c") "a")
 ;=>"a"
 
-(def! hm1 (set))
+(def! hm1 (set '()))
 ;=>#{}
 
 (set? #{})
@@ -153,15 +159,17 @@
 ;; Testing equality of sets
 (= #{} #{})
 ;=>true
-(= #{} (set))
+(= #{} (set '()))
 ;=>true
-(= #{:a :b} (set :b :a))
+(= #{} (set []))
 ;=>true
-(= #{:a :b} (set :a :b))
+(= #{:a :b} (set [:b :a]))
 ;=>true
-(= #{:a :b "c" "d"} (set :a "c" :b "d"))
+(= #{:a :b} (set [:a :b]))
 ;=>true
-(= #{:a :b} (set :a))
+(= #{:a :b "c" "d"} (set [:a "c" :b "d"]))
+;=>true
+(= #{:a :b} (set [:a]))
 ;=>false
 (= #{} [])
 ;=>false
@@ -171,7 +179,6 @@
 (= #{} ())
 ;=>false
 (= () #{})
-;=>false
 ;=>false
 (= #{} {})
 ;=>false
@@ -212,3 +219,12 @@
 ;=>#{"def"}
 (meta +)
 ;=>nil
+
+(contains? (hash-set :a :b :c) :a)
+;=>true
+(contains? (hash-set :a :b :c) :b)
+;=>true
+(contains? (hash-set :a :b :c) :c)
+;=>true
+(contains? (hash-set :a :b :c) :z)
+;=>false

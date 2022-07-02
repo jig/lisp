@@ -231,6 +231,10 @@ type Set struct {
 }
 
 func NewSet(seq MalType) (MalType, error) {
+	if seq == nil {
+		return Set{}, nil
+	}
+
 	lst, e := GetSlice(seq)
 	if e != nil {
 		return nil, e

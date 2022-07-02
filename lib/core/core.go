@@ -599,7 +599,8 @@ var NS = map[string]MalType{
 	"vector?":     call.Call1b(Vector_Q),
 	"hash-map":    call.CallNe(func(a []MalType) (MalType, error) { return NewHashMap(List{Val: a}) }),
 	"map?":        call.Call1b(HashMap_Q),
-	"set":         call.CallNe(func(a []MalType) (MalType, error) { return NewSet(List{Val: a}) }),
+	"set":         call.Call1e(func(a []MalType) (MalType, error) { return NewSet(a[0]) }),
+	"hash-set":    call.CallNe(func(a []MalType) (MalType, error) { return NewSet(List{Val: a}) }),
 	"set?":        call.Call1b(Set_Q),
 	"assoc":       call.CallNe(assoc),  // at least 3
 	"dissoc":      call.CallNe(dissoc), // at least 2
