@@ -38,7 +38,7 @@ func (tr *TokenReader) peek() *Token {
 }
 
 var (
-	tokenizerRE  = regexp.MustCompile(`(?:\n|[ \r\t,]*)(~@|[\[\]{}()'` + "`" + `~^@]|"(?:\\.|[^\\"])*"?|¬[^¬]*(?:(?:¬¬)[^¬]*)*¬?|;.*|[^\s\[\]{}('"` + "`" + `,;)]*)`)
+	tokenizerRE  = regexp.MustCompile(`(?:\n|[ \r\t,]*)(~@|#{|[\[\]{}()'` + "`" + `~^@]|"(?:\\.|[^\\"])*"?|¬[^¬]*(?:(?:¬¬)[^¬]*)*¬?|;.*|[^\s\[\]{}('"` + "`" + `,;)]*)`)
 	integerRE    = regexp.MustCompile(`^-?[0-9]+$`)
 	stringRE     = regexp.MustCompile(`^"(?:\\.|[^\\"])*"$`)
 	jsonStringRE = regexp.MustCompile(`^¬[^¬]*(?:(?:¬¬)[^¬]*)*¬$`)
@@ -160,6 +160,14 @@ func read_hash_map(rdr Reader) (MalType, error) {
 	return NewHashMap(mal_lst)
 }
 
+func read_set(rdr Reader) (MalType, error) {
+	mal_lst, e := read_list(rdr, "#{", "}")
+	if e != nil {
+		return nil, e
+	}
+	return NewSet(mal_lst)
+}
+
 func read_form(rdr Reader) (MalType, error) {
 	tokenStruct := rdr.peek()
 	if tokenStruct == nil {
@@ -230,6 +238,9 @@ func read_form(rdr Reader) (MalType, error) {
 		return nil, RuntimeError{ErrorVal: errors.New("unexpected '}'"), Cursor: &tokenStruct.Cursor}
 	case "{":
 		return read_hash_map(rdr)
+	case "#{":
+		return read_set(rdr)
+
 	default:
 		return read_atom(rdr)
 	}

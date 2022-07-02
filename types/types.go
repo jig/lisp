@@ -223,6 +223,35 @@ func HashMap_Q(obj MalType) bool {
 	return ok
 }
 
+// Sets
+type Set struct {
+	Val    map[string]struct{}
+	Meta   MalType
+	Cursor *Position
+}
+
+func NewSet(seq MalType) (MalType, error) {
+	lst, e := GetSlice(seq)
+	if e != nil {
+		return nil, e
+	}
+
+	m := map[string]struct{}{}
+	for _, item := range lst {
+		sItem, ok := item.(string)
+		if !ok {
+			return nil, errors.New("set items must be strings or keywords")
+		}
+		m[sItem] = struct{}{}
+	}
+	return Set{Val: m}, nil
+}
+
+func Set_Q(obj MalType) bool {
+	_, ok := obj.(Set)
+	return ok
+}
+
 // Atoms
 type Atom struct {
 	Mutex  sync.RWMutex
@@ -302,6 +331,18 @@ func Equal_Q(a MalType, b MalType) bool {
 		}
 		for k, v := range am {
 			if !Equal_Q(v, bm[k]) {
+				return false
+			}
+		}
+		return true
+	case Set:
+		am := a.(Set).Val
+		bm := b.(Set).Val
+		if len(am) != len(bm) {
+			return false
+		}
+		for i, key := range am {
+			if !Equal_Q(key, bm[i]) {
 				return false
 			}
 		}

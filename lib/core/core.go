@@ -74,7 +74,7 @@ func time_ns(a []MalType) (MalType, error) {
 	return int(time.Now().UnixNano()), nil
 }
 
-// Hash Map functions
+// Hash Map and Set functions
 func copy_hash_map(hm HashMap) HashMap {
 	new_hm := HashMap{Val: map[string]MalType{}}
 	for k, v := range hm.Val {
@@ -83,56 +83,99 @@ func copy_hash_map(hm HashMap) HashMap {
 	return new_hm
 }
 
+func copy_set(s Set) Set {
+	new_s := Set{Val: map[string]struct{}{}}
+	for k, v := range s.Val {
+		new_s.Val[k] = v
+	}
+	return new_s
+}
+
 func assoc(a []MalType) (MalType, error) {
-	if len(a) < 3 {
-		return nil, errors.New("assoc requires at least 3 arguments")
-	}
-	if len(a)%2 != 1 {
-		return nil, errors.New("assoc requires odd number of arguments")
-	}
-	if !HashMap_Q(a[0]) {
-		return nil, errors.New("assoc called on non-hash map")
-	}
-	new_hm := copy_hash_map(a[0].(HashMap))
-	for i := 1; i < len(a); i += 2 {
-		key := a[i]
-		if !String_Q(key) {
-			return nil, errors.New("assoc called with non-string key")
+	ms := a[0]
+	switch ms := ms.(type) {
+	case HashMap:
+		if len(a) < 3 {
+			return nil, errors.New("assoc requires at least 3 arguments")
 		}
-		new_hm.Val[key.(string)] = a[i+1]
+		if len(a)%2 != 1 {
+			return nil, errors.New("assoc requires odd number of arguments")
+		}
+		new_hm := copy_hash_map(ms)
+		for i := 1; i < len(a); i += 2 {
+			key := a[i]
+			if !String_Q(key) {
+				return nil, errors.New("assoc called with non-string key")
+			}
+			new_hm.Val[key.(string)] = a[i+1]
+		}
+		return new_hm, nil
+	case Set:
+		if len(a) < 2 {
+			return nil, errors.New("assoc requires at least 2 arguments")
+		}
+		new_s := copy_set(ms)
+		for _, value := range a[1:] {
+			if !String_Q(value) {
+				return nil, errors.New("assoc called with non-string key")
+			}
+			new_s.Val[value.(string)] = struct{}{}
+		}
+		return new_s, nil
+	default:
+		return nil, errors.New("assoc called on non-hash map and non-set")
 	}
-	return new_hm, nil
 }
 
 func dissoc(a []MalType) (MalType, error) {
 	if len(a) < 2 {
 		return nil, errors.New("dissoc requires at least 3 arguments")
 	}
-	if !HashMap_Q(a[0]) {
-		return nil, errors.New("dissoc called on non-hash map")
-	}
-	new_hm := copy_hash_map(a[0].(HashMap))
-	for i := 1; i < len(a); i += 1 {
-		key := a[i]
-		if !String_Q(key) {
-			return nil, errors.New("dissoc called with non-string key")
+	ms := a[0]
+	switch ms := ms.(type) {
+	case HashMap:
+		new_hm := copy_hash_map(ms)
+		for i := 1; i < len(a); i += 1 {
+			key := a[i]
+			if !String_Q(key) {
+				return nil, errors.New("dissoc called with non-string key")
+			}
+			delete(new_hm.Val, key.(string))
 		}
-		delete(new_hm.Val, key.(string))
+		return new_hm, nil
+	case Set:
+		new_s := copy_set(ms)
+		for _, value := range a[1:] {
+			if !String_Q(value) {
+				return nil, errors.New("dissoc called with non-string key")
+			}
+			delete(new_s.Val, value.(string))
+		}
+		return new_s, nil
+	default:
+		return nil, errors.New("assoc called on non-hash map and non-set")
 	}
-	return new_hm, nil
 }
 
 func get(a []MalType) (MalType, error) {
 	if Nil_Q(a[0]) {
 		return nil, nil
 	}
-	if !HashMap_Q(a[0]) {
-		return nil, errors.New("get called on non-hash map")
-	}
 	if !String_Q(a[1]) {
 		return nil, errors.New("get called with non-string key")
 	}
-	return a[0].(HashMap).Val[a[1].(string)], nil
+	ms := a[0]
+	switch ms := ms.(type) {
+	case HashMap:
+		return ms.Val[a[1].(string)], nil
+	case Set:
+		if _, ok := ms.Val[a[1].(string)]; ok {
+			return a[1].(string), nil
+		}
+		return nil, nil
+	default:
+		return nil, errors.New("get called on non-hash map and a non-set")
+	}
 }
 
 func getIn(a []MalType) (MalType, error) {
@@ -160,25 +203,39 @@ func contains_Q(hm MalType, key MalType) (MalType, error) {
 	if Nil_Q(hm) {
 		return false, nil
 	}
-	if !HashMap_Q(hm) {
-		return nil, errors.New("get called on non-hash map")
-	}
 	if !String_Q(key) {
 		return nil, errors.New("get called with non-string key")
 	}
-	_, ok := hm.(HashMap).Val[key.(string)]
-	return ok, nil
+	switch hm := hm.(type) {
+	case HashMap:
+		_, ok := hm.Val[key.(string)]
+		return ok, nil
+	case Set:
+		_, ok := hm.Val[key.(string)]
+		return ok, nil
+	default:
+		return nil, errors.New("get called on non-hash map and a non-set")
+	}
 }
 
 func keys(a []MalType) (MalType, error) {
-	if !HashMap_Q(a[0]) {
-		return nil, errors.New("keys called on non-hash map")
+	ms := a[0]
+	switch ms := ms.(type) {
+	case HashMap:
+		slc := []MalType{}
+		for k := range ms.Val {
+			slc = append(slc, k)
+		}
+		return List{Val: slc}, nil
+	case Set:
+		slc := []MalType{}
+		for k := range ms.Val {
+			slc = append(slc, k)
+		}
+		return List{Val: slc}, nil
+	default:
+		return nil, errors.New("keys called on non-hash map and non-set")
 	}
-	slc := []MalType{}
-	for k := range a[0].(HashMap).Val {
-		slc = append(slc, k)
-	}
-	return List{Val: slc}, nil
 }
 
 func vals(a []MalType) (MalType, error) {
@@ -282,6 +339,10 @@ func empty_Q(a []MalType) (MalType, error) {
 		return len(obj.Val) == 0, nil
 	case Vector:
 		return len(obj.Val) == 0, nil
+	case HashMap:
+		return len(obj.Val) == 0, nil
+	case Set:
+		return len(obj.Val) == 0, nil
 	case nil:
 		return true, nil
 	default:
@@ -295,8 +356,12 @@ func count(a []MalType) (MalType, error) {
 		return len(obj.Val), nil
 	case Vector:
 		return len(obj.Val), nil
-	case map[string]MalType:
+	case map[string]MalType: // TODO(jig): what is this case for??
 		return len(obj), nil
+	case HashMap:
+		return len(obj.Val), nil
+	case Set:
+		return len(obj.Val), nil
 	case nil:
 		return 0, nil
 	default:
@@ -342,7 +407,8 @@ func conj(a []MalType) (MalType, error) {
 	if len(a) < 2 {
 		return nil, errors.New("conj requires at least 2 arguments")
 	}
-	switch seq := a[0].(type) {
+	seq := a[0]
+	switch seq := seq.(type) {
 	case List:
 		new_slc := []MalType{}
 		for i := len(a) - 1; i > 0; i -= 1 {
@@ -352,20 +418,31 @@ func conj(a []MalType) (MalType, error) {
 	case Vector:
 		new_slc := append(seq.Val, a[1:]...)
 		return Vector{Val: new_slc}, nil
-	}
-
-	if !HashMap_Q(a[0]) {
-		return nil, errors.New("conj called on non-hash map")
-	}
-	new_hm := copy_hash_map(a[0].(HashMap))
-	for i := 1; i < len(a); i += 1 {
-		key := a[i]
-		if !String_Q(key) {
-			return nil, errors.New("conj called with non-string key")
+	case HashMap:
+		if len(a)%2 != 1 {
+			return nil, errors.New("conj called with on a hash map requires an odd number of arguments")
 		}
-		delete(new_hm.Val, key.(string))
+		new_hm := copy_hash_map(seq)
+		for i := 1; i < len(a); i += 2 {
+			key := a[i]
+			if !String_Q(key) {
+				return nil, errors.New("conj called with non-string key")
+			}
+			new_hm.Val[key.(string)] = a[i+1]
+		}
+		return new_hm, nil
+	case Set:
+		new_s := copy_set(seq)
+		for _, key := range a[1:] {
+			if !String_Q(key) {
+				return nil, errors.New("conj called with non-string key")
+			}
+			new_s.Val[key.(string)] = struct{}{}
+		}
+		return new_s, nil
+	default:
+		return nil, errors.New("conj called on non-hash map and a non-list and a non-set and a non-vector")
 	}
-	return new_hm, nil
 }
 
 func seq(a []MalType) (MalType, error) {
@@ -407,6 +484,8 @@ func with_meta(a []MalType) (MalType, error) {
 		return Vector{Val: tobj.Val, Meta: m}, nil
 	case HashMap:
 		return HashMap{Val: tobj.Val, Meta: m}, nil
+	case Set:
+		return Set{Val: tobj.Val, Meta: m}, nil
 	case Func:
 		return Func{Fn: tobj.Fn, Meta: m}, nil
 	case MalFunc:
@@ -426,6 +505,8 @@ func meta(a []MalType) (MalType, error) {
 	case Vector:
 		return tobj.Meta, nil
 	case HashMap:
+		return tobj.Meta, nil
+	case Set:
 		return tobj.Meta, nil
 	case Func:
 		return tobj.Meta, nil
@@ -518,6 +599,8 @@ var NS = map[string]MalType{
 	"vector?":     call.Call1b(Vector_Q),
 	"hash-map":    call.CallNe(func(a []MalType) (MalType, error) { return NewHashMap(List{Val: a}) }),
 	"map?":        call.Call1b(HashMap_Q),
+	"set":         call.CallNe(func(a []MalType) (MalType, error) { return NewSet(List{Val: a}) }),
+	"set?":        call.Call1b(Set_Q),
 	"assoc":       call.CallNe(assoc),  // at least 3
 	"dissoc":      call.CallNe(dissoc), // at least 2
 	"get":         call.Call2e(get),

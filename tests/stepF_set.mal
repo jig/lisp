@@ -1,0 +1,214 @@
+
+;; Testing sequential? function
+
+(sequential? #{})
+;=>false
+(sequential? #{:a :b :c})
+;=>false
+
+;;
+;; Testing sets
+(set "a")
+;=>#{"a"}
+
+#{"a"}
+;=>#{"a"}
+
+(assoc #{} "a")
+;=>#{"a"}
+
+(get (assoc (assoc #{"a"} "b") "c") "a")
+;=>"a"
+
+(def! hm1 (set))
+;=>#{}
+
+(set? #{})
+;=>true
+(set? hm1)
+;=>true
+(set? 1)
+;=>false
+(set? "abc")
+;=>false
+
+(get nil "a")
+;=>nil
+
+(get hm1 "a")
+;=>nil
+
+(contains? hm1 "a")
+;=>false
+
+(def! hm2 (assoc hm1 "a"))
+;=>#{"a"}
+
+(get hm1 "a")
+;=>nil
+
+(contains? hm1 "a")
+;=>false
+
+(get hm2 "a")
+;=>"a"
+
+(contains? hm2 "a")
+;=>true
+
+
+;;; TODO: fix. Clojure returns nil but this breaks mal impl
+(keys hm1)
+;=>()
+(= () (keys hm1))
+;=>true
+
+(keys hm2)
+;=>("a")
+
+(keys #{"1"})
+;=>("1")
+
+(count (keys (assoc hm2 "b" "c")))
+;=>3
+
+;; Testing keywords as set keys
+(get #{:abc} :abc)
+;=>:abc
+(contains? #{:abc} :abc)
+;=>true
+(contains? #{:abcd} :abc)
+;=>false
+(assoc #{} :bcd)
+;=>#{:bcd}
+(keyword? (nth (keys #{:abc :def}) 0))
+;=>true
+
+;; Testing whether assoc updates properly
+(def! hm4 (assoc #{:a :b} :a :c))
+(get hm4 :a)
+;=>:a
+(get hm4 :b)
+;=>:b
+(get hm4 :c)
+;=>:c
+(get hm4 :d)
+;=>nil
+
+;; Testing nil as set values
+(contains? #{:abc} :abc)
+;=>true
+(assoc #{} :bcd)
+;=>#{:bcd}
+
+;;
+;; Additional str and pr-str tests
+
+(str "A" #{:abc} "Z")
+;=>"A#{:abc}Z"
+
+(str true "." false "." nil "." :keyw "." 'symb)
+;=>"true.false.nil.:keyw.symb"
+
+(pr-str "A" #{:abc} "Z")
+;=>"\"A\" #{:abc} \"Z\""
+
+(pr-str true "." false "." nil "." :keyw "." 'symb)
+;=>"true \".\" false \".\" nil \".\" :keyw \".\" symb"
+
+(def! s (str #{:abc :def}))
+(cond (= s "#{:abc :def}") true (= s "#{:def :abc}") true)
+;=>true
+
+(def! p (pr-str #{:abc :def}))
+(cond (= p "#{:abc :def}") true (= p "#{:def :abc}") true)
+;=>true
+
+;;
+;; Testing dissoc
+(def! hm3 (assoc hm2 "b"))
+(count (keys hm3))
+;=>2
+(dissoc hm3 "a")
+;=>#{"b"}
+(dissoc hm3 "a" "b")
+;=>#{}
+(dissoc hm3 "a" "b" "c")
+;=>#{}
+(count (keys hm3))
+;=>2
+
+;; Testing empty?
+(empty? #{})
+;=>true
+(empty? hm3)
+;=>false
+(empty? #{"aa"})
+;=>false
+
+(dissoc #{:cde :fgh} :cde)
+;=>#{:fgh}
+
+;;
+;; Testing equality of sets
+(= #{} #{})
+;=>true
+(= #{} (set))
+;=>true
+(= #{:a :b} (set :b :a))
+;=>true
+(= #{:a :b} (set :a :b))
+;=>true
+(= #{:a :b "c" "d"} (set :a "c" :b "d"))
+;=>true
+(= #{:a :b} (set :a))
+;=>false
+(= #{} [])
+;=>false
+(= [] #{})
+;=>false
+;=>false
+(= #{} ())
+;=>false
+(= () #{})
+;=>false
+;=>false
+(= #{} {})
+;=>false
+(= {} #{})
+;=>false
+
+;; ;; Testing that set don't alter function ast
+;; (def! bar (fn* [a] {:foo (get a :foo)}))
+;; (bar {:foo (fn* [x] x)})
+;; (bar {:foo 3})
+;; ;; shouldn't give an error
+
+(meta (with-meta #{"abc"} #{"a"}))
+;=>#{"a"}
+
+(set? (with-meta #{"abc"} #{"a"}))
+;=>true
+
+(with-meta #{} #{"a"})
+;=>#{}
+
+(def! l-wm (with-meta [4 5 6] #{"b"}))
+;=>[4 5 6]
+(meta l-wm)
+;=>#{"b"}
+
+(meta (with-meta l-wm #{"new_meta"}))
+;=>#{"new_meta"}
+(meta l-wm)
+;=>#{"b"}
+
+;;
+;; Testing metadata on builtin functions
+(meta +)
+;=>nil
+(def! f-wm3 ^#{"def"} +)
+(meta f-wm3)
+;=>#{"def"}
+(meta +)
+;=>nil

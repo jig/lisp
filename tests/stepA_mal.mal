@@ -192,6 +192,38 @@
 ;=>[2 3 4 5 6]
 (conj [1] [2 3])
 ;=>[1 [2 3]]
+(conj {})
+;=>nil
+(conj {} :a 1)
+;=>{:a 1}
+(get (conj {} :a 1 :b 2) :a)
+;=>1
+(get (conj {} :a 1 :b 2) :b)
+;=>2
+(get (conj {} :a 1 :b 2) :c)
+;=>nil
+(get (conj {:a 1} :b 2) :a)
+;=>1
+(get (conj {:a 1} :b 2) :b)
+;=>2
+(get (conj {:a 1} :b 2) :c)
+;=>nil
+(conj #{})
+;=>nil
+(conj #{} :a)
+;=>#{:a}
+(get (conj #{} :a :b) :a)
+;=>:a
+(get (conj #{} :a :b) :b)
+;=>:b
+(get (conj #{} :a :b) :c)
+;=>nil
+(get (conj #{:a} :b) :a)
+;=>:a
+(get (conj #{:a} :b) :b)
+;=>:b
+(get (conj #{:a} :b) :c)
+;=>nil
 
 ;;
 ;; Testing seq function
