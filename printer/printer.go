@@ -29,6 +29,12 @@ func Pr_str(obj types.MalType, print_readably bool) string {
 			str_list = append(str_list, Pr_str(v, print_readably))
 		}
 		return "{" + strings.Join(str_list, " ") + "}"
+	case types.Set:
+		str_list := make([]string, 0, len(tobj.Val))
+		for k := range tobj.Val {
+			str_list = append(str_list, Pr_str(k, print_readably))
+		}
+		return "#{" + strings.Join(str_list, " ") + "}"
 	case string:
 		if strings.HasPrefix(tobj, "\u029e") {
 			return ":" + tobj[2:]

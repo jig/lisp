@@ -60,6 +60,7 @@ go test -benchmem -benchtime 5s -bench '^.+$' github.com/jig/lisp
 - `(rename-keys hm hmAlterKeys)` as in Clojure
 - `(get-in m ks)` to access nested values from a `m` map; `ks` must be a vector of hash map keys
 - `(uuid)` returns an 128 bit rfc4122 random UUID
+- support of (hashed, unordered) sets. Only sets of strings or keywords supported. Use `#{}` for literal sets. Functions supported for sets: `set`, `set?`, `conj`, `get`, `assoc`, `dissoc`, `contains?`, `empty?`. `meta`, `with-meta` (see [./test/stepA_mal](./test/stepF_set.mal) and (see [./test/stepA_mal](./test/stepF_set.mal) for examples).
 
 # Embed Lisp in Go code
 
