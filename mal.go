@@ -13,7 +13,7 @@ import (
 
 // read
 func READ(str string, cursor *Position) (MalType, error) {
-	return reader.Read_str(str, cursor)
+	return reader.Read_str(str, cursor, nil)
 }
 
 // eval

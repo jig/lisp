@@ -731,7 +731,7 @@ var NS = map[string]MalType{
 	"str":         call.CallNe(str),
 	"prn":         call.CallNe(prn),
 	"println":     call.CallNe(println),
-	"read-string": call.Call1e(func(a []MalType) (MalType, error) { return reader.Read_str(a[0].(string), nil) }),
+	"read-string": call.Call1e(func(a []MalType) (MalType, error) { return reader.Read_str(a[0].(string), nil, nil) }),
 	"<":           call.Call2e(func(a []MalType) (MalType, error) { return a[0].(int) < a[1].(int), nil }),
 	"<=":          call.Call2e(func(a []MalType) (MalType, error) { return a[0].(int) <= a[1].(int), nil }),
 	">":           call.Call2e(func(a []MalType) (MalType, error) { return a[0].(int) > a[1].(int), nil }),
