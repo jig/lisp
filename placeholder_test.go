@@ -6,7 +6,6 @@ import (
 
 	"github.com/jig/lisp/env"
 	"github.com/jig/lisp/lib/core"
-	"github.com/jig/lisp/reader"
 	. "github.com/jig/lisp/types"
 )
 
@@ -21,7 +20,7 @@ func TestPlaceholders(t *testing.T) {
 
 	str := `(do (def! v2 $2)(def! v0 $0) true)`
 
-	exp, err := reader.Read_str(str, nil, []MalType{"hello", "world", 44})
+	exp, err := READ_WithPlaceholders(str, nil, []MalType{"hello", "world", 44})
 	if err != nil {
 		t.Fatal(err)
 	}
