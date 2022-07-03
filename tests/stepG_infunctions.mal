@@ -1,0 +1,79 @@
+;; Testing "in" functions
+
+;; get-in
+(get-in {:a 1} [:a])
+;=>1
+
+(get-in {:a 1 :b {:c 2}} [:b :c])
+;=>2
+
+(get-in {:a 1 :b {:c 2}} [:b :d])
+;=>nil
+
+(get (get-in {:a 1 :b {:c 2}} []) :a)
+;=>1
+(get (get-in {:a 1 :b {:c 2}} []) :b)
+;=>{:c 2}
+
+(def! m {:a 1 :b {:c 2}})
+(get-in m [:b :c])
+;=>2
+
+(get-in m [:b :d])
+;=>nil
+
+(get (get-in m []) :a)
+;=>1
+(get (get-in m []) :b)
+;=>{:c 2}
+
+;; update
+(def! mu (update m :b (fn* [_] 22)))
+(get mu :b)
+;=>22
+(def! mu (update m :x (fn* [_] 33)))
+(get mu :x)
+;=>33
+
+;; update-in
+(def! mu (update-in m [:b :c] (fn* [_] 44)))
+(get-in mu [:b :c])
+;=>44
+(get-in mu [:a])
+;=>1
+(get-in mu [:b])
+;=>{:c 44}
+
+(def! mu (update-in m [] (fn* [_] 44)))
+(get-in mu [:b :c])
+;=>2
+(def! mu (update-in m [:x] (fn* [_] 77)))
+(get-in mu [:x])
+;=>77
+
+(def! mu (update-in m [:x :y] (fn* [_] 99)))
+(get-in mu [:x :y])
+;=>99
+(def! mu (update-in m [:x :y :z] (fn* [_] 101)))
+(get-in mu [:x :y :z])
+;=>101
+
+;; assoc-in
+(def! mu (assoc-in m [:b :c] 11))
+(get-in mu [:b :c])
+;=>11
+(def! mu (assoc-in m [:b] 12))
+(get-in mu [:b])
+;=>12
+(def! mu (assoc-in m [:a] 13))
+(get-in mu [:a])
+;=>13
+(def! mu (assoc-in m [:x] 14))
+(get-in mu [:x])
+;=>14
+(def! mu (assoc-in m [:x :y] 18))
+(get-in mu [:x :y])
+;=>18
+(def! mu (assoc-in m [:x :y :z] 19))
+(get-in mu [:x :y :z])
+;=>19

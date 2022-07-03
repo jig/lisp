@@ -2,11 +2,9 @@ module github.com/jig/lisp
 
 go 1.17
 
-require github.com/chzyer/readline v0.0.0-20180603132655-2972be24d48e
-
 require (
-	github.com/chzyer/logex v1.1.10 // indirect
-	github.com/chzyer/test v0.0.0-20210722231415-061457976a23 // indirect
-	github.com/google/uuid v1.3.0 // indirect
-	golang.org/x/sys v0.0.0-20210902050250-f475640dd07b // indirect
+	github.com/chzyer/readline v1.5.0
+	github.com/google/uuid v1.3.0
 )
+
+require golang.org/x/sys v0.0.0-20220702020025-31831981b65f // indirect

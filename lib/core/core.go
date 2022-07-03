@@ -199,6 +199,99 @@ func getIn(a []MalType) (MalType, error) {
 	return m, nil
 }
 
+func update(a []MalType, ctx *context.Context) (MalType, error) {
+	if Nil_Q(a[0]) {
+		return nil, nil
+	}
+	argMap, ok := a[0].(HashMap)
+	if !ok {
+		return nil, errors.New("get called on non-hash map")
+	}
+	return _update(argMap, a[1], a[2], ctx)
+}
+
+func _update(argMap HashMap, index, f MalType, ctx *context.Context) (MalType, error) {
+	res, err := Apply(f, []MalType{index}, ctx)
+	if err != nil {
+		return nil, err
+	}
+	return assoc([]MalType{argMap, index, res})
+}
+
+func updateIn(a []MalType, ctx *context.Context) (MalType, error) {
+	if Nil_Q(a[0]) {
+		return nil, nil
+	}
+	argMap, ok := a[0].(HashMap)
+	if !ok {
+		return nil, errors.New("get called on non-hash map")
+	}
+	posVector, ok := a[1].(Vector)
+	if !ok {
+		return nil, errors.New("get called with non-vector")
+	}
+	return _updateIn(argMap, posVector, a[2], ctx)
+}
+
+func _updateIn(argMap HashMap, posVector Vector, f MalType, ctx *context.Context) (MalType, error) {
+	switch len(posVector.Val) {
+	case 0:
+		return argMap, nil
+	case 1:
+		index := posVector.Val[0]
+		return _update(argMap, index, f, ctx)
+	default:
+		index := posVector.Val[0].(string)
+		rest := Vector{Val: posVector.Val[1:]}
+		branch := argMap.Val[index]
+		if branch == nil {
+			branch = HashMap{}
+		}
+		inner, err := _updateIn(branch.(HashMap), rest, f, ctx)
+		if err != nil {
+			return nil, err
+		}
+		return assoc([]MalType{argMap, index, inner})
+	}
+}
+
+func assocIn(a []MalType) (MalType, error) {
+	if Nil_Q(a[0]) {
+		return nil, nil
+	}
+	argMap, ok := a[0].(HashMap)
+	if !ok {
+		return nil, errors.New("get called on non-hash map")
+	}
+	posVector, ok := a[1].(Vector)
+	if !ok {
+		return nil, errors.New("get called with non-vector")
+	}
+	return _assocIn(argMap, posVector, a[2])
+}
+
+func _assocIn(argMap HashMap, posVector Vector, newValue MalType) (MalType, error) {
+	switch len(posVector.Val) {
+	case 0:
+		return argMap, nil
+	case 1:
+		index := posVector.Val[0]
+		return assoc([]MalType{argMap, index, newValue})
+	default:
+		index := posVector.Val[0].(string)
+		rest := Vector{Val: posVector.Val[1:]}
+		branch := argMap.Val[index]
+		if branch == nil {
+			branch = HashMap{}
+		}
+		inner, err := _assocIn(branch.(HashMap), rest, newValue)
+		if err != nil {
+			return nil, err
+		}
+		return assoc([]MalType{argMap, index, inner})
+	}
+}
+
 func contains_Q(hm MalType, key MalType) (MalType, error) {
 	if Nil_Q(hm) {
 		return false, nil
@@ -395,6 +488,7 @@ func do_map(a []MalType, ctx *context.Context) (MalType, error) {
 	}
 	for _, arg := range args {
 		res, e := Apply(f, []MalType{arg}, ctx)
+		// TODO(jig) why??
 		results = append(results, res)
 		if e != nil {
 			return nil, e
@@ -602,8 +696,11 @@ var NS = map[string]MalType{
 	"set":         call.Call1e(func(a []MalType) (MalType, error) { return NewSet(a[0]) }),
 	"hash-set":    call.CallNe(func(a []MalType) (MalType, error) { return NewSet(List{Val: a}) }),
 	"set?":        call.Call1b(Set_Q),
-	"assoc":       call.CallNe(assoc),  // at least 3
-	"dissoc":      call.CallNe(dissoc), // at least 2
+	"assoc":       call.CallNe(assoc),     // at least 3
+	"dissoc":      call.CallNe(dissoc),    // at least 2
+	"assoc-in":    call.Call3e(assocIn),   // at least 3
+	"update":      call.Call3eC(update),   // at least 3
+	"update-in":   call.Call3eC(updateIn), // at least 3
 	"get":         call.Call2e(get),
 	"get-in":      call.Call2e(getIn),
 	"contains?":   call.Call2e(func(a []MalType) (MalType, error) { return contains_Q(a[0], a[1]) }),
