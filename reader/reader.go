@@ -112,7 +112,7 @@ func read_atom(rdr Reader) (MalType, error) {
 	}
 }
 
-func read_list(rdr Reader, start string, end string, placeholderValues []string) (MalType, error) {
+func read_list(rdr Reader, start string, end string, placeholderValues []MalType) (MalType, error) {
 	tokenStruct := rdr.next()
 	if tokenStruct == nil {
 		return nil, RuntimeError{ErrorVal: errors.New("read_list underflow"), Cursor: &tokenStruct.Cursor}
@@ -144,7 +144,7 @@ func read_list(rdr Reader, start string, end string, placeholderValues []string)
 	return List{Val: ast_list, Cursor: &tokenStruct.Cursor}, nil
 }
 
-func read_vector(rdr Reader, placeholderValues []string) (MalType, error) {
+func read_vector(rdr Reader, placeholderValues []MalType) (MalType, error) {
 	lst, e := read_list(rdr, "[", "]", placeholderValues)
 	if e != nil {
 		return nil, e
@@ -153,7 +153,7 @@ func read_vector(rdr Reader, placeholderValues []string) (MalType, error) {
 	return vec, nil
 }
 
-func read_hash_map(rdr Reader, placeholderValues []string) (MalType, error) {
+func read_hash_map(rdr Reader, placeholderValues []MalType) (MalType, error) {
 	mal_lst, e := read_list(rdr, "{", "}", placeholderValues)
 	if e != nil {
 		return nil, e
@@ -161,7 +161,7 @@ func read_hash_map(rdr Reader, placeholderValues []string) (MalType, error) {
 	return NewHashMap(mal_lst)
 }
 
-func read_set(rdr Reader, placeholderValues []string) (MalType, error) {
+func read_set(rdr Reader, placeholderValues []MalType) (MalType, error) {
 	mal_lst, e := read_list(rdr, "#{", "}", placeholderValues)
 	if e != nil {
 		return nil, e
@@ -169,7 +169,7 @@ func read_set(rdr Reader, placeholderValues []string) (MalType, error) {
 	return NewSet(mal_lst)
 }
 
-func read_placeholder(rdr Reader, placeholderValues []string) (MalType, error) {
+func read_placeholder(rdr Reader, placeholderValues []MalType) (MalType, error) {
 	tokenStruct := rdr.next()
 	if tokenStruct == nil {
 		return nil, RuntimeError{ErrorVal: errors.New("read_placeholder underflow"), Cursor: &tokenStruct.Cursor}
@@ -189,7 +189,7 @@ func read_placeholder(rdr Reader, placeholderValues []string) (MalType, error) {
 	}
 }
 
-func read_form(rdr Reader, placeholderValues []string) (MalType, error) {
+func read_form(rdr Reader, placeholderValues []MalType) (MalType, error) {
 	tokenStruct := rdr.peek()
 	if tokenStruct == nil {
 		return nil, RuntimeError{ErrorVal: errors.New("read_form underflow"), Cursor: &tokenStruct.Cursor}
@@ -268,7 +268,7 @@ func read_form(rdr Reader, placeholderValues []string) (MalType, error) {
 	}
 }
 
-func Read_str(str string, cursor *Position, placeholderValues []string) (MalType, error) {
+func Read_str(str string, cursor *Position, placeholderValues []MalType) (MalType, error) {
 	var tokens = tokenize(str, cursor)
 	if len(tokens) == 0 {
 		return nil, errors.New("<empty line>")

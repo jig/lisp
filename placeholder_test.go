@@ -21,7 +21,7 @@ func TestPlaceholders(t *testing.T) {
 
 	str := `(do (def! v2 $2)(def! v0 $0) true)`
 
-	exp, err := reader.Read_str(str, nil, []string{"hello", "world", "44"})
+	exp, err := reader.Read_str(str, nil, []MalType{"hello", "world", 44})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -37,12 +37,12 @@ func TestPlaceholders(t *testing.T) {
 		if v0.(string) != "hello" {
 			t.Fatal("no hello")
 		}
-		// v2, err := repl_env.Get(Symbol{Val: "v2"})
-		// if err != nil {
-		// 	t.Fatal(err)
-		// }
-		// if v2.(int) != 44 {
-		// 	t.Fatal("no hello")
-		// }
+		v2, err := repl_env.Get(Symbol{Val: "v2"})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if v2.(int) != 44 {
+			t.Fatal("no 44")
+		}
 	}
 }
