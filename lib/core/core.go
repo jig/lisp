@@ -74,7 +74,7 @@ func time_ns(a []MalType) (MalType, error) {
 	return int(time.Now().UnixNano()), nil
 }
 
-// Hash Map and Set functions
+// Hash Map, Set, Vector functions
 func copy_hash_map(hm HashMap) HashMap {
 	new_hm := HashMap{Val: map[string]MalType{}}
 	for k, v := range hm.Val {
@@ -89,6 +89,14 @@ func copy_set(s Set) Set {
 		new_s.Val[k] = v
 	}
 	return new_s
+}
+
+func copy_vector(v Vector) Vector {
+	new_v := Vector{Val: []MalType{}}
+	for _, v := range v.Val {
+		new_v.Val = append(new_v.Val, v)
+	}
+	return new_v
 }
 
 func assoc(a []MalType) (MalType, error) {
@@ -110,6 +118,20 @@ func assoc(a []MalType) (MalType, error) {
 			new_hm.Val[key.(string)] = a[i+1]
 		}
 		return new_hm, nil
+	case Vector:
+		if len(a) < 3 {
+			return nil, errors.New("assoc requires at least 3 arguments")
+		}
+		new_v := copy_vector(ms)
+		for i := 1; i < len(a); i += 2 {
+			key := a[i]
+			keyInt, ok := key.(int)
+			if !ok {
+				return nil, errors.New("assoc called with non-int key")
+			}
+			new_v.Val[keyInt] = a[i+1]
+		}
+		return new_v, nil
 	case Set:
 		if len(a) < 2 {
 			return nil, errors.New("assoc requires at least 2 arguments")
@@ -123,7 +145,7 @@ func assoc(a []MalType) (MalType, error) {
 		}
 		return new_s, nil
 	default:
-		return nil, errors.New("assoc called on non-hash map and non-set")
+		return nil, fmt.Errorf("assoc called on non-hash map and non-set (it was %T)", ms)
 	}
 }
 
@@ -161,13 +183,18 @@ func get(a []MalType) (MalType, error) {
 	if Nil_Q(a[0]) {
 		return nil, nil
 	}
-	if !String_Q(a[1]) {
-		return nil, errors.New("get called with non-string key")
+	switch a[1].(type) {
+	case string:
+	case int:
+	default:
+		return nil, errors.New("get called with non-string key nor a non-int key")
 	}
 	ms := a[0]
 	switch ms := ms.(type) {
 	case HashMap:
 		return ms.Val[a[1].(string)], nil
+	case Vector:
+		return ms.Val[a[1].(int)], nil
 	case Set:
 		if _, ok := ms.Val[a[1].(string)]; ok {
 			return a[1].(string), nil
@@ -182,76 +209,101 @@ func getIn(a []MalType) (MalType, error) {
 	if Nil_Q(a[0]) {
 		return nil, nil
 	}
-	if !HashMap_Q(a[0]) {
-		return nil, errors.New("get called on non-hash map")
-	}
 	if !Vector_Q(a[1]) {
 		return nil, errors.New("get called with non-vector")
 	}
-	var err error
-	m := a[0]
-	for _, k := range a[1].(Vector).Val {
-		m, err = get([]MalType{m, k})
-		if err != nil {
-			return nil, err
+	seq := a[0]
+	switch seq.(type) {
+	case HashMap:
+		var err error
+		for _, k := range a[1].(Vector).Val {
+			seq, err = get([]MalType{seq, k})
+			if err != nil {
+				return nil, err
+			}
 		}
+		return seq, nil
+	case Vector:
+		var err error
+		for _, k := range a[1].(Vector).Val {
+			seq, err = get([]MalType{seq, k})
+			if err != nil {
+				return nil, err
+			}
+		}
+		return seq, nil
+	default:
+		return nil, errors.New("get called on non-hash map")
 	}
-	return m, nil
 }
 
 func update(a []MalType, ctx *context.Context) (MalType, error) {
 	if Nil_Q(a[0]) {
 		return nil, nil
 	}
-	argMap, ok := a[0].(HashMap)
-	if !ok {
-		return nil, errors.New("get called on non-hash map")
-	}
-	return _update(argMap, a[1], a[2], ctx)
+	return _update(a[0], a[1], a[2], ctx)
 }
 
-func _update(argMap HashMap, index, f MalType, ctx *context.Context) (MalType, error) {
-	res, err := Apply(f, []MalType{index}, ctx)
-	if err != nil {
-		return nil, err
+func _update(argMapOrVector, index, f MalType, ctx *context.Context) (MalType, error) {
+	switch argMapOrVector := argMapOrVector.(type) {
+	case HashMap:
+		res, err := Apply(f, []MalType{argMapOrVector.Val[index.(string)]}, ctx)
+		if err != nil {
+			return nil, err
+		}
+		return assoc([]MalType{argMapOrVector, index, res})
+	case Vector:
+		res, err := Apply(f, []MalType{argMapOrVector.Val[index.(int)]}, ctx)
+		if err != nil {
+			return nil, err
+		}
+		return assoc([]MalType{argMapOrVector, index, res})
+	default:
+		return nil, fmt.Errorf("expected vector or hash-map but got %T", argMapOrVector)
 	}
-	return assoc([]MalType{argMap, index, res})
 }
 
 func updateIn(a []MalType, ctx *context.Context) (MalType, error) {
 	if Nil_Q(a[0]) {
 		return nil, nil
 	}
-	argMap, ok := a[0].(HashMap)
-	if !ok {
-		return nil, errors.New("get called on non-hash map")
-	}
 	posVector, ok := a[1].(Vector)
 	if !ok {
 		return nil, errors.New("get called with non-vector")
 	}
-	return _updateIn(argMap, posVector, a[2], ctx)
+	return _updateIn(a[0], posVector, a[2], ctx)
 }
 
-func _updateIn(argMap HashMap, posVector Vector, f MalType, ctx *context.Context) (MalType, error) {
+func _updateIn(argMapOrVector MalType, posVector Vector, f MalType, ctx *context.Context) (MalType, error) {
 	switch len(posVector.Val) {
 	case 0:
-		return argMap, nil
+		return argMapOrVector, nil
 	case 1:
 		index := posVector.Val[0]
-		return _update(argMap, index, f, ctx)
+		return _update(argMapOrVector, index, f, ctx)
 	default:
-		index := posVector.Val[0].(string)
+		index := posVector.Val[0]
 		rest := Vector{Val: posVector.Val[1:]}
-		branch := argMap.Val[index]
-		if branch == nil {
-			branch = HashMap{}
+		var branch MalType
+		switch argMapOrVector := argMapOrVector.(type) {
+		case HashMap:
+			branch = argMapOrVector.Val[index.(string)]
+			if branch == nil {
+				branch = HashMap{}
+			}
+		case Vector:
+			branch = argMapOrVector.Val[index.(int)]
+			if branch == nil {
+				branch = Vector{}
+			}
+		default:
+			return nil, fmt.Errorf("type %T not supported of index of %T", index, argMapOrVector)
 		}
 		inner, err := _updateIn(branch.(HashMap), rest, f, ctx)
 		if err != nil {
 			return nil, err
 		}
-		return assoc([]MalType{argMap, index, inner})
+		return assoc([]MalType{argMapOrVector, index, inner})
 	}
 }
 
@@ -259,36 +311,41 @@ func assocIn(a []MalType) (MalType, error) {
 	if Nil_Q(a[0]) {
 		return nil, nil
 	}
-	argMap, ok := a[0].(HashMap)
-	if !ok {
-		return nil, errors.New("get called on non-hash map")
-	}
 	posVector, ok := a[1].(Vector)
 	if !ok {
 		return nil, errors.New("get called with non-vector")
 	}
-	return _assocIn(argMap, posVector, a[2])
+	return _assocIn(a[0], posVector, a[2])
 }
 
-func _assocIn(argMap HashMap, posVector Vector, newValue MalType) (MalType, error) {
+func _assocIn(argMapOrVector MalType, posVector Vector, newValue MalType) (MalType, error) {
 	switch len(posVector.Val) {
 	case 0:
-		return argMap, nil
+		return argMapOrVector, nil
 	case 1:
 		index := posVector.Val[0]
-		return assoc([]MalType{argMap, index, newValue})
+		return assoc([]MalType{argMapOrVector, index, newValue})
 	default:
-		index := posVector.Val[0].(string)
+		index := posVector.Val[0]
 		rest := Vector{Val: posVector.Val[1:]}
-		branch := argMap.Val[index]
-		if branch == nil {
-			branch = HashMap{}
+		var branch MalType
+		switch argMapOrVector := argMapOrVector.(type) {
+		case HashMap:
+			branch = argMapOrVector.Val[index.(string)]
+			if branch == nil {
+				branch = HashMap{}
+			}
+		case Vector:
+			branch = argMapOrVector.Val[index.(int)]
+			if branch == nil {
+				branch = Vector{}
+			}
 		}
-		inner, err := _assocIn(branch.(HashMap), rest, newValue)
+		inner, err := _assocIn(branch, rest, newValue)
 		if err != nil {
 			return nil, err
 		}
-		return assoc([]MalType{argMap, index, inner})
+		return assoc([]MalType{argMapOrVector, index, inner})
 	}
 }
 
