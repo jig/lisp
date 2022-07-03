@@ -92,11 +92,9 @@ func copy_set(s Set) Set {
 }
 
 func copy_vector(v Vector) Vector {
-	new_v := Vector{Val: []MalType{}}
-	for _, v := range v.Val {
-		new_v.Val = append(new_v.Val, v)
+	return Vector{
+		Val: append([]MalType{}, v.Val...),
 	}
-	return new_v
 }
 
 func assoc(a []MalType) (MalType, error) {
