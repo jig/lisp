@@ -415,12 +415,7 @@ func (e RuntimeError) ErrorPosition() Position {
 	return Position{}
 }
 
-const maxLengMessage = 130
-
 func Line(cursor *Position, message string) string {
-	if len(message) > maxLengMessage {
-		message = message[:maxLengMessage-3] + "..."
-	}
 	if cursor == nil {
 		return message
 	}
