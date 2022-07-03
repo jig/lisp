@@ -440,3 +440,9 @@ func Line(cursor *Position, message string) string {
 	}
 	return fmt.Sprintf("(L%d,%d): %s", cursor.Row, cursor.Col, message)
 }
+
+// Placeholder
+type Placeholder struct {
+	Index  int
+	Cursor *Position
+}

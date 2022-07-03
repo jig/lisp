@@ -2,6 +2,7 @@ package reader
 
 import (
 	"errors"
+	"fmt"
 	"regexp"
 	"strconv"
 	"strings"
@@ -38,7 +39,7 @@ func (tr *TokenReader) peek() *Token {
 }
 
 var (
-	tokenizerRE  = regexp.MustCompile(`(?:\n|[ \r\t,]*)(~@|#{|[\[\]{}()'` + "`" + `~^@]|"(?:\\.|[^\\"])*"?|¬[^¬]*(?:(?:¬¬)[^¬]*)*¬?|;.*|[^\s\[\]{}('"` + "`" + `,;)]*)`)
+	tokenizerRE  = regexp.MustCompile(`(?:\n|[ \r\t,]*)(~@|#{|[$][0-9]|[\[\]{}()'` + "`" + `~^@]|"(?:\\.|[^\\"])*"?|¬[^¬]*(?:(?:¬¬)[^¬]*)*¬?|;.*|[^\s\[\]{}('"` + "`" + `,;)]*)`)
 	integerRE    = regexp.MustCompile(`^-?[0-9]+$`)
 	stringRE     = regexp.MustCompile(`^"(?:\\.|[^\\"])*"$`)
 	jsonStringRE = regexp.MustCompile(`^¬[^¬]*(?:(?:¬¬)[^¬]*)*¬$`)
@@ -111,7 +112,7 @@ func read_atom(rdr Reader) (MalType, error) {
 	}
 }
 
-func read_list(rdr Reader, start string, end string) (MalType, error) {
+func read_list(rdr Reader, start string, end string, placeholderValues []MalType) (MalType, error) {
 	tokenStruct := rdr.next()
 	if tokenStruct == nil {
 		return nil, RuntimeError{ErrorVal: errors.New("read_list underflow"), Cursor: &tokenStruct.Cursor}
@@ -133,7 +134,7 @@ func read_list(rdr Reader, start string, end string) (MalType, error) {
 		if *token == end {
 			break
 		}
-		f, e := read_form(rdr)
+		f, e := read_form(rdr, placeholderValues)
 		if e != nil {
 			return nil, e
 		}
@@ -143,8 +144,8 @@ func read_list(rdr Reader, start string, end string) (MalType, error) {
 	return List{Val: ast_list, Cursor: &tokenStruct.Cursor}, nil
 }
 
-func read_vector(rdr Reader) (MalType, error) {
-	lst, e := read_list(rdr, "[", "]")
+func read_vector(rdr Reader, placeholderValues []MalType) (MalType, error) {
+	lst, e := read_list(rdr, "[", "]", placeholderValues)
 	if e != nil {
 		return nil, e
 	}
@@ -152,23 +153,43 @@ func read_vector(rdr Reader) (MalType, error) {
 	return vec, nil
 }
 
-func read_hash_map(rdr Reader) (MalType, error) {
-	mal_lst, e := read_list(rdr, "{", "}")
+func read_hash_map(rdr Reader, placeholderValues []MalType) (MalType, error) {
+	mal_lst, e := read_list(rdr, "{", "}", placeholderValues)
 	if e != nil {
 		return nil, e
 	}
 	return NewHashMap(mal_lst)
 }
 
-func read_set(rdr Reader) (MalType, error) {
-	mal_lst, e := read_list(rdr, "#{", "}")
+func read_set(rdr Reader, placeholderValues []MalType) (MalType, error) {
+	mal_lst, e := read_list(rdr, "#{", "}", placeholderValues)
 	if e != nil {
 		return nil, e
 	}
 	return NewSet(mal_lst)
 }
 
-func read_form(rdr Reader) (MalType, error) {
+func read_placeholder(rdr Reader, placeholderValues []MalType) (MalType, error) {
+	tokenStruct := rdr.next()
+	if tokenStruct == nil {
+		return nil, RuntimeError{ErrorVal: errors.New("read_placeholder underflow"), Cursor: &tokenStruct.Cursor}
+	}
+	token := tokenStruct.Value[1:]
+	if match := integerRE.MatchString(token); match {
+		i, err := strconv.Atoi(token)
+		if err != nil {
+			return nil, RuntimeError{ErrorVal: errors.New("number parse error"), Cursor: &tokenStruct.Cursor}
+		}
+		if len(placeholderValues) > i {
+			return placeholderValues[i], nil
+		}
+		return nil, fmt.Errorf("placeholder %s undefined", token)
+	} else {
+		return nil, RuntimeError{ErrorVal: errors.New("read_placeholder requires a number argument"), Cursor: &tokenStruct.Cursor}
+	}
+}
+
+func read_form(rdr Reader, placeholderValues []MalType) (MalType, error) {
 	tokenStruct := rdr.peek()
 	if tokenStruct == nil {
 		return nil, RuntimeError{ErrorVal: errors.New("read_form underflow"), Cursor: &tokenStruct.Cursor}
@@ -176,46 +197,46 @@ func read_form(rdr Reader) (MalType, error) {
 	switch tokenStruct.Value {
 	case `'`:
 		rdr.next()
-		form, e := read_form(rdr)
+		form, e := read_form(rdr, placeholderValues)
 		if e != nil {
 			return nil, e
 		}
 		return List{Val: []MalType{Symbol{Val: "quote", Cursor: &tokenStruct.Cursor}, form}, Cursor: &tokenStruct.Cursor}, nil
 	case "`":
 		rdr.next()
-		form, e := read_form(rdr)
+		form, e := read_form(rdr, placeholderValues)
 		if e != nil {
 			return nil, e
 		}
 		return List{Val: []MalType{Symbol{Val: "quasiquote", Cursor: &tokenStruct.Cursor}, form}, Cursor: &tokenStruct.Cursor}, nil
 	case `~`:
 		rdr.next()
-		form, e := read_form(rdr)
+		form, e := read_form(rdr, placeholderValues)
 		if e != nil {
 			return nil, e
 		}
 		return List{Val: []MalType{Symbol{Val: "unquote", Cursor: &tokenStruct.Cursor}, form}, Cursor: &tokenStruct.Cursor}, nil
 	case `~@`:
 		rdr.next()
-		form, e := read_form(rdr)
+		form, e := read_form(rdr, placeholderValues)
 		if e != nil {
 			return nil, e
 		}
 		return List{Val: []MalType{Symbol{Val: "splice-unquote", Cursor: &tokenStruct.Cursor}, form}, Cursor: &tokenStruct.Cursor}, nil
 	case `^`:
 		rdr.next()
-		meta, e := read_form(rdr)
+		meta, e := read_form(rdr, placeholderValues)
 		if e != nil {
 			return nil, e
 		}
-		form, e := read_form(rdr)
+		form, e := read_form(rdr, placeholderValues)
 		if e != nil {
 			return nil, e
 		}
 		return List{Val: []MalType{Symbol{Val: "with-meta", Cursor: &tokenStruct.Cursor}, form, meta}, Cursor: &tokenStruct.Cursor}, nil
 	case `@`:
 		rdr.next()
-		form, e := read_form(rdr)
+		form, e := read_form(rdr, placeholderValues)
 		if e != nil {
 			return nil, e
 		}
@@ -225,35 +246,38 @@ func read_form(rdr Reader) (MalType, error) {
 	case ")":
 		return nil, RuntimeError{ErrorVal: errors.New("unexpected ')'"), Cursor: &tokenStruct.Cursor}
 	case "(":
-		return read_list(rdr, "(", ")")
+		return read_list(rdr, "(", ")", placeholderValues)
 
 	// vector
 	case "]":
 		return nil, RuntimeError{ErrorVal: errors.New("unexpected ']'"), Cursor: &tokenStruct.Cursor}
 	case "[":
-		return read_vector(rdr)
+		return read_vector(rdr, placeholderValues)
 
 	// hash-map
 	case "}":
 		return nil, RuntimeError{ErrorVal: errors.New("unexpected '}'"), Cursor: &tokenStruct.Cursor}
 	case "{":
-		return read_hash_map(rdr)
+		return read_hash_map(rdr, placeholderValues)
 	case "#{":
-		return read_set(rdr)
-
+		return read_set(rdr, placeholderValues)
+	case "$0", "$1", "$2", "$3", "$4", "$5", "$6", "$7", "$8", "$9":
+		return read_placeholder(rdr, placeholderValues)
 	default:
 		return read_atom(rdr)
 	}
 }
 
-func Read_str(str string, cursor *Position) (MalType, error) {
+func Read_str(str string, cursor *Position, placeholderValues []MalType) (MalType, error) {
 	var tokens = tokenize(str, cursor)
 	if len(tokens) == 0 {
 		return nil, errors.New("<empty line>")
 	}
 
-	return read_form(&TokenReader{
-		tokens:   tokens,
-		position: 0,
-	})
+	return read_form(
+		&TokenReader{
+			tokens:   tokens,
+			position: 0,
+		}, placeholderValues,
+	)
 }

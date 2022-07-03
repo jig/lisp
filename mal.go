@@ -13,7 +13,12 @@ import (
 
 // read
 func READ(str string, cursor *Position) (MalType, error) {
-	return reader.Read_str(str, cursor)
+	return READ_WithPlaceholders(str, cursor, nil)
+}
+
+// read with placeholders
+func READ_WithPlaceholders(str string, cursor *Position, placeholderValues []MalType) (MalType, error) {
+	return reader.Read_str(str, cursor, placeholderValues)
 }
 
 // eval
