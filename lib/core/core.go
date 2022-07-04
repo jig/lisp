@@ -504,8 +504,6 @@ func count(a []MalType) (MalType, error) {
 		return len(obj.Val), nil
 	case Vector:
 		return len(obj.Val), nil
-	case map[string]MalType: // TODO(jig): what is this case for??
-		return len(obj), nil
 	case HashMap:
 		return len(obj.Val), nil
 	case Set:
@@ -543,11 +541,10 @@ func do_map(a []MalType, ctx *context.Context) (MalType, error) {
 	}
 	for _, arg := range args {
 		res, e := Apply(f, []MalType{arg}, ctx)
-		// TODO(jig) why??
-		results = append(results, res)
 		if e != nil {
 			return nil, e
 		}
+		results = append(results, res)
 	}
 	return List{Val: results}, nil
 }
