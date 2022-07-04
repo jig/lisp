@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"regexp"
+	"strings"
 
 	. "github.com/jig/lisp/env"
 	"github.com/jig/lisp/printer"
@@ -11,14 +13,52 @@ import (
 	. "github.com/jig/lisp/types"
 )
 
-// read
+// TODO(jig): to be removed for strings.Cut when migrating to 1.18
+func Cut(s, sep string) (before, after string, found bool) {
+	if i := strings.Index(s, sep); i >= 0 {
+		return s[:i], s[i+len(sep):], true
+	}
+	return s, "", false
+}
+
+var (
+	placeholderRE = regexp.MustCompile(`^(\$[\d\w]+)+\s(.+)`)
+)
+
+// READ reads an expression
 func READ(str string, cursor *Position) (MalType, error) {
 	return READ_WithPlaceholders(str, cursor, nil)
 }
 
+// READ reads an expression with preamble placeholders
+func READ_WithPreamble(str string, cursor *Position) (MalType, error) {
+	placeholderMap := &HashMap{Val: map[string]MalType{}}
+	i := 0
+	for ; ; i++ {
+		var line string
+		// line, str, _ = strings.Cut(str, "\n")
+		line, str, _ = Cut(str, "\n")
+		line = strings.Trim(line, " \t\r\n")
+		if len(line) == 0 {
+			return READ_WithPlaceholders(str, cursor, placeholderMap)
+		}
+		if line[0] != '$' {
+			return READ_WithPlaceholders(str, cursor, placeholderMap)
+		}
+		lineItems := placeholderRE.FindAllStringSubmatch(line, -1)
+		placeholderValue := lineItems[0][2]
+		item, _ := reader.Read_str(placeholderValue, &Position{
+			Row: i + 1,
+			Col: 1,
+		}, nil)
+		placeholderKey := lineItems[0][1]
+		placeholderMap.Val[placeholderKey] = item
+	}
+}
+
 // read with placeholders
-func READ_WithPlaceholders(str string, cursor *Position, placeholderValues []MalType) (MalType, error) {
-	return reader.Read_str(str, cursor, placeholderValues)
+func READ_WithPlaceholders(str string, cursor *Position, placeholderMap *HashMap) (MalType, error) {
+	return reader.Read_str(str, cursor, placeholderMap)
 }
 
 // eval

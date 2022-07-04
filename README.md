@@ -62,7 +62,7 @@ go test -benchmem -benchtime 5s -bench '^.+$' github.com/jig/lisp
 - `(uuid)` returns an 128 bit rfc4122 random UUID
 - support of (hashed, unordered) sets. Only sets of strings or keywords supported. Use `#{}` for literal sets. Functions supported for sets: `set`, `set?`, `conj`, `get`, `assoc`, `dissoc`, `contains?`, `empty?`. `meta`, `with-meta` (see [./test/stepA_mal](./test/stepF_set.mal) and (see [./test/stepA_mal](./test/stepF_set.mal) for examples). `jsonencode` will encode a set to a JSON array.
 - `update`, `update-in` and `assoc-in` supported for hash maps and vectors.
-- Go function `lisp.READ_WithPlaceholders(...lisp code..., nil, []MalType{...})` works like `READ` but supports placeholders `$0`...`$9`. Note that variables are no longer valid as lisp symbols.
+- Go function `READ_WithPreamble` works like `READ` but supports placeholders to be filled on READ time (see [./placeholder_test.go](./placeholder_test.go) for som samples).
 
 # Embed Lisp in Go code
 
