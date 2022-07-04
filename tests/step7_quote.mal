@@ -352,13 +352,13 @@ a
 ;=>[]
 (vec #{:a})
 ;=>[:a]
-(vec #{:a :b})
-;=>[:a :b]
-(vec #{:a :b :c :d})
-;=>[:a :b :c :d]
+(= (set (vec #{:a :b})) #{:a :b})
+;=>true
+(= (set (vec #{:a :b :c :d})) #{:a :b :c :d})
+;=>true
 (vec #{"a"})
 ;=>["a"]
-(vec #{"a" "b"})
-;=>["a" "b"]
-(vec #{"a" "b" "c" "d"})
-;=>["a" "b" "c" "d"]
+(= (set (vec #{"a" "b"})) #{"a" "b"})
+;=>true
+(= (set (vec #{"a" "b" "c" "d"})) #{"a" "b" "c" "d"})
+;=>true
