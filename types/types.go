@@ -393,6 +393,31 @@ func ConvertFrom(from MalType) ([]MalType, MalType, error) {
 	}
 }
 
+func ConvertTo(from []MalType, _to MalType, meta MalType) (MalType, error) {
+	switch _to.(type) {
+	case Set:
+		to := Set{Val: map[string]struct{}{}}
+		for _, k := range from {
+			to.Val[k.(string)] = struct{}{}
+		}
+		return to, nil
+	case List:
+		return List{
+			Val:    from,
+			Meta:   meta,
+			Cursor: &Position{},
+		}, nil
+	case Vector:
+		return Vector{
+			Val:    from,
+			Meta:   meta,
+			Cursor: &Position{},
+		}, nil
+	default:
+		return nil, fmt.Errorf("cannot convert to type %T", _to)
+	}
+}
+
 type RuntimeError struct {
 	ErrorVal error         // deep cause of the stack error
 	Trace    string        // intermediate evaluated form
