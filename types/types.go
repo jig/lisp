@@ -369,11 +369,28 @@ func (l List) MarshalJSON() ([]byte, error) {
 }
 
 func (s Set) MarshalJSON() ([]byte, error) {
-	keys := make([]string, 0, len(s.Val))
-	for k := range s.Val {
-		keys = append(keys, k)
+	keys, _, err := ConvertFrom(s)
+	if err != nil {
+		return nil, err
 	}
 	return json.Marshal(keys)
+}
+
+func ConvertFrom(from MalType) ([]MalType, MalType, error) {
+	switch from := from.(type) {
+	case Set:
+		keys := make([]MalType, 0, len(from.Val))
+		for k := range from.Val {
+			keys = append(keys, k)
+		}
+		return keys, from.Meta, nil
+	case List:
+		return from.Val, from.Meta, nil
+	case Vector:
+		return from.Val, from.Meta, nil
+	default:
+		return nil, nil, fmt.Errorf("cannot convert from type %T", from)
+	}
 }
 
 type RuntimeError struct {

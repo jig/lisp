@@ -347,3 +347,18 @@ a
 ;=>(vec (cons 1 (cons (quote a) (cons 3 ()))))
 (quasiquoteexpand [a [] b [c] d [e f] g])
 ;=>(vec (cons (quote a) (cons (vec ()) (cons (quote b) (cons (vec (cons (quote c) ())) (cons (quote d) (cons (vec (cons (quote e) (cons (quote f) ()))) (cons (quote g) ()))))))))
+
+(vec #{})
+;=>[]
+(vec #{:a})
+;=>[:a]
+(vec #{:a :b})
+;=>[:a :b]
+(vec #{:a :b :c :d})
+;=>[:a :b :c :d]
+(vec #{"a"})
+;=>["a"]
+(vec #{"a" "b"})
+;=>["a" "b"]
+(vec #{"a" "b" "c" "d"})
+;=>["a" "b" "c" "d"]

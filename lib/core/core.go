@@ -427,14 +427,14 @@ func concat(a []MalType) (MalType, error) {
 }
 
 func vec(a []MalType) (MalType, error) {
-	switch obj := a[0].(type) {
-	case Vector:
-		return obj, nil
-	case List:
-		return Vector{Val: obj.Val}, nil
-	default:
-		return nil, errors.New("vec: expects a sequence")
+	array, meta, err := ConvertFrom(a[0])
+	if err != nil {
+		return nil, err
 	}
+	return Vector{
+		Val:  array,
+		Meta: meta,
+	}, nil
 }
 
 func nth(a []MalType) (MalType, error) {
