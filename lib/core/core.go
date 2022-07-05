@@ -193,6 +193,8 @@ func get(a []MalType) (MalType, error) {
 		return ms.Val[a[1].(string)], nil
 	case Vector:
 		return ms.Val[a[1].(int)], nil
+	case List:
+		return ms.Val[a[1].(int)], nil
 	case Set:
 		if _, ok := ms.Val[a[1].(string)]; ok {
 			return a[1].(string), nil
@@ -207,31 +209,42 @@ func getIn(a []MalType) (MalType, error) {
 	if Nil_Q(a[0]) {
 		return nil, nil
 	}
-	if !Vector_Q(a[1]) {
-		return nil, errors.New("get called with non-vector")
+	posVector, ok := a[1].(Vector)
+	if !ok {
+		return nil, errors.New("get-in index must be a vector")
 	}
-	seq := a[0]
-	switch seq.(type) {
-	case HashMap:
-		var err error
-		for _, k := range a[1].(Vector).Val {
-			seq, err = get([]MalType{seq, k})
-			if err != nil {
-				return nil, err
-			}
-		}
-		return seq, nil
-	case Vector:
-		var err error
-		for _, k := range a[1].(Vector).Val {
-			seq, err = get([]MalType{seq, k})
-			if err != nil {
-				return nil, err
-			}
-		}
-		return seq, nil
+	return _getIn(a[0], posVector)
+}
+
+func _getIn(argMapOrVector MalType, posVector Vector) (MalType, error) {
+	switch len(posVector.Val) {
+	case 0:
+		return argMapOrVector, nil
+	case 1:
+		index := posVector.Val[0]
+		return get([]MalType{argMapOrVector, index})
 	default:
-		return nil, errors.New("get called on non-hash map")
+		index := posVector.Val[0]
+		rest := Vector{Val: posVector.Val[1:]}
+		var branch MalType
+		switch argMapOrVector := argMapOrVector.(type) {
+		case HashMap:
+			branch = argMapOrVector.Val[index.(string)]
+			if branch == nil {
+				branch = HashMap{}
+			}
+		case List:
+			branch = argMapOrVector.Val[index.(int)]
+			if branch == nil {
+				branch = List{}
+			}
+		case Vector:
+			branch = argMapOrVector.Val[index.(int)]
+			if branch == nil {
+				branch = Vector{}
+			}
+		}
+		return _getIn(branch, rest)
 	}
 }
 
@@ -311,7 +324,7 @@ func assocIn(a []MalType) (MalType, error) {
 	}
 	posVector, ok := a[1].(Vector)
 	if !ok {
-		return nil, errors.New("get called with non-vector")
+		return nil, errors.New("assoc-in called with non-vector")
 	}
 	return _assocIn(a[0], posVector, a[2])
 }

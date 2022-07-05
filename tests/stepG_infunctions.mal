@@ -123,3 +123,9 @@
 (def! mu (assoc-in m [:x :y :z] 19))
 (get-in mu [:x :y :z])
 ;=>19
+
+;; mixed index
+(get-in {:a [10 20]} [:a 1])
+;=>20
+(get-in {:a '(10 20)} [:a 1])
+;=>20
