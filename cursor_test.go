@@ -37,6 +37,12 @@ func TestCursor(t *testing.T) {
 		Error  error
 	}{
 		{
+			Module: "multiline-string",
+			Code:   multiline,
+			Error: types.MalError{
+				Cursor: &types.Position{Row: 6},
+			},
+		}, {
 			Module: "codeThrow",
 			Code:   codeThrow,
 			Error: types.MalError{
@@ -117,6 +123,13 @@ func TestCursor(t *testing.T) {
 		}
 	}
 }
+
+var multiline = `;; multiline strings
+
+(def! multi ¬line1
+	line6¬)
+
+(throw "pum")`
 
 var codeCorrect = `;; prerequisites
 ;; Trivial but convenient functions.   

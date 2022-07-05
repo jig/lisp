@@ -50,21 +50,35 @@ func tokenize(str string, cursor *Position) []Token {
 	}
 	results := make([]Token, 0, 1)
 	for _, group := range tokenizerRE.FindAllStringSubmatch(str, -1) {
-		if group[0] == "" {
+		groupConsumed := group[0]
+		if groupConsumed == "" {
 			continue
 		}
-		if group[0][0] == '\n' {
+		if groupConsumed[0] == '\n' {
 			cursor.Row++
 			cursor.Col = 0
 		}
-		if (group[1] == "") || (group[1][0] == ';') {
+		groupTrimmed := group[1]
+		if (groupTrimmed == "") || (groupTrimmed[0] == ';') {
 			continue
 		}
+		var colDelta int
+		if strings.HasPrefix(groupTrimmed, "¬") {
+			for _, c := range groupConsumed {
+				colDelta++
+				if c == '\n' {
+					cursor.Row++
+					colDelta = 0
+				}
+			}
+		} else {
+			colDelta = len(groupConsumed)
+		}
 		results = append(results, Token{
-			Value:  group[1],
+			Value:  groupTrimmed,
 			Cursor: *cursor,
 		})
-		cursor.Col += len(group[0])
+		cursor.Col += colDelta
 	}
 	return results
 }
