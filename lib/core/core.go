@@ -873,6 +873,8 @@ func assert(a []MalType) (MalType, error) {
 	case 2:
 		a0 = a[0]
 		a1 = a[1]
+	default:
+		return nil, errors.New("one or two parameters required")
 	}
 
 	switch a0 := a0.(type) {
