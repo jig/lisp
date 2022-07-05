@@ -825,7 +825,7 @@ func split(a []MalType) (MalType, error) {
 		slc[i] = v
 	}
 
-	return List{Val: slc}, nil
+	return Vector{Val: slc}, nil
 }
 
 func renameKeys(a []MalType) (MalType, error) {
