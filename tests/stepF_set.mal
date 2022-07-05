@@ -26,12 +26,12 @@
 (get (assoc (assoc #{"a"} "b") "c") "a")
 ;=>"a"
 
-(def! hm1 (set '()))
+(def! s1 (set '()))
 ;=>#{}
 
 (set? #{})
 ;=>true
-(set? hm1)
+(set? s1)
 ;=>true
 (set? 1)
 ;=>false
@@ -41,41 +41,41 @@
 (get nil "a")
 ;=>nil
 
-(get hm1 "a")
+(get s1 "a")
 ;=>nil
 
-(contains? hm1 "a")
+(contains? s1 "a")
 ;=>false
 
-(def! hm2 (assoc hm1 "a"))
+(def! s2 (assoc s1 "a"))
 ;=>#{"a"}
 
-(get hm1 "a")
+(get s1 "a")
 ;=>nil
 
-(contains? hm1 "a")
+(contains? s1 "a")
 ;=>false
 
-(get hm2 "a")
+(get s2 "a")
 ;=>"a"
 
-(contains? hm2 "a")
+(contains? s2 "a")
 ;=>true
 
 
 ;;; TODO: fix. Clojure returns nil but this breaks mal impl
-(keys hm1)
+(keys s1)
 ;=>()
-(= () (keys hm1))
+(= () (keys s1))
 ;=>true
 
-(keys hm2)
+(keys s2)
 ;=>("a")
 
 (keys #{"1"})
 ;=>("1")
 
-(count (keys (assoc hm2 "b" "c")))
+(count (keys (assoc s2 "b" "c")))
 ;=>3
 
 ;; Testing keywords as set keys
@@ -91,14 +91,14 @@
 ;=>true
 
 ;; Testing whether assoc updates properly
-(def! hm4 (assoc #{:a :b} :a :c))
-(get hm4 :a)
+(def! s4 (assoc #{:a :b} :a :c))
+(get s4 :a)
 ;=>:a
-(get hm4 :b)
+(get s4 :b)
 ;=>:b
-(get hm4 :c)
+(get s4 :c)
 ;=>:c
-(get hm4 :d)
+(get s4 :d)
 ;=>nil
 
 ;; Testing nil as set values
@@ -132,22 +132,22 @@
 
 ;;
 ;; Testing dissoc
-(def! hm3 (assoc hm2 "b"))
-(count (keys hm3))
+(def! s3 (assoc s2 "b"))
+(count (keys s3))
 ;=>2
-(dissoc hm3 "a")
+(dissoc s3 "a")
 ;=>#{"b"}
-(dissoc hm3 "a" "b")
+(dissoc s3 "a" "b")
 ;=>#{}
-(dissoc hm3 "a" "b" "c")
+(dissoc s3 "a" "b" "c")
 ;=>#{}
-(count (keys hm3))
+(count (keys s3))
 ;=>2
 
 ;; Testing empty?
 (empty? #{})
 ;=>true
-(empty? hm3)
+(empty? s3)
 ;=>false
 (empty? #{"aa"})
 ;=>false
