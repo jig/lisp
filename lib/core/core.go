@@ -791,6 +791,7 @@ var NS = map[string]MalType{
 	"assert":      call.CallNe(assert),
 	"rename-keys": call.Call2e(renameKeys),
 	"uuid":        call.Call0e(genUUID),
+	"split":       call.Call2e(split),
 }
 
 var NSInput = map[string]MalType{
@@ -802,6 +803,26 @@ var NSInput = map[string]MalType{
 
 func genUUID(a []MalType) (MalType, error) {
 	return uuid.New().String(), nil
+}
+
+func split(a []MalType) (MalType, error) {
+	aStr, ok := a[0].(string)
+	if !ok {
+		return nil, errors.New("not a string")
+	}
+
+	cutSet, ok := a[1].(string)
+	if !ok {
+		return nil, errors.New("not a string")
+	}
+
+	l := strings.Split(aStr, cutSet)
+	slc := make([]MalType, len(l))
+	for i, v := range l {
+		slc[i] = v
+	}
+
+	return Vector{Val: slc}, nil
 }
 
 func renameKeys(a []MalType) (MalType, error) {
