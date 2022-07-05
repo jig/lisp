@@ -60,7 +60,7 @@ go test -benchmem -benchtime 5s -bench '^.+$' github.com/jig/lisp
 - `(rename-keys hm hmAlterKeys)` as in Clojure
 - `(get-in m ks)` to access nested values from a `m` map; `ks` must be a vector of hash map keys
 - `(uuid)` returns an 128 bit rfc4122 random UUID
-- `(split string cutset)` returns a lisp List of the elements splitted by the cutset (see [./test/step_split](./test/step_split.mal) for examples)
+- `(split string cutset)` returns a lisp List of the elements splitted by the cutset (see [./test/stepH_strings](./test/stepH_strings.mal) for examples)
 - support of (hashed, unordered) sets. Only sets of strings or keywords supported. Use `#{}` for literal sets. Functions supported for sets: `set`, `set?`, `conj`, `get`, `assoc`, `dissoc`, `contains?`, `empty?`. `meta`, `with-meta` (see [./test/stepA_mal](./test/stepF_set.mal) and (see [./test/stepA_mal](./test/stepF_set.mal) for examples). `jsonencode` will encode a set to a JSON array.
 - `update`, `update-in` and `assoc-in` supported for hash maps and vectors.
 - Go function `lisp.READ_WithPlaceholders(...lisp code..., nil, []MalType{...})` works like `READ` but supports placeholders `$0`...`$9`. Note that variables are no longer valid as lisp symbols.
