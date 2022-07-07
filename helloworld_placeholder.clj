@@ -1,4 +1,4 @@
-$HELLO "Hello"
-$WHAT "World"
+;; $HELLO "Hello"
+;; $WHAT "World"
 
 (println $HELLO $WHAT)
