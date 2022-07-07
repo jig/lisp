@@ -15,12 +15,12 @@
 (get (assoc-in {:a 1 :b {:c 2}} [:b] "hello") :a)
 ;=>1
 
-(assoc-in [0 1 2] [] "hello"))
+(assoc-in [0 1 2] [] "hello")
 ;=>[0 1 2]
-(assoc-in [0 1 [2] 3] [2 0] "hello"))
+(assoc-in [0 1 [2] 3] [2 0] "hello")
 ;=>[0 1 ["hello"] 3]
 
-(assoc-in [0 1 {:a 10} 3] [2 :a] "hello"))
+(assoc-in [0 1 {:a 10} 3] [2 :a] "hello")
 ;=>[0 1 {:a "hello"} 3]
 
 ;; get-in
@@ -62,7 +62,7 @@
 ;=>[200 201 202]
 
 (get-in [10 11 [200 201 202] 13] [])
-;=>[10 11 [200 201 202] 13] 
+;=>[10 11 [200 201 202] 13]
 
 ;; update
 (def! mu (update m :a (fn* [_] 22)))
@@ -93,7 +93,7 @@
 (get-in mu [:b :c])
 ;=>2
 
-;; fn* gots x=nil 
+;; fn* gots x=nil
 (def! mu (update-in m [:x] (fn* [x] (if x 100 200))))
 (get-in mu [:x])
 ;=>200
