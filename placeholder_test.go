@@ -6,6 +6,7 @@ import (
 
 	"github.com/jig/lisp/env"
 	"github.com/jig/lisp/lib/core"
+	"github.com/jig/lisp/reader"
 
 	. "github.com/jig/lisp/lnotation"
 	. "github.com/jig/lisp/types"
@@ -33,7 +34,7 @@ func TestPlaceholders(t *testing.T) {
 				(def! v4 $4)
 				true)`
 
-	exp, err := READ_WithPlaceholders(
+	exp, err := reader.Read_str(
 		str,
 		nil,
 		&HashMap{
@@ -105,7 +106,7 @@ func TestPlaceholders(t *testing.T) {
 	}
 }
 
-func TestPlaceholdersEmbedded(t *testing.T) {
+func TestREADWithPreamble(t *testing.T) {
 	repl_env, _ := env.NewEnv(nil, nil, nil)
 	for k, v := range core.NS {
 		repl_env.Set(
@@ -130,7 +131,7 @@ func TestPlaceholdersEmbedded(t *testing.T) {
 `
 
 	// exp, err := READ_WithPlaceholders(str, nil, []MalType{"hello", "{\"key\": \"value\"}", 44, List{Val: []MalType{Symbol{Val: "quote"}, List{Val: []MalType{23, 37}}}}})
-	exp, err := READ_WithPreamble(str, nil)
+	exp, err := READWithPreamble(str, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -204,6 +205,117 @@ func TestPlaceholdersEmbedded(t *testing.T) {
 	}
 }
 
+func TestAddPreamble(t *testing.T) {
+	repl_env, _ := env.NewEnv(nil, nil, nil)
+	for k, v := range core.NS {
+		repl_env.Set(
+			Symbol{Val: k},
+			Func{Fn: v.(func([]MalType, *context.Context) (MalType, error))},
+		)
+	}
+
+	str := `(do
+	(def! v0 $EXAMPLESTRING)
+	(def! v1 $EXAMPLESTRUCT)
+	(def! v2 $EXAMPLEINTEGER)
+	(def! v3 $UNDEFINED) ;; this is nil
+	(def! v4 '$EXAMPLEAST)
+	(def! v5 $EXAMPLEBYTESTRING)
+	true)`
+
+	source, err := AddPreamble(str, map[string]interface{}{
+		"$EXAMPLESTRING":  "hello",
+		"$EXAMPLESTRUCT":  Example{A: 1234, B: "hello"},
+		"$EXAMPLEINTEGER": 44,
+		"$EXAMPLEAST":     LS("+", 1, 1),
+		// byte array is handled as string
+		"$EXAMPLEBYTESTRING": []byte("byte-array"),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// fmt.Println(source)
+
+	exp, err := READWithPreamble(source, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// fmt.Println(PRINT(exp))
+
+	res, err := EVAL(exp, repl_env, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.(bool) {
+		v0, err := repl_env.Get(Symbol{Val: "v0"})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if v0.(string) != "hello" {
+			t.Fatal("no hello")
+		}
+
+		v1, err := repl_env.Get(Symbol{Val: "v1"})
+		if err != nil {
+			t.Fatal(err)
+		}
+		v1Str, ok := v1.(string)
+		if !ok {
+			t.Fatal("no {\"key\": \"value\"}")
+		}
+		if v1Str != `{"A":1234,"B":"hello"}` {
+			t.Fatal(v1Str)
+		}
+
+		v2, err := repl_env.Get(Symbol{Val: "v2"})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if v2.(int) != 44 {
+			t.Fatal("no 44")
+		}
+
+		v3, err := repl_env.Get(Symbol{Val: "v3"})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if v3 != nil {
+			t.Fatal("no 2")
+		}
+
+		v4, err := repl_env.Get(Symbol{Val: "v4"})
+		if err != nil {
+			t.Fatal(err)
+		}
+		l, ok := v4.(List)
+		if !ok {
+			t.Fatal("no (+ 1 1)")
+		}
+		if len(l.Val) != 3 {
+			t.Fatal("pum3")
+		}
+		if l.Val[0].(Symbol).Val != "+" {
+			t.Fatal("pum4")
+		}
+		if l.Val[1].(int) != 1 {
+			t.Fatal("pum5")
+		}
+		if l.Val[2].(int) != 1 {
+			t.Fatal("pum6")
+		}
+
+		v5, err := repl_env.Get(Symbol{Val: "v5"})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if v5.(string) != "byte-array" {
+			t.Fatal("byte-array")
+		}
+	}
+}
+
 func TestPlaceholdersEmbeddedWrong1(t *testing.T) {
 	repl_env, _ := env.NewEnv(nil, nil, nil)
 	for k, v := range core.NS {
@@ -229,7 +341,7 @@ func TestPlaceholdersEmbeddedWrong1(t *testing.T) {
 `
 
 	// exp, err := READ_WithPlaceholders(str, nil, []MalType{"hello", "{\"key\": \"value\"}", 44, List{Val: []MalType{Symbol{Val: "quote"}, List{Val: []MalType{23, 37}}}}})
-	_, err := READ_WithPreamble(str, nil)
+	_, err := READWithPreamble(str, nil)
 	if err == nil {
 		t.Fatal("error expected but err was nil")
 	}
@@ -253,7 +365,7 @@ func TestPlaceholdersEmbeddedNoBlankLine(t *testing.T) {
 ;; $1 27
 (= (+ $0 $1) 100)
 `
-	exp, err := READ_WithPreamble(str, nil)
+	exp, err := READWithPreamble(str, nil)
 	if err != nil {
 		t.Fatal(err)
 	}

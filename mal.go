@@ -2,6 +2,7 @@ package lisp
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"regexp"
@@ -27,11 +28,11 @@ const preamblePrefix = ";; $"
 
 // READ reads an expression
 func READ(str string, cursor *Position) (MalType, error) {
-	return READ_WithPlaceholders(str, cursor, nil)
+	return reader.Read_str(str, cursor, nil)
 }
 
 // READ reads an expression with preamble placeholders
-func READ_WithPreamble(str string, cursor *Position) (MalType, error) {
+func READWithPreamble(str string, cursor *Position) (MalType, error) {
 	placeholderMap := &HashMap{Val: map[string]MalType{}}
 	i := 0
 	for ; ; i++ {
@@ -40,12 +41,21 @@ func READ_WithPreamble(str string, cursor *Position) (MalType, error) {
 		line, str, _ = Cut(str, "\n")
 		line = strings.Trim(line, " \t\r\n")
 		if len(line) == 0 {
-			return READ_WithPlaceholders(str, cursor, placeholderMap)
+			return reader.Read_str(str, cursor, placeholderMap)
 		}
 		if !strings.HasPrefix(line, preamblePrefix) {
-			return READ_WithPlaceholders(line+"\n"+str, cursor, placeholderMap)
+			return reader.Read_str(line+"\n"+str, cursor, placeholderMap)
 		}
 		lineItems := placeholderRE.FindAllStringSubmatch(line, -1)
+		if len(lineItems) != 1 || len(lineItems[0]) != 3 {
+			return nil, RuntimeError{
+				ErrorVal: errors.New("invalid preamble format"),
+				Cursor: &Position{
+					Row: i + 1,
+					Col: 1,
+				},
+			}
+		}
 		placeholderValue := lineItems[0][2]
 		item, _ := reader.Read_str(placeholderValue, &Position{
 			Row: i + 1,
@@ -56,30 +66,50 @@ func READ_WithPreamble(str string, cursor *Position) (MalType, error) {
 	}
 }
 
-// String_WithPlaceholdersForHashMap
-// func String_WithPlaceholdersForHashMap(str string, cursor *Position, placeholderMap *HashMap) string {
-// 	preamble := ""
-// 	for placeholderKey, placeholderValue := range placeholderMap.Val {
-// 		preamble = preamble + ";; " + placeholderKey + " " + placeholderValue + "\n"
-// 	}
-// 	return preamble + "\n" + str
-// }
-
-// String_WithPlaceholdersForHashMap
-func String_WithPlaceholdersForStringMap(str string, cursor *Position, placeholderMap map[string]string) string {
+// AddPreamble
+func AddPreamble(str string, placeholderMap map[string]interface{}) (string, error) {
 	preamble := ""
 	for placeholderKey, placeholderValue := range placeholderMap {
-		preamble = preamble + ";; " + placeholderKey + " " + placeholderValue + "\n"
+		switch placeholderValue := placeholderValue.(type) {
+		case int, int32, int64, uint, uint32, uint64:
+			preamble = preamble + fmt.Sprintf(";; %s %d", placeholderKey, placeholderValue)
+		case string:
+			preamble = preamble + fmt.Sprintf(";; %s %q", placeholderKey, placeholderValue)
+		case []byte:
+			preamble = preamble + fmt.Sprintf(";; %s %q", placeholderKey, placeholderValue)
+		case bool:
+			if placeholderValue {
+				preamble = preamble + ";; " + placeholderKey + " true"
+			} else {
+				preamble = preamble + ";; " + placeholderKey + " false"
+			}
+		case List:
+			s, err := PRINT(placeholderValue)
+			if err != nil {
+				return "", err
+			}
+			preamble = preamble + ";; " + placeholderKey + " " + s
+		default:
+			b, err := json.Marshal(placeholderValue)
+			if err != nil {
+				return "", err
+			}
+			if len(b) == 0 {
+				return "", errors.New("internal error")
+			}
+			c := b[0]
+			switch c {
+			case '[', '{':
+				preamble = preamble + ";; " + placeholderKey + " ¬" + strings.ReplaceAll(string(b), "¬¬", "¬") + "¬"
+			default:
+				preamble = preamble + ";; " + placeholderKey + string(b)
+			}
+		}
+		preamble = preamble + "\n"
 	}
-	return preamble + "\n" + str
+	return preamble + "\n" + str, nil
 }
 
-// read with placeholders
-func READ_WithPlaceholders(str string, cursor *Position, placeholderMap *HashMap) (MalType, error) {
-	return reader.Read_str(str, cursor, placeholderMap)
-}
-
-// eval
 func starts_with(xs []MalType, sym string) bool {
 	if 0 < len(xs) {
 		switch s := xs[0].(type) {
@@ -517,17 +547,22 @@ func malRecover(err *error) {
 	}
 }
 
-// print
+// PRINT
 func PRINT(exp MalType) (string, error) {
 	return printer.Pr_str(exp, true), nil
 }
 
-// repl
+// REPL
 func REPL(repl_env EnvType, str string, ctx *context.Context) (MalType, error) {
+	return REPLPosition(repl_env, str, ctx, nil)
+}
+
+// REPLPosition
+func REPLPosition(repl_env EnvType, str string, ctx *context.Context, cursor *Position) (MalType, error) {
 	var exp MalType
 	var res string
 	var e error
-	if exp, e = READ(str, nil); e != nil {
+	if exp, e = READ(str, cursor); e != nil {
 		return nil, e
 	}
 	if exp, e = EVAL(exp, repl_env, ctx); e != nil {
@@ -539,12 +574,12 @@ func REPL(repl_env EnvType, str string, ctx *context.Context) (MalType, error) {
 	return res, nil
 }
 
-// repl
-func REPLPosition(repl_env EnvType, str string, ctx *context.Context, cursor *Position) (MalType, error) {
+// REPLWithPreamble
+func REPLWithPreamble(repl_env EnvType, str string, ctx *context.Context, cursor *Position) (MalType, error) {
 	var exp MalType
 	var res string
 	var e error
-	if exp, e = READ(str, cursor); e != nil {
+	if exp, e = READWithPreamble(str, cursor); e != nil {
 		return nil, e
 	}
 	if exp, e = EVAL(exp, repl_env, ctx); e != nil {
