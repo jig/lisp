@@ -25,8 +25,8 @@ func TestPlaceholders(t *testing.T) {
 		)
 	}
 
-	str := `(do 
-				(def! v0 $0) 
+	str := `(do
+				(def! v0 $0)
 				(def! v1 $1)
 				(def! vNUMBER $NUMBER)
 				(def! v3 $3)
@@ -114,18 +114,20 @@ func TestPlaceholdersEmbedded(t *testing.T) {
 		)
 	}
 
-	str := `$0 "hello"
-$1 {"key" "value"}
-$NUMBER 44
-$4 (+ 1 1)
+	str :=
+		`;; $0 "hello"
+;; $1 {"key" "value"}
+;; $NUMBER 44
+;; $4 (+ 1 1)
 
-(do 
-	(def! v0 $0) 
+(do
+	(def! v0 $0)
 	(def! v1 $1)
 	(def! v2 $NUMBER)
 	(def! v3 $3) ;; this is nil
 	(def! v4 '$4)
-	true)`
+	true)
+`
 
 	// exp, err := READ_WithPlaceholders(str, nil, []MalType{"hello", "{\"key\": \"value\"}", 44, List{Val: []MalType{Symbol{Val: "quote"}, List{Val: []MalType{23, 37}}}}})
 	exp, err := READ_WithPreamble(str, nil)
@@ -199,5 +201,39 @@ $4 (+ 1 1)
 		if l.Val[2].(int) != 1 {
 			t.Fatal("pum6")
 		}
+	}
+}
+
+func TestPlaceholdersEmbeddedWrong1(t *testing.T) {
+	repl_env, _ := env.NewEnv(nil, nil, nil)
+	for k, v := range core.NS {
+		repl_env.Set(
+			Symbol{Val: k},
+			Func{Fn: v.(func([]MalType, *context.Context) (MalType, error))},
+		)
+	}
+
+	str :=
+		`$0 "hello"
+;; $1 {"key" "value"}
+;; $NUMBER 44
+;; $4 (+ 1 1)
+
+(do
+	(def! v0 $0)
+	(def! v1 $1)
+	(def! v2 $NUMBER)
+	(def! v3 $3) ;; this is nil
+	(def! v4 '$4)
+	true)
+`
+
+	// exp, err := READ_WithPlaceholders(str, nil, []MalType{"hello", "{\"key\": \"value\"}", 44, List{Val: []MalType{Symbol{Val: "quote"}, List{Val: []MalType{23, 37}}}}})
+	_, err := READ_WithPreamble(str, nil)
+	if err == nil {
+		t.Fatal("error expected but err was nil")
+	}
+	if err.Error() != "Error: not all tokens where parsed" {
+		t.Fatal(err)
 	}
 }

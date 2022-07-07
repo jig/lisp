@@ -276,10 +276,22 @@ func Read_str(str string, cursor *Position, placeholderValues *HashMap) (MalType
 		return nil, errors.New("<empty line>")
 	}
 
-	return read_form(
-		&TokenReader{
-			tokens:   tokens,
-			position: 0,
-		}, placeholderValues,
-	)
+	tokenReader := TokenReader{
+		tokens:   tokens,
+		position: 0,
+	}
+	res, err := read_form(&tokenReader, placeholderValues)
+	if err != nil {
+		return nil, err
+	}
+	// if tokenReader.position > len(tokenReader.tokens) {
+	// 	fmt.Println("read_form:ERROR: ", tokenReader.position, len(tokenReader.tokens))
+	// }
+	// if tokenReader.position < len(tokenReader.tokens) {
+	// 	fmt.Println("read_form:WARNING: ", tokenReader.position, len(tokenReader.tokens))
+	// }
+	if tokenReader.position != len(tokenReader.tokens) {
+		return nil, RuntimeError{ErrorVal: errors.New("not all tokens where parsed"), Cursor: cursor}
+	}
+	return res, nil
 }

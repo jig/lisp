@@ -83,7 +83,9 @@ func TestCursor(t *testing.T) {
 		{
 			Module: "codeTooManyRightBrackets",
 			Code:   codeTooManyRightBrackets,
-			Error:  nil,
+			Error: types.RuntimeError{
+				Cursor: &types.Position{Row: 25},
+			},
 		},
 	} {
 		subEnv, err := env.NewEnv(bootEnv, nil, nil)
@@ -132,17 +134,17 @@ var multiline = `;; multiline strings
 (throw "pum")`
 
 var codeCorrect = `;; prerequisites
-;; Trivial but convenient functions.   
-      
-;; Integer predecessor (number -> number)   
+;; Trivial but convenient functions.
+
+;; Integer predecessor (number -> number)
 (def! inc (fn* [a] (+ a 1)))
-    
+
 ;; Integer predecessor (number -> number)
 (def! dec (fn* (a) (- a 1)))
-    
+
 ;; Integer nullity test (number -> boolean)
 (def! zero? (fn* (n) (= 0 n)))
- 
+
 ;; Returns the unchanged argument.
 (def! identity (fn* (x) x))
 
@@ -157,17 +159,17 @@ var codeCorrect = `;; prerequisites
 `
 
 var codeMissingRightBracket = `;; prerequisites
-;; Trivial but convenient functions.   
-      
-;; Integer predecessor (number -> number)   
+;; Trivial but convenient functions.
+
+;; Integer predecessor (number -> number)
 (def! inc (fn* [a] (+ a 1)))
-    
+
 ;; Integer predecessor (number -> number) ;; MISSING ) ON NEXT LINE:
 (def! dec (fn* (a) (- a 1))
-    
+
 ;; Integer nullity test (number -> boolean)
 (def! zero? (fn* (n) (= 0 n)))
- 
+
 ;; Returns the unchanged argument.
 (def! identity (fn* (x) x))
 
@@ -182,17 +184,17 @@ var codeMissingRightBracket = `;; prerequisites
 `
 
 var codeTooManyRightBrackets = `;; prerequisites
-;; Trivial but convenient functions.   
-      
-;; Integer predecessor (number -> number)   
+;; Trivial but convenient functions.
+
+;; Integer predecessor (number -> number)
 (def! inc (fn* [a] (+ a 1)))
-    
+
 ;; Integer predecessor (number -> number)
 (def! dec (fn* (a) (- a 1))))
-    
+
 ;; Integer nullity test (number -> boolean)
 (def! zero? (fn* (n) (= 0 n)))
- 
+
 ;; Returns the unchanged argument.
 (def! identity (fn* (x) x))
 
@@ -211,12 +213,12 @@ var codeThrow = `;; this will throw an error
 (throw "boo")
 `
 
-var codeTryAndThrowAndCatch = `;; throwing an error and catching 
+var codeTryAndThrowAndCatch = `;; throwing an error and catching
 ;; must not involve program lines
 
-(try* 
-	abc 
-	(catch* exc 
+(try*
+	abc
+	(catch* exc
 		(str "exc is:" exc)))
 
 (def! a 1234)

@@ -21,9 +21,9 @@ func Cut(s, sep string) (before, after string, found bool) {
 	return s, "", false
 }
 
-var (
-	placeholderRE = regexp.MustCompile(`^(\$[\d\w]+)+\s(.+)`)
-)
+var placeholderRE = regexp.MustCompile(`^(;; \$[\d\w]+)+\s(.+)`)
+
+const preamblePrefix = ";; $"
 
 // READ reads an expression
 func READ(str string, cursor *Position) (MalType, error) {
@@ -42,8 +42,8 @@ func READ_WithPreamble(str string, cursor *Position) (MalType, error) {
 		if len(line) == 0 {
 			return READ_WithPlaceholders(str, cursor, placeholderMap)
 		}
-		if line[0] != '$' {
-			return READ_WithPlaceholders(str, cursor, placeholderMap)
+		if !strings.HasPrefix(line, preamblePrefix) {
+			return READ_WithPlaceholders(line+"\n"+str, cursor, placeholderMap)
 		}
 		lineItems := placeholderRE.FindAllStringSubmatch(line, -1)
 		placeholderValue := lineItems[0][2]
@@ -51,9 +51,14 @@ func READ_WithPreamble(str string, cursor *Position) (MalType, error) {
 			Row: i + 1,
 			Col: 1,
 		}, nil)
-		placeholderKey := lineItems[0][1]
+		placeholderKey := lineItems[0][1][3:]
 		placeholderMap.Val[placeholderKey] = item
 	}
+}
+
+// String with placeholders
+func String_WithPlaceholders(str string, cursor *Position, placeholderMap *HashMap) (MalType, error) {
+	panic("unim")
 }
 
 // read with placeholders
