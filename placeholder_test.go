@@ -237,3 +237,32 @@ func TestPlaceholdersEmbeddedWrong1(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+func TestPlaceholdersEmbeddedNoBlankLine(t *testing.T) {
+	repl_env, _ := env.NewEnv(nil, nil, nil)
+	for k, v := range core.NS {
+		repl_env.Set(
+			Symbol{Val: k},
+			Func{Fn: v.(func([]MalType, *context.Context) (MalType, error))},
+		)
+	}
+
+	// missing blank line must fail
+	str :=
+		`;; $0 73
+;; $1 27
+(= (+ $0 $1) 100)
+`
+	exp, err := READ_WithPreamble(str, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	res, err := EVAL(exp, repl_env, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !res.(bool) {
+		t.Fatal("failed")
+	}
+}
