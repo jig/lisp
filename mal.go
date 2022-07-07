@@ -56,9 +56,22 @@ func READ_WithPreamble(str string, cursor *Position) (MalType, error) {
 	}
 }
 
-// String with placeholders
-func String_WithPlaceholders(str string, cursor *Position, placeholderMap *HashMap) (MalType, error) {
-	panic("unim")
+// String_WithPlaceholdersForHashMap
+// func String_WithPlaceholdersForHashMap(str string, cursor *Position, placeholderMap *HashMap) string {
+// 	preamble := ""
+// 	for placeholderKey, placeholderValue := range placeholderMap.Val {
+// 		preamble = preamble + ";; " + placeholderKey + " " + placeholderValue + "\n"
+// 	}
+// 	return preamble + "\n" + str
+// }
+
+// String_WithPlaceholdersForHashMap
+func String_WithPlaceholdersForStringMap(str string, cursor *Position, placeholderMap map[string]string) string {
+	preamble := ""
+	for placeholderKey, placeholderValue := range placeholderMap {
+		preamble = preamble + ";; " + placeholderKey + " " + placeholderValue + "\n"
+	}
+	return preamble + "\n" + str
 }
 
 // read with placeholders
