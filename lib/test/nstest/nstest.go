@@ -6,7 +6,7 @@ import (
 )
 
 func Load(repl_env EnvType) error {
-	if _, err := lisp.REPL(repl_env, `(eval (read-string (str "(do "`+AssertMacros+`" nil)"))))`, nil); err != nil {
+	if _, err := lisp.REPL(repl_env, `(eval (read-string (str "(do "`+AssertMacros+`" nil)")))`, nil); err != nil {
 		return err
 	}
 	return nil
@@ -15,38 +15,38 @@ func Load(repl_env EnvType) error {
 var AssertMacros = `;; assert macros
 (defmacro! assert-true
     (fn* [name expr]
-        (list 
+        (list
             'if (try* expr (catch* err err))
-                nil 
-                {   :failed true 
+                nil
+                {   :failed true
                     :name name
                     :expr (str expr)})))
 
 (defmacro! assert-false
     (fn* [name expr]
-        (list 
+        (list
             'if (try* expr (catch* err err))
-                {   :failed true 
+                {   :failed true
                     :name name
                     :expr (str expr)}
                 nil)))
 
 (defmacro! assert-throws
     (fn* [name expr]
-        (let* [failureError {   :failed true 
+        (let* [failureError {   :failed true
                                 :name (str name)
                                 :expr (str expr)}]
-        ` + "`" + `(try* 
-            (do 
-                ~expr 
+        ` + "`" + `(try*
+            (do
+                ~expr
                 ~failureError)
             (catch* err nil)))))
 
 (def! test.suite (fn* [name & assert-cases]
-    (if 
-        (reduce and true 
-            (map 
-                (fn* [x] 
+    (if
+        (reduce and true
+            (map
+                (fn* [x]
                     (if  (not (nil? x))
                         (println "TEST SUITE FAIL" name ">" (get x :name) ">>" (get x :expr))
                         true))
