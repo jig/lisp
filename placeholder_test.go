@@ -2,6 +2,7 @@ package lisp
 
 import (
 	"context"
+	"encoding/json"
 	"testing"
 
 	"github.com/jig/lisp/env"
@@ -223,9 +224,13 @@ func TestAddPreamble(t *testing.T) {
 	(def! v5 $EXAMPLEBYTESTRING)
 	true)`
 
-	source, err := AddPreamble(str, map[string]interface{}{
+	eb, err := json.Marshal(Example{A: 1234, B: "hello"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	source, err := AddPreamble(str, map[string]MalType{
 		"$EXAMPLESTRING":  "hello",
-		"$EXAMPLESTRUCT":  Example{A: 1234, B: "hello"},
+		"$EXAMPLESTRUCT":  string(eb),
 		"$EXAMPLEINTEGER": 44,
 		"$EXAMPLEAST":     LS("+", 1, 1),
 		// byte array is handled as string
@@ -304,14 +309,6 @@ func TestAddPreamble(t *testing.T) {
 		}
 		if l.Val[2].(int) != 1 {
 			t.Fatal("pum6")
-		}
-
-		v5, err := repl_env.Get(Symbol{Val: "v5"})
-		if err != nil {
-			t.Fatal(err)
-		}
-		if v5.(string) != "byte-array" {
-			t.Fatal("byte-array")
 		}
 	}
 }

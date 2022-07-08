@@ -2,7 +2,6 @@ package lisp
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"regexp"
@@ -67,45 +66,14 @@ func READWithPreamble(str string, cursor *Position) (MalType, error) {
 }
 
 // AddPreamble
-func AddPreamble(str string, placeholderMap map[string]interface{}) (string, error) {
+func AddPreamble(str string, placeholderMap map[string]MalType) (string, error) {
 	preamble := ""
 	for placeholderKey, placeholderValue := range placeholderMap {
-		switch placeholderValue := placeholderValue.(type) {
-		case int, int32, int64, uint, uint32, uint64:
-			preamble = preamble + fmt.Sprintf(";; %s %d", placeholderKey, placeholderValue)
-		case string:
-			preamble = preamble + fmt.Sprintf(";; %s %q", placeholderKey, placeholderValue)
-		case []byte:
-			preamble = preamble + fmt.Sprintf(";; %s %q", placeholderKey, placeholderValue)
-		case bool:
-			if placeholderValue {
-				preamble = preamble + ";; " + placeholderKey + " true"
-			} else {
-				preamble = preamble + ";; " + placeholderKey + " false"
-			}
-		case List:
-			s, err := PRINT(placeholderValue)
-			if err != nil {
-				return "", err
-			}
-			preamble = preamble + ";; " + placeholderKey + " " + s
-		default:
-			b, err := json.Marshal(placeholderValue)
-			if err != nil {
-				return "", err
-			}
-			if len(b) == 0 {
-				return "", errors.New("internal error")
-			}
-			c := b[0]
-			switch c {
-			case '[', '{':
-				preamble = preamble + ";; " + placeholderKey + " ¬" + strings.ReplaceAll(string(b), "¬¬", "¬") + "¬"
-			default:
-				preamble = preamble + ";; " + placeholderKey + string(b)
-			}
+		s, err := PRINT(placeholderValue)
+		if err != nil {
+			return "", err
 		}
-		preamble = preamble + "\n"
+		preamble = preamble + ";; " + placeholderKey + " " + s + "\n"
 	}
 	return preamble + "\n" + str, nil
 }
