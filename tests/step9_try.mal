@@ -90,7 +90,7 @@
 (def! double (fn* (a) (* 2 a)))
 (double 3)
 ;=>6
-(map double nums) 
+(map double nums)
 ;=>(2 4 6)
 (map (fn* (x) (symbol? x)) (list 1 (quote two) "three"))
 ;=>(false true false)
@@ -406,3 +406,15 @@
 (bar {:foo (fn* [x] x)})
 (bar {:foo 3})
 ;; shouldn't give an error
+
+;; Testing try*/catch*/finally*
+
+(try* 123 (catch* e 456) (finally* (println "fin")))
+;/fin
+;=>123
+(try* 123 (finally* (println "fin")))
+;/fin
+;=>123
+
+(try* 123 (finally*))
+;=>123

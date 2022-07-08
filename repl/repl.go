@@ -115,6 +115,7 @@ func (l *lispCompleter) Do(line []rune, pos int) (newLine [][]rune, length int) 
 	for _, form := range []string{
 		"do",
 		"try*",
+		"finally*",
 		"if",
 		"catch*",
 		"fn*",

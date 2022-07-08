@@ -64,6 +64,7 @@ go test -benchmem -benchtime 5s -bench '^.+$' github.com/jig/lisp
 - support of (hashed, unordered) sets. Only sets of strings or keywords supported. Use `#{}` for literal sets. Functions supported for sets: `set`, `set?`, `conj`, `get`, `assoc`, `dissoc`, `contains?`, `empty?`. `meta`, `with-meta` (see [./test/stepA_mal](./test/stepF_set.mal) and (see [./test/stepA_mal](./test/stepF_set.mal) for examples). `jsonencode` will encode a set to a JSON array.
 - `update`, `update-in` and `assoc-in` supported for hash maps and vectors.
 - Go function `READ_WithPreamble` works like `READ` but supports placeholders to be filled on READ time (see [./placeholder_test.go](./placeholder_test.go) for som samples).
+- Added support for `finally*` inside `try*`. `finally*` expression is evaluated for side effects only.
 
 # Embed Lisp in Go code
 
