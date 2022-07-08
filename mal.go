@@ -346,7 +346,11 @@ func EVAL(ast MalType, env EnvType, ctx *context.Context) (MalType, error) {
 					if Symbol_Q(a3s[0]) && (a3s[0].(Symbol).Val == "finally*" && len(a3s) >= 2) {
 						// only for side-effects:
 						// TODO(jig): probably clojure does not allow in try* created symbols appear inside finally
-						defer func() { _, _ = EVAL(a3s[1], env, ctx) }()
+						defer func() {
+							if _, errFinally := EVAL(a3s[1], env, ctx); errFinally != nil {
+								err = errFinally
+							}
+						}()
 					}
 				} else {
 					if a2 != nil && List_Q(a2) {
@@ -354,7 +358,11 @@ func EVAL(ast MalType, env EnvType, ctx *context.Context) (MalType, error) {
 						if Symbol_Q(a2s[0]) && (a2s[0].(Symbol).Val == "finally*" && len(a2s) >= 2) {
 							// only for side-effects:
 							// TODO(jig): probably clojure does not allow in try* created symbols appear inside finally
-							defer func() { _, _ = EVAL(a2s[1], env, ctx) }()
+							defer func() {
+								if _, errFinally := EVAL(a2s[1], env, ctx); errFinally != nil {
+									err = errFinally
+								}
+							}()
 						}
 					}
 				}

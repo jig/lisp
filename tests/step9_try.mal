@@ -416,5 +416,9 @@
 ;/fin
 ;=>123
 
-(try* 123 (finally*))
-;=>123
+(try* (let* [x 1] x) (finally* (println z)))
+;/Error: 'z' not found
+;=>nil
+(try* (let* [x 1] x) (finally* (println x)))
+;/Error: 'x' not found
+;=>nil
