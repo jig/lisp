@@ -379,17 +379,16 @@ func TestPlaceholdersEmbeddedNoBlankLine(t *testing.T) {
 var notOptimiseBenchFunc string
 
 func BenchmarkAddPreamble(b *testing.B) {
-	source := `(do
+	for n := 0; n < b.N; n++ {
+		var err error
+		sourceWithPreamble := `(do
 		(def! v0 $EXAMPLESTRING)
 		(def! v2 $EXAMPLEINTEGER)
 		(def! v3 $UNDEFINED) ;; this is nil
 		(def! v4 '$EXAMPLEAST)
 		(def! v5 $EXAMPLEBYTESTRING)
 		true)`
-
-	for n := 0; n < b.N; n++ {
-		var err error
-		notOptimiseBenchFunc, err = AddPreamble(source, map[string]MalType{
+		notOptimiseBenchFunc, err = AddPreamble(sourceWithPreamble, map[string]MalType{
 			"$EXAMPLESTRING":  "hello",
 			"$EXAMPLEINTEGER": 44,
 			"$EXAMPLEAST":     LS("+", 1, 1),
@@ -402,15 +401,45 @@ func BenchmarkAddPreamble(b *testing.B) {
 	}
 }
 
+var notOptimiseBenchFunc2 MalType
+
+func BenchmarkAddPreambleAlternative(b *testing.B) {
+	repl_env, _ := env.NewEnv(nil, nil, nil)
+	for k, v := range core.NS {
+		repl_env.Set(Symbol{Val: k}, Func{Fn: v.(func([]MalType, *context.Context) (MalType, error))})
+	}
+
+	for n := 0; n < b.N; n++ {
+		EXAMPLESTRING := "hello"
+		EXAMPLEINTEGER := 44
+		EXAMPLEAST := LS("+", 1, 1)
+		EXAMPLEBYTESTRING := []byte("byte-array")
+		ast := LS("do",
+			LS("def!", "v0", EXAMPLESTRING),
+			LS("def!", "v2", EXAMPLEINTEGER),
+			LS("def!", "v3", nil),
+			LS("def!", "v4", EXAMPLEAST),
+			LS("def!", "v5", EXAMPLEBYTESTRING),
+
+			LS("def!", LS("not", LS("fn*", V("a")))),
+		)
+		str, err := PRINT(ast)
+		if err != nil {
+			b.Fatal(err)
+		}
+		notOptimiseBenchFunc2 = str
+	}
+}
+
 func BenchmarkREADWithPreamble(b *testing.B) {
-	source := `(do
+	sourceWithPreamble := `(do
 		(def! v0 $EXAMPLESTRING)
 		(def! v2 $EXAMPLEINTEGER)
 		(def! v3 $UNDEFINED) ;; this is nil
 		(def! v4 '$EXAMPLEAST)
 		(def! v5 $EXAMPLEBYTESTRING)
 		true)`
-	codePreamble, err := AddPreamble(source, map[string]MalType{
+	codePreamble, err := AddPreamble(sourceWithPreamble, map[string]MalType{
 		"$EXAMPLESTRING":  "hello",
 		"$EXAMPLEINTEGER": 44,
 		"$EXAMPLEAST":     LS("+", 1, 1),
@@ -434,14 +463,14 @@ func BenchmarkNewEnv(b *testing.B) {
 	for k, v := range core.NS {
 		repl_env.Set(Symbol{Val: k}, Func{Fn: v.(func([]MalType, *context.Context) (MalType, error))})
 	}
-	source := `(do
+	sourceWithPreamble := `(do
 		(def! v0 $EXAMPLESTRING)
 		(def! v2 $EXAMPLEINTEGER)
 		(def! v3 $UNDEFINED) ;; this is nil
 		(def! v4 '$EXAMPLEAST)
 		(def! v5 $EXAMPLEBYTESTRING)
 		true)`
-	codePreamble, err := AddPreamble(source, map[string]MalType{
+	codePreamble, err := AddPreamble(sourceWithPreamble, map[string]MalType{
 		"$EXAMPLESTRING":  "hello",
 		"$EXAMPLEINTEGER": 44,
 		"$EXAMPLEAST":     LS("+", 1, 1),
