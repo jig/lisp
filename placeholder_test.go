@@ -375,3 +375,139 @@ func TestPlaceholdersEmbeddedNoBlankLine(t *testing.T) {
 		t.Fatal("failed")
 	}
 }
+
+var notOptimiseBenchFunc string
+
+func BenchmarkAddPreamble(b *testing.B) {
+	source := `(do
+		(def! v0 $EXAMPLESTRING)
+		(def! v2 $EXAMPLEINTEGER)
+		(def! v3 $UNDEFINED) ;; this is nil
+		(def! v4 '$EXAMPLEAST)
+		(def! v5 $EXAMPLEBYTESTRING)
+		true)`
+
+	for n := 0; n < b.N; n++ {
+		var err error
+		notOptimiseBenchFunc, err = AddPreamble(source, map[string]MalType{
+			"$EXAMPLESTRING":  "hello",
+			"$EXAMPLEINTEGER": 44,
+			"$EXAMPLEAST":     LS("+", 1, 1),
+			// byte array is handled as string
+			"$EXAMPLEBYTESTRING": []byte("byte-array"),
+		})
+		if err != nil {
+			b.Fatal(err)
+		}
+	}
+}
+
+func BenchmarkREADWithPreamble(b *testing.B) {
+	source := `(do
+		(def! v0 $EXAMPLESTRING)
+		(def! v2 $EXAMPLEINTEGER)
+		(def! v3 $UNDEFINED) ;; this is nil
+		(def! v4 '$EXAMPLEAST)
+		(def! v5 $EXAMPLEBYTESTRING)
+		true)`
+	codePreamble, err := AddPreamble(source, map[string]MalType{
+		"$EXAMPLESTRING":  "hello",
+		"$EXAMPLEINTEGER": 44,
+		"$EXAMPLEAST":     LS("+", 1, 1),
+		// byte array is handled as string
+		"$EXAMPLEBYTESTRING": []byte("byte-array"),
+	})
+	if err != nil {
+		b.Fatal(err)
+	}
+	for n := 0; n < b.N; n++ {
+		res, err := READWithPreamble(codePreamble, nil)
+		if err != nil {
+			b.Fatal(err)
+		}
+		_ = res
+	}
+}
+
+func BenchmarkNewEnv(b *testing.B) {
+	repl_env, _ := env.NewEnv(nil, nil, nil)
+	for k, v := range core.NS {
+		repl_env.Set(Symbol{Val: k}, Func{Fn: v.(func([]MalType, *context.Context) (MalType, error))})
+	}
+	source := `(do
+		(def! v0 $EXAMPLESTRING)
+		(def! v2 $EXAMPLEINTEGER)
+		(def! v3 $UNDEFINED) ;; this is nil
+		(def! v4 '$EXAMPLEAST)
+		(def! v5 $EXAMPLEBYTESTRING)
+		true)`
+	codePreamble, err := AddPreamble(source, map[string]MalType{
+		"$EXAMPLESTRING":  "hello",
+		"$EXAMPLEINTEGER": 44,
+		"$EXAMPLEAST":     LS("+", 1, 1),
+		// byte array is handled as string
+		"$EXAMPLEBYTESTRING": []byte("byte-array"),
+	})
+	if err != nil {
+		b.Fatal(err)
+	}
+
+	ast, err := READWithPreamble(codePreamble, nil)
+	if err != nil {
+		b.Fatal(err)
+	}
+
+	for n := 0; n < b.N; n++ {
+		res, err := EVAL(ast, repl_env, nil)
+		if err != nil {
+			b.Fatal(err)
+		}
+		if !res.(bool) {
+			b.Fatal(err)
+		}
+	}
+}
+
+func BenchmarkComplete(b *testing.B) {
+	repl_env, _ := env.NewEnv(nil, nil, nil)
+	for k, v := range core.NS {
+		repl_env.Set(Symbol{Val: k}, Func{Fn: v.(func([]MalType, *context.Context) (MalType, error))})
+	}
+
+	for n := 0; n < b.N; n++ {
+		source := `(do
+			(def! v0 $EXAMPLESTRING)
+			(def! v2 $EXAMPLEINTEGER)
+			(def! v3 $UNDEFINED) ;; this is nil
+			(def! v4 '$EXAMPLEAST)
+			(def! v5 $EXAMPLEBYTESTRING)
+
+			(def! not (fn* (a) (if a false true)))
+			(def! b (not $TESTRESULT))
+			(not b))`
+		codePreamble, err := AddPreamble(source, map[string]MalType{
+			"$TESTRESULT":     true,
+			"$EXAMPLESTRING":  "hello",
+			"$EXAMPLEINTEGER": 44,
+			"$EXAMPLEAST":     LS("+", 1, 1),
+			// byte array is handled as string
+			"$EXAMPLEBYTESTRING": []byte("byte-array"),
+		})
+		if err != nil {
+			b.Fatal(err)
+		}
+
+		ast, err := READWithPreamble(codePreamble, nil)
+		if err != nil {
+			b.Fatal(err)
+		}
+
+		res, err := EVAL(ast, repl_env, nil)
+		if err != nil {
+			b.Fatal(err)
+		}
+		if !res.(bool) {
+			b.Fatal(err)
+		}
+	}
+}
