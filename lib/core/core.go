@@ -388,14 +388,8 @@ func keys(a []MalType) (MalType, error) {
 			slc = append(slc, k)
 		}
 		return List{Val: slc}, nil
-	case Set:
-		slc := []MalType{}
-		for k := range ms.Val {
-			slc = append(slc, k)
-		}
-		return List{Val: slc}, nil
 	default:
-		return nil, errors.New("keys called on non-hash map and non-set")
+		return nil, errors.New("keys called on non-hash map")
 	}
 }
 
@@ -619,6 +613,12 @@ func seq(a []MalType) (MalType, error) {
 			return nil, nil
 		}
 		return List{Val: arg.Val}, nil
+	case Set:
+		slc := []MalType{}
+		for k := range arg.Val {
+			slc = append(slc, k)
+		}
+		return List{Val: slc}, nil
 	case string:
 		if len(arg) == 0 {
 			return nil, nil
