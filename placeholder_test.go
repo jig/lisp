@@ -497,12 +497,52 @@ func BenchmarkNewEnv(b *testing.B) {
 	}
 }
 
-func BenchmarkComplete(b *testing.B) {
-	repl_env, _ := env.NewEnv(nil, nil, nil)
-	for k, v := range core.NS {
-		repl_env.Set(Symbol{Val: k}, Func{Fn: v.(func([]MalType, *context.Context) (MalType, error))})
-	}
+func BenchmarkCompleteSendingWithPreamble(b *testing.B) {
+	for n := 0; n < b.N; n++ {
+		source := `(do
+			(def! v0 $EXAMPLESTRING)
+			(def! v2 $EXAMPLEINTEGER)
+			(def! v3 $UNDEFINED) ;; this is nil
+			(def! v4 '$EXAMPLEAST)
+			(def! v5 $EXAMPLEBYTESTRING)
 
+			(def! not (fn* (a) (if a false true)))
+			(def! b (not $TESTRESULT))
+			(not b))`
+		sentCode, err := AddPreamble(source, map[string]MalType{
+			"$TESTRESULT":     true,
+			"$EXAMPLESTRING":  "hello",
+			"$EXAMPLEINTEGER": 44,
+			"$EXAMPLEAST":     LS("+", 1, 1),
+			// byte array is handled as string
+			"$EXAMPLEBYTESTRING": []byte("byte-array"),
+		})
+		if err != nil {
+			b.Fatal(err)
+		}
+
+		// protocol here
+
+		ast, err := READWithPreamble(sentCode, nil)
+		if err != nil {
+			b.Fatal(err)
+		}
+
+		repl_env, _ := env.NewEnv(nil, nil, nil)
+		for k, v := range core.NS {
+			repl_env.Set(Symbol{Val: k}, Func{Fn: v.(func([]MalType, *context.Context) (MalType, error))})
+		}
+		res, err := EVAL(ast, repl_env, nil)
+		if err != nil {
+			b.Fatal(err)
+		}
+		if !res.(bool) {
+			b.Fatal(err)
+		}
+	}
+}
+
+func BenchmarkCompleteSendingWithPreambleSolved(b *testing.B) {
 	for n := 0; n < b.N; n++ {
 		source := `(do
 			(def! v0 $EXAMPLESTRING)
@@ -526,11 +566,26 @@ func BenchmarkComplete(b *testing.B) {
 			b.Fatal(err)
 		}
 
-		ast, err := READWithPreamble(codePreamble, nil)
+		sentAST, err := READWithPreamble(codePreamble, nil)
+		if err != nil {
+			b.Fatal(err)
+		}
+		sentCode, err := PRINT(sentAST)
 		if err != nil {
 			b.Fatal(err)
 		}
 
+		// protocol here
+
+		ast, err := READ(sentCode, nil)
+		if err != nil {
+			b.Fatal(err)
+		}
+
+		repl_env, _ := env.NewEnv(nil, nil, nil)
+		for k, v := range core.NS {
+			repl_env.Set(Symbol{Val: k}, Func{Fn: v.(func([]MalType, *context.Context) (MalType, error))})
+		}
 		res, err := EVAL(ast, repl_env, nil)
 		if err != nil {
 			b.Fatal(err)
