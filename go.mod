@@ -7,4 +7,7 @@ require (
 	github.com/google/uuid v1.3.0
 )
 
-require golang.org/x/sys v0.0.0-20220702020025-31831981b65f // indirect
+require (
+	github.com/davecgh/go-spew v1.1.1 // indirect
+	golang.org/x/sys v0.0.0-20220702020025-31831981b65f // indirect
+)
