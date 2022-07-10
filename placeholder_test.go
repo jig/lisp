@@ -44,7 +44,7 @@ func TestPlaceholders(t *testing.T) {
 				"$1":      "{\"key\": \"value\"}",
 				"$NUMBER": 44,
 				"$3":      LS("+", 1, 1),
-				"$4": LS("jsonencode",
+				"$4": LS("json-encode",
 					Example{A: 3, B: "blurp"}),
 			},
 		},

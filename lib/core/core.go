@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	spew "github.com/davecgh/go-spew/spew"
 	"github.com/google/uuid"
 	"github.com/jig/lisp/lib/call-helper"
 	"github.com/jig/lisp/printer"
@@ -45,6 +46,11 @@ func pr_str(a []MalType) (MalType, error) {
 
 func str(a []MalType) (MalType, error) {
 	return printer.Pr_list(a, false, "", "", ""), nil
+}
+
+func spewDump(a []MalType) (MalType, error) {
+	spew.Dump(a[0])
+	return nil, nil
 }
 
 func prn(a []MalType) (MalType, error) {
@@ -741,6 +747,7 @@ var NS = map[string]MalType{
 	"str":         call.CallNe(str),
 	"prn":         call.CallNe(prn),
 	"println":     call.CallNe(println),
+	"spew":        call.Call1e(spewDump),
 	"read-string": call.Call1e(func(a []MalType) (MalType, error) { return reader.Read_str(a[0].(string), nil, nil) }),
 	"<":           call.Call2e(func(a []MalType) (MalType, error) { return a[0].(int) < a[1].(int), nil }),
 	"<=":          call.Call2e(func(a []MalType) (MalType, error) { return a[0].(int) <= a[1].(int), nil }),
@@ -756,7 +763,7 @@ var NS = map[string]MalType{
 	"list?":       call.Call1b(List_Q),
 	"vector":      call.CallNe(func(a []MalType) (MalType, error) { return Vector{Val: a}, nil }),
 	"vector?":     call.Call1b(Vector_Q),
-	"hash-map":    call.CallNe(func(a []MalType) (MalType, error) { return NewHashMap(List{Val: a}) }),
+	"hash-map":    call.CallNe(hashMap),
 	"map?":        call.Call1b(HashMap_Q),
 	"set":         call.Call1e(func(a []MalType) (MalType, error) { return NewSet(a[0]) }),
 	"hash-set":    call.CallNe(func(a []MalType) (MalType, error) { return NewSet(List{Val: a}) }),
@@ -792,19 +799,20 @@ var NS = map[string]MalType{
 	"reset!":      call.Call2e(reset_BANG),
 	"swap!":       call.CallNeC(swap_BANG),
 
-	"range":       call.Call2e(rangeVector),
-	"sleep":       call.Call1eC(sleep),
-	"base64":      call.Call1e(base64encode),
-	"unbase64":    call.Call1e(base64decode),
-	"str2binary":  call.Call1e(str2binary),
-	"binary2str":  call.Call1e(binary2str),
-	"jsondecode":  call.Call1e(jsonDecode),
-	"jsonencode":  call.Call1e(jsonEncode),
-	"merge":       call.Call2e(mergeHashMap),
-	"assert":      call.CallNe(assert),
-	"rename-keys": call.Call2e(renameKeys),
-	"uuid":        call.Call0e(genUUID),
-	"split":       call.Call2e(split),
+	"range":           call.Call2e(rangeVector),
+	"sleep":           call.Call1eC(sleep),
+	"base64":          call.Call1e(base64encode),
+	"unbase64":        call.Call1e(base64decode),
+	"str2binary":      call.Call1e(str2binary),
+	"binary2str":      call.Call1e(binary2str),
+	"hash-map-decode": call.Call2e(hashMapDecode),
+	"json-decode":     call.Call2e(jsonDecode),
+	"json-encode":     call.Call1e(jsonEncode),
+	"merge":           call.Call2e(mergeHashMap),
+	"assert":          call.CallNe(assert),
+	"rename-keys":     call.Call2e(renameKeys),
+	"uuid":            call.Call0e(genUUID),
+	"split":           call.Call2e(split),
 }
 
 var NSInput = map[string]MalType{
@@ -947,10 +955,25 @@ func jsonEncode(a []MalType) (MalType, error) {
 	return string(b), nil
 }
 
+func hashMap(a []MalType) (MalType, error) {
+	switch len(a) {
+	case 0:
+		return HashMap{}, nil
+	case 1:
+		return a[0].(HashMapMarshaler).MarshalHashMap()
+	default:
+		return NewHashMap(List{Val: a})
+	}
+}
+
+func hashMapDecode(a []MalType) (MalType, error) {
+	return a[0].(FactoryUnmarshalHashMap).UnmarshalHashMap(a[1])
+}
+
 func jsonDecode(a []MalType) (MalType, error) {
 	var b []byte
 
-	switch a := a[0].(type) {
+	switch a := a[1].(type) {
 	case string:
 		b = []byte(a)
 	case []byte:
@@ -959,28 +982,39 @@ func jsonDecode(a []MalType) (MalType, error) {
 		return nil, fmt.Errorf("unsupported type %T", a)
 	}
 
-	switch b[0] {
-	case '{':
-		v := map[string]interface{}{}
-		err := json.Unmarshal(b, &v)
-		if err != nil {
-			return nil, err
-		}
-		return map2hashmap(v), nil
-	case '[':
-		v := []interface{}{}
-		err := json.Unmarshal(b, &v)
-		if err != nil {
-			return nil, err
-		}
-		return array2vector(v), nil
-	default:
+	switch value := a[0].(type) {
+	case FactoryUnmarshalJson:
+		return value.UnmarshalJson(b)
+	case List:
 		var v MalType
 		err := json.Unmarshal(b, &v)
 		if err != nil {
 			return nil, err
 		}
 		return v, nil
+	case Vector:
+		v := []interface{}{}
+		err := json.Unmarshal(b, &v)
+		if err != nil {
+			return nil, err
+		}
+		return array2vector(v), nil
+	case HashMap:
+		v := map[string]interface{}{}
+		err := json.Unmarshal(b, &v)
+		if err != nil {
+			return nil, err
+		}
+		return map2hashmap(v), nil
+	case Set:
+		v := []interface{}{}
+		err := json.Unmarshal(b, &v)
+		if err != nil {
+			return nil, err
+		}
+		return NewSet(array2vector(v))
+	default:
+		return nil, fmt.Errorf("type % cannot be decoded", value)
 	}
 }
 

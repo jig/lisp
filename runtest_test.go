@@ -120,6 +120,11 @@ func newEnv() types.EnvType {
 	}})
 	env.Set(types.Symbol{Val: "*ARGV*"}, types.List{})
 
+	// package example to test marshalers
+	for k, v := range NSMarshalExample {
+		env.Set(types.Symbol{Val: k}, types.Func{Fn: v.(func([]types.MalType, *context.Context) (types.MalType, error))})
+	}
+
 	// core.mal: defined using the language itself
 	if _, err := REPL(env, `(def! *host-language* "go")`, nil); err != nil {
 		return nil
