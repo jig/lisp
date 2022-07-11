@@ -806,7 +806,7 @@ var NS = map[string]MalType{
 	"str2binary":      call.Call1e(str2binary),
 	"binary2str":      call.Call1e(binary2str),
 	"hash-map-decode": call.Call2e(hashMapDecode),
-	"json-decode":     call.Call2e(jsonDecode),
+	"json-decode":     call.Call2e(JSONDecode),
 	"json-encode":     call.Call1e(jsonEncode),
 	"merge":           call.Call2e(mergeHashMap),
 	"assert":          call.CallNe(assert),
@@ -970,7 +970,7 @@ func hashMapDecode(a []MalType) (MalType, error) {
 	return a[0].(FactoryUnmarshalHashMap).UnmarshalHashMap(a[1])
 }
 
-func jsonDecode(a []MalType) (MalType, error) {
+func JSONDecode(a []MalType) (MalType, error) {
 	var b []byte
 
 	switch a := a[1].(type) {
