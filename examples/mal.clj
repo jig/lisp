@@ -1,3 +1,4 @@
+(trace (do
 ;; ENV
 
 ;;  An environment is an atom referencing a map where keys are strings
@@ -55,9 +56,9 @@
   sequential? slurp str string? swap! symbol symbol? throw time-ms
   true? vals vec vector vector? with-meta])
 
-;; EVAL extends this stack trace when propagating exceptions.  If the
-;; exception reaches the REPL loop, the full trace is printed.
-(def! trace (atom ""))
+;; EVAL extends this stack trace-atom when propagating exceptions.  If the
+;; exception reaches the REPL loop, the full trace-atom is printed.
+(def! trace-atom (atom ""))
 
 ;; read
 (def! READ read-string)
@@ -151,7 +152,7 @@
                   (EVAL (nth ast 1) env)
                   (catch* exc
                     (do
-                      (reset! trace "")
+                      (reset! trace-atom "")
                         (let* [a2 (nth ast 2)]
                           (EVAL (nth a2 2) (new-env env [(nth a2 1)] [exc])))))))
 
@@ -173,7 +174,7 @@
 
     (catch* exc
       (do
-        (swap! trace str "\n  in mal EVAL: " ast)
+        (swap! trace-atom str "\n  in mal EVAL: " ast)
         (throw exc))))))
 
 ;; print
@@ -205,11 +206,11 @@
           (println (rep line))
           (catch* exc
             (do
-              (println "Uncaught exception:" exc @trace)
-              (reset! trace "")))))
+              (println "Uncaught exception:" exc @trace-atom)
+              (reset! trace-atom "")))))
       (repl-loop (readline "mal-user> "))))))
 
 ;; main
-(if (empty? *ARGV*)
-  (repl-loop "(println (str \"Mal [\" *host-language* \"]\"))")
-  (rep (str "(load-file \"" (first *ARGV*) "\")")))
+  (if (empty? *ARGV*)
+    (repl-loop "(println (str \"Mal [\" *host-language* \"]\"))")
+    (rep (str "(load-file \"" (first *ARGV*) "\")")))))
