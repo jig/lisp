@@ -226,8 +226,13 @@ func EVAL(ast MalType, env EnvType, ctx *context.Context) (MalType, error) {
 			return eval_ast(ast, env, ctx)
 		}
 
-		if env.Trace() {
-			fmt.Printf("> %v\n", printer.Pr_str(ast, true))
+		if env.Trace() > 0 {
+			if ast.(List).Cursor != nil {
+				line := ast.(List).Cursor.Row
+				fmt.Printf("L%d:%d> %v\n", line, env.Trace(), printer.Pr_str(ast, true))
+			} else {
+				fmt.Printf("??:%d> %v\n", env.Trace(), printer.Pr_str(ast, true))
+			}
 		}
 
 		// apply list
@@ -425,7 +430,7 @@ func EVAL(ast MalType, env EnvType, ctx *context.Context) (MalType, error) {
 				if err != nil {
 					return nil, e
 				}
-				newEnv.SetTrace(true)
+				newEnv.SetTrace(1)
 				defer malRecover(&err)
 				return EVAL(a1, newEnv, ctx)
 			}()
@@ -508,6 +513,23 @@ func EVAL(ast MalType, env EnvType, ctx *context.Context) (MalType, error) {
 					}
 				}
 				result, err := fn.Fn(el.(List).Val[1:], ctx)
+				if env.Trace() > 0 {
+					if err != nil {
+						if ast.(List).Cursor != nil {
+							line := ast.(List).Cursor.Row
+							fmt.Printf("L%d:%dERR   %v\n", line, env.Trace(), printer.Pr_str(result, true))
+						} else {
+							fmt.Printf("??:%dERR  %v\n", env.Trace(), printer.Pr_str(result, true))
+						}
+					} else {
+						if ast.(List).Cursor != nil {
+							line := ast.(List).Cursor.Row
+							fmt.Printf("L%d:%d;=> %v\n", line, env.Trace(), printer.Pr_str(result, true))
+						} else {
+							fmt.Printf("??:%d;=> %v\n", env.Trace(), printer.Pr_str(result, true))
+						}
+					}
+				}
 				if err != nil {
 					return nil, PushError(ast.(List).Cursor, ast, err)
 				}
