@@ -68,20 +68,17 @@ func TestLNotationFibonacci(t *testing.T) {
 	n := S("n")
 	iF := S("if")
 
-	trace := S("trace")
-
 	env := NewTestEnv()
 	lr, err := lisp.EVAL(
-		L(trace,
-			L(do,
-				L(def, fib, L(fn, V(n),
-					L(iF, LS("=", n, 0),
+		L(do,
+			L(def, fib, L(fn, V(n),
+				L(iF, LS("=", n, 0),
+					1,
+					L(iF, LS("=", n, 1),
 						1,
-						L(iF, LS("=", n, 1),
-							1,
-							LS("+", L(fib, LS("-", n, 1)),
-								L(fib, LS("-", n, 2))))))),
-				L(fib, 15))),
+						LS("+", L(fib, LS("-", n, 1)),
+							L(fib, LS("-", n, 2))))))),
+			L(fib, 15)),
 		env,
 		nil,
 	)

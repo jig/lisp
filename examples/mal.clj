@@ -1,4 +1,4 @@
-(trace (do
+(do
 ;; ENV
 
 ;;  An environment is an atom referencing a map where keys are strings
@@ -213,4 +213,4 @@
 ;; main
   (if (empty? *ARGV*)
     (repl-loop "(println (str \"Mal [\" *host-language* \"]\"))")
-    (rep (str "(load-file \"" (first *ARGV*) "\")")))))
+    (rep (str "(load-file \"" (first *ARGV*) "\")"))))
