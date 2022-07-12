@@ -961,14 +961,14 @@ func hashMap(a []MalType) (MalType, error) {
 	case 0:
 		return HashMap{}, nil
 	case 1:
-		return a[0].(marshaler.HashMapMarshaler).MarshalHashMap()
+		return a[0].(marshaler.HashMap).MarshalHashMap()
 	default:
 		return NewHashMap(List{Val: a})
 	}
 }
 
 func hashMapDecode(a []MalType) (MalType, error) {
-	return a[0].(marshaler.FactoryUnmarshalHashMap).UnmarshalHashMap(a[1])
+	return a[0].(marshaler.FactoryHashMap).FromHashMap(a[1])
 }
 
 func JSONDecode(a []MalType) (MalType, error) {
@@ -984,8 +984,8 @@ func JSONDecode(a []MalType) (MalType, error) {
 	}
 
 	switch value := a[0].(type) {
-	case marshaler.FactoryUnmarshalJson:
-		return value.UnmarshalJson(b)
+	case marshaler.FactoryJSON:
+		return value.FromJSON(b)
 	case List:
 		var v MalType
 		err := json.Unmarshal(b, &v)

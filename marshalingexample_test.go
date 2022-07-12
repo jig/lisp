@@ -37,7 +37,7 @@ func newLispMarshalExample(a []types.MalType) (types.MalType, error) {
 	return LispMarshalExampleFactory{}, nil
 }
 
-func (lec LispMarshalExampleFactory) UnmarshalHashMap(_hm types.MalType) (interface{}, error) {
+func (lec LispMarshalExampleFactory) FromHashMap(_hm types.MalType) (interface{}, error) {
 	hm := _hm.(types.HashMap)
 	ex := MarshalExample{
 		A: hm.Val["ʞa"].(int),
@@ -46,7 +46,7 @@ func (lec LispMarshalExampleFactory) UnmarshalHashMap(_hm types.MalType) (interf
 	return LispMarshalExample{ex}, nil
 }
 
-func (lec LispMarshalExampleFactory) UnmarshalJson(b []byte) (interface{}, error) {
+func (lec LispMarshalExampleFactory) FromJSON(b []byte) (interface{}, error) {
 	if err := json.Unmarshal(b, &lec.Type); err != nil {
 		return nil, err
 	}

@@ -23,7 +23,7 @@ func Pr_str(obj types.MalType, print_readably bool) string {
 		return Pr_list(tobj.Val, print_readably, "(", ")", " ")
 	case types.Vector:
 		return Pr_list(tobj.Val, print_readably, "[", "]", " ")
-	case marshaler.HashMapMarshaler:
+	case marshaler.HashMap:
 		value, err := tobj.MarshalHashMap()
 		if err != nil {
 			return "{}"
