@@ -52,7 +52,7 @@ func File(t *testing.T, entryName, testFile string, packages PackageDecl) {
 	if err != nil {
 		t.Fatalf("%s/EVAL Error: %s", entryName, err)
 	}
-	if res, ok := res.(bool); !res || !ok {
-		t.Fatalf("%s/TEST failed", entryName)
+	if r, ok := res.(bool); !r || !ok {
+		t.Fatalf("%s/TEST failed: %v", entryName, res)
 	}
 }
