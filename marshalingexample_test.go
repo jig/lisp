@@ -17,14 +17,14 @@ type MarshalExample struct {
 }
 
 type LispMarshalExample struct {
-	MarshalExample
+	Val MarshalExample
 }
 
 func (lec LispMarshalExample) MarshalHashMap() (types.MalType, error) {
 	return types.HashMap{
 		Val: map[string]types.MalType{
-			"ʞa": lec.A,
-			"ʞb": lec.B,
+			"ʞa": lec.Val.A,
+			"ʞb": lec.Val.B,
 		},
 	}, nil
 }
@@ -51,6 +51,6 @@ func (lec LispMarshalExampleFactory) FromJSON(b []byte) (interface{}, error) {
 		return nil, err
 	}
 	return LispMarshalExample{
-		MarshalExample: lec.Type,
+		Val: lec.Type,
 	}, nil
 }
