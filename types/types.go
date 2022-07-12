@@ -149,7 +149,7 @@ func Apply(f_mt MalType, a []MalType, ctx *context.Context) (MalType, error) {
 	case func([]MalType) (MalType, error):
 		return f(a)
 	default:
-		return nil, errors.New("Invalid function to Apply")
+		return nil, fmt.Errorf("Invalid function to Apply (%T)", f)
 	}
 }
 
