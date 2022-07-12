@@ -1015,7 +1015,7 @@ func JSONDecode(a []MalType) (MalType, error) {
 		}
 		return NewSet(array2vector(v))
 	default:
-		return nil, fmt.Errorf("type % cannot be decoded", value)
+		return nil, fmt.Errorf("type %T cannot be decoded", value)
 	}
 }
 
