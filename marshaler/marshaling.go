@@ -1,4 +1,4 @@
-package core
+package marshaler
 
 import (
 	"github.com/jig/lisp/types"

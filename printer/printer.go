@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/jig/lisp/marshaler"
 	"github.com/jig/lisp/types"
 )
 
@@ -22,13 +23,14 @@ func Pr_str(obj types.MalType, print_readably bool) string {
 		return Pr_list(tobj.Val, print_readably, "(", ")", " ")
 	case types.Vector:
 		return Pr_list(tobj.Val, print_readably, "[", "]", " ")
-	case types.HashMap:
-		str_list := make([]string, 0, len(tobj.Val)*2)
-		for k, v := range tobj.Val {
-			str_list = append(str_list, Pr_str(k, print_readably))
-			str_list = append(str_list, Pr_str(v, print_readably))
+	case marshaler.HashMapMarshaler:
+		value, err := tobj.MarshalHashMap()
+		if err != nil {
+			return "{}"
 		}
-		return "{" + strings.Join(str_list, " ") + "}"
+		return hashMapToString(value.(types.HashMap), print_readably)
+	case types.HashMap:
+		return hashMapToString(tobj, print_readably)
 	case types.Set:
 		str_list := make([]string, 0, len(tobj.Val))
 		for k := range tobj.Val {
@@ -67,4 +69,13 @@ func Pr_str(obj types.MalType, print_readably bool) string {
 	default:
 		return fmt.Sprintf("%v", obj)
 	}
+}
+
+func hashMapToString(tobj types.HashMap, print_readably bool) string {
+	str_list := make([]string, 0, len(tobj.Val)*2)
+	for k, v := range tobj.Val {
+		str_list = append(str_list, Pr_str(k, print_readably))
+		str_list = append(str_list, Pr_str(v, print_readably))
+	}
+	return "{" + strings.Join(str_list, " ") + "}"
 }

@@ -32,6 +32,10 @@ func V(args ...MalType) Vector {
 }
 
 // M converts Go map to lisp HashMap
-func M(arg map[string]MalType) HashMap {
+func HM(arg map[string]MalType) HashMap {
 	return HashMap{Val: arg}
+}
+
+func SET(arg map[string]struct{}) Set {
+	return Set{Val: arg}
 }

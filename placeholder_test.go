@@ -8,6 +8,7 @@ import (
 	"github.com/jig/lisp/env"
 	"github.com/jig/lisp/lib/core"
 	"github.com/jig/lisp/reader"
+	"github.com/jig/lisp/types"
 
 	. "github.com/jig/lisp/lnotation"
 	. "github.com/jig/lisp/types"
@@ -592,6 +593,53 @@ func BenchmarkCompleteSendingWithPreambleSolved(b *testing.B) {
 		}
 		if !res.(bool) {
 			b.Fatal(err)
+		}
+	}
+}
+
+func TestHashMapMarshalers(t *testing.T) {
+	repl_env, _ := env.NewEnv(nil, nil, nil)
+	for k, v := range core.NS {
+		repl_env.Set(
+			Symbol{Val: k},
+			Func{Fn: v.(func([]MalType, *context.Context) (MalType, error))},
+		)
+	}
+
+	str := `(do
+				(def! go-struct $GOSTRUCT)
+				true)`
+
+	source, err := AddPreamble(str, map[string]MalType{
+		"$GOSTRUCT": LispMarshalExample{MarshalExample{A: 1984, B: "I am B"}},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// fmt.Println(source)
+
+	exp, err := READWithPreamble(source, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// fmt.Println(PRINT(exp))
+
+	res, err := EVAL(exp, repl_env, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.(bool) {
+		goStruct, err := repl_env.Get(Symbol{Val: "go-struct"})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if goStruct.(types.HashMap).Val["ʞa"] != 1984 {
+			t.Fatal("no 1984")
+		}
+		if goStruct.(types.HashMap).Val["ʞb"] != "I am B" {
+			t.Fatal("no B")
 		}
 	}
 }

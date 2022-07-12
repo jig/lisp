@@ -14,6 +14,7 @@ import (
 	spew "github.com/davecgh/go-spew/spew"
 	"github.com/google/uuid"
 	"github.com/jig/lisp/lib/call-helper"
+	"github.com/jig/lisp/marshaler"
 	"github.com/jig/lisp/printer"
 	"github.com/jig/lisp/reader"
 
@@ -960,14 +961,14 @@ func hashMap(a []MalType) (MalType, error) {
 	case 0:
 		return HashMap{}, nil
 	case 1:
-		return a[0].(HashMapMarshaler).MarshalHashMap()
+		return a[0].(marshaler.HashMapMarshaler).MarshalHashMap()
 	default:
 		return NewHashMap(List{Val: a})
 	}
 }
 
 func hashMapDecode(a []MalType) (MalType, error) {
-	return a[0].(FactoryUnmarshalHashMap).UnmarshalHashMap(a[1])
+	return a[0].(marshaler.FactoryUnmarshalHashMap).UnmarshalHashMap(a[1])
 }
 
 func JSONDecode(a []MalType) (MalType, error) {
@@ -983,7 +984,7 @@ func JSONDecode(a []MalType) (MalType, error) {
 	}
 
 	switch value := a[0].(type) {
-	case FactoryUnmarshalJson:
+	case marshaler.FactoryUnmarshalJson:
 		return value.UnmarshalJson(b)
 	case List:
 		var v MalType
