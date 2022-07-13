@@ -366,32 +366,31 @@ func EVAL(ast MalType, env EnvType, ctx *context.Context) (MalType, error) {
 			}()
 			if e == nil {
 				return exp, nil
-			} else {
-				if a2 != nil && List_Q(a2) {
-					a2s, _ := GetSlice(a2)
-					if Symbol_Q(a2s[0]) && (a2s[0].(Symbol).Val == "catch*") {
-						switch e := e.(type) {
-						case MalError:
-							exc = e.Obj
-						case RuntimeError:
-							exc = e.Error()
-						default:
-							exc = e.Error()
-						}
-						binds := NewList(a2s[1])
-						new_env, e := NewEnv(env, binds, NewList(exc))
-						if e != nil {
-							return nil, e
-						}
-						exp, e = EVAL(a2s[2], new_env, ctx)
-						if e == nil {
-							return exp, nil
-						}
+			}
+			if a2 != nil && List_Q(a2) {
+				a2s, _ := GetSlice(a2)
+				if Symbol_Q(a2s[0]) && (a2s[0].(Symbol).Val == "catch*") {
+					switch e := e.(type) {
+					case MalError:
+						exc = e.Obj
+					case RuntimeError:
+						exc = e.Error()
+					default:
+						exc = e.Error()
 					}
-					return nil, e
+					binds := NewList(a2s[1])
+					new_env, e := NewEnv(env, binds, NewList(exc))
+					if e != nil {
+						return nil, e
+					}
+					exp, e = EVAL(a2s[2], new_env, ctx)
+					if e == nil {
+						return exp, nil
+					}
 				}
 				return nil, e
 			}
+			return nil, e
 		case "context*":
 			if a2 != nil {
 				return nil, RuntimeError{
@@ -490,6 +489,7 @@ func EVAL(ast MalType, env EnvType, ctx *context.Context) (MalType, error) {
 				return result, nil
 			}
 		}
+		fmt.Print()
 	} // TCO loop
 }
 
