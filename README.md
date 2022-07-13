@@ -57,7 +57,7 @@ go test -benchmem -benchtime 5s -bench '^.+$' github.com/jig/lisp
 - `(context* (do ...))` provides a Go context. Context contents depend on Go, and might be passed to specific functions context compatible
 - Test minimal library to be used with `maltest` interpreter (see [./cmd/maltest/](./cmd/maltest/) folder). See below test specs
 - Project compatible with GitHub CodeSpaces. Press `.` on your keyboard and you are ready to deploy a CodeSpace with mal in it
-- `(trace expr)` to trace the `expr` code
+- _Temporarily removed_: `(trace expr)` to trace the `expr` code
 - `(assert expr & optional-error)` asserts expression is not `nil` nor `false`, otherwise it success returning `nil`
 - Errors are decorated with line numbers
 - `(rename-keys hm hmAlterKeys)` as in Clojure

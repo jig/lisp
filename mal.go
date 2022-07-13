@@ -226,15 +226,6 @@ func EVAL(ast MalType, env EnvType, ctx *context.Context) (MalType, error) {
 			return eval_ast(ast, env, ctx)
 		}
 
-		if env.Trace() > 0 {
-			if ast.(List).Cursor != nil {
-				line := ast.(List).Cursor.Row
-				fmt.Printf("L%d:%d> %v\n", line, env.Trace(), printer.Pr_str(ast, true))
-			} else {
-				fmt.Printf("??:%d> %v\n", env.Trace(), printer.Pr_str(ast, true))
-			}
-		}
-
 		// apply list
 		ast, e = macroexpand(ast, env, ctx)
 		if e != nil {
@@ -418,26 +409,6 @@ func EVAL(ast MalType, env EnvType, ctx *context.Context) (MalType, error) {
 				return nil, e
 			}
 			return exp, nil
-		case "trace":
-			if a2 != nil {
-				return nil, RuntimeError{
-					ErrorVal: fmt.Errorf("trace does not allow more than one argument"),
-					Cursor:   a2.(Vector).Cursor,
-				}
-			}
-			exp, e := func() (res MalType, err error) {
-				newEnv, e := NewEnv(env, nil, nil)
-				if err != nil {
-					return nil, e
-				}
-				newEnv.SetTrace(1)
-				defer malRecover(&err)
-				return EVAL(a1, newEnv, ctx)
-			}()
-			if e != nil {
-				return nil, e
-			}
-			return exp, nil
 		case "do":
 			lst := ast.(List).Val
 			if len(lst) == 1 {
@@ -513,23 +484,6 @@ func EVAL(ast MalType, env EnvType, ctx *context.Context) (MalType, error) {
 					}
 				}
 				result, err := fn.Fn(el.(List).Val[1:], ctx)
-				if env.Trace() > 0 {
-					if err != nil {
-						if ast.(List).Cursor != nil {
-							line := ast.(List).Cursor.Row
-							fmt.Printf("L%d:%dERR   %v\n", line, env.Trace(), printer.Pr_str(result, true))
-						} else {
-							fmt.Printf("??:%dERR  %v\n", env.Trace(), printer.Pr_str(result, true))
-						}
-					} else {
-						if ast.(List).Cursor != nil {
-							line := ast.(List).Cursor.Row
-							fmt.Printf("L%d:%d;=> %v\n", line, env.Trace(), printer.Pr_str(result, true))
-						} else {
-							fmt.Printf("??:%d;=> %v\n", env.Trace(), printer.Pr_str(result, true))
-						}
-					}
-				}
 				if err != nil {
 					return nil, PushError(ast.(List).Cursor, ast, err)
 				}

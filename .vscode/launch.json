@@ -15,11 +15,21 @@
             ]
         },
         {
-            "name": "mal REPL",
+            "name": "Lisp REPL",
             "type": "go",
             "request": "launch",
             "mode": "auto",
-            "program": "${workspaceFolder}/cmd/mal"
+            "program": "${workspaceFolder}/cmd/lisp"
+        },
+        {
+            "name": "fibonacci",
+            "type": "go",
+            "request": "launch",
+            "mode": "auto",
+            "program": "${workspaceFolder}/cmd/lisp",
+            "args":[
+                "./examples/fibonacci.clj"
+            ]
         }
     ]
 }

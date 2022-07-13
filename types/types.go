@@ -46,8 +46,6 @@ type EnvType interface {
 	Get(key Symbol) (MalType, error)
 	Remove(key Symbol) error
 	Map() *sync.Map
-	Trace() int
-	SetTrace(int)
 }
 
 // Scalars

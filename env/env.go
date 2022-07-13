@@ -10,18 +10,12 @@ import (
 type Env struct {
 	data  sync.Map
 	outer EnvType
-	trace int
 }
 
 func NewEnv(outer EnvType, binds_mt MalType, exprs_mt MalType) (EnvType, error) {
 	env := &Env{
-		data: sync.Map{},
-	}
-	if outer != nil {
-		env.outer = outer
-		if outer.Trace() > 0 {
-			env.SetTrace(outer.Trace() + 1)
-		}
+		data:  sync.Map{},
+		outer: outer,
 	}
 
 	if binds_mt != nil && exprs_mt != nil {
@@ -91,12 +85,4 @@ func (e *Env) Get(key Symbol) (MalType, error) {
 
 func (e *Env) Map() *sync.Map {
 	return &e.data
-}
-
-func (e *Env) Trace() int {
-	return e.trace
-}
-
-func (e *Env) SetTrace(newVal int) {
-	e.trace = newVal
 }

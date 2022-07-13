@@ -26,10 +26,11 @@
 ;=>nil
 ;/^.*runtime error: integer divide by zero.*$
 
-(trace (str (list 1)))
-;/\(str \(list 1\)\)
-;/\(list 1\)
-;=>"(1)"
-
-(trace)
-;=>nil
+;; TODO(jig): trace temporarily removed
+;; (trace (str (list 1)))
+;; ;/\(str \(list 1\)\)
+;; ;/\(list 1\)
+;; ;=>"(1)"
+;;
+;; (trace)
+;; ;=>nil
