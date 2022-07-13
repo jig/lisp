@@ -76,3 +76,9 @@
 ;=>1
 (get (hash-map (hash-map-decode (new-marshalexample) (hash-map (json-decode (new-marshalexample) ¬{"a":1, "b":"mieow"}¬)))) :b)
 ;=>"mieow"
+
+;; go struct is decoded to map when printed (if marshaler for hash maps is implemented)
+(json-decode (new-marshalexample) ¬{"a":1,"b":"patapam!"}¬)
+;=>{:a 1 :b "patapam!"}
+;; (str (json-decode (new-marshalexample) ¬{"a":1,"b":"patapam!"}¬))
+;; ;=>{:a 1 :b "patapam!"}
