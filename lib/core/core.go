@@ -2,6 +2,7 @@ package core
 
 import (
 	"bufio"
+	"bytes"
 	"context"
 	"encoding/base64"
 	"encoding/json"
@@ -1002,7 +1003,9 @@ func JSONDecode(a []MalType) (MalType, error) {
 		return array2vector(v), nil
 	case HashMap:
 		v := map[string]interface{}{}
-		err := json.Unmarshal(b, &v)
+		d := json.NewDecoder(bytes.NewReader(b))
+		d.UseNumber()
+		err := d.Decode(&v)
 		if err != nil {
 			return nil, err
 		}
