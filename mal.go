@@ -241,24 +241,19 @@ func EVAL(ast MalType, env EnvType, ctx *context.Context) (MalType, error) {
 		a0 := ast.(List).Val[0]
 		var a1 MalType
 		var a2 MalType
-		var a3 MalType
 		switch len(ast.(List).Val) {
 		case 1:
 			a1 = nil
 			a2 = nil
-			a3 = nil
 		case 2:
 			a1 = ast.(List).Val[1]
 			a2 = nil
-			a3 = nil
 		case 3:
 			a1 = ast.(List).Val[1]
 			a2 = ast.(List).Val[2]
-			a3 = nil
 		default:
 			a1 = ast.(List).Val[1]
 			a2 = ast.(List).Val[2]
-			a3 = ast.(List).Val[3]
 		}
 		a0sym := "__<*fn*>__"
 		if Symbol_Q(a0) {
@@ -337,60 +332,36 @@ func EVAL(ast MalType, env EnvType, ctx *context.Context) (MalType, error) {
 			var exc MalType
 			exp, e := func() (res MalType, err error) {
 				defer malRecover(&err)
-				if a3 != nil && List_Q(a3) {
-					a3s, _ := GetSlice(a3)
-					if Symbol_Q(a3s[0]) && (a3s[0].(Symbol).Val == "finally*" && len(a3s) >= 2) {
-						// only for side-effects:
-						// TODO(jig): probably clojure does not allow in try* created symbols appear inside finally
-						defer func() {
-							if _, errFinally := EVAL(a3s[1], env, ctx); errFinally != nil {
-								err = errFinally
-							}
-						}()
-					}
-				} else {
-					if a2 != nil && List_Q(a2) {
-						a2s, _ := GetSlice(a2)
-						if Symbol_Q(a2s[0]) && (a2s[0].(Symbol).Val == "finally*" && len(a2s) >= 2) {
-							// only for side-effects:
-							// TODO(jig): probably clojure does not allow in try* created symbols appear inside finally
-							defer func() {
-								if _, errFinally := EVAL(a2s[1], env, ctx); errFinally != nil {
-									err = errFinally
-								}
-							}()
-						}
-					}
-				}
 				return EVAL(a1, env, ctx)
 			}()
 			if e == nil {
 				return exp, nil
-			}
-			if a2 != nil && List_Q(a2) {
-				a2s, _ := GetSlice(a2)
-				if Symbol_Q(a2s[0]) && (a2s[0].(Symbol).Val == "catch*") {
-					switch e := e.(type) {
-					case MalError:
-						exc = e.Obj
-					case RuntimeError:
-						exc = e.Error()
-					default:
-						exc = e.Error()
+			} else {
+				if a2 != nil && List_Q(a2) {
+					a2s, _ := GetSlice(a2)
+					if Symbol_Q(a2s[0]) && (a2s[0].(Symbol).Val == "catch*") {
+						switch e := e.(type) {
+						case MalError:
+							exc = e.Obj
+						case RuntimeError:
+							exc = e.Error()
+						default:
+							exc = e.Error()
+						}
+						binds := NewList(a2s[1])
+						new_env, e := NewEnv(env, binds, NewList(exc))
+						if e != nil {
+							return nil, e
+						}
+						exp, e = EVAL(a2s[2], new_env, ctx)
+						if e == nil {
+							return exp, nil
+						}
 					}
-					binds := NewList(a2s[1])
-					new_env, e := NewEnv(env, binds, NewList(exc))
-					if e != nil {
-						return nil, e
-					}
-					exp, e = EVAL(a2s[2], new_env, ctx)
-					if e == nil {
-						return exp, nil
-					}
+					return nil, e
 				}
 				return nil, e
 			}
-			return nil, e
 		case "context*":
 			if a2 != nil {
 				return nil, RuntimeError{

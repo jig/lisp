@@ -407,18 +407,18 @@
 (bar {:foo 3})
 ;; shouldn't give an error
 
-;; Testing try*/catch*/finally*
+;; ;; Testing try*/catch*/finally*
 
-(try* 123 (catch* e 456) (finally* (println "fin")))
-;/fin
-;=>123
-(try* 123 (finally* (println "fin")))
-;/fin
-;=>123
+;; (try* 123 (catch* e 456) (finally* (println "fin")))
+;; ;/fin
+;; ;=>123
+;; (try* 123 (finally* (println "fin")))
+;; ;/fin
+;; ;=>123
 
-(try* (let* [x 1] x) (finally* (println z)))
-;/Error: 'z' not found
-;=>nil
-(try* (let* [x 1] x) (finally* (println x)))
-;/Error: 'x' not found
-;=>nil
+;; (try* (let* [x 1] x) (finally* (println z)))
+;; ;/Error: 'z' not found
+;; ;=>nil
+;; (try* (let* [x 1] x) (finally* (println x)))
+;; ;/Error: 'x' not found
+;; ;=>nil
