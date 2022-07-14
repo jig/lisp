@@ -357,6 +357,7 @@ func EVAL(ast MalType, env EnvType, ctx *context.Context) (MalType, error) {
 						if e == nil {
 							return exp, nil
 						}
+						return nil, e
 					}
 					return nil, e
 				}
