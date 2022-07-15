@@ -78,7 +78,7 @@
 ;=>"mieow"
 
 ;; go struct is decoded to map when printed (if marshaler for hash maps is implemented)
-(json-decode (new-marshalexample) ¬{"a":1,"b":"patapam!"}¬)
-;=>{:a 1 :b "patapam!"}
-;; (str (json-decode (new-marshalexample) ¬{"a":1,"b":"patapam!"}¬))
-;; ;=>{:a 1 :b "patapam!"}
+(get (hash-map (json-decode (new-marshalexample) ¬{"a":1,"b":"patapam!"}¬)) :a)
+;=>1
+(get (hash-map (json-decode (new-marshalexample) ¬{"a":1,"b":"patapam!"}¬)) :b)
+;=>"patapam!"
