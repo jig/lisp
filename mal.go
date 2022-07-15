@@ -261,7 +261,7 @@ func EVAL(ast MalType, env EnvType, ctx *context.Context) (MalType, error) {
 			a0sym = a0.(Symbol).Val
 		}
 		switch a0sym {
-		case "def!":
+		case "def", "def!":
 			res, e := EVAL(a2, env, ctx)
 			if e != nil {
 				return nil, PushError(ast.(List).Cursor, ast, e)
@@ -275,7 +275,7 @@ func EVAL(ast MalType, env EnvType, ctx *context.Context) (MalType, error) {
 					Cursor:   ast.(List).Cursor,
 				}
 			}
-		case "let*":
+		case "let", "let*":
 			let_env, e := NewEnv(env, nil, nil)
 			if e != nil {
 				return nil, e
@@ -315,7 +315,7 @@ func EVAL(ast MalType, env EnvType, ctx *context.Context) (MalType, error) {
 			return quasiquote(a1), nil
 		case "quasiquote": // `
 			ast = quasiquote(a1)
-		case "defmacro!":
+		case "defmacro", "defmacro!":
 			fn, e := EVAL(a2, env, ctx)
 			fn = fn.(MalFunc).SetMacro()
 			if e != nil {
@@ -324,7 +324,7 @@ func EVAL(ast MalType, env EnvType, ctx *context.Context) (MalType, error) {
 			return env.Set(a1.(Symbol), fn), nil
 		case "macroexpand":
 			return macroexpand(a1, env, ctx)
-		case "try*":
+		case "try", "try*":
 			// fmt.Println("-------------------------------")
 			// _print(ast)
 			var exc MalType
@@ -346,7 +346,9 @@ func EVAL(ast MalType, env EnvType, ctx *context.Context) (MalType, error) {
 			}
 			var tryDo, catchDo, finallyDo MalType // Lists
 			var catchBind types.MalType           // Symbol
-			if last != nil && List_Q(last) && Symbol_Q(last.(types.List).Val[0]) && (last.(types.List).Val[0].(Symbol).Val == "catch*") {
+
+			switch first(last) {
+			case "catch", "catch*":
 				finallyDo = nil
 				catchBind = last.(types.List).Val[1]
 				catchDo = List{Val: last.(types.List).Val[2:]}
@@ -358,9 +360,10 @@ func EVAL(ast MalType, env EnvType, ctx *context.Context) (MalType, error) {
 				// _print(catchBind)
 				// _print(*catchDo)
 				// _print(nil)
-			} else if last != nil && List_Q(last) && Symbol_Q(last.(types.List).Val[0]) && (last.(types.List).Val[0].(Symbol).Val == "finally*") {
+			case "finally", "finally*":
 				finallyDo = List{Val: last.(types.List).Val[1:]}
-				if prelast != nil && List_Q(prelast) && Symbol_Q(prelast.(types.List).Val[0]) && (prelast.(types.List).Val[0].(Symbol).Val == "catch*") {
+				switch first(prelast) {
+				case "catch", "catch*":
 					catchBind = prelast.(types.List).Val[1]
 					catchDo = List{Val: prelast.(types.List).Val[2:]}
 					tryDo = List{Val: lst[1 : len(lst)-2]}
@@ -368,7 +371,7 @@ func EVAL(ast MalType, env EnvType, ctx *context.Context) (MalType, error) {
 					// _print(catchBind)
 					// _print(*catchDo)
 					// _print(*finallyDo)
-				} else {
+				default:
 					catchBind = nil
 					catchDo = nil
 					tryDo = List{Val: lst[1 : len(lst)-1]}
@@ -377,7 +380,7 @@ func EVAL(ast MalType, env EnvType, ctx *context.Context) (MalType, error) {
 					// _print(nil)
 					// _print(*finallyDo)
 				}
-			} else {
+			default:
 				finallyDo = nil
 				catchBind = nil
 				catchDo = nil
@@ -419,7 +422,7 @@ func EVAL(ast MalType, env EnvType, ctx *context.Context) (MalType, error) {
 				}
 				return nil, e
 			}
-		case "context*":
+		case "context", "context*":
 			if a2 != nil {
 				return nil, RuntimeError{
 					ErrorVal: fmt.Errorf("context* does not allow more than one argument"),
@@ -456,7 +459,7 @@ func EVAL(ast MalType, env EnvType, ctx *context.Context) (MalType, error) {
 			} else {
 				ast = a2
 			}
-		case "fn*":
+		case "fn", "fn*":
 			fn := MalFunc{
 				Eval:    EVAL,
 				Exp:     a2,
@@ -515,6 +518,13 @@ func EVAL(ast MalType, env EnvType, ctx *context.Context) (MalType, error) {
 			}
 		}
 	} // TCO loop
+}
+
+func first(list MalType) string {
+	if list != nil && List_Q(list) && Symbol_Q(list.(types.List).Val[0]) {
+		return list.(types.List).Val[0].(Symbol).Val
+	}
+	return ""
 }
 
 func do(ast MalType, from, to int, env EnvType, ctx *context.Context) (MalType, error) {
