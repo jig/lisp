@@ -10,6 +10,7 @@ import (
 	. "github.com/jig/lisp/env"
 	"github.com/jig/lisp/printer"
 	"github.com/jig/lisp/reader"
+	"github.com/jig/lisp/types"
 	. "github.com/jig/lisp/types"
 )
 
@@ -329,37 +330,97 @@ func EVAL(ast MalType, env EnvType, ctx *context.Context) (MalType, error) {
 		case "macroexpand":
 			return macroexpand(a1, env, ctx)
 		case "try*":
+			// fmt.Println("-------------------------------")
+			// _print(ast)
 			var exc MalType
+			lst := ast.(List).Val
+			var last MalType
+			var prelast MalType
+			switch len(lst) {
+			case 1:
+				return nil, nil
+			case 2:
+				last = lst[1]
+				prelast = nil
+			case 3:
+				last = lst[2]
+				prelast = lst[1]
+			default:
+				last = lst[len(lst)-1]
+				prelast = lst[len(lst)-2]
+			}
+			var tryDo, catchDo, finallyDo *List
+			var catchBind types.MalType
+			if last != nil && List_Q(last) && Symbol_Q(last.(types.List).Val[0]) && (last.(types.List).Val[0].(Symbol).Val == "catch*") {
+				finallyDo = nil
+				catchBind = last.(types.List).Val[1]
+				catchDo = &List{Val: last.(types.List).Val[2:]}
+				tryDo = &List{Val: lst[1 : len(lst)-1]}
+				if len(catchDo.Val) == 0 {
+					return nil, PushError(ast.(List).Cursor, ast, errors.New("catch* must have 2 arguments at least"))
+				}
+				// _print(*tryDo)
+				// _print(catchBind)
+				// _print(*catchDo)
+				// _print(nil)
+			} else if last != nil && List_Q(last) && Symbol_Q(last.(types.List).Val[0]) && (last.(types.List).Val[0].(Symbol).Val == "finally*") {
+				finallyDo = &List{Val: last.(types.List).Val[1:]}
+				if prelast != nil && List_Q(prelast) && Symbol_Q(prelast.(types.List).Val[0]) && (prelast.(types.List).Val[0].(Symbol).Val == "catch*") {
+					catchBind = prelast.(types.List).Val[1]
+					catchDo = &List{Val: prelast.(types.List).Val[2:]}
+					tryDo = &List{Val: lst[1 : len(lst)-2]}
+					// _print(*tryDo)
+					// _print(catchBind)
+					// _print(*catchDo)
+					// _print(*finallyDo)
+				} else {
+					catchBind = nil
+					catchDo = nil
+					tryDo = &List{Val: lst[1 : len(lst)-1]}
+					// _print(*tryDo)
+					// _print(nil)
+					// _print(nil)
+					// _print(*finallyDo)
+				}
+			} else {
+				finallyDo = nil
+				catchBind = nil
+				catchDo = nil
+				tryDo = &List{Val: lst[1:]}
+			}
 			exp, e := func() (res MalType, err error) {
 				defer malRecover(&err)
-				return EVAL(a1, env, ctx)
+				return do(tryDo, 0, 0, env, ctx)
 			}()
+
+			defer do(finallyDo, 0, 0, env, ctx)
+
 			if e == nil {
 				return exp, nil
 			} else {
-				if a2 != nil && List_Q(a2) {
-					a2s, _ := GetSlice(a2)
-					if Symbol_Q(a2s[0]) && (a2s[0].(Symbol).Val == "catch*") {
-						switch e := e.(type) {
-						case MalError:
-							exc = e.Obj
-						case RuntimeError:
-							exc = e.Error()
-						default:
-							exc = e.Error()
-						}
-						binds := NewList(a2s[1])
-						new_env, e := NewEnv(env, binds, NewList(exc))
-						if e != nil {
-							return nil, e
-						}
-						exp, e = EVAL(a2s[2], new_env, ctx)
-						if e == nil {
-							return exp, nil
-						}
+				// if a2 != nil && List_Q(a2) {
+				// 	a2s, _ := GetSlice(a2)
+				// 	if Symbol_Q(a2s[0]) && (a2s[0].(Symbol).Val == "catch*") {
+				if catchDo != nil {
+					switch e := e.(type) {
+					case MalError:
+						exc = e.Obj
+					case RuntimeError:
+						exc = e.Error()
+					default:
+						exc = e.Error()
+					}
+					binds := NewList(catchBind)
+					new_env, e := NewEnv(env, binds, NewList(exc))
+					if e != nil {
 						return nil, e
 					}
-					return nil, e
+					ast, e = do(catchDo, 0, 0, new_env, ctx)
+					if e != nil {
+						return nil, e
+					}
+					env = new_env
+					continue
 				}
 				return nil, e
 			}
@@ -381,14 +442,12 @@ func EVAL(ast MalType, env EnvType, ctx *context.Context) (MalType, error) {
 			}
 			return exp, nil
 		case "do":
-			lst := ast.(List).Val
-			if len(lst) == 1 {
-				return nil, nil
+			var err error
+			astRef := ast.(List)
+			ast, err = do(&astRef, 1, -1, env, ctx)
+			if err != nil {
+				return nil, err
 			}
-			if _, e := eval_ast(List{Val: lst[1 : len(lst)-1]}, env, ctx); e != nil {
-				return nil, PushError(ast.(List).Cursor, ast, e)
-			}
-			ast = lst[len(lst)-1]
 		case "if":
 			cond, e := EVAL(a1, env, ctx)
 			if e != nil {
@@ -461,8 +520,21 @@ func EVAL(ast MalType, env EnvType, ctx *context.Context) (MalType, error) {
 				return result, nil
 			}
 		}
-		fmt.Print()
 	} // TCO loop
+}
+
+func do(ast *List, from, to int, env EnvType, ctx *context.Context) (MalType, error) {
+	if ast == nil {
+		return nil, nil
+	}
+	lst := ast.Val
+	if len(lst) == from {
+		return nil, nil
+	}
+	if _, e := eval_ast(List{Val: lst[from : len(lst)+to]}, env, ctx); e != nil {
+		return nil, PushError(ast.Cursor, ast, e)
+	}
+	return lst[len(lst)-1], nil
 }
 
 func PushError(cursor *Position, ast MalType, err error) error {
@@ -539,3 +611,8 @@ func REPLWithPreamble(repl_env EnvType, str string, ctx *context.Context, cursor
 	}
 	return res, nil
 }
+
+// func _print(exp MalType) {
+// 	str, _ := PRINT(exp)
+// 	fmt.Println(str)
+// }
