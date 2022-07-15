@@ -391,7 +391,7 @@ func EVAL(ast MalType, env EnvType, ctx *context.Context) (MalType, error) {
 				return do(tryDo, 0, 0, env, ctx)
 			}()
 
-			defer do(finallyDo, 0, 0, env, ctx)
+			defer func() { _, _ = do(finallyDo, 0, 0, env, ctx) }()
 
 			if e == nil {
 				return exp, nil
