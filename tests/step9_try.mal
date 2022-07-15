@@ -407,7 +407,18 @@
 (bar {:foo 3})
 ;; shouldn't give an error
 
+
+;; try* does not require do now
+;; repeat tests above without do
+(try* 1 2 (let* [x 3] x) (throw "my exception") (catch* exc 4 (let* [x 5] x) 6 (prn "exc:" exc) 7))
+;/"exc:" "my exception"
+;=>7
+;; try alone is like do
+(try* 1 2 3 true)
+;=>true
+
 ;; ;; Testing try*/catch*/finally*
+
 
 (try* 123 (catch* e 456) (finally* (println "fin")))
 ;/fin
@@ -418,8 +429,13 @@
 
 (try* (let* [x 1] x) (finally* (println z)))
 ;=>1
-(try* (let* [x 1] x) (finally* (println x)))
+
+;; finally* cannot throw errors
+(try* (let* [x 1] x) (let* [x 2] x) (finally* (println x)))
+;/x
 ;=>1
+(try* (let* [x 1] x) (let* [x 2] x) (finally* (throw "poum!")))
+;=>2
 
 (try* (throw 2) (catch* err (throw 3)))
 ;=>nil
