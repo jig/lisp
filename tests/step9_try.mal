@@ -432,8 +432,7 @@
 
 ;; finally* cannot throw errors
 (try* (let* [x 1] x) (let* [x 2] x) (finally* (println x)))
-;/x
-;=>1
+;=>2
 (try* (let* [x 1] x) (let* [x 2] x) (finally* (throw "poum!")))
 ;=>2
 
