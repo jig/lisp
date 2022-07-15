@@ -8,7 +8,6 @@ import (
 	"github.com/jig/lisp/env"
 	"github.com/jig/lisp/lib/core"
 	"github.com/jig/lisp/reader"
-	"github.com/jig/lisp/types"
 
 	. "github.com/jig/lisp/lnotation"
 	. "github.com/jig/lisp/types"
@@ -635,10 +634,10 @@ func TestHashMapMarshalers(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if goStruct.(types.HashMap).Val["ʞa"] != 1984 {
+		if goStruct.(HashMap).Val["ʞa"] != 1984 {
 			t.Fatal("no 1984")
 		}
-		if goStruct.(types.HashMap).Val["ʞb"] != "I am B" {
+		if goStruct.(HashMap).Val["ʞb"] != "I am B" {
 			t.Fatal("no B")
 		}
 	}

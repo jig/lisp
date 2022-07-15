@@ -10,7 +10,6 @@ import (
 	. "github.com/jig/lisp/env"
 	"github.com/jig/lisp/printer"
 	"github.com/jig/lisp/reader"
-	"github.com/jig/lisp/types"
 	. "github.com/jig/lisp/types"
 )
 
@@ -343,23 +342,23 @@ func EVAL(ast MalType, env EnvType, ctx *context.Context) (MalType, error) {
 				prelast = lst[len(lst)-2]
 			}
 			var tryDo, catchDo, finallyDo MalType // Lists
-			var catchBind types.MalType           // Symbol
+			var catchBind MalType                 // Symbol
 
 			switch first(last) {
 			case "catch", "catch*":
 				finallyDo = nil
-				catchBind = last.(types.List).Val[1]
-				catchDo = List{Val: last.(types.List).Val[2:]}
+				catchBind = last.(List).Val[1]
+				catchDo = List{Val: last.(List).Val[2:]}
 				tryDo = List{Val: lst[1 : len(lst)-1]}
 				if len(catchDo.(List).Val) == 0 {
 					return nil, PushError(ast.(List).Cursor, ast, errors.New("catch* must have 2 arguments at least"))
 				}
 			case "finally", "finally*":
-				finallyDo = List{Val: last.(types.List).Val[1:]}
+				finallyDo = List{Val: last.(List).Val[1:]}
 				switch first(prelast) {
 				case "catch", "catch*":
-					catchBind = prelast.(types.List).Val[1]
-					catchDo = List{Val: prelast.(types.List).Val[2:]}
+					catchBind = prelast.(List).Val[1]
+					catchDo = List{Val: prelast.(List).Val[2:]}
 					tryDo = List{Val: lst[1 : len(lst)-2]}
 				default:
 					catchBind = nil
@@ -504,8 +503,8 @@ func EVAL(ast MalType, env EnvType, ctx *context.Context) (MalType, error) {
 }
 
 func first(list MalType) string {
-	if list != nil && List_Q(list) && Symbol_Q(list.(types.List).Val[0]) {
-		return list.(types.List).Val[0].(Symbol).Val
+	if list != nil && List_Q(list) && Symbol_Q(list.(List).Val[0]) {
+		return list.(List).Val[0].(Symbol).Val
 	}
 	return ""
 }
