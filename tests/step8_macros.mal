@@ -1,18 +1,18 @@
 ;; Testing trivial macros
-(defmacro! one (fn* () 1))
+(defmacro one (fn () 1))
 (one)
 ;=>1
-(defmacro! two (fn* () 2))
+(defmacro two (fn () 2))
 (two)
 ;=>2
 
 ;; Testing unless macros
-(defmacro! unless (fn* (pred a b) `(if ~pred ~b ~a)))
+(defmacro unless (fn (pred a b) `(if ~pred ~b ~a)))
 (unless false 7 8)
 ;=>7
 (unless true 7 8)
 ;=>8
-(defmacro! unless2 (fn* (pred a b) (list 'if (list 'not pred) a b)))
+(defmacro unless2 (fn (pred a b) (list 'if (list 'not pred) a b)))
 (unless2 false 7 8)
 ;=>7
 (unless2 true 7 8)
@@ -29,10 +29,10 @@
 ;=>(if (not 2) 3 4)
 
 ;; Testing evaluation of macro result
-(defmacro! identity (fn* (x) x))
-(let* (a 123) (macroexpand (identity a)))
+(defmacro identity (fn (x) x))
+(let (a 123) (macroexpand (identity a)))
 ;=>a
-(let* (a 123) (identity a))
+(let (a 123) (identity a))
 ;=>123
 
 ;; Test that macros do not break empty list
@@ -62,8 +62,8 @@
 ;=>2
 (nth (list 1 2 nil) 2)
 ;=>nil
-(def! x "x")
-(def! x (nth (list 1 2) 2))
+(def x "x")
+(def x (nth (list 1 2) 2))
 x
 ;=>"x"
 
@@ -107,9 +107,9 @@ x
 (cond false 7 false 8 false 9)
 ;=>nil
 
-;; Testing EVAL in let*
+;; Testing EVAL in let
 
-(let* (x (cond false "no" true "yes")) x)
+(let (x (cond false "no" true "yes")) x)
 ;=>"yes"
 
 
@@ -121,8 +121,8 @@ x
 ;=>2
 (nth [1 2 nil] 2)
 ;=>nil
-(def! x "x")
-(def! x (nth [1 2] 2))
+(def x "x")
+(def x (nth [1 2] 2))
 x
 ;=>"x"
 
@@ -145,9 +145,9 @@ x
 (rest (cons 10 [11 12]))
 ;=>(11 12)
 
-;; Testing EVAL in vector let*
+;; Testing EVAL in vector let
 
-(let* [x (cond false "no" true "yes")] x)
+(let [x (cond false "no" true "yes")] x)
 ;=>"yes"
 
 ;>>> soft=True
@@ -157,9 +157,9 @@ x
 ;; ------- (Not needed for self-hosting) -------
 
 ;; Test that macros use closures
-(def! x 2)
-(defmacro! a (fn* [] x))
+(def x 2)
+(defmacro a (fn [] x))
 (a)
 ;=>2
-(let* (x 3) (a))
+(let (x 3) (a))
 ;=>2

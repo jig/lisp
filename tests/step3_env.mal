@@ -5,24 +5,24 @@
 ;=>2
 
 
-;; Testing def!
-(def! x 3)
+;; Testing def
+(def x 3)
 ;=>3
 x
 ;=>3
-(def! x 4)
+(def x 4)
 ;=>4
 x
 ;=>4
-(def! y (+ 1 7))
+(def y (+ 1 7))
 ;=>8
 y
 ;=>8
 
 ;; Verifying symbols are case-sensitive
-(def! mynum 111)
+(def mynum 111)
 ;=>111
-(def! MYNUM 222)
+(def MYNUM 222)
 ;=>222
 mynum
 ;=>111
@@ -32,55 +32,55 @@ MYNUM
 ;; Check env lookup non-fatal error
 (abc 1 2 3)
 ;/.*\'?abc\'? not found.*
-;; Check that error aborts def!
-(def! w 123)
-(def! w (abc))
+;; Check that error aborts def
+(def w 123)
+(def w (abc))
 w
 ;=>123
 
-;; Testing let*
-(let* (z 9) z)  
+;; Testing let
+(let (z 9) z)
 ;=>9
-(let* (x 9) x)
+(let (x 9) x)
 ;=>9
 x
 ;=>4
-(let* (z (+ 2 3)) (+ 1 z))
+(let (z (+ 2 3)) (+ 1 z))
 ;=>6
-(let* (p (+ 2 3) q (+ 2 p)) (+ p q))
+(let (p (+ 2 3) q (+ 2 p)) (+ p q))
 ;=>12
-(def! y (let* (z 7) z))
+(def y (let (z 7) z))
 y
 ;=>7
 
-;; Testing let* with several expresions
-(let* (z 9 x 10 y 11) z y x)  
+;; Testing let with several expresions
+(let (z 9 x 10 y 11) z y x)
 ;=>10
-(let* (z 9))  
+(let (z 9))
 ;=>nil
 
 ;; Testing outer environment
-(def! a 4)
+(def a 4)
 ;=>4
-(let* (q 9) q)
+(let (q 9) q)
 ;=>9
-(let* (q 9) a)
+(let (q 9) a)
 ;=>4
-(let* (z 2) (let* (q 9) a))
+(let (z 2) (let (q 9) a))
 ;=>4
 
 ;>>> deferrable=True
 ;;
 ;; -------- Deferrable Functionality --------
 
-;; Testing let* with vector bindings
-(let* [z 9] z)
+;; Testing let with vector bindings
+(let [z 9] z)
 ;=>9
-(let* [p (+ 2 3) q (+ 2 p)] (+ p q))
+(let [p (+ 2 3) q (+ 2 p)] (+ p q))
 ;=>12
 
 ;; Testing vector evaluation
-(let* (a 5 b 6) [3 4 a [b 7] 8])
+(let (a 5 b 6) [3 4 a [b 7] 8])
 ;=>[3 4 5 [6 7] 8]
 
 ;>>> soft=True
@@ -89,5 +89,5 @@ y
 ;; -------- Optional Functionality --------
 
 ;; Check that last assignment takes priority
-(let* (x 2 x 3) x)
+(let (x 2 x 3) x)
 ;=>3

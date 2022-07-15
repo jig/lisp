@@ -38,7 +38,7 @@ func Execute(args []string, repl_env types.EnvType) error {
 			if err := filepath.Walk(os.Args[2], func(path string, info os.FileInfo, err error) error {
 				if !info.IsDir() {
 					if strings.HasSuffix(info.Name(), "_test.mal") {
-						testParams := fmt.Sprintf(`(def! *test-params* {:test-file %q :test-absolute-path %q})`, info.Name(), path)
+						testParams := fmt.Sprintf(`(def *test-params* {:test-file %q :test-absolute-path %q})`, info.Name(), path)
 						if _, err := lisp.REPL(repl_env, testParams, nil); err != nil {
 							return err
 						}

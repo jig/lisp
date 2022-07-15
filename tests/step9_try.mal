@@ -5,36 +5,36 @@
 ;/.*([Ee][Rr][Rr][Oo][Rr]|[Ee]xception).*err1.*
 
 ;;
-;; Testing try*/catch*
+;; Testing try/catch
 
-(try* 123 (catch* e 456))
+(try 123 (catch e 456))
 ;=>123
 
-(try* abc (catch* exc (prn "exc is:" exc)))
+(try abc (catch exc (prn "exc is:" exc)))
 ;/"exc is:" ".+: 'abc' not found"
 ;=>nil
 
-(try* (abc 1 2) (catch* exc (prn "exc is:" exc)))
+(try (abc 1 2) (catch exc (prn "exc is:" exc)))
 ;/"exc is:" ".+: 'abc' not found"
 ;=>nil
 
 ;; Make sure error from core can be caught
-(try* (nth () 1) (catch* exc (prn "exc is:" exc)))
+(try (nth () 1) (catch exc (prn "exc is:" exc)))
 ;/"exc is:".*(length|range|[Bb]ounds|beyond).*
 ;=>nil
 
-(try* (throw "my exception") (catch* exc (do (prn "exc:" exc) 7)))
+(try (throw "my exception") (catch exc (do (prn "exc:" exc) 7)))
 ;/"exc:" "my exception"
 ;=>7
 
 ;; Test that exception handlers get restored correctly
-(try* (do (try* "t1" (catch* e "c1")) (throw "e1")) (catch* e "c2"))
+(try (do (try "t1" (catch e "c1")) (throw "e1")) (catch e "c2"))
 ;=>"c2"
-(try* (try* (throw "e1") (catch* e (throw "e2"))) (catch* e "c2"))
+(try (try (throw "e1") (catch e (throw "e2"))) (catch e "c2"))
 ;=>"c2"
 
 ;;; Test that throw is a function:
-(try* (map throw (list "my err")) (catch* exc exc))
+(try (map throw (list "my err")) (catch exc exc))
 ;=>"my err"
 
 
@@ -80,19 +80,19 @@
 ;=>true
 
 ;; Testing apply function with user functions
-(apply (fn* (a b) (+ a b)) (list 2 3))
+(apply (fn (a b) (+ a b)) (list 2 3))
 ;=>5
-(apply (fn* (a b) (+ a b)) 4 (list 5))
+(apply (fn (a b) (+ a b)) 4 (list 5))
 ;=>9
 
 ;; Testing map function
-(def! nums (list 1 2 3))
-(def! double (fn* (a) (* 2 a)))
+(def nums (list 1 2 3))
+(def double (fn (a) (* 2 a)))
 (double 3)
 ;=>6
 (map double nums)
 ;=>(2 4 6)
-(map (fn* (x) (symbol? x)) (list 1 (quote two) "three"))
+(map (fn (x) (symbol? x)) (list 1 (quote two) "three"))
 ;=>(false true false)
 (= () (map str ()))
 ;=>true
@@ -149,17 +149,17 @@
 (apply list [])
 ;=>()
 ;; Testing apply function with user functions and arguments in vector
-(apply (fn* (a b) (+ a b)) [2 3])
+(apply (fn (a b) (+ a b)) [2 3])
 ;=>5
-(apply (fn* (a b) (+ a b)) 4 [5])
+(apply (fn (a b) (+ a b)) 4 [5])
 ;=>9
 
 
 ;; Testing map function with vectors
-(map (fn* (a) (* 2 a)) [1 2 3])
+(map (fn (a) (* 2 a)) [1 2 3])
 ;=>(2 4 6)
 
-(map (fn* [& args] (list? args)) [1 2])
+(map (fn [& args] (list? args)) [1 2])
 ;=>(true true)
 
 ;; Testing vector functions
@@ -199,7 +199,7 @@
 (get (assoc (assoc {"a" 1 } "b" 2) "c" 3) "a")
 ;=>1
 
-(def! hm1 (hash-map))
+(def hm1 (hash-map))
 ;=>{}
 
 (map? hm1)
@@ -218,7 +218,7 @@
 (contains? hm1 "a")
 ;=>false
 
-(def! hm2 (assoc hm1 "a" 1))
+(def hm2 (assoc hm1 "a" 1))
 ;=>{"a" 1}
 
 (get hm1 "a")
@@ -273,7 +273,7 @@
 ;=>true
 
 ;; Testing whether assoc updates properly
-(def! hm4 (assoc {:a 1 :b 2} :a 3 :c 1))
+(def hm4 (assoc {:a 1 :b 2} :a 3 :c 1))
 (get hm4 :a)
 ;=>3
 (get hm4 :b)
@@ -302,21 +302,21 @@
 (pr-str true "." false "." nil "." :keyw "." 'symb)
 ;=>"true \".\" false \".\" nil \".\" :keyw \".\" symb"
 
-(def! s (str {:abc "val1" :def "val2"}))
+(def s (str {:abc "val1" :def "val2"}))
 (cond (= s "{:abc val1 :def val2}") true (= s "{:def val2 :abc val1}") true)
 ;=>true
 
-(def! p (pr-str {:abc "val1" :def "val2"}))
+(def p (pr-str {:abc "val1" :def "val2"}))
 (cond (= p "{:abc \"val1\" :def \"val2\"}") true (= p "{:def \"val2\" :abc \"val1\"}") true)
 ;=>true
 
 ;;
 ;; Test extra function arguments as Mal List (bypassing TCO with apply)
-(apply (fn* (& more) (list? more)) [1 2 3])
+(apply (fn (& more) (list? more)) [1 2 3])
 ;=>true
-(apply (fn* (& more) (list? more)) [])
+(apply (fn (& more) (list? more)) [])
 ;=>true
-(apply (fn* (a & more) (list? more)) [1])
+(apply (fn (a & more) (list? more)) [1])
 ;=>true
 
 ;>>> soft=True
@@ -330,25 +330,25 @@
 (throw {:msg "err2"})
 ;/.*([Ee][Rr][Rr][Oo][Rr]|[Ee]xception).*msg.*err2.*
 
-;;;TODO: fix so long lines don't trigger ANSI escape codes ;;;(try*
-;;;(try* (throw ["data" "foo"]) (catch* exc (do (prn "exc is:" exc) 7))) ;;;;
+;;;TODO: fix so long lines don't trigger ANSI escape codes ;;;(try
+;;;(try (throw ["data" "foo"]) (catch exc (do (prn "exc is:" exc) 7))) ;;;;
 ;;;; "exc is:" ["data" "foo"] ;;;;=>7
 ;;;;=>7
 
 ;;
-;; Testing try* without catch*
-(try* xyz)
+;; Testing try without catch
+(try xyz)
 ;/.*\'?xyz\'? not found.*
 
 ;;
 ;; Testing throwing non-strings
-(try* (throw (list 1 2 3)) (catch* exc (do (prn "err:" exc) 7)))
+(try (throw (list 1 2 3)) (catch exc (do (prn "err:" exc) 7)))
 ;/"err:" \(1 2 3\)
 ;=>7
 
 ;;
 ;; Testing dissoc
-(def! hm3 (assoc hm2 "b" 2))
+(def hm3 (assoc hm2 "b" 2))
 (count (keys hm3))
 ;=>2
 (count (vals hm3))
@@ -402,41 +402,41 @@
 ;=>false
 
 ;; Testing that hashmaps don't alter function ast
-(def! bar (fn* [a] {:foo (get a :foo)}))
-(bar {:foo (fn* [x] x)})
+(def bar (fn [a] {:foo (get a :foo)}))
+(bar {:foo (fn [x] x)})
 (bar {:foo 3})
 ;; shouldn't give an error
 
 
-;; try* does not require do now
+;; try does not require do now
 ;; repeat tests above without do
-(try* 1 2 (let* [x 3] x) (throw "my exception") (catch* exc 4 (let* [x 5] x) 6 (prn "exc:" exc) 7))
+(try 1 2 (let [x 3] x) (throw "my exception") (catch exc 4 (let [x 5] x) 6 (prn "exc:" exc) 7))
 ;/"exc:" "my exception"
 ;=>7
 ;; try alone is like do
-(try* 1 2 3 true)
+(try 1 2 3 true)
 ;=>true
 
-;; ;; Testing try*/catch*/finally*
+;; ;; Testing try/catch/finally
 
 
-(try* 123 (catch* e 456) (finally* (println "fin")))
+(try 123 (catch e 456) (finally (println "fin")))
 ;/fin
 ;=>123
-(try* 123 (finally* (println "fin")))
+(try 123 (finally (println "fin")))
 ;/fin
 ;=>123
 
-(try* (let* [x 1] x) (finally* (println z)))
+(try (let [x 1] x) (finally (println z)))
 ;=>1
 
-;; finally* cannot throw errors
-(try* (let* [x 1] x) (let* [x 2] x) (finally* (println x)))
+;; finally cannot throw errors
+(try (let [x 1] x) (let [x 2] x) (finally (println x)))
 ;=>2
-(try* (let* [x 1] x) (let* [x 2] x) (finally* (throw "poum!")))
+(try (let [x 1] x) (let [x 2] x) (finally (throw "poum!")))
 ;=>2
 
-(try* (throw 2) (catch* err (throw 3)))
+(try (throw 2) (catch err (throw 3)))
 ;=>nil
-(try* (try* (throw 2) (catch* err (throw 3))) (catch* err err))
+(try (try (throw 2) (catch err (throw 3))) (catch err err))
 ;=>3

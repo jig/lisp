@@ -14,15 +14,15 @@
 ;=>nil
 ;/^.*interface conversion: types.MalType is string, not int$
 
-(try* (/ 1 0))
+(try (/ 1 0))
 ;=>nil
 ;/^.*runtime error: integer divide by zero$
 
-(try* (/ 1 0) (catch* e e))
-;=>"(L1,13): Error: runtime error: integer divide by zero"
+(try (/ 1 0) (catch e e))
+;=>"(L1,12): Error: runtime error: integer divide by zero"
 ;/^$
 
-(context* (/ 1 0))
+(context (/ 1 0))
 ;=>nil
 ;/^.*runtime error: integer divide by zero.*$
 

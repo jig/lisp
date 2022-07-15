@@ -25,7 +25,7 @@ Changes respect to [kanaka/mal](https://github.com/kanaka/mal):
 - Using [chzyer/readline](https://github.com/chzyer/readline) instead of C `readline` for the mal REPL
 - Multiline REPL
 - REPL history stored in `~/.lisp_history` (instead of kanaka/mal's `~/.mal-history`)
-- `(let* () A B C)` returns `C` as Clojure `let` instead of `A`, and evaluates `A`, `B` and `C`
+- `(let () A B C)` returns `C` as Clojure `let` instead of `A`, and evaluates `A`, `B` and `C`
 - `(do)` returns nil as Clojure instead of panicking
 - `hash-map` creates maps or converts a Go object to a map if the marshaler is defined in Go for that object
 
@@ -54,7 +54,7 @@ go test -benchmem -benchtime 5s -bench '^.+$' github.com/jig/lisp
 - `(json-decode {} ¬{"key": "value"}¬)` to decode JSON to lisp hash map
 - `(json-encode obj)` JSON encodes either a lisp structure or a go. Example: `(json-encode (json-decode {} ¬{"key":"value","key1": [{"a":"b","c":"d"},2,3]}¬))`. Note that lisp vectors (e.g. `[1 2 3]`) and lisp lists (e.g. `(list 1 2 3)` are both converted to JSON vectors always. Decoding a JSON vector is done on a lisp vector always though
 - `(hash-map-decode (new-go-object) ¬{"key": "value"}¬)` to decode hash map to a Go struct if that struct has the appropiate Go marshaler
-- `(context* (do ...))` provides a Go context. Context contents depend on Go, and might be passed to specific functions context compatible
+- `(context (do ...))` provides a Go context. Context contents depend on Go, and might be passed to specific functions context compatible
 - Test minimal library to be used with `maltest` interpreter (see [./cmd/maltest/](./cmd/maltest/) folder). See below test specs
 - Project compatible with GitHub CodeSpaces. Press `.` on your keyboard and you are ready to deploy a CodeSpace with mal in it
 - _Temporarily removed_: `(trace expr)` to trace the `expr` code
@@ -67,7 +67,7 @@ go test -benchmem -benchtime 5s -bench '^.+$' github.com/jig/lisp
 - support of (hashed, unordered) sets. Only sets of strings or keywords supported. Use `#{}` for literal sets. Functions supported for sets: `set`, `set?`, `conj`, `get`, `assoc`, `dissoc`, `contains?`, `empty?`. `meta`, `with-meta` (see [./test/stepA_mal](./test/stepF_set.mal) and (see [./test/stepA_mal](./test/stepF_set.mal) for examples). `json-encode` will encode a set to a JSON array.
 - `update`, `update-in` and `assoc-in` supported for hash maps and vectors.
 - Go function `READ_WithPreamble` works like `READ` but supports placeholders to be filled on READ time (see [./placeholder_test.go](./placeholder_test.go) for som samples).
-- Added support for `finally*` inside `try*`. `finally*` expression is evaluated for side effects only.
+- Added support for `finally` inside `try`. `finally` expression is evaluated for side effects only.
 - Added `spew`
 
 # Embed Lisp in Go code

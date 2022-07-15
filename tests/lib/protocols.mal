@@ -19,7 +19,7 @@
 ;=>:mal/number
 (find-type "")
 ;=>:mal/string
-(find-type (defmacro! m (fn* [] nil)))
+(find-type (defmacro m (fn [] nil)))
 ;=>:mal/macro
 (find-type ())
 ;=>:mal/list
@@ -27,7 +27,7 @@
 ;=>:mal/vector
 (find-type {})
 ;=>:mal/map
-(find-type (fn* [] nil))
+(find-type (fn [] nil))
 ;=>:mal/function
 
 ;; Testing find-type for explicit type metadata.
@@ -37,12 +37,12 @@
 ;=>:a
 (find-type ^{:type :a } {})
 ;=>:a
-(find-type ^{:type :a } (fn* [] nil))
+(find-type ^{:type :a } (fn [] nil))
 ;=>:a
 
 ;; Testing protocols.
-(def! o1 ^{:type :t1 } [1])
-(def! o2 ^{:type :t2 } [2])
+(def o1 ^{:type :t1 } [1])
+(def o2 ^{:type :t2 } [2])
 (defprotocol p1 [m0 [this]] [ma [this a]] [mb [this & b]])
 (defprotocol p2)
 (satisfies? p1 o1)
@@ -53,9 +53,9 @@
 ;=>false
 (satisfies? p2 o2)
 ;=>false
-(extend :t1 p1 {  :m0  (fn* [this] (str "t0" this))  :ma (fn* [this a] (str "ta" this a))  :mb (fn* [this & b] (str "tb" this b))})
+(extend :t1 p1 {  :m0  (fn [this] (str "t0" this))  :ma (fn [this a] (str "ta" this a))  :mb (fn [this & b] (str "tb" this b))})
 ;=>nil
-(extend :t2 p1 {  :m0  (fn* [this] (str "u0" this))  :ma (fn* [this a] (str "ua" this a))  :mb (fn* [this & b] (str "ub" this b))} p2 {})
+(extend :t2 p1 {  :m0  (fn [this] (str "u0" this))  :ma (fn [this a] (str "ua" this a))  :mb (fn [this & b] (str "ub" this b))} p2 {})
 ;=>nil
 (satisfies? p1 o1)
 ;=>true

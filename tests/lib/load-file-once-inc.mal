@@ -1,1 +1,1 @@
-(swap! counter (fn* [x] (+ 1 x)))
+(swap! counter (fn [x] (+ 1 x)))

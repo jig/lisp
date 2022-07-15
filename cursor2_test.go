@@ -43,33 +43,33 @@ func TestCursor2(t *testing.T) {
 	}
 }
 
-const codeMacro = `(do 
+const codeMacro = `(do
 ;; prerequisites
 ;; Trivial but convenient functions.
 
 ;; Integer predecessor (number -> number)
-(def! inc (fn* [a] (+ a 1)))
+(def inc (fn [a] (+ a 1)))
 
 ;; Integer predecessor (number -> number)
-(def! dec (fn* (a) (- a 1)))
+(def dec (fn (a) (- a 1)))
 
 ;; Integer nullity test (number -> boolean)
-(def! zero? (fn* (n) (= 0 n)))
+(def zero? (fn (n) (= 0 n)))
 
 ;; Returns the unchanged argument.
-(def! identity (fn* (x) x))
+(def identity (fn (x) x))
 
 ;; Generate a hopefully unique symbol. See section "Plugging the Leaks"
 ;; of http://www.gigamonkeys.com/book/macros-defining-your-own.html
-(def! gensym
-	(let* [counter (atom 0)]
-	(fn* []
+(def gensym
+	(let [counter (atom 0)]
+	(fn []
 		(symbol (str "G__" (swap! counter inc))))))
 ;; Left and right folds.
 
 ;; Left fold (f (.. (f (f init x1) x2) ..) xn)
-(def! reduce
-	(fn* (f init xs)
+(def reduce
+	(fn (f init xs)
 	;; f      : Accumulator Element -> Accumulator
 	;; init   : Accumulator
 	;; xs     : sequence of Elements x1 x2 .. xn
@@ -82,15 +82,15 @@ const codeMacro = `(do
 ;; The natural implementation for 'foldr' is not tail-recursive, and
 ;; the one based on 'reduce' constructs many intermediate functions, so we
 ;; rely on efficient 'nth' and 'count'.
-(def! foldr
-	(let* [
-	rec (fn* [f xs acc index]
+(def foldr
+	(let [
+	rec (fn [f xs acc index]
 		(if (< index 0)
 		acc
 		(rec f xs (f (nth xs index) acc) (- index 1))))
 	]
 
-	(fn* [f init xs]
+	(fn [f init xs]
 		;; f      : Element Accumulator -> Accumulator
 		;; init   : Accumulator
 		;; xs     : sequence of Elements x1 x2 .. xn
@@ -98,38 +98,38 @@ const codeMacro = `(do
 		(rec f xs init (- (count xs) 1)))))
 
 		;; Composition of partially applied functions.
-(def! _iter->
-	(fn* [acc form]
+(def _iter->
+	(fn [acc form]
 	(if (list? form)
 		` + "`" + `(~(first form) ~acc ~@(rest form))
 		(list form acc))))
-		
+
 ;; Rewrite x (a a1 a2) .. (b b1 b2) as
 ;;   (b (.. (a x a1 a2) ..) b1 b2)
 ;; If anything else than a list is found were "(a a1 a2)" is expected,
 ;; replace it with a list with one element, so that "-> x a" is
 ;; equivalent to "-> x (list a)".
-(defmacro! ->
-	(fn* (x & xs)
+(defmacro ->
+	(fn (x & xs)
 	(reduce _iter-> x xs)))
-	
+
 ;; Like "->", but the arguments describe functions that are partially
 ;; applied with *left* arguments.  The previous result is inserted at
 ;; the *end* of the new argument list.
 ;; Rewrite x ((a a1 a2) .. (b b1 b2)) as
 ;;   (b b1 b2 (.. (a a1 a2 x) ..)).
-(defmacro! ->>
-	(fn* (x & xs)
+(defmacro ->>
+	(fn (x & xs)
 		(reduce _iter->> x xs)))
 
-(def! _iter->>
-	(fn* [acc form]
+(def _iter->>
+	(fn [acc form]
 	(if (list? form)
 	` + "`" + `(~(first form) ~@(rest form) ~acc)
 		(list form acc)))))
 `
 
-const testCode = `(println 
+const testCode = `(println
 	(-> {}
 		(assoc :a "a")
 		(assoc :b "b")

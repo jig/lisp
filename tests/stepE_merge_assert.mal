@@ -29,9 +29,9 @@
 (merge nil nil)
 ;=>nil
 
-(def! m1 {:a 1})
-(def! m2 {:a 2})
-(def! m3 {:a 3})
+(def m1 {:a 1})
+(def m2 {:a 2})
+(def m3 {:a 3})
 (merge m1 m2)
 ;=>{:a 2}
 

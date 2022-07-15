@@ -58,7 +58,7 @@ func Pr_str(obj types.MalType, print_readably bool) string {
 	case nil:
 		return "nil"
 	case types.MalFunc:
-		return "(fn* " +
+		return "(fn " +
 			Pr_str(tobj.Params, true) + " " +
 			Pr_str(tobj.Exp, true) + ")"
 	case func([]types.MalType) (types.MalType, error):

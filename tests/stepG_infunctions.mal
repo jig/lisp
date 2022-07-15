@@ -38,7 +38,7 @@
 (get (get-in {:a 1 :b {:c 2}} []) :b)
 ;=>{:c 2}
 
-(def! m {:a 1 :b {:c 2}})
+(def m {:a 1 :b {:c 2}})
 (get-in m [:b :c])
 ;=>2
 
@@ -65,23 +65,23 @@
 ;=>[10 11 [200 201 202] 13]
 
 ;; update
-(def! mu (update m :a (fn* [_] 22)))
+(def mu (update m :a (fn [_] 22)))
 (get mu :a)
 ;=>22
-(def! mu (update m :x (fn* [_] 33)))
+(def mu (update m :x (fn [_] 33)))
 (get mu :x)
 ;=>33
 
 ;; update for vectors
-(def! vu (update [0 1 [22 33] 3] 2 (fn* [_] 22)))
+(def vu (update [0 1 [22 33] 3] 2 (fn [_] 22)))
 (get vu 2)
 ;=>22
-(def! mu (update m :x (fn* [_] 33)))
+(def mu (update m :x (fn [_] 33)))
 (get mu :x)
 ;=>33
 
 ;; update-in for maps
-(def! mu (update-in m [:b :c] (fn* [x] (+ 1000 x))))
+(def mu (update-in m [:b :c] (fn [x] (+ 1000 x))))
 (get-in mu [:b :c])
 ;=>1002
 (get-in mu [:a])
@@ -89,38 +89,38 @@
 (get-in mu [:b])
 ;=>{:c 1002}
 
-(def! mu (update-in m [] (fn* [x] (+ x 2000))))
+(def mu (update-in m [] (fn [x] (+ x 2000))))
 (get-in mu [:b :c])
 ;=>2
 
-;; fn* gots x=nil
-(def! mu (update-in m [:x] (fn* [x] (if x 100 200))))
+;; fn gots x=nil
+(def mu (update-in m [:x] (fn [x] (if x 100 200))))
 (get-in mu [:x])
 ;=>200
-(def! mu (update-in m [:x :y] (fn* [x] (if x 100 300))))
+(def mu (update-in m [:x :y] (fn [x] (if x 100 300))))
 (get-in mu [:x :y])
 ;=>300
-(def! mu (update-in m [:x :y :z] (fn* [x] (if x 100 400))))
+(def mu (update-in m [:x :y :z] (fn [x] (if x 100 400))))
 (get-in mu [:x :y :z])
 ;=>400
 
 ;; assoc-in
-(def! mu (assoc-in m [:b :c] 11))
+(def mu (assoc-in m [:b :c] 11))
 (get-in mu [:b :c])
 ;=>11
-(def! mu (assoc-in m [:b] 12))
+(def mu (assoc-in m [:b] 12))
 (get-in mu [:b])
 ;=>12
-(def! mu (assoc-in m [:a] 13))
+(def mu (assoc-in m [:a] 13))
 (get-in mu [:a])
 ;=>13
-(def! mu (assoc-in m [:x] 14))
+(def mu (assoc-in m [:x] 14))
 (get-in mu [:x])
 ;=>14
-(def! mu (assoc-in m [:x :y] 18))
+(def mu (assoc-in m [:x :y] 18))
 (get-in mu [:x :y])
 ;=>18
-(def! mu (assoc-in m [:x :y :z] 19))
+(def mu (assoc-in m [:x :y :z] 19))
 (get-in mu [:x :y :z])
 ;=>19
 

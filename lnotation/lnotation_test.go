@@ -50,7 +50,7 @@ func TestLNotation(t *testing.T) {
 }
 
 // (do
-//		(def! fib (fn* [n]
+//		(def fib (fn [n]
 //			(if (= n 0)
 //			1
 //			(if (= n 1)
@@ -62,9 +62,9 @@ func TestLNotation(t *testing.T) {
 func TestLNotationFibonacci(t *testing.T) {
 	// use of a mix of L() and LS()
 	do := S("do")
-	def := S("def!")
+	def := S("def")
 	fib := S("fib")
-	fn := S("fn*")
+	fn := S("fn")
 	n := S("n")
 	iF := S("if")
 

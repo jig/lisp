@@ -27,7 +27,7 @@ func TestCursor(t *testing.T) {
 	bootEnv.Set(types.Symbol{Val: "*ARGV*"}, types.List{})
 
 	// core.mal: defined using the language itself
-	_, err = REPL(bootEnv, `(def! *host-language* "go")`, nil)
+	_, err = REPL(bootEnv, `(def *host-language* "go")`, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -128,7 +128,7 @@ func TestCursor(t *testing.T) {
 
 var multiline = `;; multiline strings
 
-(def! multi ¬line1
+(def multi ¬line1
 	line6¬)
 
 (throw "pum")`
@@ -137,75 +137,75 @@ var codeCorrect = `;; prerequisites
 ;; Trivial but convenient functions.
 
 ;; Integer predecessor (number -> number)
-(def! inc (fn* [a] (+ a 1)))
+(def inc (fn [a] (+ a 1)))
 
 ;; Integer predecessor (number -> number)
-(def! dec (fn* (a) (- a 1)))
+(def dec (fn (a) (- a 1)))
 
 ;; Integer nullity test (number -> boolean)
-(def! zero? (fn* (n) (= 0 n)))
+(def zero? (fn (n) (= 0 n)))
 
 ;; Returns the unchanged argument.
-(def! identity (fn* (x) x))
+(def identity (fn (x) x))
 
 ;; Generate a hopefully unique symbol. See section "Plugging the Leaks"
 ;; of http://www.gigamonkeys.com/book/macros-defining-your-own.html
-(def! gensym
-  (let* [counter (atom 0)]
-    (fn* []
+(def gensym
+  (let [counter (atom 0)]
+    (fn []
       (symbol (str "G__" (swap! counter inc))))))
 
-(def! a 1234)
+(def a 1234)
 `
 
 var codeMissingRightBracket = `;; prerequisites
 ;; Trivial but convenient functions.
 
 ;; Integer predecessor (number -> number)
-(def! inc (fn* [a] (+ a 1)))
+(def inc (fn [a] (+ a 1)))
 
 ;; Integer predecessor (number -> number) ;; MISSING ) ON NEXT LINE:
-(def! dec (fn* (a) (- a 1))
+(def dec (fn (a) (- a 1))
 
 ;; Integer nullity test (number -> boolean)
-(def! zero? (fn* (n) (= 0 n)))
+(def zero? (fn (n) (= 0 n)))
 
 ;; Returns the unchanged argument.
-(def! identity (fn* (x) x))
+(def identity (fn (x) x))
 
 ;; Generate a hopefully unique symbol. See section "Plugging the Leaks"
 ;; of http://www.gigamonkeys.com/book/macros-defining-your-own.html
-(def! gensym
-  (let* [counter (atom 0)]
-    (fn* []
+(def gensym
+  (let [counter (atom 0)]
+    (fn []
       (symbol (str "G__" (swap! counter inc))))))
 
-(def! a 1234)
+(def a 1234)
 `
 
 var codeTooManyRightBrackets = `;; prerequisites
 ;; Trivial but convenient functions.
 
 ;; Integer predecessor (number -> number)
-(def! inc (fn* [a] (+ a 1)))
+(def inc (fn [a] (+ a 1)))
 
 ;; Integer predecessor (number -> number)
-(def! dec (fn* (a) (- a 1))))
+(def dec (fn (a) (- a 1))))
 
 ;; Integer nullity test (number -> boolean)
-(def! zero? (fn* (n) (= 0 n)))
+(def zero? (fn (n) (= 0 n)))
 
 ;; Returns the unchanged argument.
-(def! identity (fn* (x) x))
+(def identity (fn (x) x))
 
 ;; Generate a hopefully unique symbol. See section "Plugging the Leaks"
 ;; of http://www.gigamonkeys.com/book/macros-defining-your-own.html
-(def! gensym
-  (let* [counter (atom 0)]
-    (fn* []
+(def gensym
+  (let [counter (atom 0)]
+    (fn []
       (symbol (str "G__" (swap! counter inc))))))
 
-(def! a 1234)
+(def a 1234)
 `
 var codeThrow = `;; this will throw an error
 ;; in a trivial way
@@ -216,28 +216,28 @@ var codeThrow = `;; this will throw an error
 var codeTryAndThrowAndCatch = `;; throwing an error and catching
 ;; must not involve program lines
 
-(try*
+(try
 	abc
-	(catch* exc
+	(catch exc
 		(str "exc is:" exc)))
 
-(def! a 1234)
+(def a 1234)
 `
 
 // var codeTryAndThrow = `;; throwing an error and catching
 // ;; must not involve program lines
 
-// (try*
+// (try
 // 	abc
-// 	(catch* exc
+// 	(catch exc
 // 		(str "exc is:" exc)))
 
-// (def! a 1234)
+// (def a 1234)
 // `
 
-var codeLetIsBogus = `;; let* requires a vector with even elements
+var codeLetIsBogus = `;; let requires a vector with even elements
 
-(let* [x 1
+(let [x 1
 	y]
 	y)
 `
