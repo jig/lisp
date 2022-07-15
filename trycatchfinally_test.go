@@ -10,7 +10,7 @@ import (
 	"github.com/jig/lisp/types"
 )
 
-//go:embed trycatchfinally_test.l
+//go:embed trycatchfinally_test.lisp
 var trycatchfinally_test string
 
 func TestTryCatchFinally(t *testing.T) {
