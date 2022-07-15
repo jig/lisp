@@ -325,8 +325,6 @@ func EVAL(ast MalType, env EnvType, ctx *context.Context) (MalType, error) {
 		case "macroexpand":
 			return macroexpand(a1, env, ctx)
 		case "try", "try*":
-			// fmt.Println("-------------------------------")
-			// _print(ast)
 			var exc MalType
 			lst := ast.(List).Val
 			var last MalType
@@ -356,10 +354,6 @@ func EVAL(ast MalType, env EnvType, ctx *context.Context) (MalType, error) {
 				if len(catchDo.(List).Val) == 0 {
 					return nil, PushError(ast.(List).Cursor, ast, errors.New("catch* must have 2 arguments at least"))
 				}
-				// _print(*tryDo)
-				// _print(catchBind)
-				// _print(*catchDo)
-				// _print(nil)
 			case "finally", "finally*":
 				finallyDo = List{Val: last.(types.List).Val[1:]}
 				switch first(prelast) {
@@ -367,18 +361,10 @@ func EVAL(ast MalType, env EnvType, ctx *context.Context) (MalType, error) {
 					catchBind = prelast.(types.List).Val[1]
 					catchDo = List{Val: prelast.(types.List).Val[2:]}
 					tryDo = List{Val: lst[1 : len(lst)-2]}
-					// _print(*tryDo)
-					// _print(catchBind)
-					// _print(*catchDo)
-					// _print(*finallyDo)
 				default:
 					catchBind = nil
 					catchDo = nil
 					tryDo = List{Val: lst[1 : len(lst)-1]}
-					// _print(*tryDo)
-					// _print(nil)
-					// _print(nil)
-					// _print(*finallyDo)
 				}
 			default:
 				finallyDo = nil
@@ -396,9 +382,6 @@ func EVAL(ast MalType, env EnvType, ctx *context.Context) (MalType, error) {
 			if e == nil {
 				return exp, nil
 			} else {
-				// if a2 != nil && List_Q(a2) {
-				// 	a2s, _ := GetSlice(a2)
-				// 	if Symbol_Q(a2s[0]) && (a2s[0].(Symbol).Val == "catch*") {
 				if catchDo != nil {
 					switch e := e.(type) {
 					case MalError:
@@ -620,8 +603,3 @@ func REPLWithPreamble(repl_env EnvType, str string, ctx *context.Context, cursor
 	}
 	return res, nil
 }
-
-// func _print(exp MalType) {
-// 	str, _ := PRINT(exp)
-// 	fmt.Println(str)
-// }
