@@ -26,7 +26,7 @@
 ;;
 ;;
 ;; Testing hash-map evaluation and atoms (i.e. an env)
-(def! e (atom {"+" +}))
+(def e (atom {"+" +}))
 (swap! e assoc "-" -)
 ( (get @e "+") 7 8)
 ;=>15
@@ -59,16 +59,16 @@
 ;;
 ;; Testing metadata on mal functions
 
-(meta (fn* (a) a))
+(meta (fn (a) a))
 ;=>nil
 
-(meta (with-meta (fn* (a) a) {"b" 1}))
+(meta (with-meta (fn (a) a) {"b" 1}))
 ;=>{"b" 1}
 
-(meta (with-meta (fn* (a) a) "abc"))
+(meta (with-meta (fn (a) a) "abc"))
 ;=>"abc"
 
-(def! l-wm (with-meta (fn* (a) a) {"b" 2}))
+(def l-wm (with-meta (fn (a) a) {"b" 2}))
 (meta l-wm)
 ;=>{"b" 2}
 
@@ -77,7 +77,7 @@
 (meta l-wm)
 ;=>{"b" 2}
 
-(def! f-wm (with-meta (fn* [a] (+ 1 a)) {"abc" 1}))
+(def f-wm (with-meta (fn [a] (+ 1 a)) {"abc" 1}))
 (meta f-wm)
 ;=>{"abc" 1}
 
@@ -86,7 +86,7 @@
 (meta f-wm)
 ;=>{"abc" 1}
 
-(def! f-wm2 ^{"abc" 1} (fn* [a] (+ 1 a)))
+(def f-wm2 ^{"abc" 1} (fn [a] (+ 1 a)))
 (meta f-wm2)
 ;=>{"abc" 1}
 
@@ -96,9 +96,9 @@
 
 ;;
 ;; Make sure closures and metadata co-exist
-(def! gen-plusX (fn* (x) (with-meta (fn* (b) (+ x b)) {"meta" 1})))
-(def! plus7 (gen-plusX 7))
-(def! plus8 (gen-plusX 8))
+(def gen-plusX (fn (x) (with-meta (fn (b) (+ x b)) {"meta" 1})))
+(def plus7 (gen-plusX 7))
+(def plus8 (gen-plusX 8))
 (plus7 8)
 ;=>15
 (meta plus7)
@@ -139,7 +139,7 @@
 (number? "123")
 ;=>false
 
-(def! add1 (fn* (x) (+ x 1)))
+(def add1 (fn (x) (+ x 1)))
 
 ;; Testing fn? function
 (fn? +)
@@ -152,7 +152,7 @@
 ;=>false
 (fn? :+)
 ;=>false
-(fn? ^{"ismacro" true} (fn* () 0))
+(fn? ^{"ismacro" true} (fn () 0))
 ;=>true
 
 ;; Testing macro? function
@@ -287,7 +287,7 @@
 (with-meta {} {"a" 1})
 ;=>{}
 
-(def! l-wm (with-meta [4 5 6] {"b" 2}))
+(def l-wm (with-meta [4 5 6] {"b" 2}))
 ;=>[4 5 6]
 (meta l-wm)
 ;=>{"b" 2}
@@ -301,7 +301,7 @@
 ;; Testing metadata on builtin functions
 (meta +)
 ;=>nil
-(def! f-wm3 ^{"def" 2} +)
+(def f-wm3 ^{"def" 2} +)
 (meta f-wm3)
 ;=>{"def" 2}
 (meta +)
@@ -313,7 +313,7 @@
 
 ;;
 ;; Testing time-ms function
-(def! start-time (time-ms))
+(def start-time (time-ms))
 (= start-time 0)
 ;=>false
 (sumdown 1000) ; Waste some time
@@ -323,8 +323,8 @@
 
 ;;
 ;; Test that defining a macro does not mutate an existing function.
-(def! f (fn* [x] (number? x)))
-(defmacro! m f)
+(def f (fn [x] (number? x)))
+(defmacro m f)
 (f (+ 1 1))
 ;=>true
 (m (+ 1 1))

@@ -34,15 +34,15 @@
 ;=>"Hello"
 ;/^$
 
-(def! a ¬Hello¬)
+(def a ¬Hello¬)
 ;=>"Hello"
 ;/^$
 
-(def! a ¬"Hello"¬)
+(def a ¬"Hello"¬)
 ;=>"\"Hello\""
 ;/^$
 
-(def! a ¬Hello¬)
+(def a ¬Hello¬)
 ;=>"Hello"
 ;/^$
 

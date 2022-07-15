@@ -30,45 +30,45 @@ var trivial = `;; prerequisites
 ;; Trivial but convenient functions.
 
 ;; Integer predecessor (number -> number)
-(def! inc (fn* [a] (+ a 1)))
+(def inc (fn [a] (+ a 1)))
 
 ;; Integer predecessor (number -> number)
-(def! dec (fn* (a) (- a 1)))
+(def dec (fn (a) (- a 1)))
 
 ;; Integer nullity test (number -> boolean)
-(def! zero? (fn* (n) (= 0 n)))
+(def zero? (fn (n) (= 0 n)))
 
 ;; Returns the unchanged argument.
-(def! identity (fn* (x) x))
+(def identity (fn (x) x))
 
 ;; Generate a hopefully unique symbol. See section "Plugging the Leaks"
 ;; of http://www.gigamonkeys.com/book/macros-defining-your-own.html
-(def! gensym
-  (let* [counter (atom 0)]
-    (fn* []
+(def gensym
+  (let [counter (atom 0)]
+    (fn []
       (symbol (str "G__" (swap! counter inc))))))
 `
 
 var benchmark = `;; An alternative approach, to complement perf.mal
 ;; requires Trivial
 
-(def! benchmark* (fn* [f n results]
+(def benchmark* (fn [f n results]
   (if (< 0 n)
-    (let* [start-ms (time-ms)
+    (let [start-ms (time-ms)
            _ (f)
            end-ms (time-ms)]
       (benchmark* f (- n 1) (conj results (- end-ms start-ms))))
     results)))
 
-(defmacro! benchmark (fn* [expr n]
-  ` + "`" + `(benchmark* (fn* [] ~expr) ~n [])))
+(defmacro benchmark (fn [expr n]
+  ` + "`" + `(benchmark* (fn [] ~expr) ~n [])))
 `
 
 var reducers = `;; Left and right folds.
 
 ;; Left fold (f (.. (f (f init x1) x2) ..) xn)
-(def! reduce
-  (fn* (f init xs)
+(def reduce
+  (fn (f init xs)
     ;; f      : Accumulator Element -> Accumulator
     ;; init   : Accumulator
     ;; xs     : sequence of Elements x1 x2 .. xn
@@ -81,15 +81,15 @@ var reducers = `;; Left and right folds.
 ;; The natural implementation for 'foldr' is not tail-recursive, and
 ;; the one based on 'reduce' constructs many intermediate functions, so we
 ;; rely on efficient 'nth' and 'count'.
-(def! foldr
-  (let* [
-    rec (fn* [f xs acc index]
+(def foldr
+  (let [
+    rec (fn [f xs acc index]
       (if (< index 0)
         acc
         (rec f xs (f (nth xs index) acc) (- index 1))))
     ]
 
-    (fn* [f init xs]
+    (fn [f init xs]
       ;; f      : Element Accumulator -> Accumulator
       ;; init   : Accumulator
       ;; xs     : sequence of Elements x1 x2 .. xn
@@ -104,12 +104,12 @@ var threading = `;; Composition of partially applied functions.
 ;; If anything else than a list is found were "(a a1 a2)" is expected,
 ;; replace it with a list with one element, so that "-> x a" is
 ;; equivalent to "-> x (list a)".
-(defmacro! ->
-  (fn* (x & xs)
+(defmacro ->
+  (fn (x & xs)
     (reduce _iter-> x xs)))
 
-(def! _iter->
-  (fn* [acc form]
+(def _iter->
+  (fn [acc form]
     (if (list? form)
       ` + "`" + `(~(first form) ~acc ~@(rest form))
       (list form acc))))
@@ -119,12 +119,12 @@ var threading = `;; Composition of partially applied functions.
 ;; the *end* of the new argument list.
 ;; Rewrite x ((a a1 a2) .. (b b1 b2)) as
 ;;   (b b1 b2 (.. (a a1 a2 x) ..)).
-(defmacro! ->>
-  (fn* (x & xs)
+(defmacro ->>
+  (fn (x & xs)
      (reduce _iter->> x xs)))
 
-(def! _iter->>
-  (fn* [acc form]
+(def _iter->>
+  (fn [acc form]
     (if (list? form)
     ` + "`" + `(~(first form) ~@(rest form) ~acc)
       (list form acc))))
@@ -139,38 +139,38 @@ var threading = `;; Composition of partially applied functions.
 // ;; symbols, strings, keywords, atoms, nil).
 
 // ;; Save the original (native) "=" as scalar-equal?
-// (def! scalar-equal? =)
+// (def scalar-equal? =)
 
 // ;; A faster "and" macro which doesn't use "=" internally.
-// (defmacro! bool-and                    ; boolean
-//   (fn* [& xs]                          ; interpreted as logical values
+// (defmacro bool-and                    ; boolean
+//   (fn [& xs]                          ; interpreted as logical values
 //     (if (empty? xs)
 //       true
 //       ` + "`" + `(if ~(first xs) (bool-and ~@(rest xs)) false))))
 
-// (defmacro! bool-or                     ; boolean
-//   (fn* [& xs]                          ; interpreted as logical values
+// (defmacro bool-or                     ; boolean
+//   (fn [& xs]                          ; interpreted as logical values
 //     (if (empty? xs)
 //       false
 //       ` + "`" + `(if ~(first xs) true (bool-or ~@(rest xs))))))
 
-// (def! starts-with?
-//   (fn* [a b]
+// (def starts-with?
+//   (fn [a b]
 //     (bool-or (empty? a)
 //              (bool-and (mal-equal? (first a) (first b))
 //                        (starts-with? (rest a) (rest b))))))
 
-// (def! hash-map-vals-equal?
-//   (fn* [a b map-keys]
+// (def hash-map-vals-equal?
+//   (fn [a b map-keys]
 //     (bool-or (empty? map-keys)
-//              (let* [key (first map-keys)]
+//              (let [key (first map-keys)]
 //                (bool-and (contains? b key)
 //                          (mal-equal? (get a key) (get b key))
 //                          (hash-map-vals-equal? a b (rest map-keys)))))))
 
 // ;; This implements = in pure mal (using only scalar-equal? as native impl)
-// (def! mal-equal?
-//   (fn* [a b]
+// (def mal-equal?
+//   (fn [a b]
 //     (cond
 
 //       (sequential? a)
@@ -179,7 +179,7 @@ var threading = `;; Composition of partially applied functions.
 //                 (starts-with? a b))
 
 //       (map? a)
-//       (let* [keys-a (keys a)]
+//       (let [keys-a (keys a)]
 //         (bool-and (map? b)
 //                   (scalar-equal? (count keys-a) (count (keys b)))
 //                   (hash-map-vals-equal? a b keys-a)))
@@ -187,26 +187,26 @@ var threading = `;; Composition of partially applied functions.
 //       true
 //       (scalar-equal? a b))))
 
-// (def! hash-map-equality-correct?
-//   (fn* []
-//     (try*
+// (def hash-map-equality-correct?
+//   (fn []
+//     (try
 //       (bool-and (= {:a 1} {:a 1})
 //                 (not (= {:a 1} {:a 1 :b 2})))
-//       (catch* _ false))))
+//       (catch _ false))))
 
-// (def! sequence-equality-correct?
-//   (fn* []
-//     (try*
+// (def sequence-equality-correct?
+//   (fn []
+//     (try
 //       (bool-and (= [:a :b] (list :a :b))
 //                 (not (= [:a :b] [:a :b :c])))
-//       (catch* _ false))))
+//       (catch _ false))))
 
 // ;; If the native "=" implementation doesn't support sequences or hash-maps
 // ;; correctly, replace it with the pure mal implementation
 // (if (not (bool-and (hash-map-equality-correct?)
 //                    (sequence-equality-correct?)))
 //   (do
-//     (def! = mal-equal?)
+//     (def = mal-equal?)
 //     (println "equality.mal: Replaced = with pure mal implementation")))
 // `
 
@@ -220,18 +220,18 @@ var memoize = `;; Memoize any function.
 
 ;; For recursive functions, take care to store the wrapper under the
 ;; same name than the original computation with an assignment like
-;; "(def! f (memoize f))", so that intermediate results are memorized.
+;; "(def f (memoize f))", so that intermediate results are memorized.
 
 ;; Adapted from http://clojure.org/atoms
 
-(def! memoize
-  (fn* [f]
-    (let* [mem (atom {})]
-      (fn* [& args]
-        (let* [key (str args)]
+(def memoize
+  (fn [f]
+    (let [mem (atom {})]
+      (fn [& args]
+        (let [key (str args)]
           (if (contains? @mem key)
             (get @mem key)
-            (let* [ret (apply f args)]
+            (let [ret (apply f args)]
               (do
                 (swap! mem assoc key ret)
                 ret))))))))
@@ -241,22 +241,22 @@ var perf = `;; Mesure performances.
 ;; requires trivial package
 
 ;; Evaluate an expression, but report the time spent
-(defmacro! time
-  (fn* (exp)
-    (let* [start (gensym)
+(defmacro time
+  (fn (exp)
+    (let [start (gensym)
            ret   (gensym)]
-      ` + "`" + `(let* (~start (time-ms)
+      ` + "`" + `(let (~start (time-ms)
               ~ret   ~exp)
         (do
           (println "Elapsed time:" (- (time-ms) ~start) "msecs")
           ~ret)))))
 
 ;; Count evaluations of a function during a given time frame.
-(def! run-fn-for
+(def run-fn-for
 
-  (let* [
-    run-fn-for* (fn* [fn max-ms acc-ms last-iters]
-      (let* [start (time-ms)
+  (let [
+    run-fn-for* (fn [fn max-ms acc-ms last-iters]
+      (let [start (time-ms)
              _ (fn)
              elapsed (- (time-ms) start)
              iters (inc last-iters)
@@ -267,7 +267,7 @@ var perf = `;; Mesure performances.
           (run-fn-for* fn max-ms new-acc-ms iters))))
     ]
 
-    (fn* [fn max-secs]
+    (fn [fn max-secs]
       ;; fn       : function without parameters
       ;; max-secs : number (seconds)
       ;; return   : number (iterations)
@@ -280,37 +280,37 @@ var perf = `;; Mesure performances.
 
 var pprint = `;; Pretty printer a MAL object.
 
-(def! pprint
+(def pprint
 
-  (let* [
+  (let [
 
-    spaces- (fn* [indent]
+    spaces- (fn [indent]
       (if (> indent 0)
         (str " " (spaces- (- indent 1)))
         ""))
 
-    pp-seq- (fn* [obj indent]
-      (let* [xindent (+ 1 indent)]
+    pp-seq- (fn [obj indent]
+      (let [xindent (+ 1 indent)]
         (apply str (pp- (first obj) 0)
-                   (map (fn* [x] (str "\n" (spaces- xindent)
+                   (map (fn [x] (str "\n" (spaces- xindent)
                                       (pp- x xindent)))
                         (rest obj)))))
 
-    pp-map- (fn* [obj indent]
-      (let* [ks (keys obj)
+    pp-map- (fn [obj indent]
+      (let [ks (keys obj)
              kindent (+ 1 indent)
              kwidth (count (seq (str (first ks))))
              vindent (+ 1 (+ kwidth kindent))]
         (apply str (pp- (first ks) 0)
                    " "
                    (pp- (get obj (first ks)) 0)
-                   (map (fn* [k] (str "\n" (spaces- kindent)
+                   (map (fn [k] (str "\n" (spaces- kindent)
                                       (pp- k kindent)
                                       " "
                                       (pp- (get obj k) vindent)))
                         (rest ks)))))
 
-    pp- (fn* [obj indent]
+    pp- (fn [obj indent]
       (cond
         (list? obj)   (str "(" (pp-seq- obj indent) ")")
         (vector? obj) (str "[" (pp-seq- obj indent) "]")
@@ -319,7 +319,7 @@ var pprint = `;; Pretty printer a MAL object.
 
     ]
 
-    (fn* [obj]
+    (fn [obj]
          (println (pp- obj 0)))))
 `
 
@@ -331,7 +331,7 @@ var protocols = `;; A sketch of Clojure-like protocols, implemented in Mal
 ;; This function maps a MAL value to a keyword representing its type.
 ;; Most applications will override the default with an explicit value
 ;; for the ":type" key in the metadata.
-(def! find-type (fn* [obj]
+(def find-type (fn [obj]
   (cond
     (symbol?  obj) :mal/symbol
     (keyword? obj) :mal/keyword
@@ -343,7 +343,7 @@ var protocols = `;; A sketch of Clojure-like protocols, implemented in Mal
     (string?  obj) :mal/string
     (macro?   obj) :mal/macro
     true
-    (let* [metadata (meta obj)
+    (let [metadata (meta obj)
            type     (if (map? metadata) (get metadata :type))]
       (cond
         (keyword? type) type
@@ -365,20 +365,20 @@ var protocols = `;; A sketch of Clojure-like protocols, implemented in Mal
 ;;     (method1 [this])
 ;;     (method2 [this argument]))
 ;; can be thought as:
-;;   (def! method1 (fn* [this]) ..)
-;;   (def! method2 (fn* [this argument]) ..)
-;;   (def! protocol ..)
+;;   (def method1 (fn [this]) ..)
+;;   (def method2 (fn [this argument]) ..)
+;;   (def protocol ..)
 ;; The return value is the new protocol.
-(defmacro! defprotocol (fn* [proto-name & methods]
+(defmacro defprotocol (fn [proto-name & methods]
   ;; A protocol is an atom mapping a type extending the protocol to
   ;; another map from method names as keywords to implementations.
-  (let* [
-    drop2 (fn* [args]
+  (let [
+    drop2 (fn [args]
       (if (= 2 (count args))
         ()
         (cons (first args) (drop2 (rest args)))))
-    rewrite (fn* [method]
-      (let* [
+    rewrite (fn [method]
+      (let [
         name     (first method)
         args     (nth method 1)
         argc     (count args)
@@ -390,21 +390,21 @@ var protocols = `;; A sketch of Clojure-like protocols, implemented in Mal
           ` + "`" + `(apply ~dispatch ~@(drop2 args) ~(nth args (- argc 1)))
                    (cons dispatch args))
         ]
-        (list 'def! name (list 'fn* args body))))
+        (list 'def name (list 'fn args body))))
     ]
       ` + "`" + `(do
       ~@(map rewrite methods)
-       (def! ~proto-name (atom {}))))))
+       (def ~proto-name (atom {}))))))
 
 ;; A type (concrete class..) extends (is a subclass of, implements..)
 ;; a protocol when it provides implementations for the required methods.
 ;;   (extend type protocol {
-;;     :method1 (fn* [this] ..)
-;;     :method2 (fn* [this arg1 arg2])})
+;;     :method1 (fn [this] ..)
+;;     :method2 (fn [this arg1 arg2])})
 ;; Additionnal protocol/methods pairs are equivalent to successive
 ;; calls with the same type.
 ;; The return value is "nil".
-(def! extend (fn* [type proto methods & more]
+(def extend (fn [type proto methods & more]
   (do
     (swap! proto assoc type methods)
     (if (first more)
@@ -412,7 +412,7 @@ var protocols = `;; A sketch of Clojure-like protocols, implemented in Mal
 
 ;; An object satisfies a protocol when its type extends the protocol,
 ;; that is if the required methods can be applied to the object.
-(def! satisfies? (fn* [protocol obj]
+(def satisfies? (fn [protocol obj]
   (contains? @protocol (find-type obj))))
 ;; If "(satisfies protocol obj)" with the protocol below
 ;; then "(method1 obj)" and "(method2 obj 1 2)"
@@ -432,18 +432,18 @@ var test_cascade = `;; Iteration on evaluations interpreted as boolean values.
 ;; "(if x1 x1 (if x2 x2 (.. (if xn xn x))))"
 ;; except that each argument is evaluated at most once.
 ;; Without arguments, returns "nil".
-(defmacro! or (fn* [& xs]
+(defmacro or (fn [& xs]
   (if (< (count xs) 2)
     (first xs)
-    (let* [r (gensym)]
-      ` + "`" + `(let* (~r ~(first xs)) (if ~r ~r (or ~@(rest xs))))))))
+    (let [r (gensym)]
+      ` + "`" + `(let (~r ~(first xs)) (if ~r ~r (or ~@(rest xs))))))))
 
 ;; Conjonction of predicate values (pred x1) and .. and (pred xn)
 ;; Evaluate "pred x" for each "x" in turn. Return "false" if a result
 ;; is "nil" or "false", without evaluating the predicate for the
 ;; remaining elements.  If all test pass, return "true".
-(def! every?
-  (fn* (pred xs)
+(def every?
+  (fn (pred xs)
     ;; pred   : Element -> interpreted as a logical value
     ;; xs     : sequence of Elements x1 x2 .. xn
     ;; return : boolean
@@ -455,8 +455,8 @@ var test_cascade = `;; Iteration on evaluations interpreted as boolean values.
 ;; Evaluate "(pred x)" for each "x" in turn. Return the first result
 ;; that is neither "nil" nor "false", without evaluating the predicate
 ;; for the remaining elements.  If all tests fail, return nil.
-(def! some
-  (fn* (pred xs)
+(def some
+  (fn (pred xs)
     ;; pred   : Element -> interpreted as a logical value
     ;; xs     : sequence of Elements x1 x2 .. xn
     ;; return : boolean
@@ -467,22 +467,22 @@ var test_cascade = `;; Iteration on evaluations interpreted as boolean values.
 
 ;; Search for first evaluation returning "nil" or "false".
 ;; Rewrite "x1 x2 .. xn x" as
-;;   (let* [r1 x1]
+;;   (let [r1 x1]
 ;;     (if r1 test1
-;;       (let* [r2 x2]
+;;       (let [r2 x2]
 ;;         ..
 ;;         (if rn
 ;;           x
 ;;           rn) ..)
 ;;       r1))
 ;; Without arguments, returns "true".
-(defmacro! and
-  (fn* (& xs)
+(defmacro and
+  (fn (& xs)
     ;; Arguments and the result are interpreted as boolean values.
     (cond (empty? xs)      true
           (= 1 (count xs)) (first xs)
-          true             (let* (condvar (gensym))
-                             ` + "`" + `(let* (~condvar ~(first xs))
+          true             (let (condvar (gensym))
+                             ` + "`" + `(let (~condvar ~(first xs))
                                (if ~condvar (and ~@(rest xs)) ~condvar))))))
 `
 
@@ -492,12 +492,12 @@ var load_file_once = `;; Like load-file, but will never load the same path twice
 ;; different mechanism to neutralize multiple inclusions of
 ;; itself. Moreover, the file list should never be reset.
 
-(def! load-file-once
-  (try*
+(def load-file-once
+  (try
     load-file-once
-  (catch* _
-    (let* [seen (atom {"../lib/load-file-once.mal" nil})]
-      (fn* [filename]
+  (catch _
+    (let [seen (atom {"../lib/load-file-once.mal" nil})]
+      (fn [filename]
         (if (not (contains? @seen filename))
           (do
             (swap! seen assoc filename nil)

@@ -1,4 +1,4 @@
-(def! orig= =)
+(def orig= =)
 
 ;; Testing equality.mal does not fix built-in equality.
 (load-file "./lib/equality.mal")
@@ -39,7 +39,7 @@
 ;=>false
 
 ;; Breaking equality.
-(def! = (fn* [a b] (bool-and (orig= a b) (cond (list? a) (list? b) (vector? a) (vector? b) true true))))
+(def = (fn [a b] (bool-and (orig= a b) (cond (list? a) (list? b) (vector? a) (vector? b) true true))))
 (= [] ())
 ;=>false
 

@@ -8,7 +8,7 @@
 (cons (list 1) (list 2 3))
 ;=>((1) 2 3)
 
-(def! a (list 2 3))
+(def a (list 2 3))
 (cons 1 a)
 ;=>(1 2 3)
 a
@@ -30,8 +30,8 @@ a
 (= () (concat))
 ;=>true
 
-(def! a (list 1 2))
-(def! b (list 3 4))
+(def a (list 1 2))
+(def b (list 3 4))
 (concat a b (list 5 6))
 ;=>(1 2 3 4 5 6)
 a
@@ -82,7 +82,7 @@ b
 ;; Testing unquote
 (quasiquote (unquote 7))
 ;=>7
-(def! a 8)
+(def a 8)
 ;=>8
 (quasiquote a)
 ;=>a
@@ -92,7 +92,7 @@ b
 ;=>(1 a 3)
 (quasiquote (1 (unquote a) 3))
 ;=>(1 8 3)
-(def! b (quote (1 "b" "d")))
+(def b (quote (1 "b" "d")))
 ;=>(1 "b" "d")
 (quasiquote (1 b 3))
 ;=>(1 b 3)
@@ -102,11 +102,11 @@ b
 ;=>(1 2)
 
 ;; Quasiquote and environments
-(let* (x 0) (quasiquote (unquote x)))
+(let (x 0) (quasiquote (unquote x)))
 ;=>0
 
 ;; Testing splice-unquote
-(def! c (quote (1 "b" "d")))
+(def c (quote (1 "b" "d")))
 ;=>(1 "b" "d")
 (quasiquote (1 c 3))
 ;=>(1 c 3)
@@ -177,11 +177,11 @@ b
 ;; Testing ~ (unquote) reader macro
 `~7
 ;=>7
-(def! a 8)
+(def a 8)
 ;=>8
 `(1 ~a 3)
 ;=>(1 8 3)
-(def! b '(1 "b" "d"))
+(def b '(1 "b" "d"))
 ;=>(1 "b" "d")
 `(1 b 3)
 ;=>(1 b 3)
@@ -189,7 +189,7 @@ b
 ;=>(1 (1 "b" "d") 3)
 
 ;; Testing ~@ (splice-unquote) reader macro
-(def! c '(1 "b" "d"))
+(def c '(1 "b" "d"))
 ;=>(1 "b" "d")
 `(1 c 3)
 ;=>(1 c 3)
@@ -212,15 +212,15 @@ b
 ;=>[1 2]
 
 ;; Testing that vec does not mutate the original list
-(def! a (list 1 2))
+(def a (list 1 2))
 (vec a)
 ;=>[1 2]
 a
 ;=>(1 2)
 
 ;; Test quine
-((fn* (q) (quasiquote ((unquote q) (quote (unquote q))))) (quote (fn* (q) (quasiquote ((unquote q) (quote (unquote q)))))))
-;=>((fn* (q) (quasiquote ((unquote q) (quote (unquote q))))) (quote (fn* (q) (quasiquote ((unquote q) (quote (unquote q)))))))
+((fn (q) (quasiquote ((unquote q) (quote (unquote q))))) (quote (fn (q) (quasiquote ((unquote q) (quote (unquote q)))))))
+;=>((fn (q) (quasiquote ((unquote q) (quote (unquote q))))) (quote (fn (q) (quasiquote ((unquote q) (quote (unquote q)))))))
 
 ;; Testing quasiquote with vectors
 (quasiquote [])
@@ -231,7 +231,7 @@ a
 ;=>[()]
 (quasiquote ([]))
 ;=>([])
-(def! a 8)
+(def a 8)
 ;=>8
 `[1 a 3]
 ;=>[1 a 3]
@@ -253,7 +253,7 @@ a
 ;=>[(a 8 a)]
 
 ;; Testing splice-unquote with vectors
-(def! c '(1 "b" "d"))
+(def c '(1 "b" "d"))
 ;=>(1 "b" "d")
 `[~@c]
 ;=>[1 "b" "d"]

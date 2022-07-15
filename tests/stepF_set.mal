@@ -26,7 +26,7 @@
 (get (assoc (assoc #{"a"} "b") "c") "a")
 ;=>"a"
 
-(def! s1 (set '()))
+(def s1 (set '()))
 ;=>#{}
 
 (set? #{})
@@ -47,7 +47,7 @@
 (contains? s1 "a")
 ;=>false
 
-(def! s2 (assoc s1 "a"))
+(def s2 (assoc s1 "a"))
 ;=>#{"a"}
 
 (get s1 "a")
@@ -91,7 +91,7 @@
 ;=>true
 
 ;; Testing whether assoc updates properly
-(def! s4 (assoc #{:a :b} :a :c))
+(def s4 (assoc #{:a :b} :a :c))
 (get s4 :a)
 ;=>:a
 (get s4 :b)
@@ -122,17 +122,17 @@
 (pr-str true "." false "." nil "." :keyw "." 'symb)
 ;=>"true \".\" false \".\" nil \".\" :keyw \".\" symb"
 
-(def! s (str #{:abc :def}))
+(def s (str #{:abc :def}))
 (cond (= s "#{:abc :def}") true (= s "#{:def :abc}") true)
 ;=>true
 
-(def! p (pr-str #{:abc :def}))
+(def p (pr-str #{:abc :def}))
 (cond (= p "#{:abc :def}") true (= p "#{:def :abc}") true)
 ;=>true
 
 ;;
 ;; Testing dissoc
-(def! s3 (assoc s2 "b"))
+(def s3 (assoc s2 "b"))
 (count (seq s3))
 ;=>2
 (count s3)
@@ -198,8 +198,8 @@
 ;=>false
 
 ;; ;; Testing that set don't alter function ast
-;; (def! bar (fn* [a] {:foo (get a :foo)}))
-;; (bar {:foo (fn* [x] x)})
+;; (def bar (fn [a] {:foo (get a :foo)}))
+;; (bar {:foo (fn [x] x)})
 ;; (bar {:foo 3})
 ;; ;; shouldn't give an error
 
@@ -212,7 +212,7 @@
 (with-meta #{} #{"a"})
 ;=>#{}
 
-(def! l-wm (with-meta [4 5 6] #{"b"}))
+(def l-wm (with-meta [4 5 6] #{"b"}))
 ;=>[4 5 6]
 (meta l-wm)
 ;=>#{"b"}
@@ -226,7 +226,7 @@
 ;; Testing metadata on builtin functions
 (meta +)
 ;=>nil
-(def! f-wm3 ^#{"def"} +)
+(def f-wm3 ^#{"def"} +)
 (meta f-wm3)
 ;=>#{"def"}
 (meta +)

@@ -28,11 +28,11 @@ func TestPlaceholders(t *testing.T) {
 	}
 
 	str := `(do
-				(def! v0 $0)
-				(def! v1 $1)
-				(def! vNUMBER $NUMBER)
-				(def! v3 $3)
-				(def! v4 $4)
+				(def v0 $0)
+				(def v1 $1)
+				(def vNUMBER $NUMBER)
+				(def v3 $3)
+				(def v4 $4)
 				true)`
 
 	exp, err := reader.Read_str(
@@ -123,11 +123,11 @@ func TestREADWithPreamble(t *testing.T) {
 ;; $4 (+ 1 1)
 
 (do
-	(def! v0 $0)
-	(def! v1 $1)
-	(def! v2 $NUMBER)
-	(def! v3 $3) ;; this is nil
-	(def! v4 '$4)
+	(def v0 $0)
+	(def v1 $1)
+	(def v2 $NUMBER)
+	(def v3 $3) ;; this is nil
+	(def v4 '$4)
 	true)
 `
 
@@ -216,12 +216,12 @@ func TestAddPreamble(t *testing.T) {
 	}
 
 	str := `(do
-	(def! v0 $EXAMPLESTRING)
-	(def! v1 $EXAMPLESTRUCT)
-	(def! v2 $EXAMPLEINTEGER)
-	(def! v3 $UNDEFINED) ;; this is nil
-	(def! v4 '$EXAMPLEAST)
-	(def! v5 $EXAMPLEBYTESTRING)
+	(def v0 $EXAMPLESTRING)
+	(def v1 $EXAMPLESTRUCT)
+	(def v2 $EXAMPLEINTEGER)
+	(def v3 $UNDEFINED) ;; this is nil
+	(def v4 '$EXAMPLEAST)
+	(def v5 $EXAMPLEBYTESTRING)
 	true)`
 
 	eb, err := json.Marshal(Example{A: 1234, B: "hello"})
@@ -329,11 +329,11 @@ func TestPlaceholdersEmbeddedWrong1(t *testing.T) {
 ;; $4 (+ 1 1)
 
 (do
-	(def! v0 $0)
-	(def! v1 $1)
-	(def! v2 $NUMBER)
-	(def! v3 $3) ;; this is nil
-	(def! v4 '$4)
+	(def v0 $0)
+	(def v1 $1)
+	(def v2 $NUMBER)
+	(def v3 $3) ;; this is nil
+	(def v4 '$4)
 	true)
 `
 
@@ -382,11 +382,11 @@ func BenchmarkAddPreamble(b *testing.B) {
 	for n := 0; n < b.N; n++ {
 		var err error
 		sourceWithPreamble := `(do
-		(def! v0 $EXAMPLESTRING)
-		(def! v2 $EXAMPLEINTEGER)
-		(def! v3 $UNDEFINED) ;; this is nil
-		(def! v4 '$EXAMPLEAST)
-		(def! v5 $EXAMPLEBYTESTRING)
+		(def v0 $EXAMPLESTRING)
+		(def v2 $EXAMPLEINTEGER)
+		(def v3 $UNDEFINED) ;; this is nil
+		(def v4 '$EXAMPLEAST)
+		(def v5 $EXAMPLEBYTESTRING)
 		true)`
 		notOptimiseBenchFunc, err = AddPreamble(sourceWithPreamble, map[string]MalType{
 			"$EXAMPLESTRING":  "hello",
@@ -415,13 +415,13 @@ func BenchmarkAddPreambleAlternative(b *testing.B) {
 		EXAMPLEAST := LS("+", 1, 1)
 		EXAMPLEBYTESTRING := []byte("byte-array")
 		ast := LS("do",
-			LS("def!", "v0", EXAMPLESTRING),
-			LS("def!", "v2", EXAMPLEINTEGER),
-			LS("def!", "v3", nil),
-			LS("def!", "v4", EXAMPLEAST),
-			LS("def!", "v5", EXAMPLEBYTESTRING),
+			LS("def", "v0", EXAMPLESTRING),
+			LS("def", "v2", EXAMPLEINTEGER),
+			LS("def", "v3", nil),
+			LS("def", "v4", EXAMPLEAST),
+			LS("def", "v5", EXAMPLEBYTESTRING),
 
-			LS("def!", LS("not", LS("fn*", V("a")))),
+			LS("def", LS("not", LS("fn", V("a")))),
 		)
 		str, err := PRINT(ast)
 		if err != nil {
@@ -433,11 +433,11 @@ func BenchmarkAddPreambleAlternative(b *testing.B) {
 
 func BenchmarkREADWithPreamble(b *testing.B) {
 	sourceWithPreamble := `(do
-		(def! v0 $EXAMPLESTRING)
-		(def! v2 $EXAMPLEINTEGER)
-		(def! v3 $UNDEFINED) ;; this is nil
-		(def! v4 '$EXAMPLEAST)
-		(def! v5 $EXAMPLEBYTESTRING)
+		(def v0 $EXAMPLESTRING)
+		(def v2 $EXAMPLEINTEGER)
+		(def v3 $UNDEFINED) ;; this is nil
+		(def v4 '$EXAMPLEAST)
+		(def v5 $EXAMPLEBYTESTRING)
 		true)`
 	codePreamble, err := AddPreamble(sourceWithPreamble, map[string]MalType{
 		"$EXAMPLESTRING":  "hello",
@@ -464,11 +464,11 @@ func BenchmarkNewEnv(b *testing.B) {
 		repl_env.Set(Symbol{Val: k}, Func{Fn: v.(func([]MalType, *context.Context) (MalType, error))})
 	}
 	sourceWithPreamble := `(do
-		(def! v0 $EXAMPLESTRING)
-		(def! v2 $EXAMPLEINTEGER)
-		(def! v3 $UNDEFINED) ;; this is nil
-		(def! v4 '$EXAMPLEAST)
-		(def! v5 $EXAMPLEBYTESTRING)
+		(def v0 $EXAMPLESTRING)
+		(def v2 $EXAMPLEINTEGER)
+		(def v3 $UNDEFINED) ;; this is nil
+		(def v4 '$EXAMPLEAST)
+		(def v5 $EXAMPLEBYTESTRING)
 		true)`
 	codePreamble, err := AddPreamble(sourceWithPreamble, map[string]MalType{
 		"$EXAMPLESTRING":  "hello",
@@ -500,14 +500,14 @@ func BenchmarkNewEnv(b *testing.B) {
 func BenchmarkCompleteSendingWithPreamble(b *testing.B) {
 	for n := 0; n < b.N; n++ {
 		source := `(do
-			(def! v0 $EXAMPLESTRING)
-			(def! v2 $EXAMPLEINTEGER)
-			(def! v3 $UNDEFINED) ;; this is nil
-			(def! v4 '$EXAMPLEAST)
-			(def! v5 $EXAMPLEBYTESTRING)
+			(def v0 $EXAMPLESTRING)
+			(def v2 $EXAMPLEINTEGER)
+			(def v3 $UNDEFINED) ;; this is nil
+			(def v4 '$EXAMPLEAST)
+			(def v5 $EXAMPLEBYTESTRING)
 
-			(def! not (fn* (a) (if a false true)))
-			(def! b (not $TESTRESULT))
+			(def not (fn (a) (if a false true)))
+			(def b (not $TESTRESULT))
 			(not b))`
 		sentCode, err := AddPreamble(source, map[string]MalType{
 			"$TESTRESULT":     true,
@@ -545,14 +545,14 @@ func BenchmarkCompleteSendingWithPreamble(b *testing.B) {
 func BenchmarkCompleteSendingWithPreambleSolved(b *testing.B) {
 	for n := 0; n < b.N; n++ {
 		source := `(do
-			(def! v0 $EXAMPLESTRING)
-			(def! v2 $EXAMPLEINTEGER)
-			(def! v3 $UNDEFINED) ;; this is nil
-			(def! v4 '$EXAMPLEAST)
-			(def! v5 $EXAMPLEBYTESTRING)
+			(def v0 $EXAMPLESTRING)
+			(def v2 $EXAMPLEINTEGER)
+			(def v3 $UNDEFINED) ;; this is nil
+			(def v4 '$EXAMPLEAST)
+			(def v5 $EXAMPLEBYTESTRING)
 
-			(def! not (fn* (a) (if a false true)))
-			(def! b (not $TESTRESULT))
+			(def not (fn (a) (if a false true)))
+			(def b (not $TESTRESULT))
 			(not b))`
 		codePreamble, err := AddPreamble(source, map[string]MalType{
 			"$TESTRESULT":     true,
@@ -606,7 +606,7 @@ func TestHashMapMarshalers(t *testing.T) {
 	}
 
 	str := `(do
-				(def! go-struct $GOSTRUCT)
+				(def go-struct $GOSTRUCT)
 				true)`
 
 	source, err := AddPreamble(str, map[string]MalType{

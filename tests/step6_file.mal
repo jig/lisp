@@ -49,9 +49,9 @@
 ;;
 ;; Testing atoms
 
-(def! inc3 (fn* (a) (+ 3 a)))
+(def inc3 (fn (a) (+ 3 a)))
 
-(def! a (atom 2))
+(def a (atom 2))
 ;=>(atom 2)
 
 (atom? a)
@@ -75,30 +75,30 @@
 (deref a)
 ;=>6
 
-(swap! a (fn* (a) a))
+(swap! a (fn (a) a))
 ;=>6
 
-(swap! a (fn* (a) (* 2 a)))
+(swap! a (fn (a) (* 2 a)))
 ;=>12
 
-(swap! a (fn* (a b) (* a b)) 10)
+(swap! a (fn (a b) (* a b)) 10)
 ;=>120
 
 (swap! a + 3)
 ;=>123
 
 ;; Testing swap!/closure interaction
-(def! inc-it (fn* (a) (+ 1 a)))
-(def! atm (atom 7))
-(def! f (fn* () (swap! atm inc-it)))
+(def inc-it (fn (a) (+ 1 a)))
+(def atm (atom 7))
+(def f (fn () (swap! atm inc-it)))
 (f)
 ;=>8
 (f)
 ;=>9
 
 ;; Testing whether closures can retain atoms
-(def! g (let* (atm (atom 0)) (fn* () (deref atm))))
-(def! atm (atom 1))
+(def g (let (atm (atom 0)) (fn () (deref atm))))
+(def atm (atom 1))
 (g)
 ;=>0
 
@@ -115,16 +115,16 @@
 ;=>1
 
 ;; Testing `@` reader macro (short for `deref`)
-(def! atm (atom 9))
+(def atm (atom 9))
 @atm
 ;=>9
 
 ;;; TODO: really a step5 test
 ;; Testing that vector params not broken by TCO
-(def! g (fn* [] 78))
+(def g (fn [] 78))
 (g)
 ;=>78
-(def! g (fn* [a] (+ a 78)))
+(def g (fn [a] (+ a 78)))
 (g 3)
 ;=>81
 
@@ -137,7 +137,7 @@
 
 ;;
 ;; Testing that eval sets aa in root scope, and that it is found in nested scope
-(let* (b 12) (do (eval (read-string "(def! aa 7)")) aa ))
+(let (b 12) (do (eval (read-string "(def aa 7)")) aa ))
 ;=>7
 
 ;>>> soft=True
@@ -160,9 +160,9 @@ mymap
 ;=>{"a" 1}
 
 ;; Checking that eval does not use local environments.
-(def! a 1)
+(def a 1)
 ;=>1
-(let* (a 2) (eval (read-string "a")))
+(let (a 2) (eval (read-string "a")))
 ;=>1
 
 ;; Non alphanumeric characters in comments in read-string

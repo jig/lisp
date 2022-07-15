@@ -5,7 +5,7 @@
 
 ;; Testing let
 (macroexpand (let binds a b))
-;=>(let* binds (do a b))
+;=>(let binds (do a b))
 (let [x 2] 3 x)
 ;=>2
 
@@ -19,7 +19,7 @@
 
 ;; Testing name
 (macroexpand (def name a b))
-;=>(def! name (do a b))
+;=>(def name (do a b))
 (def x 1 2 3)
 ;=>3
 x
@@ -27,13 +27,13 @@ x
 
 ;; Testing fn
 (macroexpand (fn args a b))
-;=>(fn* args (do a b))
+;=>(fn args (do a b))
 ((fn [x] 1 2) 3)
 ;=>2
 
 ;; Testing defn
 (macroexpand (defn name args b))
-;=>(def! name (fn args b))
+;=>(def name (fn args b))
 (defn f [x] 1 2 x)
 (f 3)
 ;=>3
@@ -49,7 +49,7 @@ x
 ;=>true
 ((partial not false))
 ;=>true
-((partial (fn* [x y] (+ x y)) 1) 2)
+((partial (fn [x y] (+ x y)) 1) 2)
 ;=>3
 ((partial str 1 2) 3 4)
 ;=>"1234"
