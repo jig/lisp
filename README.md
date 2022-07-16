@@ -63,8 +63,8 @@ go test -benchmem -benchtime 5s -bench '^.+$' github.com/jig/lisp
 - `(rename-keys hm hmAlterKeys)` as in Clojure
 - `(get-in m ks)` to access nested values from a `m` map; `ks` must be a vector of hash map keys
 - `(uuid)` returns an 128 bit rfc4122 random UUID
-- `(split string cutset)` returns a lisp Vector of the elements splitted by the cutset (see [./test/stepH_strings](./test/stepH_strings.mal) for examples)
-- support of (hashed, unordered) sets. Only sets of strings or keywords supported. Use `#{}` for literal sets. Functions supported for sets: `set`, `set?`, `conj`, `get`, `assoc`, `dissoc`, `contains?`, `empty?`. `meta`, `with-meta` (see [./test/stepA_mal](./test/stepF_set.mal) and (see [./test/stepA_mal](./test/stepF_set.mal) for examples). `json-encode` will encode a set to a JSON array.
+- `(split string cutset)` returns a lisp Vector of the elements splitted by the cutset (see [./tests/stepH_strings](./tests/stepH_strings.mal) for examples)
+- support of (hashed, unordered) sets. Only sets of strings or keywords supported. Use `#{}` for literal sets. Functions supported for sets: `set`, `set?`, `conj`, `get`, `assoc`, `dissoc`, `contains?`, `empty?`. `meta`, `with-meta` (see [./tests/stepA_mal](./tests/stepF_set.mal) and (see [./tests/stepA_mal](./tests/stepF_set.mal) for examples). `json-encode` will encode a set to a JSON array.
 - `update`, `update-in` and `assoc-in` supported for hash maps and vectors.
 - Go function `READ_WithPreamble` works like `READ` but supports placeholders to be filled on READ time (see [./placeholder_test.go](./placeholder_test.go) for som samples).
 - Added support for `finally` inside `try`. `finally` expression is evaluated for side effects only.
