@@ -3,6 +3,7 @@ package lisp
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"testing"
 
 	"github.com/jig/lisp/env"
@@ -372,6 +373,8 @@ func TestPlaceholdersEmbeddedNoBlankLine(t *testing.T) {
 		t.Fatal(err)
 	}
 	if !res.(bool) {
+		fmt.Println(PRINT(exp))
+		fmt.Println(PRINT(res))
 		t.Fatal("failed")
 	}
 }

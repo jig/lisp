@@ -9,10 +9,7 @@
             "type": "go",
             "request": "launch",
             "mode": "test",
-            "program": "${workspaceFolder}",
-            "args": [
-                "--test.run", "TryCatchFinally"
-            ]
+            "program": "${workspaceFolder}"
         },
         {
             "name": "Lisp REPL",

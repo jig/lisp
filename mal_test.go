@@ -208,12 +208,13 @@ func TestAtomParallel(t *testing.T) {
 	if _, err := REPL(repl_env, "(def inc (fn [x] (+ 1 x)))", nil); err != nil {
 		t.Fatal(err)
 	}
+	ctx := context.Background()
 	wd := sync.WaitGroup{}
 	for i := 0; i < 100; i++ {
 		wd.Add(1)
 		go func() {
 			for j := 0; j < 1000; j++ {
-				if _, err := REPL(repl_env, "(swap! count inc)", nil); err != nil {
+				if _, err := REPL(repl_env, "(swap! count inc)", &ctx); err != nil {
 					return
 				}
 			}

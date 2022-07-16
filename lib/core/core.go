@@ -23,12 +23,12 @@ import (
 )
 
 // Errors/Exceptions
-func throw(a []MalType) (MalType, error) {
-	return nil, MalError{Obj: a[0]}
+func throw(a MalType) (MalType, error) {
+	return nil, MalError{Obj: a}
 }
 
-func fn_q(a []MalType) (MalType, error) {
-	switch f := a[0].(type) {
+func fn_q(a MalType) (MalType, error) {
+	switch f := a.(type) {
 	case MalFunc:
 		return !f.GetMacro(), nil
 	case Func:
@@ -42,31 +42,31 @@ func fn_q(a []MalType) (MalType, error) {
 
 // String functions
 
-func pr_str(a []MalType) (MalType, error) {
+func pr_str(a ...MalType) (MalType, error) {
 	return printer.Pr_list(a, true, "", "", " "), nil
 }
 
-func str(a []MalType) (MalType, error) {
+func str(a ...MalType) (MalType, error) {
 	return printer.Pr_list(a, false, "", "", ""), nil
 }
 
-func spewDump(a []MalType) (MalType, error) {
-	spew.Dump(a[0])
+func spewDump(a MalType) (MalType, error) {
+	spew.Dump(a)
 	return nil, nil
 }
 
-func prn(a []MalType) (MalType, error) {
+func prn(a ...MalType) (MalType, error) {
 	fmt.Println(printer.Pr_list(a, true, "", "", " "))
 	return nil, nil
 }
 
-func println(a []MalType) (MalType, error) {
+func println(a ...MalType) (MalType, error) {
 	fmt.Println(printer.Pr_list(a, false, "", "", " "))
 	return nil, nil
 }
 
-func slurp(a []MalType) (MalType, error) {
-	b, e := os.ReadFile(a[0].(string))
+func slurp(fileName MalType) (MalType, error) {
+	b, e := os.ReadFile(fileName.(string))
 	if e != nil {
 		return nil, e
 	}
@@ -74,11 +74,11 @@ func slurp(a []MalType) (MalType, error) {
 }
 
 // Number functions
-func time_ms(a []MalType) (MalType, error) {
+func time_ms() (MalType, error) {
 	return int(time.Now().UnixMilli()), nil
 }
 
-func time_ns(a []MalType) (MalType, error) {
+func time_ns() (MalType, error) {
 	return int(time.Now().UnixNano()), nil
 }
 
@@ -105,7 +105,7 @@ func copy_vector(v Vector) Vector {
 	}
 }
 
-func assoc(a []MalType) (MalType, error) {
+func assoc(a ...MalType) (MalType, error) {
 	ms := a[0]
 	switch ms := ms.(type) {
 	case HashMap:
@@ -155,7 +155,7 @@ func assoc(a []MalType) (MalType, error) {
 	}
 }
 
-func dissoc(a []MalType) (MalType, error) {
+func dissoc(a ...MalType) (MalType, error) {
 	if len(a) < 2 {
 		return nil, errors.New("dissoc requires at least 3 arguments")
 	}
@@ -185,27 +185,27 @@ func dissoc(a []MalType) (MalType, error) {
 	}
 }
 
-func get(a []MalType) (MalType, error) {
-	if Nil_Q(a[0]) {
+func get(hm, key MalType) (MalType, error) {
+	if Nil_Q(hm) {
 		return nil, nil
 	}
-	switch a[1].(type) {
+	switch key.(type) {
 	case string:
 	case int:
 	default:
 		return nil, errors.New("get called with non-string key nor a non-int key")
 	}
-	ms := a[0]
+	ms := hm
 	switch ms := ms.(type) {
 	case HashMap:
-		return ms.Val[a[1].(string)], nil
+		return ms.Val[key.(string)], nil
 	case Vector:
-		return ms.Val[a[1].(int)], nil
+		return ms.Val[key.(int)], nil
 	case List:
-		return ms.Val[a[1].(int)], nil
+		return ms.Val[key.(int)], nil
 	case Set:
-		if _, ok := ms.Val[a[1].(string)]; ok {
-			return a[1].(string), nil
+		if _, ok := ms.Val[key.(string)]; ok {
+			return key.(string), nil
 		}
 		return nil, nil
 	default:
@@ -213,15 +213,15 @@ func get(a []MalType) (MalType, error) {
 	}
 }
 
-func getIn(a []MalType) (MalType, error) {
-	if Nil_Q(a[0]) {
+func getIn(hm, _pathVector MalType) (MalType, error) {
+	if Nil_Q(hm) {
 		return nil, nil
 	}
-	posVector, ok := a[1].(Vector)
+	pathVector, ok := _pathVector.(Vector)
 	if !ok {
 		return nil, errors.New("get-in index must be a vector")
 	}
-	return _getIn(a[0], posVector)
+	return _getIn(hm, pathVector)
 }
 
 func _getIn(argMapOrVector MalType, posVector Vector) (MalType, error) {
@@ -230,7 +230,7 @@ func _getIn(argMapOrVector MalType, posVector Vector) (MalType, error) {
 		return argMapOrVector, nil
 	case 1:
 		index := posVector.Val[0]
-		return get([]MalType{argMapOrVector, index})
+		return get(argMapOrVector, index)
 	default:
 		index := posVector.Val[0]
 		rest := Vector{Val: posVector.Val[1:]}
@@ -256,50 +256,50 @@ func _getIn(argMapOrVector MalType, posVector Vector) (MalType, error) {
 	}
 }
 
-func update(a []MalType, ctx *context.Context) (MalType, error) {
-	if Nil_Q(a[0]) {
+func update(ctx context.Context, hm, pos, f MalType) (MalType, error) {
+	if Nil_Q(hm) {
 		return nil, nil
 	}
-	return _update(a[0], a[1], a[2], ctx)
+	return _update(ctx, hm, pos, f)
 }
 
-func _update(argMapOrVector, index, f MalType, ctx *context.Context) (MalType, error) {
+func _update(ctx context.Context, argMapOrVector, index, f MalType) (MalType, error) {
 	switch argMapOrVector := argMapOrVector.(type) {
 	case HashMap:
-		res, err := Apply(f, []MalType{argMapOrVector.Val[index.(string)]}, ctx)
+		res, err := Apply(f, []MalType{argMapOrVector.Val[index.(string)]}, &ctx)
 		if err != nil {
 			return nil, err
 		}
-		return assoc([]MalType{argMapOrVector, index, res})
+		return assoc(argMapOrVector, index, res)
 	case Vector:
-		res, err := Apply(f, []MalType{argMapOrVector.Val[index.(int)]}, ctx)
+		res, err := Apply(f, []MalType{argMapOrVector.Val[index.(int)]}, &ctx)
 		if err != nil {
 			return nil, err
 		}
-		return assoc([]MalType{argMapOrVector, index, res})
+		return assoc(argMapOrVector, index, res)
 	default:
 		return nil, fmt.Errorf("expected vector or hash-map but got %T", argMapOrVector)
 	}
 }
 
-func updateIn(a []MalType, ctx *context.Context) (MalType, error) {
-	if Nil_Q(a[0]) {
+func updateIn(ctx context.Context, hm, path, f MalType) (MalType, error) {
+	if Nil_Q(hm) {
 		return nil, nil
 	}
-	posVector, ok := a[1].(Vector)
+	posVector, ok := path.(Vector)
 	if !ok {
 		return nil, errors.New("get called with non-vector")
 	}
-	return _updateIn(a[0], posVector, a[2], ctx)
+	return _updateIn(ctx, hm, posVector, f)
 }
 
-func _updateIn(argMapOrVector MalType, posVector Vector, f MalType, ctx *context.Context) (MalType, error) {
+func _updateIn(ctx context.Context, argMapOrVector MalType, posVector Vector, f MalType) (MalType, error) {
 	switch len(posVector.Val) {
 	case 0:
 		return argMapOrVector, nil
 	case 1:
 		index := posVector.Val[0]
-		return _update(argMapOrVector, index, f, ctx)
+		return _update(ctx, argMapOrVector, index, f)
 	default:
 		index := posVector.Val[0]
 		rest := Vector{Val: posVector.Val[1:]}
@@ -318,23 +318,23 @@ func _updateIn(argMapOrVector MalType, posVector Vector, f MalType, ctx *context
 		default:
 			return nil, fmt.Errorf("type %T not supported of index of %T", index, argMapOrVector)
 		}
-		inner, err := _updateIn(branch.(HashMap), rest, f, ctx)
+		inner, err := _updateIn(ctx, branch.(HashMap), rest, f)
 		if err != nil {
 			return nil, err
 		}
-		return assoc([]MalType{argMapOrVector, index, inner})
+		return assoc(argMapOrVector, index, inner)
 	}
 }
 
-func assocIn(a []MalType) (MalType, error) {
-	if Nil_Q(a[0]) {
+func assocIn(hm, _posVector, data MalType) (MalType, error) {
+	if Nil_Q(hm) {
 		return nil, nil
 	}
-	posVector, ok := a[1].(Vector)
+	posVector, ok := _posVector.(Vector)
 	if !ok {
 		return nil, errors.New("assoc-in called with non-vector")
 	}
-	return _assocIn(a[0], posVector, a[2])
+	return _assocIn(hm, posVector, data)
 }
 
 func _assocIn(argMapOrVector MalType, posVector Vector, newValue MalType) (MalType, error) {
@@ -343,7 +343,7 @@ func _assocIn(argMapOrVector MalType, posVector Vector, newValue MalType) (MalTy
 		return argMapOrVector, nil
 	case 1:
 		index := posVector.Val[0]
-		return assoc([]MalType{argMapOrVector, index, newValue})
+		return assoc(argMapOrVector, index, newValue)
 	default:
 		index := posVector.Val[0]
 		rest := Vector{Val: posVector.Val[1:]}
@@ -364,7 +364,7 @@ func _assocIn(argMapOrVector MalType, posVector Vector, newValue MalType) (MalTy
 		if err != nil {
 			return nil, err
 		}
-		return assoc([]MalType{argMapOrVector, index, inner})
+		return assoc(argMapOrVector, index, inner)
 	}
 }
 
@@ -387,12 +387,11 @@ func contains_Q(hm MalType, key MalType) (MalType, error) {
 	}
 }
 
-func keys(a []MalType) (MalType, error) {
-	ms := a[0]
-	switch ms := ms.(type) {
+func keys(hm MalType) (MalType, error) {
+	switch hm := hm.(type) {
 	case HashMap:
 		slc := []MalType{}
-		for k := range ms.Val {
+		for k := range hm.Val {
 			slc = append(slc, k)
 		}
 		return List{Val: slc}, nil
@@ -401,12 +400,12 @@ func keys(a []MalType) (MalType, error) {
 	}
 }
 
-func vals(a []MalType) (MalType, error) {
-	if !HashMap_Q(a[0]) {
+func vals(hm MalType) (MalType, error) {
+	if !HashMap_Q(hm) {
 		return nil, errors.New("keys called on non-hash map")
 	}
 	slc := []MalType{}
-	for _, v := range a[0].(HashMap).Val {
+	for _, v := range hm.(HashMap).Val {
 		slc = append(slc, v)
 	}
 	return List{Val: slc}, nil
@@ -414,16 +413,15 @@ func vals(a []MalType) (MalType, error) {
 
 // Sequence functions
 
-func cons(a []MalType) (MalType, error) {
-	val := a[0]
-	lst, e := GetSlice(a[1])
+func cons(seq, app MalType) (MalType, error) {
+	lst, e := GetSlice(app)
 	if e != nil {
 		return nil, e
 	}
-	return List{Val: append([]MalType{val}, lst...)}, nil
+	return List{Val: append([]MalType{seq}, lst...)}, nil
 }
 
-func concat(a []MalType) (MalType, error) {
+func concat(a ...MalType) (MalType, error) {
 	if len(a) == 0 {
 		return List{}, nil
 	}
@@ -441,8 +439,8 @@ func concat(a []MalType) (MalType, error) {
 	return List{Val: slc1}, nil
 }
 
-func vec(a []MalType) (MalType, error) {
-	array, meta, err := ConvertFrom(a[0])
+func vec(seq MalType) (MalType, error) {
+	array, meta, err := ConvertFrom(seq)
 	if err != nil {
 		return nil, err
 	}
@@ -452,12 +450,12 @@ func vec(a []MalType) (MalType, error) {
 	}, nil
 }
 
-func nth(a []MalType) (MalType, error) {
-	slc, e := GetSlice(a[0])
+func nth(seq, pos MalType) (MalType, error) {
+	slc, e := GetSlice(seq)
 	if e != nil {
 		return nil, e
 	}
-	idx := a[1].(int)
+	idx := pos.(int)
 	if idx < len(slc) {
 		return slc[idx], nil
 	} else {
@@ -465,14 +463,11 @@ func nth(a []MalType) (MalType, error) {
 	}
 }
 
-func first(a []MalType) (MalType, error) {
-	if len(a) == 0 {
+func first(seq MalType) (MalType, error) {
+	if seq == nil {
 		return nil, nil
 	}
-	if a[0] == nil {
-		return nil, nil
-	}
-	slc, e := GetSlice(a[0])
+	slc, e := GetSlice(seq)
 	if e != nil {
 		return nil, e
 	}
@@ -482,11 +477,11 @@ func first(a []MalType) (MalType, error) {
 	return slc[0], nil
 }
 
-func rest(a []MalType) (MalType, error) {
-	if a[0] == nil {
+func rest(seq MalType) (MalType, error) {
+	if seq == nil {
 		return List{}, nil
 	}
-	slc, e := GetSlice(a[0])
+	slc, e := GetSlice(seq)
 	if e != nil {
 		return nil, e
 	}
@@ -496,16 +491,16 @@ func rest(a []MalType) (MalType, error) {
 	return List{Val: slc[1:]}, nil
 }
 
-func empty_Q(a []MalType) (MalType, error) {
-	switch obj := a[0].(type) {
+func empty_Q(seq MalType) (MalType, error) {
+	switch seq := seq.(type) {
 	case List:
-		return len(obj.Val) == 0, nil
+		return len(seq.Val) == 0, nil
 	case Vector:
-		return len(obj.Val) == 0, nil
+		return len(seq.Val) == 0, nil
 	case HashMap:
-		return len(obj.Val) == 0, nil
+		return len(seq.Val) == 0, nil
 	case Set:
-		return len(obj.Val) == 0, nil
+		return len(seq.Val) == 0, nil
 	case nil:
 		return true, nil
 	default:
@@ -513,16 +508,16 @@ func empty_Q(a []MalType) (MalType, error) {
 	}
 }
 
-func count(a []MalType) (MalType, error) {
-	switch obj := a[0].(type) {
+func count(seq MalType) (MalType, error) {
+	switch seq := seq.(type) {
 	case List:
-		return len(obj.Val), nil
+		return len(seq.Val), nil
 	case Vector:
-		return len(obj.Val), nil
+		return len(seq.Val), nil
 	case HashMap:
-		return len(obj.Val), nil
+		return len(seq.Val), nil
 	case Set:
-		return len(obj.Val), nil
+		return len(seq.Val), nil
 	case nil:
 		return 0, nil
 	default:
@@ -530,7 +525,7 @@ func count(a []MalType) (MalType, error) {
 	}
 }
 
-func apply(a []MalType, ctx *context.Context) (MalType, error) {
+func apply(ctx context.Context, a ...MalType) (MalType, error) {
 	if len(a) < 2 {
 		return nil, errors.New("apply requires at least 2 args")
 	}
@@ -544,18 +539,17 @@ func apply(a []MalType, ctx *context.Context) (MalType, error) {
 		return nil, e
 	}
 	args = append(args, last...)
-	return Apply(f, args, ctx)
+	return Apply(f, args, &ctx)
 }
 
-func do_map(a []MalType, ctx *context.Context) (MalType, error) {
-	f := a[0]
+func do_map(ctx context.Context, f, seq MalType) (MalType, error) {
 	results := []MalType{}
-	args, e := GetSlice(a[1])
+	args, e := GetSlice(seq)
 	if e != nil {
 		return nil, e
 	}
 	for _, arg := range args {
-		res, e := Apply(f, []MalType{arg}, ctx)
+		res, e := Apply(f, []MalType{arg}, &ctx)
 		if e != nil {
 			return nil, e
 		}
@@ -564,7 +558,7 @@ func do_map(a []MalType, ctx *context.Context) (MalType, error) {
 	return List{Val: results}, nil
 }
 
-func conj(a []MalType) (MalType, error) {
+func conj(a ...MalType) (MalType, error) {
 	if len(a) < 2 {
 		return nil, errors.New("conj requires at least 2 arguments")
 	}
@@ -606,11 +600,8 @@ func conj(a []MalType) (MalType, error) {
 	}
 }
 
-func seq(a []MalType) (MalType, error) {
-	if a[0] == nil {
-		return nil, nil
-	}
-	switch arg := a[0].(type) {
+func seq(seq MalType) (MalType, error) {
+	switch arg := seq.(type) {
 	case List:
 		if len(arg.Val) == 0 {
 			return nil, nil
@@ -641,72 +632,69 @@ func seq(a []MalType) (MalType, error) {
 }
 
 // Metadata functions
-func with_meta(a []MalType) (MalType, error) {
-	obj := a[0]
-	m := a[1]
+func with_meta(obj, meta MalType) (MalType, error) {
 	switch tobj := obj.(type) {
 	case List:
-		return List{Val: tobj.Val, Meta: m}, nil
+		return List{Val: tobj.Val, Meta: meta}, nil
 	case Vector:
-		return Vector{Val: tobj.Val, Meta: m}, nil
+		return Vector{Val: tobj.Val, Meta: meta}, nil
 	case HashMap:
-		return HashMap{Val: tobj.Val, Meta: m}, nil
+		return HashMap{Val: tobj.Val, Meta: meta}, nil
 	case Set:
-		return Set{Val: tobj.Val, Meta: m}, nil
+		return Set{Val: tobj.Val, Meta: meta}, nil
 	case Func:
-		return Func{Fn: tobj.Fn, Meta: m}, nil
+		return Func{Fn: tobj.Fn, Meta: meta}, nil
 	case MalFunc:
 		fn := tobj
-		fn.Meta = m
+		fn.Meta = meta
 		return fn, nil
 	default:
 		return nil, errors.New("with-meta not supported on type")
 	}
 }
 
-func meta(a []MalType) (MalType, error) {
-	obj := a[0]
-	switch tobj := obj.(type) {
+func meta(meta MalType) (MalType, error) {
+	switch meta := meta.(type) {
 	case List:
-		return tobj.Meta, nil
+		return meta.Meta, nil
 	case Vector:
-		return tobj.Meta, nil
+		return meta.Meta, nil
 	case HashMap:
-		return tobj.Meta, nil
+		return meta.Meta, nil
 	case Set:
-		return tobj.Meta, nil
+		return meta.Meta, nil
 	case Func:
-		return tobj.Meta, nil
+		return meta.Meta, nil
 	case MalFunc:
-		return tobj.Meta, nil
+		return meta.Meta, nil
 	default:
 		return nil, errors.New("meta not supported on type")
 	}
 }
 
 // Atom functions
-func deref(a []MalType) (MalType, error) {
-	if !Atom_Q(a[0]) {
+func deref(atomRef MalType) (MalType, error) {
+	if !Atom_Q(atomRef) {
 		return nil, errors.New("deref called with non-atom")
 	}
-	atm := a[0].(*Atom)
+	atm := atomRef.(*Atom)
 	atm.Mutex.RLock()
 	defer atm.Mutex.RUnlock()
 	return atm.Val, nil
 }
 
-func reset_BANG(a []MalType) (MalType, error) {
-	if !Atom_Q(a[0]) {
+func reset_BANG(atomRef, value MalType) (MalType, error) {
+	if !Atom_Q(atomRef) {
 		return nil, errors.New("reset! called with non-atom")
 	}
-	atm := a[0].(*Atom)
+	atm := atomRef.(*Atom)
 	atm.Mutex.Lock()
 	defer atm.Mutex.Unlock()
-	atm.Set(a[1])
-	return a[1], nil
+	atm.Set(value)
+	return value, nil
 }
 
-func swap_BANG(a []MalType, ctx *context.Context) (MalType, error) {
+func swap_BANG(ctx context.Context, a ...MalType) (MalType, error) {
 	if !Atom_Q(a[0]) {
 		return nil, errors.New("swap! called with non-atom")
 	}
@@ -716,7 +704,7 @@ func swap_BANG(a []MalType, ctx *context.Context) (MalType, error) {
 	args := []MalType{atm.Val}
 	f := a[1]
 	args = append(args, a[2:]...)
-	res, e := Apply(f, args, ctx)
+	res, e := Apply(f, args, &ctx)
 	if e != nil {
 		return nil, e
 	}
@@ -731,44 +719,44 @@ var NS = map[string]MalType{
 	"nil?":    call.Call1b(Nil_Q),
 	"true?":   call.Call1b(True_Q),
 	"false?":  call.Call1b(False_Q),
-	"symbol":  call.Call1e(func(a []MalType) (MalType, error) { return Symbol{Val: a[0].(string)}, nil }),
+	"symbol":  call.Call1e(func(a MalType) (MalType, error) { return Symbol{Val: a.(string)}, nil }),
 	"symbol?": call.Call1b(Symbol_Q),
-	"string?": call.Call1e(func(a []MalType) (MalType, error) { return (String_Q(a[0]) && !Keyword_Q(a[0])), nil }),
-	"keyword": call.Call1e(func(a []MalType) (MalType, error) {
-		if Keyword_Q(a[0]) {
-			return a[0], nil
+	"string?": call.Call1e(func(a MalType) (MalType, error) { return (String_Q(a) && !Keyword_Q(a)), nil }),
+	"keyword": call.Call1e(func(a MalType) (MalType, error) {
+		if Keyword_Q(a) {
+			return a, nil
 		} else {
-			return NewKeyword(a[0].(string))
+			return NewKeyword(a.(string))
 		}
 	}),
 	"keyword?":    call.Call1b(Keyword_Q),
 	"number?":     call.Call1b(Number_Q),
 	"fn?":         call.Call1e(fn_q),
-	"macro?":      call.Call1e(func(a []MalType) (MalType, error) { return MalFunc_Q(a[0]) && a[0].(MalFunc).GetMacro(), nil }),
+	"macro?":      call.Call1e(func(a MalType) (MalType, error) { return MalFunc_Q(a) && a.(MalFunc).GetMacro(), nil }),
 	"pr-str":      call.CallNe(pr_str),
 	"str":         call.CallNe(str),
 	"prn":         call.CallNe(prn),
 	"println":     call.CallNe(println),
 	"spew":        call.Call1e(spewDump),
-	"read-string": call.Call1e(func(a []MalType) (MalType, error) { return reader.Read_str(a[0].(string), nil, nil) }),
-	"<":           call.Call2e(func(a []MalType) (MalType, error) { return a[0].(int) < a[1].(int), nil }),
-	"<=":          call.Call2e(func(a []MalType) (MalType, error) { return a[0].(int) <= a[1].(int), nil }),
-	">":           call.Call2e(func(a []MalType) (MalType, error) { return a[0].(int) > a[1].(int), nil }),
-	">=":          call.Call2e(func(a []MalType) (MalType, error) { return a[0].(int) >= a[1].(int), nil }),
-	"+":           call.Call2e(func(a []MalType) (MalType, error) { return a[0].(int) + a[1].(int), nil }),
-	"-":           call.Call2e(func(a []MalType) (MalType, error) { return a[0].(int) - a[1].(int), nil }),
-	"*":           call.Call2e(func(a []MalType) (MalType, error) { return a[0].(int) * a[1].(int), nil }),
-	"/":           call.Call2e(func(a []MalType) (MalType, error) { return a[0].(int) / a[1].(int), nil }),
+	"read-string": call.Call1e(func(a MalType) (MalType, error) { return reader.Read_str(a.(string), nil, nil) }),
+	"<":           call.Call2e(func(a, b MalType) (MalType, error) { return a.(int) < b.(int), nil }),
+	"<=":          call.Call2e(func(a, b MalType) (MalType, error) { return a.(int) <= b.(int), nil }),
+	">":           call.Call2e(func(a, b MalType) (MalType, error) { return a.(int) > b.(int), nil }),
+	">=":          call.Call2e(func(a, b MalType) (MalType, error) { return a.(int) >= b.(int), nil }),
+	"+":           call.Call2e(func(a, b MalType) (MalType, error) { return a.(int) + b.(int), nil }),
+	"-":           call.Call2e(func(a, b MalType) (MalType, error) { return a.(int) - b.(int), nil }),
+	"*":           call.Call2e(func(a, b MalType) (MalType, error) { return a.(int) * b.(int), nil }),
+	"/":           call.Call2e(func(a, b MalType) (MalType, error) { return a.(int) / b.(int), nil }),
 	"time-ms":     call.Call0e(time_ms),
 	"time-ns":     call.Call0e(time_ns),
-	"list":        call.CallNe(func(a []MalType) (MalType, error) { return List{Val: a}, nil }),
+	"list":        call.CallNe(func(a ...MalType) (MalType, error) { return List{Val: a}, nil }),
 	"list?":       call.Call1b(List_Q),
-	"vector":      call.CallNe(func(a []MalType) (MalType, error) { return Vector{Val: a}, nil }),
+	"vector":      call.CallNe(func(a ...MalType) (MalType, error) { return Vector{Val: a}, nil }),
 	"vector?":     call.Call1b(Vector_Q),
 	"hash-map":    call.CallNe(hashMap),
 	"map?":        call.Call1b(HashMap_Q),
-	"set":         call.Call1e(func(a []MalType) (MalType, error) { return NewSet(a[0]) }),
-	"hash-set":    call.CallNe(func(a []MalType) (MalType, error) { return NewSet(List{Val: a}) }),
+	"set":         call.Call1e(func(a MalType) (MalType, error) { return NewSet(a) }),
+	"hash-set":    call.CallNe(func(a ...MalType) (MalType, error) { return NewSet(List{Val: a}) }),
 	"set?":        call.Call1b(Set_Q),
 	"assoc":       call.CallNe(assoc),  // at least 3
 	"dissoc":      call.CallNe(dissoc), // at least 2
@@ -777,7 +765,7 @@ var NS = map[string]MalType{
 	"update-in":   call.Call3eC(updateIn),
 	"get":         call.Call2e(get),
 	"get-in":      call.Call2e(getIn),
-	"contains?":   call.Call2e(func(a []MalType) (MalType, error) { return contains_Q(a[0], a[1]) }),
+	"contains?":   call.Call2e(func(seq, key MalType) (MalType, error) { return contains_Q(seq, key) }),
 	"keys":        call.Call1e(keys),
 	"vals":        call.Call1e(vals),
 	"sequential?": call.Call1b(Sequential_Q),
@@ -789,13 +777,13 @@ var NS = map[string]MalType{
 	"rest":        call.Call1e(rest),
 	"empty?":      call.Call1e(empty_Q),
 	"count":       call.Call1e(count),
-	"apply":       call.CallNeC(apply), // at least 2
+	"apply":       call.CallVeC(2, 1000_000, apply), // at least 2
 	"map":         call.Call2eC(do_map),
-	"conj":        call.CallNe(conj), // at least 2
+	"conj":        call.CallVe(2, 1000_000, conj), // at least 2
 	"seq":         call.Call1e(seq),
 	"with-meta":   call.Call2e(with_meta),
 	"meta":        call.Call1e(meta),
-	"atom":        call.Call1e(func(a []MalType) (MalType, error) { return &Atom{Val: a[0]}, nil }),
+	"atom":        call.Call1e(func(a MalType) (MalType, error) { return &Atom{Val: a}, nil }),
 	"atom?":       call.Call1b(Atom_Q),
 	"deref":       call.Call1e(deref),
 	"reset!":      call.Call2e(reset_BANG),
@@ -811,7 +799,7 @@ var NS = map[string]MalType{
 	"json-decode":     call.Call2e(JSONDecode),
 	"json-encode":     call.Call1e(jsonEncode),
 	"merge":           call.Call2e(mergeHashMap),
-	"assert":          call.CallNe(assert),
+	"assert":          call.CallVe(1, 2, assert),
 	"rename-keys":     call.Call2e(renameKeys),
 	"uuid":            call.Call0e(genUUID),
 	"split":           call.Call2e(split),
@@ -824,17 +812,17 @@ var NSInput = map[string]MalType{
 
 // Core extended
 
-func genUUID(a []MalType) (MalType, error) {
+func genUUID() (MalType, error) {
 	return uuid.New().String(), nil
 }
 
-func split(a []MalType) (MalType, error) {
-	aStr, ok := a[0].(string)
+func split(str, sep MalType) (MalType, error) {
+	aStr, ok := str.(string)
 	if !ok {
 		return nil, errors.New("not a string")
 	}
 
-	cutSet, ok := a[1].(string)
+	cutSet, ok := sep.(string)
 	if !ok {
 		return nil, errors.New("not a string")
 	}
@@ -848,12 +836,12 @@ func split(a []MalType) (MalType, error) {
 	return Vector{Val: slc}, nil
 }
 
-func renameKeys(a []MalType) (MalType, error) {
-	data, ok := a[0].(HashMap)
+func renameKeys(_data, _alternative MalType) (MalType, error) {
+	data, ok := _data.(HashMap)
 	if !ok {
 		return nil, errors.New("rename-keys: first parameter must be a hash-map (data input)")
 	}
-	alternative, ok := a[1].(HashMap)
+	alternative, ok := _alternative.(HashMap)
 	if !ok {
 		return nil, errors.New("rename-keys: first parameter must be a hash-map (alternative keys map)")
 	}
@@ -873,7 +861,7 @@ func renameKeys(a []MalType) (MalType, error) {
 	}, nil
 }
 
-func assert(a []MalType) (MalType, error) {
+func assert(a ...MalType) (MalType, error) {
 	var a0, a1 MalType
 	switch len(a) {
 	case 0:
@@ -915,24 +903,24 @@ func assert(a []MalType) (MalType, error) {
 	}
 }
 
-func mergeHashMap(a []MalType) (MalType, error) {
-	if a[0] == nil && a[1] == nil {
+func mergeHashMap(hm0, hm1 MalType) (MalType, error) {
+	if hm0 == nil && hm1 == nil {
 		return nil, nil
 	}
-	a0, ok := a[0].(HashMap)
+	a0, ok := hm0.(HashMap)
 	if !ok {
-		if a[0] == nil {
-			if _, ok := a[1].(HashMap); ok {
-				return a[1], nil
+		if hm0 == nil {
+			if _, ok := hm1.(HashMap); ok {
+				return hm1, nil
 			}
 		}
 		return nil, errors.New("first argument must be a map")
 	}
-	a1, ok := a[1].(HashMap)
+	a1, ok := hm1.(HashMap)
 	if !ok {
-		if a[1] == nil {
-			if _, ok := a[0].(HashMap); ok {
-				return a[0], nil
+		if hm1 == nil {
+			if _, ok := hm0.(HashMap); ok {
+				return hm0, nil
 			}
 		}
 		return nil, errors.New("second argument must be a map")
@@ -949,15 +937,15 @@ func mergeHashMap(a []MalType) (MalType, error) {
 	return merged, nil
 }
 
-func jsonEncode(a []MalType) (MalType, error) {
-	b, err := json.Marshal(a[0])
+func jsonEncode(obj MalType) (MalType, error) {
+	b, err := json.Marshal(obj)
 	if err != nil {
 		return nil, err
 	}
 	return string(b), nil
 }
 
-func hashMap(a []MalType) (MalType, error) {
+func hashMap(a ...MalType) (MalType, error) {
 	switch len(a) {
 	case 0:
 		return HashMap{}, nil
@@ -968,14 +956,14 @@ func hashMap(a []MalType) (MalType, error) {
 	}
 }
 
-func hashMapDecode(a []MalType) (MalType, error) {
-	return a[0].(marshaler.FactoryHashMap).FromHashMap(a[1])
+func hashMapDecode(objFactory, hm MalType) (MalType, error) {
+	return objFactory.(marshaler.FactoryHashMap).FromHashMap(hm)
 }
 
-func JSONDecode(a []MalType) (MalType, error) {
+func JSONDecode(obj, bytesIn MalType) (MalType, error) {
 	var b []byte
 
-	switch a := a[1].(type) {
+	switch a := bytesIn.(type) {
 	case string:
 		b = []byte(a)
 	case []byte:
@@ -984,7 +972,7 @@ func JSONDecode(a []MalType) (MalType, error) {
 		return nil, fmt.Errorf("unsupported type %T", a)
 	}
 
-	switch value := a[0].(type) {
+	switch value := obj.(type) {
 	case marshaler.FactoryJSON:
 		return value.FromJSON(b)
 	case List:
@@ -1058,8 +1046,8 @@ func array2vector(a []interface{}) MalType {
 	return l
 }
 
-func readLine(a []MalType) (MalType, error) {
-	prompt, ok := a[0].(string)
+func readLine(_prompt MalType) (MalType, error) {
+	prompt, ok := _prompt.(string)
 	if !ok {
 		return nil, errors.New("not a string")
 	}
@@ -1069,45 +1057,45 @@ func readLine(a []MalType) (MalType, error) {
 	return scanner.Text(), nil
 }
 
-func sleep(a []MalType, ctx *context.Context) (MalType, error) {
-	aInt, ok := a[0].(int)
+func sleep(ctx context.Context, _ms MalType) (MalType, error) {
+	ms, ok := _ms.(int)
 	if !ok {
 		return nil, errors.New("not an int")
 	}
 	select {
-	case <-(*ctx).Done():
+	case <-ctx.Done():
 		return nil, errors.New("timeout while evaluating expression")
-	case <-time.After(time.Millisecond * time.Duration(aInt)):
-		return aInt, nil
+	case <-time.After(time.Millisecond * time.Duration(ms)):
+		return ms, nil
 	}
 }
 
-func str2binary(a []MalType) (MalType, error) {
-	aStr, ok := a[0].(string)
+func str2binary(str MalType) (MalType, error) {
+	aStr, ok := str.(string)
 	if !ok {
 		return nil, errors.New("not a string")
 	}
 	return []byte(aStr), nil
 }
 
-func binary2str(a []MalType) (MalType, error) {
-	aBytes, ok := a[0].([]byte)
+func binary2str(bytes MalType) (MalType, error) {
+	aBytes, ok := bytes.([]byte)
 	if !ok {
 		return nil, errors.New("not a []byte")
 	}
 	return string(aBytes), nil
 }
 
-func base64encode(a []MalType) (MalType, error) {
-	aBytes, ok := a[0].([]byte)
+func base64encode(bytes MalType) (MalType, error) {
+	aBytes, ok := bytes.([]byte)
 	if !ok {
 		return nil, errors.New("not a []byte")
 	}
 	return base64.StdEncoding.EncodeToString(aBytes), nil
 }
 
-func base64decode(a []MalType) (MalType, error) {
-	aStr, ok := a[0].(string)
+func base64decode(str MalType) (MalType, error) {
+	aStr, ok := str.(string)
 	if !ok {
 		return nil, errors.New("not a string")
 	}
@@ -1118,9 +1106,9 @@ func base64decode(a []MalType) (MalType, error) {
 	return result, nil
 }
 
-func rangeVector(a []MalType) (MalType, error) {
+func rangeVector(from, to MalType) (MalType, error) {
 	var value []MalType
-	for i := a[0].(int); i < a[1].(int); i++ {
+	for i := from.(int); i < to.(int); i++ {
 		value = append(value, i)
 	}
 	return Vector{Val: value}, nil

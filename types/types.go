@@ -180,11 +180,11 @@ func Vector_Q(obj MalType) bool {
 }
 
 func GetSlice(seq MalType) ([]MalType, error) {
-	switch obj := seq.(type) {
+	switch seq := seq.(type) {
 	case List:
-		return obj.Val, nil
+		return seq.Val, nil
 	case Vector:
-		return obj.Val, nil
+		return seq.Val, nil
 	default:
 		return nil, errors.New("GetSlice called on non-sequence")
 	}
@@ -289,7 +289,7 @@ func Sequential_Q(seq MalType) bool {
 		(reflect.TypeOf(seq).Name() == "Vector")
 }
 
-func Equal_Q(a MalType, b MalType) bool {
+func Equal_Q(a, b MalType) bool {
 	ota := reflect.TypeOf(a)
 	otb := reflect.TypeOf(b)
 	if !((ota == otb) || (Sequential_Q(a) && Sequential_Q(b))) {

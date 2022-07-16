@@ -33,7 +33,7 @@ type LispMarshalExampleFactory struct {
 	Type MarshalExample
 }
 
-func newLispMarshalExample(a []types.MalType) (types.MalType, error) {
+func newLispMarshalExample() (types.MalType, error) {
 	return LispMarshalExampleFactory{}, nil
 }
 
