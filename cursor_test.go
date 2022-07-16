@@ -16,18 +16,19 @@ func TestCursor(t *testing.T) {
 	}
 	// core.go: defined using go
 	for k, v := range core.NS {
-		bootEnv.Set(types.Symbol{Val: k}, types.Func{Fn: v.(func([]types.MalType, *context.Context) (types.MalType, error))})
+		bootEnv.Set(types.Symbol{Val: k}, types.Func{Fn: v.(func(context.Context, []types.MalType) (types.MalType, error))})
 	}
 	for k, v := range core.NSInput {
-		bootEnv.Set(types.Symbol{Val: k}, types.Func{Fn: v.(func([]types.MalType, *context.Context) (types.MalType, error))})
+		bootEnv.Set(types.Symbol{Val: k}, types.Func{Fn: v.(func(context.Context, []types.MalType) (types.MalType, error))})
 	}
-	bootEnv.Set(types.Symbol{Val: "eval"}, types.Func{Fn: func(a []types.MalType, ctx *context.Context) (types.MalType, error) {
-		return EVAL(a[0], bootEnv, ctx)
+	bootEnv.Set(types.Symbol{Val: "eval"}, types.Func{Fn: func(ctx context.Context, a []types.MalType) (types.MalType, error) {
+		return EVAL(ctx, a[0], bootEnv)
 	}})
 	bootEnv.Set(types.Symbol{Val: "*ARGV*"}, types.List{})
 
+	ctx := context.Background()
 	// core.mal: defined using the language itself
-	_, err = REPL(bootEnv, `(def *host-language* "go")`, nil)
+	_, err = REPL(ctx, bootEnv, `(def *host-language* "go")`)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -92,7 +93,7 @@ func TestCursor(t *testing.T) {
 		if err != nil {
 			panic(err)
 		}
-		ast, err := REPLPosition(subEnv, "(do\n"+testCase.Code+"\na)", nil, &types.Position{
+		ast, err := REPLPosition(ctx, subEnv, "(do\n"+testCase.Code+"\na)", &types.Position{
 			Module: &testCase.Module,
 			Row:    0,
 		})

@@ -18,7 +18,7 @@ func ExampleL() {
 	)
 	sampleCode := L(prn, L(str, "hello", " ", "world!"))
 
-	result, err := EVAL(sampleCode, newTestEnv(), nil)
+	result, err := EVAL(context.TODO(), sampleCode, newTestEnv())
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -33,7 +33,7 @@ func newTestEnv() types.EnvType {
 		log.Fatalf("Environment Setup Error: %v\n", err)
 	}
 	for k, v := range core.NS {
-		newEnv.Set(types.Symbol{Val: k}, types.Func{Fn: v.(func([]types.MalType, *context.Context) (types.MalType, error))})
+		newEnv.Set(types.Symbol{Val: k}, types.Func{Fn: v.(func(context.Context, []types.MalType) (types.MalType, error))})
 	}
 	return newEnv
 }

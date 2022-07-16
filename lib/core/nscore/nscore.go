@@ -32,19 +32,20 @@ const (
 
 func Load(repl_env EnvType) error {
 	for k, v := range core.NS {
-		repl_env.Set(Symbol{Val: k}, Func{Fn: v.(func([]MalType, *context.Context) (MalType, error))})
+		repl_env.Set(Symbol{Val: k}, Func{Fn: v.(func(context.Context, []MalType) (MalType, error))})
 	}
-	repl_env.Set(Symbol{Val: "eval"}, Func{Fn: func(a []MalType, ctx *context.Context) (MalType, error) {
-		return lisp.EVAL(a[0], repl_env, ctx)
+	repl_env.Set(Symbol{Val: "eval"}, Func{Fn: func(ctx context.Context, a []MalType) (MalType, error) {
+		return lisp.EVAL(ctx, a[0], repl_env)
 	}})
 
-	if _, err := lisp.REPL(repl_env, malHostLanguage, nil); err != nil {
+	ctx := context.Background()
+	if _, err := lisp.REPL(ctx, repl_env, malHostLanguage); err != nil {
 		return err
 	}
-	if _, err := lisp.REPL(repl_env, malNot, nil); err != nil {
+	if _, err := lisp.REPL(ctx, repl_env, malNot); err != nil {
 		return err
 	}
-	if _, err := lisp.REPL(repl_env, malCond, nil); err != nil {
+	if _, err := lisp.REPL(ctx, repl_env, malCond); err != nil {
 		return err
 	}
 	return nil
@@ -52,13 +53,14 @@ func Load(repl_env EnvType) error {
 
 func LoadInput(repl_env EnvType) error {
 	for k, v := range core.NSInput {
-		repl_env.Set(Symbol{Val: k}, Func{Fn: v.(func([]MalType, *context.Context) (MalType, error))})
+		repl_env.Set(Symbol{Val: k}, Func{Fn: v.(func(context.Context, []MalType) (MalType, error))})
 	}
-	repl_env.Set(Symbol{Val: "eval"}, Func{Fn: func(a []MalType, ctx *context.Context) (MalType, error) {
-		return lisp.EVAL(a[0], repl_env, ctx)
+	repl_env.Set(Symbol{Val: "eval"}, Func{Fn: func(ctx context.Context, a []MalType) (MalType, error) {
+		return lisp.EVAL(ctx, a[0], repl_env)
 	}})
 
-	if _, err := lisp.REPL(repl_env, malLoadFile, nil); err != nil {
+	ctx := context.Background()
+	if _, err := lisp.REPL(ctx, repl_env, malLoadFile); err != nil {
 		return err
 	}
 	return nil

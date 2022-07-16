@@ -42,13 +42,13 @@ func TestFileTests(t *testing.T) {
 		if err != nil {
 			log.Fatal(err)
 		}
-		if err := parseFile(dirEntry.Name(), string(code), context.Background()); err != nil {
+		if err := parseFile(context.Background(), dirEntry.Name(), string(code)); err != nil {
 			log.Fatal(err)
 		}
 	}
 }
 
-func parseFile(fileName string, code string, ctx context.Context) error {
+func parseFile(ctx context.Context, fileName string, code string) error {
 	lines := strings.Split(string(code), "\n")
 	currentLine := 0
 
@@ -91,7 +91,7 @@ func parseFile(fileName string, code string, ctx context.Context) error {
 		default:
 			// fmt.Println(currentLine, line)
 			result, stdoutResult = captureStdout(func() (types.MalType, error) {
-				v, err := REPL(env, line, &ctx)
+				v, err := REPL(ctx, env, line)
 				if v == nil {
 					return "nil", err
 				}
@@ -110,35 +110,36 @@ func newEnv() types.EnvType {
 	}
 	// core.go: defined using go
 	for k, v := range core.NS {
-		env.Set(types.Symbol{Val: k}, types.Func{Fn: v.(func([]types.MalType, *context.Context) (types.MalType, error))})
+		env.Set(types.Symbol{Val: k}, types.Func{Fn: v.(func(context.Context, []types.MalType) (types.MalType, error))})
 	}
 	for k, v := range core.NSInput {
-		env.Set(types.Symbol{Val: k}, types.Func{Fn: v.(func([]types.MalType, *context.Context) (types.MalType, error))})
+		env.Set(types.Symbol{Val: k}, types.Func{Fn: v.(func(context.Context, []types.MalType) (types.MalType, error))})
 	}
-	env.Set(types.Symbol{Val: "eval"}, types.Func{Fn: func(a []types.MalType, ctx *context.Context) (types.MalType, error) {
-		return EVAL(a[0], env, ctx)
+	env.Set(types.Symbol{Val: "eval"}, types.Func{Fn: func(ctx context.Context, a []types.MalType) (types.MalType, error) {
+		return EVAL(ctx, a[0], env)
 	}})
 	env.Set(types.Symbol{Val: "*ARGV*"}, types.List{})
 
 	// package example to test marshalers
 	for k, v := range NSMarshalExample {
-		env.Set(types.Symbol{Val: k}, types.Func{Fn: v.(func([]types.MalType, *context.Context) (types.MalType, error))})
+		env.Set(types.Symbol{Val: k}, types.Func{Fn: v.(func(context.Context, []types.MalType) (types.MalType, error))})
 	}
 
+	ctx := context.Background()
 	// core.mal: defined using the language itself
-	if _, err := REPL(env, `(def *host-language* "go")`, nil); err != nil {
+	if _, err := REPL(ctx, env, `(def *host-language* "go")`); err != nil {
 		return nil
 	}
-	if _, err := REPL(env, "(def not (fn (a) (if a false true)))", nil); err != nil {
+	if _, err := REPL(ctx, env, "(def not (fn (a) (if a false true)))"); err != nil {
 		return nil
 	}
-	if _, err := REPL(env, "(def load-file (fn (f) (eval (read-string (str \"(do \" (slurp f) \"\nnil)\")))))", nil); err != nil {
+	if _, err := REPL(ctx, env, "(def load-file (fn (f) (eval (read-string (str \"(do \" (slurp f) \"\nnil)\")))))"); err != nil {
 		return nil
 	}
-	if _, err := REPL(env, "(defmacro cond (fn (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw \"odd number of forms to cond\")) (cons 'cond (rest (rest xs)))))))", nil); err != nil {
+	if _, err := REPL(ctx, env, "(defmacro cond (fn (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw \"odd number of forms to cond\")) (cons 'cond (rest (rest xs)))))))"); err != nil {
 		return nil
 	}
-	if _, err := REPL(env, `(def db (atom {}))`, nil); err != nil {
+	if _, err := REPL(ctx, env, `(def db (atom {}))`); err != nil {
 		return nil
 	}
 	return env

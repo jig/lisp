@@ -1,6 +1,7 @@
 package lnotation
 
 import (
+	"context"
 	"log"
 	"testing"
 
@@ -16,7 +17,7 @@ import (
 
 func TestLNotationMinimalExample(t *testing.T) {
 	sampleCode := LS("range", 0, 4)
-	lr, err := lisp.EVAL(sampleCode, NewTestEnv(), nil)
+	lr, err := lisp.EVAL(context.TODO(), sampleCode, NewTestEnv())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -35,7 +36,7 @@ func TestLNotationMinimalExample(t *testing.T) {
 
 func TestLNotation(t *testing.T) {
 	sampleCode := LS("reduce", S("+"), 0, LS("range", 0, 10000))
-	lr, err := lisp.EVAL(sampleCode, NewTestEnv(), nil)
+	lr, err := lisp.EVAL(context.TODO(), sampleCode, NewTestEnv())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -69,7 +70,7 @@ func TestLNotationFibonacci(t *testing.T) {
 	iF := S("if")
 
 	env := NewTestEnv()
-	lr, err := lisp.EVAL(
+	lr, err := lisp.EVAL(context.TODO(),
 		L(do,
 			L(def, fib, L(fn, V(n),
 				L(iF, LS("=", n, 0),
@@ -80,7 +81,6 @@ func TestLNotationFibonacci(t *testing.T) {
 							L(fib, LS("-", n, 2))))))),
 			L(fib, 15)),
 		env,
-		nil,
 	)
 	if err != nil {
 		t.Fatal(err)

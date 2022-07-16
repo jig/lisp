@@ -266,13 +266,13 @@ func update(ctx context.Context, hm, pos, f MalType) (MalType, error) {
 func _update(ctx context.Context, argMapOrVector, index, f MalType) (MalType, error) {
 	switch argMapOrVector := argMapOrVector.(type) {
 	case HashMap:
-		res, err := Apply(f, []MalType{argMapOrVector.Val[index.(string)]}, &ctx)
+		res, err := Apply(ctx, f, []MalType{argMapOrVector.Val[index.(string)]})
 		if err != nil {
 			return nil, err
 		}
 		return assoc(argMapOrVector, index, res)
 	case Vector:
-		res, err := Apply(f, []MalType{argMapOrVector.Val[index.(int)]}, &ctx)
+		res, err := Apply(ctx, f, []MalType{argMapOrVector.Val[index.(int)]})
 		if err != nil {
 			return nil, err
 		}
@@ -539,7 +539,7 @@ func apply(ctx context.Context, a ...MalType) (MalType, error) {
 		return nil, e
 	}
 	args = append(args, last...)
-	return Apply(f, args, &ctx)
+	return Apply(ctx, f, args)
 }
 
 func do_map(ctx context.Context, f, seq MalType) (MalType, error) {
@@ -549,7 +549,7 @@ func do_map(ctx context.Context, f, seq MalType) (MalType, error) {
 		return nil, e
 	}
 	for _, arg := range args {
-		res, e := Apply(f, []MalType{arg}, &ctx)
+		res, e := Apply(ctx, f, []MalType{arg})
 		if e != nil {
 			return nil, e
 		}
@@ -704,7 +704,7 @@ func swap_BANG(ctx context.Context, a ...MalType) (MalType, error) {
 	args := []MalType{atm.Val}
 	f := a[1]
 	args = append(args, a[2:]...)
-	res, e := Apply(f, args, &ctx)
+	res, e := Apply(ctx, f, args)
 	if e != nil {
 		return nil, e
 	}

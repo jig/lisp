@@ -18,15 +18,15 @@ func TestTryCatchFinally(t *testing.T) {
 	for k, v := range core.NS {
 		repl_env.Set(
 			types.Symbol{Val: k},
-			types.Func{Fn: v.(func([]types.MalType, *context.Context) (types.MalType, error))},
+			types.Func{Fn: v.(func(context.Context, []types.MalType) (types.MalType, error))},
 		)
 	}
-
+	ctx := context.Background()
 	exp, err := READ(trycatchfinally_test, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	exp, err = EVAL(exp, repl_env, nil)
+	exp, err = EVAL(ctx, exp, repl_env)
 	if err != nil {
 		t.Fatal(err)
 	}
