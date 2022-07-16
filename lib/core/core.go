@@ -32,7 +32,7 @@ var NS = map[string]MalType{
 	"empty?":      call.Call1e(empty_Q),
 	"symbol?":     call.Call1b(Q[Symbol]),
 	"keyword?":    call.Call1b(Keyword_Q),
-	"string?":     call.Call1e(func(a MalType) (MalType, error) { return (Q[string](a) && !Keyword_Q(a)), nil }),
+	"string?":     call.Call1b(String_Q),
 	"number?":     call.Call1b(Q[int]),
 	"fn?":         call.Call1e(fn_q),
 	"macro?":      call.Call1e(func(a MalType) (MalType, error) { return Q[MalFunc](a) && a.(MalFunc).GetMacro(), nil }),
@@ -43,81 +43,20 @@ var NS = map[string]MalType{
 	"atom?":       call.Call1b(Q[*Atom]),
 	"sequential?": call.Call1b(Sequential_Q),
 
-	// "throw":  call.Call1e(throw),
-	// "symbol": call.Call1e(func(a MalType) (MalType, error) { return Symbol{Val: a.(string)}, nil }),
-	// "keyword": call.Call1e(func(a MalType) (MalType, error) {
-	// 	if Keyword_Q(a) {
-	// 		return a, nil
-	// 	} else {
-	// 		return NewKeyword(a.(string))
-	// 	}
-	// }),
-	"pr-str":  call.CallNe(pr_str),
-	"str":     call.CallNe(str),
-	"prn":     call.CallNe(prn),
-	"println": call.CallNe(println),
-	// "spew":        call.Call1e(spewDump),
-	// "read-string": call.Call1e(func(a MalType) (MalType, error) { return reader.Read_str(a.(string), nil, nil) }),
-	// "<":           call.Call2e(func(a, b MalType) (MalType, error) { return a.(int) < b.(int), nil }),
-	// "<=":          call.Call2e(func(a, b MalType) (MalType, error) { return a.(int) <= b.(int), nil }),
-	// ">":           call.Call2e(func(a, b MalType) (MalType, error) { return a.(int) > b.(int), nil }),
-	// ">=":          call.Call2e(func(a, b MalType) (MalType, error) { return a.(int) >= b.(int), nil }),
-	// "+":           call.Call2e(func(a, b MalType) (MalType, error) { return a.(int) + b.(int), nil }),
-	// "-":           call.Call2e(func(a, b MalType) (MalType, error) { return a.(int) - b.(int), nil }),
-	// "*":           call.Call2e(func(a, b MalType) (MalType, error) { return a.(int) * b.(int), nil }),
-	// "/":           call.Call2e(func(a, b MalType) (MalType, error) { return a.(int) / b.(int), nil }),
-	// "time-ms":  call.Call0e(time_ms),
-	// "time-ns":  call.Call0e(time_ns),
-	"list":     call.CallNe(func(a ...MalType) (MalType, error) { return List{Val: a}, nil }),
-	"vector":   call.CallNe(func(a ...MalType) (MalType, error) { return Vector{Val: a}, nil }),
-	"hash-map": call.CallNe(hashMap),
-	// "set":       call.Call1e(func(a MalType) (MalType, error) { return NewSet(a) }),
-	"hash-set":  call.CallNe(func(a ...MalType) (MalType, error) { return NewSet(List{Val: a}) }),
-	"assoc":     call.CallNe(assoc),  // at least 3
-	"dissoc":    call.CallNe(dissoc), // at least 2
-	"assoc-in":  call.Call3e(assocIn),
-	"update":    call.Call3eC(update),
-	"update-in": call.Call3eC(updateIn),
-	// "get":         call.Call2e(get),
-	// "get-in":      call.Call2e(getIn),
-	// "contains?":   call.Call2e(func(seq, key MalType) (MalType, error) { return contains_Q(seq, key) }),
-	// "keys": call.Call1e(keys),
-	// "vals": call.Call1e(vals),
-	// "cons":        call.Call2e(cons),
-	"concat": call.CallNe(concat),
-	// "vec":    call.Call1e(vec),
-	// "nth":         call.Call2e(nth),
-	// "first": call.Call1e(first),
-	// "rest":  call.Call1e(rest),
-	// "count": call.Call1e(count),
 	"apply": call.CallVeC(2, 1000_000, apply), // at least 2
-	"map":   call.Call2eC(do_map),
-	"conj":  call.CallVe(2, 1000_000, conj), // at least 2
-	// "seq":   call.Call1e(seq),
-	// "with-meta":   call.Call2e(with_meta),
-	// "meta":  call.Call1e(meta),
-	// "atom":  call.Call1e(func(a MalType) (MalType, error) { return &Atom{Val: a}, nil }),
-	// "deref": call.Call1e(deref),
-	// "reset!":      call.Call2e(reset_BANG),
+
+	"conj": call.CallVe(2, 1000_000, conj), // at least 2
+
 	"swap!": call.CallNeC(swap_BANG),
 
-	// "range":           call.Call2e(rangeVector),
-	"sleep": call.Call1eC(sleep),
-	// "base64":     call.Call1e(base64encode),
-	// "unbase64":   call.Call1e(base64decode),
-	// "str2binary": call.Call1e(str2binary),
-	// "binary2str": call.Call1e(binary2str),
-	// "hash-map-decode": call.Call2e(hashMapDecode),
-	// "json-decode":     call.Call2e(JSONDecode),
-	// "json-encode": call.Call1e(jsonEncode),
-	// "merge":           call.Call2e(mergeHashMap),
 	"assert": call.CallVe(1, 2, assert),
-	// "rename-keys":     call.Call2e(renameKeys),
-	// "uuid": call.Call0e(genUUID),
-	// "split":           call.Call2e(split),
 }
 
 func init() {
+	call.CallTNO3e(NS, "assoc-in", assocIn)
+	call.CallT3eC(NS, update)
+	call.CallTNO3eC(NS, "update-in", updateIn)
+
 	call.CallTNO2e(NS, "<", func(a, b int) (bool, error) { return a < b, nil })
 	call.CallTNO2e(NS, "<=", func(a, b int) (bool, error) { return a <= b, nil })
 	call.CallTNO2e(NS, ">", func(a, b int) (bool, error) { return a > b, nil })
@@ -139,6 +78,8 @@ func init() {
 	call.CallTNO2e(NS, "merge", mergeHashMap)
 	call.CallTNO2e(NS, "rename-keys", renameKeys)
 	call.CallT2e(NS, split)
+
+	call.CallTNO2eC(NS, "map", do_map)
 
 	call.CallTNO1e(NS, "throw", throw)
 	call.CallTNO1e(NS, "symbol", func(a MalType) (MalType, error) { return Symbol{Val: a.(string)}, nil })
@@ -167,11 +108,27 @@ func init() {
 	call.CallTNO1e(NS, "str2binary", str2binary)
 	call.CallTNO1e(NS, "binary2str", binary2str)
 	call.CallTNO1e(NS, "json-encode", jsonEncode)
+	call.CallT1eC(NS, sleep)
 
 	call.CallTNO0e(NS, "time-ms", time_ms)
 	call.CallTNO0e(NS, "time-ns", time_ns)
 	call.CallTNO0e(NS, "uuid", genUUID)
 
+	call.CallTNONe(NS, "pr-str", pr_str)
+	call.CallTNe(NS, str)
+	call.CallTNe(NS, prn)
+	call.CallTNe(NS, println)
+	call.CallTNONe(NS, "list", func(a ...MalType) (MalType, error) {
+		return List{Val: a}, nil
+	})
+	call.CallTNONe(NS, "vector", func(a ...MalType) (MalType, error) { return Vector{Val: a}, nil })
+	call.CallTNONe(NS, "hash-map", hashMap)
+	call.CallTNONe(NS, "hash-set", func(a ...MalType) (MalType, error) { return NewSet(List{Val: a}) })
+	call.CallTNONe(NS, "assoc", assoc)
+	call.CallTNONe(NS, "dissoc", dissoc)
+	call.CallTNONe(NS, "concat", concat)
+
+	// NSInput namespace
 	call.CallT1e(NSInput, slurp)
 	call.CallT1e(NSInput, readLine)
 }
@@ -205,7 +162,7 @@ func pr_str(a ...MalType) (MalType, error) {
 	return printer.Pr_list(a, true, "", "", " "), nil
 }
 
-func str(a ...MalType) (MalType, error) {
+func str(a ...MalType) (string, error) {
 	return printer.Pr_list(a, false, "", "", ""), nil
 }
 
@@ -441,13 +398,9 @@ func _update(ctx context.Context, argMapOrVector, index, f MalType) (MalType, er
 	}
 }
 
-func updateIn(ctx context.Context, seq, path, f MalType) (MalType, error) {
+func updateIn(ctx context.Context, seq MalType, posVector Vector, f MalType) (MalType, error) {
 	if Nil_Q(seq) {
 		return nil, nil
-	}
-	posVector, ok := path.(Vector)
-	if !ok {
-		return nil, errors.New("get called with non-vector")
 	}
 	return _updateIn(ctx, seq, posVector, f)
 }
@@ -490,14 +443,7 @@ func _updateIn(ctx context.Context, seq MalType, posVector Vector, f MalType) (M
 	}
 }
 
-func assocIn(hm, _posVector, data MalType) (MalType, error) {
-	if Nil_Q(hm) {
-		return nil, nil
-	}
-	posVector, ok := _posVector.(Vector)
-	if !ok {
-		return nil, errors.New("assoc-in called with non-vector")
-	}
+func assocIn(hm MalType, posVector Vector, data MalType) (MalType, error) {
 	return _assocIn(hm, posVector, data)
 }
 

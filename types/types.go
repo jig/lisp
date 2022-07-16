@@ -80,8 +80,11 @@ func NewKeyword(s string) (MalType, error) {
 }
 
 func Keyword_Q(obj MalType) bool {
-	s, ok := obj.(string)
-	return ok && strings.HasPrefix(s, "\u029e")
+	return Q[string](obj) && strings.HasPrefix(obj.(string), "\u029e")
+}
+
+func String_Q(obj MalType) bool {
+	return Q[string](obj) && !strings.HasPrefix(obj.(string), "\u029e")
 }
 
 // Functions
