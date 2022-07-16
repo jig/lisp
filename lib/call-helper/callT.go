@@ -23,7 +23,7 @@ func CallT0e[R LispType](
 	if !ok {
 		panic(fmt.Errorf("%s: invalid function full name", fFullName))
 	}
-	_call0e(namespace, namespaceName, fName, f)
+	_call0e(namespace, namespaceName, strings.ReplaceAll(fName, "_", "-"), f)
 }
 
 // CallTNO0e returns a function that checks checks number of arguments (2) and its type
@@ -39,7 +39,7 @@ func CallTNO0e[R LispType](
 	if !ok {
 		panic(fmt.Errorf("%s: invalid function full name ", fFullName))
 	}
-	_call0e(namespace, namespaceName, fName, f)
+	_call0e(namespace, namespaceName, strings.ReplaceAll(fName, "_", "-"), f)
 }
 
 func _call0e[R LispType](
@@ -69,7 +69,7 @@ func CallT1e[T, R LispType](
 	if !ok {
 		panic(fmt.Errorf("%s: invalid function full name", fFullName))
 	}
-	_call1e(namespace, namespaceName, fName, f)
+	_call1e(namespace, namespaceName, strings.ReplaceAll(fName, "_", "-"), f)
 }
 
 // CallTNO1e returns a function that checks checks number of arguments (2) and its type
@@ -85,7 +85,7 @@ func CallTNO1e[T, R LispType](
 	if !ok {
 		panic(fmt.Errorf("%s: invalid function full name ", fFullName))
 	}
-	_call1e(namespace, namespaceName, fName, f)
+	_call1e(namespace, namespaceName, strings.ReplaceAll(fName, "_", "-"), f)
 }
 
 func _call1e[T, R LispType](
@@ -121,7 +121,7 @@ func CallT1eC[T, R LispType](
 	if !ok {
 		panic(fmt.Errorf("%s: invalid function full name", fFullName))
 	}
-	_call1eC(namespace, namespaceName, fName, f)
+	_call1eC(namespace, namespaceName, strings.ReplaceAll(fName, "_", "-"), f)
 }
 
 // CallTNO1eC returns a function that checks checks number of arguments (2) and its type
@@ -137,7 +137,7 @@ func CallTNO1eC[T, R LispType](
 	if !ok {
 		panic(fmt.Errorf("%s: invalid function full name ", fFullName))
 	}
-	_call1eC(namespace, namespaceName, fName, f)
+	_call1eC(namespace, namespaceName, strings.ReplaceAll(fName, "_", "-"), f)
 }
 
 func _call1eC[T, R LispType](
@@ -172,7 +172,7 @@ func CallT2e[T0, T1, R LispType](
 	if !ok {
 		panic(fmt.Errorf("%s: invalid function full name", fFullName))
 	}
-	_call2e(namespace, namespaceName, fName, f)
+	_call2e(namespace, namespaceName, strings.ReplaceAll(fName, "_", "-"), f)
 }
 
 // CallTNO2e returns a function that checks checks number of arguments (2) and its type
@@ -188,7 +188,7 @@ func CallTNO2e[T0, T1, R LispType](
 	if !ok {
 		panic(fmt.Errorf("%s: invalid function full name ", fFullName))
 	}
-	_call2e(namespace, namespaceName, fName, f)
+	_call2e(namespace, namespaceName, strings.ReplaceAll(fName, "_", "-"), f)
 }
 
 func _call2e[T0, T1, R LispType](
@@ -230,7 +230,7 @@ func CallT2eC[T0, T1, R LispType](
 	if !ok {
 		panic(fmt.Errorf("%s: invalid function full name", fFullName))
 	}
-	_call2eC(namespace, namespaceName, fName, f)
+	_call2eC(namespace, namespaceName, strings.ReplaceAll(fName, "_", "-"), f)
 }
 
 // CallTNO2eC returns a function that checks checks number of arguments (2) and its type
@@ -246,7 +246,7 @@ func CallTNO2eC[T0, T1, R LispType](
 	if !ok {
 		panic(fmt.Errorf("%s: invalid function full name ", fFullName))
 	}
-	_call2eC(namespace, namespaceName, fName, f)
+	_call2eC(namespace, namespaceName, strings.ReplaceAll(fName, "_", "-"), f)
 }
 
 func _call2eC[T0, T1, R LispType](
@@ -287,7 +287,7 @@ func CallT3e[T0, T1, T2, R LispType](
 	if !ok {
 		panic(fmt.Errorf("%s: invalid function full name", fFullName))
 	}
-	_call3e(namespace, namespaceName, fName, f)
+	_call3e(namespace, namespaceName, strings.ReplaceAll(fName, "_", "-"), f)
 }
 
 // CallTNO3e returns a function that checks checks number of arguments (2) and its type
@@ -303,7 +303,7 @@ func CallTNO3e[T0, T1, T2, R LispType](
 	if !ok {
 		panic(fmt.Errorf("%s: invalid function full name ", fFullName))
 	}
-	_call3e(namespace, namespaceName, fName, f)
+	_call3e(namespace, namespaceName, strings.ReplaceAll(fName, "_", "-"), f)
 }
 
 func _call3e[T0, T1, T2, R LispType](
@@ -350,7 +350,7 @@ func CallT3eC[T0, T1, T2, R LispType](
 	if !ok {
 		panic(fmt.Errorf("%s: invalid function full name", fFullName))
 	}
-	_call3eC(namespace, namespaceName, fName, f)
+	_call3eC(namespace, namespaceName, strings.ReplaceAll(fName, "_", "-"), f)
 }
 
 // CallTNO3eC returns a function that checks checks number of arguments (2) and its type
@@ -366,7 +366,7 @@ func CallTNO3eC[T0, T1, T2, R LispType](
 	if !ok {
 		panic(fmt.Errorf("%s: invalid function full name ", fFullName))
 	}
-	_call3eC(namespace, namespaceName, fName, f)
+	_call3eC(namespace, namespaceName, strings.ReplaceAll(fName, "_", "-"), f)
 }
 
 func _call3eC[T0, T1, T2, R LispType](
@@ -413,7 +413,7 @@ func CallTNe[R LispType](
 	if !ok {
 		panic(fmt.Errorf("%s: invalid function full name", fFullName))
 	}
-	_callNe(namespace, namespaceName, fName, f)
+	_callNe(namespace, namespaceName, strings.ReplaceAll(fName, "_", "-"), f)
 }
 
 // CallTNONe returns a function that checks checks number of arguments (2) and its type
@@ -429,7 +429,7 @@ func CallTNONe[R LispType](
 	if !ok {
 		panic(fmt.Errorf("%s: invalid function full name ", fFullName))
 	}
-	_callNe(namespace, namespaceName, fName, f)
+	_callNe(namespace, namespaceName, strings.ReplaceAll(fName, "_", "-"), f)
 }
 
 func _callNe[R LispType](

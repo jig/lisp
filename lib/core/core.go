@@ -70,18 +70,18 @@ func init() {
 	call.CallTNO2e(NS, "contains?", func(seq MalType, key string) (MalType, error) { return contains_Q(seq, key) })
 	call.CallT2e(NS, cons)
 	call.CallT2e(NS, nth)
-	call.CallTNO2e(NS, "with-meta", with_meta)
+	call.CallT2e(NS, with_meta)
 	call.CallTNO2e(NS, "reset!", reset_BANG)
 	call.CallTNO2e(NS, "range", rangeVector)
-	call.CallTNO2e(NS, "hash-map-decode", hashMapDecode)
+	call.CallT2e(NS, hash_map_decode)
 	call.CallTNO2e(NS, "json-decode", JSONDecode)
 	call.CallTNO2e(NS, "merge", mergeHashMap)
-	call.CallTNO2e(NS, "rename-keys", renameKeys)
+	call.CallT2e(NS, rename_keys)
 	call.CallT2e(NS, split)
 
 	call.CallTNO2eC(NS, "map", do_map)
 
-	call.CallTNO1e(NS, "throw", throw)
+	call.CallT1e(NS, throw)
 	call.CallTNO1e(NS, "symbol", func(a MalType) (MalType, error) { return Symbol{Val: a.(string)}, nil })
 	call.CallTNO1e(NS, "keyword", func(a MalType) (MalType, error) {
 		if Keyword_Q(a) {
@@ -93,28 +93,28 @@ func init() {
 	call.CallTNO1e(NS, "spew", spewDump)
 	call.CallTNO1e(NS, "read-string", func(a MalType) (MalType, error) { return reader.Read_str(a.(string), nil, nil) })
 	call.CallTNO1e(NS, "set", func(a MalType) (MalType, error) { return NewSet(a) })
-	call.CallTNO1e(NS, "keys", keys)
-	call.CallTNO1e(NS, "vals", vals)
-	call.CallTNO1e(NS, "vec", vec)
-	call.CallTNO1e(NS, "first", first)
-	call.CallTNO1e(NS, "rest", rest)
-	call.CallTNO1e(NS, "count", count)
-	call.CallTNO1e(NS, "seq", seq)
-	call.CallTNO1e(NS, "meta", meta)
+	call.CallT1e(NS, keys)
+	call.CallT1e(NS, vals)
+	call.CallT1e(NS, vec)
+	call.CallT1e(NS, first)
+	call.CallT1e(NS, rest)
+	call.CallT1e(NS, count)
+	call.CallT1e(NS, seq)
+	call.CallT1e(NS, meta)
 	call.CallTNO1e(NS, "atom", func(a MalType) (MalType, error) { return &Atom{Val: a}, nil })
-	call.CallTNO1e(NS, "deref", deref)
+	call.CallT1e(NS, deref)
 	call.CallTNO1e(NS, "base64", base64encode)
 	call.CallTNO1e(NS, "unbase64", base64decode)
-	call.CallTNO1e(NS, "str2binary", str2binary)
-	call.CallTNO1e(NS, "binary2str", binary2str)
-	call.CallTNO1e(NS, "json-encode", jsonEncode)
+	call.CallT1e(NS, str2binary)
+	call.CallT1e(NS, binary2str)
+	call.CallT1e(NS, json_encode)
 	call.CallT1eC(NS, sleep)
 
-	call.CallTNO0e(NS, "time-ms", time_ms)
-	call.CallTNO0e(NS, "time-ns", time_ns)
+	call.CallT0e(NS, time_ms)
+	call.CallT0e(NS, time_ns)
 	call.CallTNO0e(NS, "uuid", genUUID)
 
-	call.CallTNONe(NS, "pr-str", pr_str)
+	call.CallTNe(NS, pr_str)
 	call.CallTNe(NS, str)
 	call.CallTNe(NS, prn)
 	call.CallTNe(NS, println)
@@ -122,21 +122,18 @@ func init() {
 		return List{Val: a}, nil
 	})
 	call.CallTNONe(NS, "vector", func(a ...MalType) (MalType, error) { return Vector{Val: a}, nil })
-	call.CallTNONe(NS, "hash-map", hashMap)
+	call.CallTNe(NS, hash_map)
 	call.CallTNONe(NS, "hash-set", func(a ...MalType) (MalType, error) { return NewSet(List{Val: a}) })
-	call.CallTNONe(NS, "assoc", assoc)
-	call.CallTNONe(NS, "dissoc", dissoc)
-	call.CallTNONe(NS, "concat", concat)
+	call.CallTNe(NS, assoc)
+	call.CallTNe(NS, dissoc)
+	call.CallTNe(NS, concat)
 
 	// NSInput namespace
 	call.CallT1e(NSInput, slurp)
 	call.CallT1e(NSInput, readLine)
 }
 
-var NSInput = map[string]MalType{
-	// "slurp":    call.Call1e(slurp),
-	// "readline": call.Call1e(readLine),
-}
+var NSInput = map[string]MalType{}
 
 // Errors/Exceptions
 func throw(a MalType) (MalType, error) {
@@ -834,7 +831,7 @@ func split(str, sep string) (Vector, error) {
 	return Vector{Val: slc}, nil
 }
 
-func renameKeys(data, alternative HashMap) (HashMap, error) {
+func rename_keys(data, alternative HashMap) (HashMap, error) {
 	output := map[string]MalType{}
 	for k, v := range data.Val {
 		newKey, ok := alternative.Val[k]
@@ -909,7 +906,7 @@ func mergeHashMap(hm0, hm1 HashMap) (MalType, error) {
 	return merged, nil
 }
 
-func jsonEncode(obj MalType) (MalType, error) {
+func json_encode(obj MalType) (MalType, error) {
 	b, err := json.Marshal(obj)
 	if err != nil {
 		return nil, err
@@ -917,7 +914,7 @@ func jsonEncode(obj MalType) (MalType, error) {
 	return string(b), nil
 }
 
-func hashMap(a ...MalType) (MalType, error) {
+func hash_map(a ...MalType) (MalType, error) {
 	switch len(a) {
 	case 0:
 		return HashMap{}, nil
@@ -928,7 +925,7 @@ func hashMap(a ...MalType) (MalType, error) {
 	}
 }
 
-func hashMapDecode(objFactory marshaler.FactoryHashMap, hm HashMap) (MalType, error) {
+func hash_map_decode(objFactory marshaler.FactoryHashMap, hm HashMap) (MalType, error) {
 	return objFactory.FromHashMap(hm)
 }
 
