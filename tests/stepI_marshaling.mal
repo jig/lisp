@@ -54,6 +54,12 @@
 (json-encode false)
 ;=>"false"
 
+(get (json-decode [] "[1984, 1011, 4004]") 1)
+;=>1011
+
+(get (json-decode () "[1984, 1011, 4004]") 1)
+;=>1011
+
 ;; TODO(jig): deprecate this:
 (hash-map)
 ;=>{}
@@ -82,3 +88,4 @@
 ;=>1
 (get (hash-map (json-decode (new-marshalexample) ¬{"a":1,"b":"patapam!"}¬)) :b)
 ;=>"patapam!"
+

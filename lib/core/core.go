@@ -981,12 +981,12 @@ func JSONDecode(obj, bytesIn MalType) (MalType, error) {
 	case marshaler.FactoryJSON:
 		return value.FromJSON(b)
 	case List:
-		var v MalType
+		v := []interface{}{}
 		err := json.Unmarshal(b, &v)
 		if err != nil {
 			return nil, err
 		}
-		return v, nil
+		return array2list(v), nil
 	case Vector:
 		v := []interface{}{}
 		err := json.Unmarshal(b, &v)
@@ -1035,6 +1035,24 @@ func map2hashmap(m map[string]interface{}) MalType {
 
 func array2vector(a []interface{}) MalType {
 	l := Vector{
+		Val:  []MalType{},
+		Meta: nil,
+	}
+	for _, v := range a {
+		switch v := v.(type) {
+		case map[string]interface{}:
+			l.Val = append(l.Val, map2hashmap(v))
+		case []interface{}:
+			l.Val = append(l.Val, array2vector(v))
+		default:
+			l.Val = append(l.Val, v)
+		}
+	}
+	return l
+}
+
+func array2list(a []interface{}) MalType {
+	l := List{
 		Val:  []MalType{},
 		Meta: nil,
 	}
