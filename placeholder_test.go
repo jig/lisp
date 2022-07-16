@@ -3,6 +3,7 @@ package lisp
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"testing"
 
 	"github.com/jig/lisp/env"
@@ -23,7 +24,7 @@ func TestPlaceholders(t *testing.T) {
 	for k, v := range core.NS {
 		repl_env.Set(
 			Symbol{Val: k},
-			Func{Fn: v.(func([]MalType, *context.Context) (MalType, error))},
+			Func{Fn: v.(func(context.Context, []MalType) (MalType, error))},
 		)
 	}
 
@@ -55,7 +56,8 @@ func TestPlaceholders(t *testing.T) {
 
 	// fmt.Println(PRINT(exp))
 
-	res, err := EVAL(exp, repl_env, nil)
+	ctx := context.Background()
+	res, err := EVAL(ctx, exp, repl_env)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -112,7 +114,7 @@ func TestREADWithPreamble(t *testing.T) {
 	for k, v := range core.NS {
 		repl_env.Set(
 			Symbol{Val: k},
-			Func{Fn: v.(func([]MalType, *context.Context) (MalType, error))},
+			Func{Fn: v.(func(context.Context, []MalType) (MalType, error))},
 		)
 	}
 
@@ -138,8 +140,8 @@ func TestREADWithPreamble(t *testing.T) {
 	}
 
 	// fmt.Println(PRINT(exp))
-
-	res, err := EVAL(exp, repl_env, nil)
+	ctx := context.Background()
+	res, err := EVAL(ctx, exp, repl_env)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -211,7 +213,7 @@ func TestAddPreamble(t *testing.T) {
 	for k, v := range core.NS {
 		repl_env.Set(
 			Symbol{Val: k},
-			Func{Fn: v.(func([]MalType, *context.Context) (MalType, error))},
+			Func{Fn: v.(func(context.Context, []MalType) (MalType, error))},
 		)
 	}
 
@@ -249,7 +251,8 @@ func TestAddPreamble(t *testing.T) {
 
 	// fmt.Println(PRINT(exp))
 
-	res, err := EVAL(exp, repl_env, nil)
+	ctx := context.Background()
+	res, err := EVAL(ctx, exp, repl_env)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -318,7 +321,7 @@ func TestPlaceholdersEmbeddedWrong1(t *testing.T) {
 	for k, v := range core.NS {
 		repl_env.Set(
 			Symbol{Val: k},
-			Func{Fn: v.(func([]MalType, *context.Context) (MalType, error))},
+			Func{Fn: v.(func(context.Context, []MalType) (MalType, error))},
 		)
 	}
 
@@ -352,7 +355,7 @@ func TestPlaceholdersEmbeddedNoBlankLine(t *testing.T) {
 	for k, v := range core.NS {
 		repl_env.Set(
 			Symbol{Val: k},
-			Func{Fn: v.(func([]MalType, *context.Context) (MalType, error))},
+			Func{Fn: v.(func(context.Context, []MalType) (MalType, error))},
 		)
 	}
 
@@ -367,11 +370,14 @@ func TestPlaceholdersEmbeddedNoBlankLine(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	res, err := EVAL(exp, repl_env, nil)
+	ctx := context.Background()
+	res, err := EVAL(ctx, exp, repl_env)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if !res.(bool) {
+		fmt.Println(PRINT(exp))
+		fmt.Println(PRINT(res))
 		t.Fatal("failed")
 	}
 }
@@ -406,7 +412,7 @@ var notOptimiseBenchFunc2 MalType
 func BenchmarkAddPreambleAlternative(b *testing.B) {
 	repl_env, _ := env.NewEnv(nil, nil, nil)
 	for k, v := range core.NS {
-		repl_env.Set(Symbol{Val: k}, Func{Fn: v.(func([]MalType, *context.Context) (MalType, error))})
+		repl_env.Set(Symbol{Val: k}, Func{Fn: v.(func(context.Context, []MalType) (MalType, error))})
 	}
 
 	for n := 0; n < b.N; n++ {
@@ -461,7 +467,7 @@ func BenchmarkREADWithPreamble(b *testing.B) {
 func BenchmarkNewEnv(b *testing.B) {
 	repl_env, _ := env.NewEnv(nil, nil, nil)
 	for k, v := range core.NS {
-		repl_env.Set(Symbol{Val: k}, Func{Fn: v.(func([]MalType, *context.Context) (MalType, error))})
+		repl_env.Set(Symbol{Val: k}, Func{Fn: v.(func(context.Context, []MalType) (MalType, error))})
 	}
 	sourceWithPreamble := `(do
 		(def v0 $EXAMPLESTRING)
@@ -486,8 +492,9 @@ func BenchmarkNewEnv(b *testing.B) {
 		b.Fatal(err)
 	}
 
+	ctx := context.Background()
 	for n := 0; n < b.N; n++ {
-		res, err := EVAL(ast, repl_env, nil)
+		res, err := EVAL(ctx, ast, repl_env)
 		if err != nil {
 			b.Fatal(err)
 		}
@@ -530,9 +537,10 @@ func BenchmarkCompleteSendingWithPreamble(b *testing.B) {
 
 		repl_env, _ := env.NewEnv(nil, nil, nil)
 		for k, v := range core.NS {
-			repl_env.Set(Symbol{Val: k}, Func{Fn: v.(func([]MalType, *context.Context) (MalType, error))})
+			repl_env.Set(Symbol{Val: k}, Func{Fn: v.(func(context.Context, []MalType) (MalType, error))})
 		}
-		res, err := EVAL(ast, repl_env, nil)
+		ctx := context.Background()
+		res, err := EVAL(ctx, ast, repl_env)
 		if err != nil {
 			b.Fatal(err)
 		}
@@ -584,9 +592,10 @@ func BenchmarkCompleteSendingWithPreambleSolved(b *testing.B) {
 
 		repl_env, _ := env.NewEnv(nil, nil, nil)
 		for k, v := range core.NS {
-			repl_env.Set(Symbol{Val: k}, Func{Fn: v.(func([]MalType, *context.Context) (MalType, error))})
+			repl_env.Set(Symbol{Val: k}, Func{Fn: v.(func(context.Context, []MalType) (MalType, error))})
 		}
-		res, err := EVAL(ast, repl_env, nil)
+		ctx := context.Background()
+		res, err := EVAL(ctx, ast, repl_env)
 		if err != nil {
 			b.Fatal(err)
 		}
@@ -601,7 +610,7 @@ func TestHashMapMarshalers(t *testing.T) {
 	for k, v := range core.NS {
 		repl_env.Set(
 			Symbol{Val: k},
-			Func{Fn: v.(func([]MalType, *context.Context) (MalType, error))},
+			Func{Fn: v.(func(context.Context, []MalType) (MalType, error))},
 		)
 	}
 
@@ -624,8 +633,8 @@ func TestHashMapMarshalers(t *testing.T) {
 	}
 
 	// fmt.Println(PRINT(exp))
-
-	res, err := EVAL(exp, repl_env, nil)
+	ctx := context.Background()
+	res, err := EVAL(ctx, exp, repl_env)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -97,7 +97,7 @@ func String_Q(obj MalType) bool {
 
 // Functions
 type Func struct {
-	Fn     func([]MalType, *context.Context) (MalType, error)
+	Fn     func(context.Context, []MalType) (MalType, error)
 	Meta   MalType
 	Cursor *Position
 }
@@ -108,7 +108,7 @@ func Func_Q(obj MalType) bool {
 }
 
 type MalFunc struct {
-	Eval    func(MalType, EnvType, *context.Context) (MalType, error)
+	Eval    func(context.Context, MalType, EnvType) (MalType, error)
 	Exp     MalType
 	Env     EnvType
 	Params  MalType
@@ -134,16 +134,16 @@ func (f MalFunc) GetMacro() bool {
 
 // Take either a MalFunc or regular function and apply it to the
 // arguments
-func Apply(f_mt MalType, a []MalType, ctx *context.Context) (MalType, error) {
+func Apply(ctx context.Context, f_mt MalType, a []MalType) (MalType, error) {
 	switch f := f_mt.(type) {
 	case MalFunc:
 		env, e := f.GenEnv(f.Env, f.Params, List{a, nil, f.Cursor})
 		if e != nil {
 			return nil, e
 		}
-		return f.Eval(f.Exp, env, ctx)
+		return f.Eval(ctx, f.Exp, env)
 	case Func:
-		return f.Fn(a, ctx)
+		return f.Fn(ctx, a)
 	case func([]MalType) (MalType, error):
 		return f(a)
 	default:
@@ -180,11 +180,11 @@ func Vector_Q(obj MalType) bool {
 }
 
 func GetSlice(seq MalType) ([]MalType, error) {
-	switch obj := seq.(type) {
+	switch seq := seq.(type) {
 	case List:
-		return obj.Val, nil
+		return seq.Val, nil
 	case Vector:
-		return obj.Val, nil
+		return seq.Val, nil
 	default:
 		return nil, errors.New("GetSlice called on non-sequence")
 	}
@@ -289,7 +289,7 @@ func Sequential_Q(seq MalType) bool {
 		(reflect.TypeOf(seq).Name() == "Vector")
 }
 
-func Equal_Q(a MalType, b MalType) bool {
+func Equal_Q(a, b MalType) bool {
 	ota := reflect.TypeOf(a)
 	otb := reflect.TypeOf(b)
 	if !((ota == otb) || (Sequential_Q(a) && Sequential_Q(b))) {

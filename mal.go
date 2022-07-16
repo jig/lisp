@@ -143,7 +143,7 @@ func is_macro_call(ast MalType, env EnvType) bool {
 	return false
 }
 
-func macroexpand(ast MalType, env EnvType, ctx *context.Context) (MalType, error) {
+func macroexpand(ctx context.Context, ast MalType, env EnvType) (MalType, error) {
 	var mac MalType
 	var e error
 	for is_macro_call(ast, env) {
@@ -154,7 +154,7 @@ func macroexpand(ast MalType, env EnvType, ctx *context.Context) (MalType, error
 			return nil, e
 		}
 		fn := mac.(MalFunc)
-		ast, e = Apply(fn, slc[1:], ctx)
+		ast, e = Apply(ctx, fn, slc[1:])
 		if e != nil {
 			return nil, e
 		}
@@ -162,7 +162,7 @@ func macroexpand(ast MalType, env EnvType, ctx *context.Context) (MalType, error
 	return ast, nil
 }
 
-func eval_ast(ast MalType, env EnvType, ctx *context.Context) (MalType, error) {
+func eval_ast(ctx context.Context, ast MalType, env EnvType) (MalType, error) {
 	//fmt.Printf("eval_ast: %#v\n", ast)
 	if Symbol_Q(ast) {
 		value, err := env.Get(ast.(Symbol))
@@ -173,7 +173,7 @@ func eval_ast(ast MalType, env EnvType, ctx *context.Context) (MalType, error) {
 	} else if List_Q(ast) {
 		lst := []MalType{}
 		for _, a := range ast.(List).Val {
-			exp, e := EVAL(a, env, ctx)
+			exp, e := EVAL(ctx, a, env)
 			if e != nil {
 				if a, ok := a.(List); ok {
 					return nil, PushError(a.Cursor, a, e)
@@ -186,7 +186,7 @@ func eval_ast(ast MalType, env EnvType, ctx *context.Context) (MalType, error) {
 	} else if Vector_Q(ast) {
 		lst := []MalType{}
 		for _, a := range ast.(Vector).Val {
-			exp, e := EVAL(a, env, ctx)
+			exp, e := EVAL(ctx, a, env)
 			if e != nil {
 				return nil, PushError(ast.(Vector).Cursor, ast, e)
 			}
@@ -197,7 +197,7 @@ func eval_ast(ast MalType, env EnvType, ctx *context.Context) (MalType, error) {
 		m := ast.(HashMap)
 		new_hm := HashMap{Val: map[string]MalType{}}
 		for k, v := range m.Val {
-			kv, e2 := EVAL(v, env, ctx)
+			kv, e2 := EVAL(ctx, v, env)
 			if e2 != nil {
 				return nil, PushError(ast.(HashMap).Cursor, ast, e2)
 			}
@@ -209,12 +209,12 @@ func eval_ast(ast MalType, env EnvType, ctx *context.Context) (MalType, error) {
 	}
 }
 
-func EVAL(ast MalType, env EnvType, ctx *context.Context) (MalType, error) {
+func EVAL(ctx context.Context, ast MalType, env EnvType) (MalType, error) {
 	var e error
 	for {
 		if ctx != nil {
 			select {
-			case <-(*ctx).Done():
+			case <-ctx.Done():
 				return nil, errors.New("timeout while evaluating expression")
 			default:
 			}
@@ -223,16 +223,16 @@ func EVAL(ast MalType, env EnvType, ctx *context.Context) (MalType, error) {
 		switch ast.(type) {
 		case List: // continue
 		default:
-			return eval_ast(ast, env, ctx)
+			return eval_ast(ctx, ast, env)
 		}
 
 		// apply list
-		ast, e = macroexpand(ast, env, ctx)
+		ast, e = macroexpand(ctx, ast, env)
 		if e != nil {
 			return nil, e
 		}
 		if !List_Q(ast) {
-			return eval_ast(ast, env, ctx)
+			return eval_ast(ctx, ast, env)
 		}
 		if len(ast.(List).Val) == 0 {
 			return ast, nil
@@ -261,7 +261,7 @@ func EVAL(ast MalType, env EnvType, ctx *context.Context) (MalType, error) {
 		}
 		switch a0sym {
 		case "def":
-			res, e := EVAL(a2, env, ctx)
+			res, e := EVAL(ctx, a2, env)
 			if e != nil {
 				return nil, PushError(ast.(List).Cursor, ast, e)
 			}
@@ -296,14 +296,14 @@ func EVAL(ast MalType, env EnvType, ctx *context.Context) (MalType, error) {
 						Cursor:   a1.(Vector).Cursor,
 					}
 				}
-				exp, e := EVAL(arr1[i+1], let_env, ctx)
+				exp, e := EVAL(ctx, arr1[i+1], let_env)
 				if e != nil {
 					return nil, PushError(arr1[i].(Symbol).Cursor, arr1[i], e)
 				}
 				let_env.Set(arr1[i].(Symbol), exp)
 			}
 			astRef := ast.(List)
-			ast, e = do(astRef, 2, -1, let_env, ctx)
+			ast, e = do(ctx, astRef, 2, -1, let_env)
 			if e != nil {
 				return nil, e
 			}
@@ -315,14 +315,14 @@ func EVAL(ast MalType, env EnvType, ctx *context.Context) (MalType, error) {
 		case "quasiquote": // `
 			ast = quasiquote(a1)
 		case "defmacro":
-			fn, e := EVAL(a2, env, ctx)
+			fn, e := EVAL(ctx, a2, env)
 			fn = fn.(MalFunc).SetMacro()
 			if e != nil {
 				return nil, e
 			}
 			return env.Set(a1.(Symbol), fn), nil
 		case "macroexpand":
-			return macroexpand(a1, env, ctx)
+			return macroexpand(ctx, a1, env)
 		case "try":
 			var exc MalType
 			lst := ast.(List).Val
@@ -373,10 +373,10 @@ func EVAL(ast MalType, env EnvType, ctx *context.Context) (MalType, error) {
 			}
 			exp, e := func() (res MalType, err error) {
 				defer malRecover(&err)
-				return do(tryDo, 0, 0, env, ctx)
+				return do(ctx, tryDo, 0, 0, env)
 			}()
 
-			defer func() { _, _ = do(finallyDo, 0, 0, env, ctx) }()
+			defer func() { _, _ = do(ctx, finallyDo, 0, 0, env) }()
 
 			if e == nil {
 				return exp, nil
@@ -395,7 +395,7 @@ func EVAL(ast MalType, env EnvType, ctx *context.Context) (MalType, error) {
 					if e != nil {
 						return nil, e
 					}
-					ast, e = do(catchDo, 0, 0, new_env, ctx)
+					ast, e = do(ctx, catchDo, 0, 0, new_env)
 					if e != nil {
 						return nil, e
 					}
@@ -411,11 +411,11 @@ func EVAL(ast MalType, env EnvType, ctx *context.Context) (MalType, error) {
 					Cursor:   a2.(Vector).Cursor,
 				}
 			}
-			childCtx, cancel := context.WithCancel(*ctx)
+			childCtx, cancel := context.WithCancel(ctx)
 			exp, e := func() (res MalType, err error) {
 				defer cancel()
 				defer malRecover(&err)
-				return EVAL(a1, env, &childCtx)
+				return EVAL(childCtx, a1, env)
 			}()
 			if e != nil {
 				return nil, e
@@ -423,12 +423,12 @@ func EVAL(ast MalType, env EnvType, ctx *context.Context) (MalType, error) {
 			return exp, nil
 		case "do":
 			var err error
-			ast, err = do(ast, 1, -1, env, ctx)
+			ast, err = do(ctx, ast, 1, -1, env)
 			if err != nil {
 				return nil, err
 			}
 		case "if":
-			cond, e := EVAL(a1, env, ctx)
+			cond, e := EVAL(ctx, a1, env)
 			if e != nil {
 				return nil, PushError(ast.(List).Cursor, ast, e)
 			}
@@ -454,7 +454,7 @@ func EVAL(ast MalType, env EnvType, ctx *context.Context) (MalType, error) {
 			}
 			return fn, nil
 		default:
-			el, e := eval_ast(ast, env, ctx)
+			el, e := eval_ast(ctx, ast, env)
 			if e != nil {
 				return nil, PushError(ast.(List).Cursor, ast, e)
 			}
@@ -492,7 +492,7 @@ func EVAL(ast MalType, env EnvType, ctx *context.Context) (MalType, error) {
 						}
 					}
 				}
-				result, err := fn.Fn(el.(List).Val[1:], ctx)
+				result, err := fn.Fn(ctx, el.(List).Val[1:])
 				if err != nil {
 					return nil, PushError(ast.(List).Cursor, ast, err)
 				}
@@ -509,7 +509,7 @@ func first(list MalType) string {
 	return ""
 }
 
-func do(ast MalType, from, to int, env EnvType, ctx *context.Context) (MalType, error) {
+func do(ctx context.Context, ast MalType, from, to int, env EnvType) (MalType, error) {
 	if ast == nil {
 		return nil, nil
 	}
@@ -517,7 +517,7 @@ func do(ast MalType, from, to int, env EnvType, ctx *context.Context) (MalType, 
 	if len(lst) == from {
 		return nil, nil
 	}
-	evaledAST, e := eval_ast(List{Val: lst[from : len(lst)+to]}, env, ctx)
+	evaledAST, e := eval_ast(ctx, List{Val: lst[from : len(lst)+to]}, env)
 	if e != nil {
 		return nil, PushError(ast.(List).Cursor, ast, e)
 	}
@@ -565,19 +565,19 @@ func PRINT(exp MalType) (string, error) {
 }
 
 // REPL
-func REPL(repl_env EnvType, str string, ctx *context.Context) (MalType, error) {
-	return REPLPosition(repl_env, str, ctx, nil)
+func REPL(ctx context.Context, repl_env EnvType, str string) (MalType, error) {
+	return REPLPosition(ctx, repl_env, str, nil)
 }
 
 // REPLPosition
-func REPLPosition(repl_env EnvType, str string, ctx *context.Context, cursor *Position) (MalType, error) {
+func REPLPosition(ctx context.Context, repl_env EnvType, str string, cursor *Position) (MalType, error) {
 	var exp MalType
 	var res string
 	var e error
 	if exp, e = READ(str, cursor); e != nil {
 		return nil, e
 	}
-	if exp, e = EVAL(exp, repl_env, ctx); e != nil {
+	if exp, e = EVAL(ctx, exp, repl_env); e != nil {
 		return nil, e
 	}
 	if res, e = PRINT(exp); e != nil {
@@ -587,14 +587,14 @@ func REPLPosition(repl_env EnvType, str string, ctx *context.Context, cursor *Po
 }
 
 // REPLWithPreamble
-func REPLWithPreamble(repl_env EnvType, str string, ctx *context.Context, cursor *Position) (MalType, error) {
+func REPLWithPreamble(ctx context.Context, repl_env EnvType, str string, cursor *Position) (MalType, error) {
 	var exp MalType
 	var res string
 	var e error
 	if exp, e = READWithPreamble(str, cursor); e != nil {
 		return nil, e
 	}
-	if exp, e = EVAL(exp, repl_env, ctx); e != nil {
+	if exp, e = EVAL(ctx, exp, repl_env); e != nil {
 		return nil, e
 	}
 	if res, e = PRINT(exp); e != nil {

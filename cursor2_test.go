@@ -16,21 +16,22 @@ func TestCursor2(t *testing.T) {
 	}
 	// core.go: defined using go
 	for k, v := range core.NS {
-		bootEnv.Set(types.Symbol{Val: k}, types.Func{Fn: v.(func([]types.MalType, *context.Context) (types.MalType, error))})
+		bootEnv.Set(types.Symbol{Val: k}, types.Func{Fn: v.(func(context.Context, []types.MalType) (types.MalType, error))})
 	}
 	for k, v := range core.NSInput {
-		bootEnv.Set(types.Symbol{Val: k}, types.Func{Fn: v.(func([]types.MalType, *context.Context) (types.MalType, error))})
+		bootEnv.Set(types.Symbol{Val: k}, types.Func{Fn: v.(func(context.Context, []types.MalType) (types.MalType, error))})
 	}
-	bootEnv.Set(types.Symbol{Val: "eval"}, types.Func{Fn: func(a []types.MalType, ctx *context.Context) (types.MalType, error) {
-		return EVAL(a[0], bootEnv, ctx)
+	bootEnv.Set(types.Symbol{Val: "eval"}, types.Func{Fn: func(ctx context.Context, a []types.MalType) (types.MalType, error) {
+		return EVAL(ctx, a[0], bootEnv)
 	}})
 	bootEnv.Set(types.Symbol{Val: "*ARGV*"}, types.List{})
 
-	_, err = REPLPosition(bootEnv, codeMacro, nil, &types.Position{})
+	ctx := context.Background()
+	_, err = REPLPosition(ctx, bootEnv, codeMacro, &types.Position{})
 	if err != nil {
 		t.Fatal(err)
 	}
-	_, err = REPLPosition(bootEnv, testCode, nil, &types.Position{})
+	_, err = REPLPosition(ctx, bootEnv, testCode, &types.Position{})
 	switch err := err.(type) {
 	case nil:
 		t.Error("unexpected: no error returned")

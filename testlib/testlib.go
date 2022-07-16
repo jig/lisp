@@ -47,8 +47,8 @@ func File(t *testing.T, entryName, testFile string, packages PackageDecl) {
 	if err != nil {
 		t.Fatalf("%s/READ Error: %s", entryName, err)
 	}
-	ctxt := context.Background()
-	res, err := lisp.EVAL(expr, tenv, &ctxt)
+	ctx := context.Background()
+	res, err := lisp.EVAL(ctx, expr, tenv)
 	if err != nil {
 		t.Fatalf("%s/EVAL Error: %s", entryName, err)
 	}

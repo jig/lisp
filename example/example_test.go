@@ -1,6 +1,7 @@
 package example
 
 import (
+	"context"
 	"fmt"
 	"log"
 
@@ -39,7 +40,7 @@ func ExampleEVAL() {
 	}
 
 	// eval AST
-	result, err := lisp.EVAL(ast, newEnv, nil)
+	result, err := lisp.EVAL(context.TODO(), ast, newEnv)
 	if err != nil {
 		log.Fatalf("EVAL error: %v", err)
 	}

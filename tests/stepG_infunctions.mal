@@ -6,6 +6,8 @@
 (assoc [0 1 2 3] 2 "hello")
 ;=>[0 1 "hello" 3]
 
+(assoc-in {} [:a] "hello")
+;=>{:a "hello"}
 (get (assoc-in {:a 1 :b {:c 2}} [:a] "hello") :a)
 ;=>"hello"
 (get (assoc-in {:a 1 :b {:c 2}} [:b] "hello") :b)
@@ -73,12 +75,13 @@
 ;=>33
 
 ;; update for vectors
-(def vu (update [0 1 [22 33] 3] 2 (fn [_] 22)))
+(def v [0 1 [22 33] 3])
+(def vu (update v 1 (fn [_] 1111)))
+(get vu 1)
+;=>1111
+(def vu (update v 2 (fn [_] 5555)))
 (get vu 2)
-;=>22
-(def mu (update m :x (fn [_] 33)))
-(get mu :x)
-;=>33
+;=>5555
 
 ;; update-in for maps
 (def mu (update-in m [:b :c] (fn [x] (+ 1000 x))))
@@ -91,6 +94,20 @@
 
 (def mu (update-in m [] (fn [x] (+ x 2000))))
 (get-in mu [:b :c])
+;=>2
+
+;; update-in for vectors
+(def v2 [0 1 [22 33] 3])
+(def vu2 (update-in v2 [2 1] (fn [x] (+ 1000 x))))
+(get vu2 2)
+;=>[22 1033]
+(get-in vu2 [2 1])
+;=>1033
+(get-in vu2 [0])
+;=>0
+
+(def vu (update-in m [] (fn [x] (+ x 2000))))
+(get-in vu [:b :c])
 ;=>2
 
 ;; fn gots x=nil

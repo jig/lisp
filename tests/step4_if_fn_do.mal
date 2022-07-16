@@ -501,3 +501,26 @@ a
 ;=>true
 (= [1 2 (list 3 4 [5 6])] (list 1 2 [3 4 (list 5 6)]))
 ;=>true
+
+(empty? nil)
+;=>true
+;; invalid:
+(empty? "hello")
+;=>nil
+(empty? {})
+;=>true
+(def hm {})
+(empty? hm)
+;=>true
+(count hm)
+;=>0
+(def hm {:a 1})
+(empty? hm)
+;=>false
+(count hm)
+;=>1
+(def hm {:a 1 :b {}})
+(empty? hm)
+;=>false
+(count hm)
+;=>2

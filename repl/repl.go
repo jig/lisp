@@ -15,7 +15,7 @@ import (
 )
 
 // Execute executes the main REPL loop
-func Execute(repl_env types.EnvType, ctx *context.Context) error {
+func Execute(ctx context.Context, repl_env types.EnvType) error {
 	dirname, err := os.UserHomeDir()
 	if err != nil {
 		return err
@@ -49,7 +49,8 @@ func Execute(repl_env types.EnvType, ctx *context.Context) error {
 		line = strings.TrimSpace(line)
 		lines = append(lines, line)
 		completeLine := strings.Join(lines, "\n")
-		out, err := lisp.REPL(repl_env, completeLine, ctx)
+
+		out, err := lisp.REPL(ctx, repl_env, completeLine)
 		if err != nil {
 			if err.Error() == "<empty line>" {
 				continue

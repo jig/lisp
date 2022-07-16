@@ -10,9 +10,7 @@
             "request": "launch",
             "mode": "test",
             "program": "${workspaceFolder}",
-            "args": [
-                "--test.run", "TryCatchFinally"
-            ]
+            "args":["./..."]
         },
         {
             "name": "Lisp REPL",

@@ -40,7 +40,7 @@
 
 ;; assert
 (assert)
-;/one or two parameters required
+;/Error: wrong number of arguments
 (assert true)
 ;=>nil
 ;/^$
@@ -99,3 +99,14 @@
 ;/^.+{:3 3}$
 (assert nil 'assert)
 ;/^.+assert$
+
+(rename-keys {} {})
+;=>{}
+(rename-keys {:a 1} {})
+;=>{:a 1}
+(rename-keys {:a 1} {:a "mimi"})
+;=>{"mimi" 1}
+(get (rename-keys {:a 1 :b 3} {:a "mimi"}) "mimi")
+;=>1
+(get (rename-keys {:a 1 :b 3} {:a "mimi"}) :b)
+;=>3
