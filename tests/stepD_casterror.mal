@@ -8,11 +8,11 @@
 
 (+ 1 :hello)
 ;=>nil
-;/^.*interface conversion: types.MalType is string, not int$
+;/^.*Error: \+: second argument of type string unsupported$
 
 (+ 1 "hello")
 ;=>nil
-;/^.*interface conversion: types.MalType is string, not int$
+;/^.*Error: \+: second argument of type string unsupported$
 
 (try (/ 1 0))
 ;=>nil

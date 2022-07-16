@@ -104,8 +104,15 @@ func TestCursor(t *testing.T) {
 			}
 			continue
 		case types.RuntimeError:
-			if err.ErrorPosition().Row != testCase.Error.(types.RuntimeError).Cursor.Row {
-				t.Fatal(err.Error(), err.ErrorPosition().Row, testCase.Error.(types.RuntimeError).Cursor.Row)
+			switch tt := testCase.Error.(type) {
+			case types.RuntimeError:
+				if err.ErrorPosition().Row != tt.Cursor.Row {
+					t.Fatal(err.Error(), err.ErrorPosition().Row, tt.Cursor.Row)
+				}
+			case types.MalError:
+				if err.ErrorPosition().Row != tt.Cursor.Row {
+					t.Fatal(err.Error(), err.ErrorPosition().Row, tt.Cursor.Row)
+				}
 			}
 			continue
 		case types.MalError:
