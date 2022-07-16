@@ -22,6 +22,107 @@ import (
 	. "github.com/jig/lisp/types"
 )
 
+// core namespace
+var NS = map[string]MalType{
+	"=": call.Call2b(Equal_Q),
+
+	"nil?":   call.Call1b(Nil_Q),
+	"true?":  call.Call1b(True_Q),
+	"false?": call.Call1b(False_Q),
+
+	"empty?":      call.Call1e(empty_Q),
+	"symbol?":     call.Call1b(Q[Symbol]),
+	"keyword?":    call.Call1b(Keyword_Q),
+	"string?":     call.Call1e(func(a MalType) (MalType, error) { return (Q[string](a) && !Keyword_Q(a)), nil }),
+	"number?":     call.Call1b(Q[int]),
+	"fn?":         call.Call1e(fn_q),
+	"macro?":      call.Call1e(func(a MalType) (MalType, error) { return Q[MalFunc](a) && a.(MalFunc).GetMacro(), nil }),
+	"list?":       call.Call1b(Q[List]),
+	"vector?":     call.Call1b(Q[Vector]),
+	"map?":        call.Call1b(Q[HashMap]),
+	"set?":        call.Call1b(Q[Set]),
+	"atom?":       call.Call1b(Q[*Atom]),
+	"sequential?": call.Call1b(Sequential_Q),
+
+	"throw":  call.Call1e(throw),
+	"symbol": call.Call1e(func(a MalType) (MalType, error) { return Symbol{Val: a.(string)}, nil }),
+	"keyword": call.Call1e(func(a MalType) (MalType, error) {
+		if Keyword_Q(a) {
+			return a, nil
+		} else {
+			return NewKeyword(a.(string))
+		}
+	}),
+	"pr-str":      call.CallNe(pr_str),
+	"str":         call.CallNe(str),
+	"prn":         call.CallNe(prn),
+	"println":     call.CallNe(println),
+	"spew":        call.Call1e(spewDump),
+	"read-string": call.Call1e(func(a MalType) (MalType, error) { return reader.Read_str(a.(string), nil, nil) }),
+	"<":           call.Call2e(func(a, b MalType) (MalType, error) { return a.(int) < b.(int), nil }),
+	"<=":          call.Call2e(func(a, b MalType) (MalType, error) { return a.(int) <= b.(int), nil }),
+	">":           call.Call2e(func(a, b MalType) (MalType, error) { return a.(int) > b.(int), nil }),
+	">=":          call.Call2e(func(a, b MalType) (MalType, error) { return a.(int) >= b.(int), nil }),
+	"+":           call.Call2e(func(a, b MalType) (MalType, error) { return a.(int) + b.(int), nil }),
+	"-":           call.Call2e(func(a, b MalType) (MalType, error) { return a.(int) - b.(int), nil }),
+	"*":           call.Call2e(func(a, b MalType) (MalType, error) { return a.(int) * b.(int), nil }),
+	"/":           call.Call2e(func(a, b MalType) (MalType, error) { return a.(int) / b.(int), nil }),
+	"time-ms":     call.Call0e(time_ms),
+	"time-ns":     call.Call0e(time_ns),
+	"list":        call.CallNe(func(a ...MalType) (MalType, error) { return List{Val: a}, nil }),
+	"vector":      call.CallNe(func(a ...MalType) (MalType, error) { return Vector{Val: a}, nil }),
+	"hash-map":    call.CallNe(hashMap),
+	"set":         call.Call1e(func(a MalType) (MalType, error) { return NewSet(a) }),
+	"hash-set":    call.CallNe(func(a ...MalType) (MalType, error) { return NewSet(List{Val: a}) }),
+	"assoc":       call.CallNe(assoc),  // at least 3
+	"dissoc":      call.CallNe(dissoc), // at least 2
+	"assoc-in":    call.Call3e(assocIn),
+	"update":      call.Call3eC(update),
+	"update-in":   call.Call3eC(updateIn),
+	"get":         call.Call2e(get),
+	"get-in":      call.Call2e(getIn),
+	"contains?":   call.Call2e(func(seq, key MalType) (MalType, error) { return contains_Q(seq, key) }),
+	"keys":        call.Call1e(keys),
+	"vals":        call.Call1e(vals),
+	"cons":        call.Call2e(cons),
+	"concat":      call.CallNe(concat),
+	"vec":         call.Call1e(vec),
+	"nth":         call.Call2e(nth),
+	"first":       call.Call1e(first),
+	"rest":        call.Call1e(rest),
+	"count":       call.Call1e(count),
+	"apply":       call.CallVeC(2, 1000_000, apply), // at least 2
+	"map":         call.Call2eC(do_map),
+	"conj":        call.CallVe(2, 1000_000, conj), // at least 2
+	"seq":         call.Call1e(seq),
+	"with-meta":   call.Call2e(with_meta),
+	"meta":        call.Call1e(meta),
+	"atom":        call.Call1e(func(a MalType) (MalType, error) { return &Atom{Val: a}, nil }),
+	"deref":       call.Call1e(deref),
+	"reset!":      call.Call2e(reset_BANG),
+	"swap!":       call.CallNeC(swap_BANG),
+
+	"range":           call.Call2e(rangeVector),
+	"sleep":           call.Call1eC(sleep),
+	"base64":          call.Call1e(base64encode),
+	"unbase64":        call.Call1e(base64decode),
+	"str2binary":      call.Call1e(str2binary),
+	"binary2str":      call.Call1e(binary2str),
+	"hash-map-decode": call.Call2e(hashMapDecode),
+	"json-decode":     call.Call2e(JSONDecode),
+	"json-encode":     call.Call1e(jsonEncode),
+	"merge":           call.Call2e(mergeHashMap),
+	"assert":          call.CallVe(1, 2, assert),
+	"rename-keys":     call.Call2e(renameKeys),
+	"uuid":            call.Call0e(genUUID),
+	"split":           call.Call2e(split),
+}
+
+var NSInput = map[string]MalType{
+	"slurp":    call.Call1e(slurp),
+	"readline": call.Call1e(readLine),
+}
+
 // Errors/Exceptions
 func throw(a MalType) (MalType, error) {
 	return nil, MalError{Obj: a}
@@ -715,107 +816,6 @@ func swap_BANG(ctx context.Context, a ...MalType) (MalType, error) {
 	}
 	atm.Set(res)
 	return res, nil
-}
-
-// core namespace
-var NS = map[string]MalType{
-	"=": call.Call2b(Equal_Q),
-
-	"nil?":   call.Call1b(Nil_Q),
-	"true?":  call.Call1b(True_Q),
-	"false?": call.Call1b(False_Q),
-
-	"empty?":      call.Call1e(empty_Q),
-	"symbol?":     call.Call1b(Q[Symbol]),
-	"keyword?":    call.Call1b(Keyword_Q),
-	"string?":     call.Call1e(func(a MalType) (MalType, error) { return (Q[string](a) && !Keyword_Q(a)), nil }),
-	"number?":     call.Call1b(Q[int]),
-	"fn?":         call.Call1e(fn_q),
-	"macro?":      call.Call1e(func(a MalType) (MalType, error) { return Q[MalFunc](a) && a.(MalFunc).GetMacro(), nil }),
-	"list?":       call.Call1b(Q[List]),
-	"vector?":     call.Call1b(Q[Vector]),
-	"map?":        call.Call1b(Q[HashMap]),
-	"set?":        call.Call1b(Q[Set]),
-	"atom?":       call.Call1b(Q[*Atom]),
-	"sequential?": call.Call1b(Sequential_Q),
-
-	"throw":  call.Call1e(throw),
-	"symbol": call.Call1e(func(a MalType) (MalType, error) { return Symbol{Val: a.(string)}, nil }),
-	"keyword": call.Call1e(func(a MalType) (MalType, error) {
-		if Keyword_Q(a) {
-			return a, nil
-		} else {
-			return NewKeyword(a.(string))
-		}
-	}),
-	"pr-str":      call.CallNe(pr_str),
-	"str":         call.CallNe(str),
-	"prn":         call.CallNe(prn),
-	"println":     call.CallNe(println),
-	"spew":        call.Call1e(spewDump),
-	"read-string": call.Call1e(func(a MalType) (MalType, error) { return reader.Read_str(a.(string), nil, nil) }),
-	"<":           call.Call2e(func(a, b MalType) (MalType, error) { return a.(int) < b.(int), nil }),
-	"<=":          call.Call2e(func(a, b MalType) (MalType, error) { return a.(int) <= b.(int), nil }),
-	">":           call.Call2e(func(a, b MalType) (MalType, error) { return a.(int) > b.(int), nil }),
-	">=":          call.Call2e(func(a, b MalType) (MalType, error) { return a.(int) >= b.(int), nil }),
-	"+":           call.Call2e(func(a, b MalType) (MalType, error) { return a.(int) + b.(int), nil }),
-	"-":           call.Call2e(func(a, b MalType) (MalType, error) { return a.(int) - b.(int), nil }),
-	"*":           call.Call2e(func(a, b MalType) (MalType, error) { return a.(int) * b.(int), nil }),
-	"/":           call.Call2e(func(a, b MalType) (MalType, error) { return a.(int) / b.(int), nil }),
-	"time-ms":     call.Call0e(time_ms),
-	"time-ns":     call.Call0e(time_ns),
-	"list":        call.CallNe(func(a ...MalType) (MalType, error) { return List{Val: a}, nil }),
-	"vector":      call.CallNe(func(a ...MalType) (MalType, error) { return Vector{Val: a}, nil }),
-	"hash-map":    call.CallNe(hashMap),
-	"set":         call.Call1e(func(a MalType) (MalType, error) { return NewSet(a) }),
-	"hash-set":    call.CallNe(func(a ...MalType) (MalType, error) { return NewSet(List{Val: a}) }),
-	"assoc":       call.CallNe(assoc),  // at least 3
-	"dissoc":      call.CallNe(dissoc), // at least 2
-	"assoc-in":    call.Call3e(assocIn),
-	"update":      call.Call3eC(update),
-	"update-in":   call.Call3eC(updateIn),
-	"get":         call.Call2e(get),
-	"get-in":      call.Call2e(getIn),
-	"contains?":   call.Call2e(func(seq, key MalType) (MalType, error) { return contains_Q(seq, key) }),
-	"keys":        call.Call1e(keys),
-	"vals":        call.Call1e(vals),
-	"cons":        call.Call2e(cons),
-	"concat":      call.CallNe(concat),
-	"vec":         call.Call1e(vec),
-	"nth":         call.Call2e(nth),
-	"first":       call.Call1e(first),
-	"rest":        call.Call1e(rest),
-	"count":       call.Call1e(count),
-	"apply":       call.CallVeC(2, 1000_000, apply), // at least 2
-	"map":         call.Call2eC(do_map),
-	"conj":        call.CallVe(2, 1000_000, conj), // at least 2
-	"seq":         call.Call1e(seq),
-	"with-meta":   call.Call2e(with_meta),
-	"meta":        call.Call1e(meta),
-	"atom":        call.Call1e(func(a MalType) (MalType, error) { return &Atom{Val: a}, nil }),
-	"deref":       call.Call1e(deref),
-	"reset!":      call.Call2e(reset_BANG),
-	"swap!":       call.CallNeC(swap_BANG),
-
-	"range":           call.Call2e(rangeVector),
-	"sleep":           call.Call1eC(sleep),
-	"base64":          call.Call1e(base64encode),
-	"unbase64":        call.Call1e(base64decode),
-	"str2binary":      call.Call1e(str2binary),
-	"binary2str":      call.Call1e(binary2str),
-	"hash-map-decode": call.Call2e(hashMapDecode),
-	"json-decode":     call.Call2e(JSONDecode),
-	"json-encode":     call.Call1e(jsonEncode),
-	"merge":           call.Call2e(mergeHashMap),
-	"assert":          call.CallVe(1, 2, assert),
-	"rename-keys":     call.Call2e(renameKeys),
-	"uuid":            call.Call0e(genUUID),
-	"split":           call.Call2e(split),
-}
-
-var NSInput = map[string]MalType{
-	"slurp":    call.Call1e(slurp),
-	"readline": call.Call1e(readLine),
 }
 
 // Core extended
