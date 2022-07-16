@@ -13,14 +13,6 @@ import (
 	. "github.com/jig/lisp/types"
 )
 
-// TODO(jig): to be removed for strings.Cut when migrating to 1.18
-func Cut(s, sep string) (before, after string, found bool) {
-	if i := strings.Index(s, sep); i >= 0 {
-		return s[:i], s[i+len(sep):], true
-	}
-	return s, "", false
-}
-
 var placeholderRE = regexp.MustCompile(`^(;; \$[\d\w]+)+\s(.+)`)
 
 const preamblePrefix = ";; $"
@@ -37,7 +29,7 @@ func READWithPreamble(str string, cursor *Position) (MalType, error) {
 	for ; ; i++ {
 		var line string
 		// line, str, _ = strings.Cut(str, "\n")
-		line, str, _ = Cut(str, "\n")
+		line, str, _ = strings.Cut(str, "\n")
 		line = strings.Trim(line, " \t\r\n")
 		if len(line) == 0 {
 			return reader.Read_str(str, cursor, placeholderMap)
