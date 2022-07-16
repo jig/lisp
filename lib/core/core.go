@@ -181,8 +181,8 @@ func println(a ...MalType) (MalType, error) {
 	return nil, nil
 }
 
-func slurp(fileName MalType) (MalType, error) {
-	b, e := os.ReadFile(fileName.(string))
+func slurp(fileName string) (MalType, error) {
+	b, e := os.ReadFile(fileName)
 	if e != nil {
 		return nil, e
 	}

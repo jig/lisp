@@ -37,7 +37,7 @@ func TestFileTests(t *testing.T) {
 		if dirEntry.Name() == "step1_read_print.mal" {
 			continue
 		}
-		fmt.Println(dirEntry.Name())
+		// fmt.Println(dirEntry.Name())
 		code, err := os.ReadFile("./tests/" + dirEntry.Name())
 		if err != nil {
 			log.Fatal(err)
