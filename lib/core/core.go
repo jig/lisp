@@ -282,47 +282,52 @@ func _update(ctx context.Context, argMapOrVector, index, f MalType) (MalType, er
 	}
 }
 
-func updateIn(ctx context.Context, hm, path, f MalType) (MalType, error) {
-	if Nil_Q(hm) {
+func updateIn(ctx context.Context, seq, path, f MalType) (MalType, error) {
+	if Nil_Q(seq) {
 		return nil, nil
 	}
 	posVector, ok := path.(Vector)
 	if !ok {
 		return nil, errors.New("get called with non-vector")
 	}
-	return _updateIn(ctx, hm, posVector, f)
+	return _updateIn(ctx, seq, posVector, f)
 }
 
-func _updateIn(ctx context.Context, argMapOrVector MalType, posVector Vector, f MalType) (MalType, error) {
+func _updateIn(ctx context.Context, seq MalType, posVector Vector, f MalType) (MalType, error) {
 	switch len(posVector.Val) {
 	case 0:
-		return argMapOrVector, nil
+		return seq, nil
 	case 1:
 		index := posVector.Val[0]
-		return _update(ctx, argMapOrVector, index, f)
+		return _update(ctx, seq, index, f)
 	default:
 		index := posVector.Val[0]
 		rest := Vector{Val: posVector.Val[1:]}
 		var branch MalType
-		switch argMapOrVector := argMapOrVector.(type) {
+		switch seq := seq.(type) {
 		case HashMap:
-			branch = argMapOrVector.Val[index.(string)]
+			branch = seq.Val[index.(string)]
 			if branch == nil {
 				branch = HashMap{}
 			}
+			inner, err := _updateIn(ctx, branch.(HashMap), rest, f)
+			if err != nil {
+				return nil, err
+			}
+			return assoc(seq, index, inner)
 		case Vector:
-			branch = argMapOrVector.Val[index.(int)]
+			branch = seq.Val[index.(int)]
 			if branch == nil {
 				branch = Vector{}
 			}
+			inner, err := _updateIn(ctx, branch.(Vector), rest, f)
+			if err != nil {
+				return nil, err
+			}
+			return assoc(seq, index, inner)
 		default:
-			return nil, fmt.Errorf("type %T not supported of index of %T", index, argMapOrVector)
+			return nil, fmt.Errorf("type %T not supported of index of %T", index, seq)
 		}
-		inner, err := _updateIn(ctx, branch.(HashMap), rest, f)
-		if err != nil {
-			return nil, err
-		}
-		return assoc(argMapOrVector, index, inner)
 	}
 }
 
