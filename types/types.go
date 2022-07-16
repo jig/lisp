@@ -63,8 +63,8 @@ func False_Q(obj MalType) bool {
 	return ok && !b
 }
 
-func Number_Q(obj MalType) bool {
-	_, ok := obj.(int)
+func Q[T any](obj MalType) bool {
+	_, ok := obj.(T)
 	return ok
 }
 
@@ -72,11 +72,6 @@ func Number_Q(obj MalType) bool {
 type Symbol struct {
 	Val    string
 	Cursor *Position
-}
-
-func Symbol_Q(obj MalType) bool {
-	_, ok := obj.(Symbol)
-	return ok
 }
 
 // Keywords
@@ -89,22 +84,11 @@ func Keyword_Q(obj MalType) bool {
 	return ok && strings.HasPrefix(s, "\u029e")
 }
 
-// Strings
-func String_Q(obj MalType) bool {
-	_, ok := obj.(string)
-	return ok
-}
-
 // Functions
 type Func struct {
 	Fn     func(context.Context, []MalType) (MalType, error)
 	Meta   MalType
 	Cursor *Position
-}
-
-func Func_Q(obj MalType) bool {
-	_, ok := obj.(Func)
-	return ok
 }
 
 type MalFunc struct {
@@ -116,11 +100,6 @@ type MalFunc struct {
 	GenEnv  func(EnvType, MalType, MalType) (EnvType, error)
 	Meta    MalType
 	Cursor  *Position
-}
-
-func MalFunc_Q(obj MalType) bool {
-	_, ok := obj.(MalFunc)
-	return ok
 }
 
 func (f MalFunc) SetMacro() MalType {
@@ -147,7 +126,7 @@ func Apply(ctx context.Context, f_mt MalType, a []MalType) (MalType, error) {
 	case func([]MalType) (MalType, error):
 		return f(a)
 	default:
-		return nil, fmt.Errorf("Invalid function to Apply (%T)", f)
+		return nil, fmt.Errorf("invalid function to Apply (%T)", f)
 	}
 }
 
@@ -162,21 +141,11 @@ func NewList(a ...MalType) MalType {
 	return List{Val: a}
 }
 
-func List_Q(obj MalType) bool {
-	_, ok := obj.(List)
-	return ok
-}
-
 // Vectors
 type Vector struct {
 	Val    []MalType
 	Meta   MalType
 	Cursor *Position
-}
-
-func Vector_Q(obj MalType) bool {
-	_, ok := obj.(Vector)
-	return ok
 }
 
 func GetSlice(seq MalType) ([]MalType, error) {
@@ -203,7 +172,7 @@ func NewHashMap(seq MalType) (MalType, error) {
 		return nil, e
 	}
 	if len(lst)%2 == 1 {
-		return nil, errors.New("Odd number of arguments to NewHashMap")
+		return nil, errors.New("odd number of arguments to NewHashMap")
 	}
 	m := map[string]MalType{}
 	for i := 0; i < len(lst); i += 2 {
@@ -214,11 +183,6 @@ func NewHashMap(seq MalType) (MalType, error) {
 		m[str] = lst[i+1]
 	}
 	return HashMap{Val: m}, nil
-}
-
-func HashMap_Q(obj MalType) bool {
-	_, ok := obj.(HashMap)
-	return ok
 }
 
 // Sets
@@ -249,11 +213,6 @@ func NewSet(seq MalType) (MalType, error) {
 	return Set{Val: m}, nil
 }
 
-func Set_Q(obj MalType) bool {
-	_, ok := obj.(Set)
-	return ok
-}
-
 // Atoms
 type Atom struct {
 	Mutex  sync.RWMutex
@@ -265,11 +224,6 @@ type Atom struct {
 func (a *Atom) Set(val MalType) MalType {
 	a.Val = val
 	return a
-}
-
-func Atom_Q(obj MalType) bool {
-	_, ok := obj.(*Atom)
-	return ok
 }
 
 // General functions

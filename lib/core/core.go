@@ -118,7 +118,7 @@ func assoc(a ...MalType) (MalType, error) {
 		new_hm := copy_hash_map(ms)
 		for i := 1; i < len(a); i += 2 {
 			key := a[i]
-			if !String_Q(key) {
+			if !Q[string](key) {
 				return nil, errors.New("assoc called with non-string key")
 			}
 			new_hm.Val[key.(string)] = a[i+1]
@@ -144,7 +144,7 @@ func assoc(a ...MalType) (MalType, error) {
 		}
 		new_s := copy_set(ms)
 		for _, value := range a[1:] {
-			if !String_Q(value) {
+			if !Q[string](value) {
 				return nil, errors.New("assoc called with non-string key")
 			}
 			new_s.Val[value.(string)] = struct{}{}
@@ -165,7 +165,7 @@ func dissoc(a ...MalType) (MalType, error) {
 		new_hm := copy_hash_map(ms)
 		for i := 1; i < len(a); i += 1 {
 			key := a[i]
-			if !String_Q(key) {
+			if !Q[string](key) {
 				return nil, errors.New("dissoc called with non-string key")
 			}
 			delete(new_hm.Val, key.(string))
@@ -174,7 +174,7 @@ func dissoc(a ...MalType) (MalType, error) {
 	case Set:
 		new_s := copy_set(ms)
 		for _, value := range a[1:] {
-			if !String_Q(value) {
+			if !Q[string](value) {
 				return nil, errors.New("dissoc called with non-string key")
 			}
 			delete(new_s.Val, value.(string))
@@ -377,7 +377,7 @@ func contains_Q(hm MalType, key MalType) (MalType, error) {
 	if Nil_Q(hm) {
 		return false, nil
 	}
-	if !String_Q(key) {
+	if !Q[string](key) {
 		return nil, errors.New("get called with non-string key")
 	}
 	switch hm := hm.(type) {
@@ -406,7 +406,7 @@ func keys(hm MalType) (MalType, error) {
 }
 
 func vals(hm MalType) (MalType, error) {
-	if !HashMap_Q(hm) {
+	if !Q[HashMap](hm) {
 		return nil, errors.New("keys called on non-hash map")
 	}
 	slc := []MalType{}
@@ -585,7 +585,7 @@ func conj(a ...MalType) (MalType, error) {
 		new_hm := copy_hash_map(seq)
 		for i := 1; i < len(a); i += 2 {
 			key := a[i]
-			if !String_Q(key) {
+			if !Q[string](key) {
 				return nil, errors.New("conj called with non-string key")
 			}
 			new_hm.Val[key.(string)] = a[i+1]
@@ -594,7 +594,7 @@ func conj(a ...MalType) (MalType, error) {
 	case Set:
 		new_s := copy_set(seq)
 		for _, key := range a[1:] {
-			if !String_Q(key) {
+			if !Q[string](key) {
 				return nil, errors.New("conj called with non-string key")
 			}
 			new_s.Val[key.(string)] = struct{}{}
@@ -679,7 +679,7 @@ func meta(meta MalType) (MalType, error) {
 
 // Atom functions
 func deref(atomRef MalType) (MalType, error) {
-	if !Atom_Q(atomRef) {
+	if !Q[*Atom](atomRef) {
 		return nil, errors.New("deref called with non-atom")
 	}
 	atm := atomRef.(*Atom)
@@ -689,7 +689,7 @@ func deref(atomRef MalType) (MalType, error) {
 }
 
 func reset_BANG(atomRef, value MalType) (MalType, error) {
-	if !Atom_Q(atomRef) {
+	if !Q[*Atom](atomRef) {
 		return nil, errors.New("reset! called with non-atom")
 	}
 	atm := atomRef.(*Atom)
@@ -700,7 +700,7 @@ func reset_BANG(atomRef, value MalType) (MalType, error) {
 }
 
 func swap_BANG(ctx context.Context, a ...MalType) (MalType, error) {
-	if !Atom_Q(a[0]) {
+	if !Q[*Atom](a[0]) {
 		return nil, errors.New("swap! called with non-atom")
 	}
 	atm := a[0].(*Atom)
@@ -719,14 +719,28 @@ func swap_BANG(ctx context.Context, a ...MalType) (MalType, error) {
 
 // core namespace
 var NS = map[string]MalType{
-	"=":       call.Call2b(Equal_Q),
-	"throw":   call.Call1e(throw),
-	"nil?":    call.Call1b(Nil_Q),
-	"true?":   call.Call1b(True_Q),
-	"false?":  call.Call1b(False_Q),
-	"symbol":  call.Call1e(func(a MalType) (MalType, error) { return Symbol{Val: a.(string)}, nil }),
-	"symbol?": call.Call1b(Symbol_Q),
-	"string?": call.Call1e(func(a MalType) (MalType, error) { return (String_Q(a) && !Keyword_Q(a)), nil }),
+	"=": call.Call2b(Equal_Q),
+
+	"nil?":   call.Call1b(Nil_Q),
+	"true?":  call.Call1b(True_Q),
+	"false?": call.Call1b(False_Q),
+
+	"empty?":      call.Call1e(empty_Q),
+	"symbol?":     call.Call1b(Q[Symbol]),
+	"keyword?":    call.Call1b(Keyword_Q),
+	"string?":     call.Call1e(func(a MalType) (MalType, error) { return (Q[string](a) && !Keyword_Q(a)), nil }),
+	"number?":     call.Call1b(Q[int]),
+	"fn?":         call.Call1e(fn_q),
+	"macro?":      call.Call1e(func(a MalType) (MalType, error) { return Q[MalFunc](a) && a.(MalFunc).GetMacro(), nil }),
+	"list?":       call.Call1b(Q[List]),
+	"vector?":     call.Call1b(Q[Vector]),
+	"map?":        call.Call1b(Q[HashMap]),
+	"set?":        call.Call1b(Q[Set]),
+	"atom?":       call.Call1b(Q[*Atom]),
+	"sequential?": call.Call1b(Sequential_Q),
+
+	"throw":  call.Call1e(throw),
+	"symbol": call.Call1e(func(a MalType) (MalType, error) { return Symbol{Val: a.(string)}, nil }),
 	"keyword": call.Call1e(func(a MalType) (MalType, error) {
 		if Keyword_Q(a) {
 			return a, nil
@@ -734,10 +748,6 @@ var NS = map[string]MalType{
 			return NewKeyword(a.(string))
 		}
 	}),
-	"keyword?":    call.Call1b(Keyword_Q),
-	"number?":     call.Call1b(Number_Q),
-	"fn?":         call.Call1e(fn_q),
-	"macro?":      call.Call1e(func(a MalType) (MalType, error) { return MalFunc_Q(a) && a.(MalFunc).GetMacro(), nil }),
 	"pr-str":      call.CallNe(pr_str),
 	"str":         call.CallNe(str),
 	"prn":         call.CallNe(prn),
@@ -755,14 +765,10 @@ var NS = map[string]MalType{
 	"time-ms":     call.Call0e(time_ms),
 	"time-ns":     call.Call0e(time_ns),
 	"list":        call.CallNe(func(a ...MalType) (MalType, error) { return List{Val: a}, nil }),
-	"list?":       call.Call1b(List_Q),
 	"vector":      call.CallNe(func(a ...MalType) (MalType, error) { return Vector{Val: a}, nil }),
-	"vector?":     call.Call1b(Vector_Q),
 	"hash-map":    call.CallNe(hashMap),
-	"map?":        call.Call1b(HashMap_Q),
 	"set":         call.Call1e(func(a MalType) (MalType, error) { return NewSet(a) }),
 	"hash-set":    call.CallNe(func(a ...MalType) (MalType, error) { return NewSet(List{Val: a}) }),
-	"set?":        call.Call1b(Set_Q),
 	"assoc":       call.CallNe(assoc),  // at least 3
 	"dissoc":      call.CallNe(dissoc), // at least 2
 	"assoc-in":    call.Call3e(assocIn),
@@ -773,14 +779,12 @@ var NS = map[string]MalType{
 	"contains?":   call.Call2e(func(seq, key MalType) (MalType, error) { return contains_Q(seq, key) }),
 	"keys":        call.Call1e(keys),
 	"vals":        call.Call1e(vals),
-	"sequential?": call.Call1b(Sequential_Q),
 	"cons":        call.Call2e(cons),
 	"concat":      call.CallNe(concat),
 	"vec":         call.Call1e(vec),
 	"nth":         call.Call2e(nth),
 	"first":       call.Call1e(first),
 	"rest":        call.Call1e(rest),
-	"empty?":      call.Call1e(empty_Q),
 	"count":       call.Call1e(count),
 	"apply":       call.CallVeC(2, 1000_000, apply), // at least 2
 	"map":         call.Call2eC(do_map),
@@ -789,7 +793,6 @@ var NS = map[string]MalType{
 	"with-meta":   call.Call2e(with_meta),
 	"meta":        call.Call1e(meta),
 	"atom":        call.Call1e(func(a MalType) (MalType, error) { return &Atom{Val: a}, nil }),
-	"atom?":       call.Call1b(Atom_Q),
 	"deref":       call.Call1e(deref),
 	"reset!":      call.Call2e(reset_BANG),
 	"swap!":       call.CallNeC(swap_BANG),

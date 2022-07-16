@@ -32,7 +32,7 @@ func NewEnv(outer EnvType, binds_mt MalType, exprs_mt MalType) (EnvType, error) 
 		var varargs bool
 		i := 0
 		for ; i < len(binds); i++ {
-			if Symbol_Q(binds[i]) && binds[i].(Symbol).Val == "&" {
+			if Q[Symbol](binds[i]) && binds[i].(Symbol).Val == "&" {
 				env.data.Store(binds[i+1].(Symbol).Val, List{Val: exprs[i:]})
 				varargs = true
 				break

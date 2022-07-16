@@ -116,18 +116,18 @@ func quasiquote(ast MalType) MalType {
 }
 
 func is_macro_call(ast MalType, env EnvType) bool {
-	if List_Q(ast) {
+	if Q[List](ast) {
 		slc, _ := GetSlice(ast)
 		if len(slc) == 0 {
 			return false
 		}
 		a0 := slc[0]
-		if Symbol_Q(a0) && env.Find(a0.(Symbol)) != nil {
+		if Q[Symbol](a0) && env.Find(a0.(Symbol)) != nil {
 			mac, e := env.Get(a0.(Symbol))
 			if e != nil {
 				return false
 			}
-			if MalFunc_Q(mac) {
+			if Q[MalFunc](mac) {
 				return mac.(MalFunc).GetMacro()
 			}
 		}
@@ -156,13 +156,13 @@ func macroexpand(ctx context.Context, ast MalType, env EnvType) (MalType, error)
 
 func eval_ast(ctx context.Context, ast MalType, env EnvType) (MalType, error) {
 	//fmt.Printf("eval_ast: %#v\n", ast)
-	if Symbol_Q(ast) {
+	if Q[Symbol](ast) {
 		value, err := env.Get(ast.(Symbol))
 		if err != nil {
 			return nil, PushError(ast.(Symbol).Cursor, ast, err)
 		}
 		return value, nil
-	} else if List_Q(ast) {
+	} else if Q[List](ast) {
 		lst := []MalType{}
 		for _, a := range ast.(List).Val {
 			exp, e := EVAL(ctx, a, env)
@@ -175,7 +175,7 @@ func eval_ast(ctx context.Context, ast MalType, env EnvType) (MalType, error) {
 			lst = append(lst, exp)
 		}
 		return List{Val: lst}, nil
-	} else if Vector_Q(ast) {
+	} else if Q[Vector](ast) {
 		lst := []MalType{}
 		for _, a := range ast.(Vector).Val {
 			exp, e := EVAL(ctx, a, env)
@@ -185,7 +185,7 @@ func eval_ast(ctx context.Context, ast MalType, env EnvType) (MalType, error) {
 			lst = append(lst, exp)
 		}
 		return Vector{Val: lst}, nil
-	} else if HashMap_Q(ast) {
+	} else if Q[HashMap](ast) {
 		m := ast.(HashMap)
 		new_hm := HashMap{Val: map[string]MalType{}}
 		for k, v := range m.Val {
@@ -223,7 +223,7 @@ func EVAL(ctx context.Context, ast MalType, env EnvType) (MalType, error) {
 		if e != nil {
 			return nil, e
 		}
-		if !List_Q(ast) {
+		if !Q[List](ast) {
 			return eval_ast(ctx, ast, env)
 		}
 		if len(ast.(List).Val) == 0 {
@@ -248,7 +248,7 @@ func EVAL(ctx context.Context, ast MalType, env EnvType) (MalType, error) {
 			a2 = ast.(List).Val[2]
 		}
 		a0sym := "__<*fn>__"
-		if Symbol_Q(a0) {
+		if Q[Symbol](a0) {
 			a0sym = a0.(Symbol).Val
 		}
 		switch a0sym {
@@ -282,7 +282,7 @@ func EVAL(ctx context.Context, ast MalType, env EnvType) (MalType, error) {
 				}
 			}
 			for i := 0; i < len(arr1); i += 2 {
-				if !Symbol_Q(arr1[i]) {
+				if !Q[Symbol](arr1[i]) {
 					return nil, RuntimeError{
 						ErrorVal: errors.New("non-symbol bind value"),
 						Cursor:   a1.(Vector).Cursor,
@@ -451,7 +451,7 @@ func EVAL(ctx context.Context, ast MalType, env EnvType) (MalType, error) {
 				return nil, PushError(ast.(List).Cursor, ast, e)
 			}
 			f := el.(List).Val[0]
-			if MalFunc_Q(f) {
+			if Q[MalFunc](f) {
 				fn := f.(MalFunc)
 				ast = fn.Exp
 				env, e = NewEnv(fn.Env, fn.Params, List{Val: el.(List).Val[1:]})
@@ -495,7 +495,7 @@ func EVAL(ctx context.Context, ast MalType, env EnvType) (MalType, error) {
 }
 
 func first(list MalType) string {
-	if list != nil && List_Q(list) && Symbol_Q(list.(List).Val[0]) {
+	if list != nil && Q[List](list) && Q[Symbol](list.(List).Val[0]) {
 		return list.(List).Val[0].(Symbol).Val
 	}
 	return ""
