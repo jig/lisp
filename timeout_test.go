@@ -4,8 +4,6 @@ import (
 	"context"
 	"testing"
 	"time"
-
-	"github.com/jig/lisp/types"
 )
 
 func TestContextTimeoutFiresOnTime(t *testing.T) {
@@ -15,7 +13,7 @@ func TestContextTimeoutFiresOnTime(t *testing.T) {
 	if _, err := REPL(ctx, newEnv(), `(sleep 1000)`); err == nil {
 		t.Fatalf("Must fail")
 	} else {
-		if err.(types.RuntimeError).ErrorVal.Error() != "timeout while evaluating expression" {
+		if err.Error() != "timeout while evaluating expression" {
 			t.Fatal(err)
 		}
 	}

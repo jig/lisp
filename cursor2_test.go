@@ -36,9 +36,7 @@ func TestCursor2(t *testing.T) {
 	case nil:
 		t.Error("unexpected: no error returned")
 	case types.MalError:
-		t.Fatal(err)
-	case types.RuntimeError:
-		if err.Cursor.Row != 12 {
+		if err.Cursor.Row != 11 {
 			t.Fatalf("%+v %s", err.Cursor, err)
 		}
 	}

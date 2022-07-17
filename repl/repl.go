@@ -55,10 +55,10 @@ func Execute(ctx context.Context, repl_env types.EnvType) error {
 			if err.Error() == "<empty line>" {
 				continue
 			}
-			if err, ok := err.(types.RuntimeError); ok && err.ErrorVal != nil {
-				if err.ErrorVal.Error() == "expected ')', got EOF" ||
-					err.ErrorVal.Error() == "expected ']', got EOF" ||
-					err.ErrorVal.Error() == "expected '}', got EOF" {
+			if err, ok := err.(types.MalError); ok && err.Obj != nil {
+				if err.Error() == "expected ')', got EOF" ||
+					err.Error() == "expected ']', got EOF" ||
+					err.Error() == "expected '}', got EOF" {
 					l.SetPrompt("\033[31m›\033[0m ")
 					continue
 				}
@@ -66,9 +66,6 @@ func Execute(ctx context.Context, repl_env types.EnvType) error {
 			lines = []string{}
 			l.SetPrompt("\033[32m»\033[0m ")
 			switch err := err.(type) {
-			case types.RuntimeError:
-				fmt.Printf("\033[31mError:\033[0m %s\n", err.Error())
-				continue
 			case types.MalError:
 				errorString, err2 := lisp.PRINT(err.Obj)
 				if err2 != nil {

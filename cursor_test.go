@@ -58,14 +58,14 @@ func TestCursor(t *testing.T) {
 		{
 			Module: "codeUndefinedSymbol",
 			Code:   codeUndefinedSymbol,
-			Error: types.RuntimeError{
+			Error: types.MalError{
 				Cursor: &types.Position{Row: 3},
 			},
 		},
 		{
 			Module: "codeLetIsBogus",
 			Code:   codeLetIsBogus,
-			Error: types.RuntimeError{
+			Error: types.MalError{
 				Cursor: &types.Position{Row: 4},
 			},
 		},
@@ -77,14 +77,14 @@ func TestCursor(t *testing.T) {
 		{
 			Module: "codeMissingRightBracket",
 			Code:   codeMissingRightBracket,
-			Error: types.RuntimeError{
+			Error: types.MalError{
 				Cursor: &types.Position{Row: 8},
 			},
 		},
 		{
 			Module: "codeTooManyRightBrackets",
 			Code:   codeTooManyRightBrackets,
-			Error: types.RuntimeError{
+			Error: types.MalError{
 				Cursor: &types.Position{Row: 25},
 			},
 		},
@@ -101,18 +101,6 @@ func TestCursor(t *testing.T) {
 		case nil:
 			if testCase.Error != nil {
 				t.Fatalf("Expected error %q", testCase.Error)
-			}
-			continue
-		case types.RuntimeError:
-			switch tt := testCase.Error.(type) {
-			case types.RuntimeError:
-				if err.ErrorPosition().Row != tt.Cursor.Row {
-					t.Fatal(err.Error(), err.ErrorPosition().Row, tt.Cursor.Row)
-				}
-			case types.MalError:
-				if err.ErrorPosition().Row != tt.Cursor.Row {
-					t.Fatal(err.Error(), err.ErrorPosition().Row, tt.Cursor.Row)
-				}
 			}
 			continue
 		case types.MalError:

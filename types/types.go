@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"runtime"
 	"strings"
 	"sync"
 )
@@ -28,17 +29,20 @@ type MalError struct {
 }
 
 func (e MalError) Error() string {
-	switch v := e.Obj.(type) {
+	switch err := e.Obj.(type) {
 	case string:
-		return v
+		return err
+	case runtime.Error:
+		return err.Error()
+	case error:
+		return err.Error()
 	default:
-		return fmt.Sprintf("%#v", v)
+		return fmt.Sprintf("%T: %s", err, err)
 	}
 }
 
 // General types
-type MalType interface {
-}
+type MalType interface{}
 
 type EnvType interface {
 	Find(key Symbol) EnvType
@@ -371,45 +375,6 @@ func ConvertTo(from []MalType, _to MalType, meta MalType) (MalType, error) {
 	default:
 		return nil, fmt.Errorf("cannot convert to type %T", _to)
 	}
-}
-
-type RuntimeError struct {
-	ErrorVal error         // deep cause of the stack error
-	Trace    string        // intermediate evaluated form
-	Parent   *RuntimeError // outer stack
-	Cursor   *Position     // source code line and column
-}
-
-// Stack shows error stack. Last element on array is the original error the generated the stack
-func (e RuntimeError) Stack() []string {
-	errStack := []string{}
-	for {
-		errStack = append(errStack, Line(e.Cursor, "Trace: "+e.Trace))
-		if e.ErrorVal != nil {
-			errStack = append(errStack, e.Error())
-		}
-		if e.Parent == nil {
-			return errStack
-		}
-		e = *e.Parent
-	}
-}
-
-func (e RuntimeError) Error() string {
-	if e.Parent != nil {
-		return e.Parent.Error()
-	}
-	return Line(e.Cursor, "Error: "+e.ErrorVal.Error())
-}
-
-func (e RuntimeError) ErrorPosition() Position {
-	if e.Parent != nil {
-		return e.Parent.ErrorPosition()
-	}
-	if e.Cursor != nil {
-		return *e.Cursor
-	}
-	return Position{}
 }
 
 func Line(cursor *Position, message string) string {
