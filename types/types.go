@@ -19,6 +19,14 @@ type Position struct {
 	Col      int
 }
 
+func NewCursorFile(module string) *Position {
+	return &Position{
+		Module:   &module,
+		BeginRow: 1,
+		BeginCol: 1,
+	}
+}
+
 func NewCursor(here *Position) *Position {
 	return &Position{
 		Module:   here.Module,
@@ -158,7 +166,10 @@ func (f MalFunc) GetMacro() bool {
 func Apply(ctx context.Context, f_mt MalType, a []MalType) (MalType, error) {
 	switch f := f_mt.(type) {
 	case MalFunc:
-		env, e := f.GenEnv(f.Env, f.Params, List{a, nil, f.Cursor})
+		env, e := f.GenEnv(f.Env, f.Params, List{
+			Val:    a,
+			Cursor: f.Cursor,
+		})
 		if e != nil {
 			return nil, e
 		}

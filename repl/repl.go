@@ -50,7 +50,7 @@ func Execute(ctx context.Context, repl_env types.EnvType) error {
 		lines = append(lines, line)
 		completeLine := strings.Join(lines, "\n")
 
-		out, err := lisp.REPL(ctx, repl_env, completeLine)
+		out, err := lisp.REPL(ctx, repl_env, completeLine, types.NewCursorFile("REPL"))
 		if err != nil {
 			if err.Error() == "<empty line>" {
 				continue

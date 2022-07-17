@@ -3,6 +3,7 @@ package nscore
 import (
 	"context"
 	"os"
+	"reflect"
 
 	"github.com/jig/lisp"
 	"github.com/jig/lisp/lib/core"
@@ -39,13 +40,13 @@ func Load(repl_env EnvType) error {
 	}})
 
 	ctx := context.Background()
-	if _, err := lisp.REPL(ctx, repl_env, malHostLanguage); err != nil {
+	if _, err := lisp.REPL(ctx, repl_env, malHostLanguage, types.NewCursorFile(reflect.TypeOf(malHostLanguage).PkgPath())); err != nil {
 		return err
 	}
-	if _, err := lisp.REPL(ctx, repl_env, malNot); err != nil {
+	if _, err := lisp.REPL(ctx, repl_env, malNot, types.NewCursorFile(reflect.TypeOf(malNot).PkgPath())); err != nil {
 		return err
 	}
-	if _, err := lisp.REPL(ctx, repl_env, malCond); err != nil {
+	if _, err := lisp.REPL(ctx, repl_env, malCond, types.NewCursorFile(reflect.TypeOf(malCond).PkgPath())); err != nil {
 		return err
 	}
 	return nil
@@ -60,7 +61,7 @@ func LoadInput(repl_env EnvType) error {
 	}})
 
 	ctx := context.Background()
-	if _, err := lisp.REPL(ctx, repl_env, malLoadFile); err != nil {
+	if _, err := lisp.REPL(ctx, repl_env, malLoadFile, types.NewCursorFile(reflect.TypeOf(malLoadFile).PkgPath())); err != nil {
 		return err
 	}
 	return nil

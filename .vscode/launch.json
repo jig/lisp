@@ -5,12 +5,12 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "test try catch",
+            "name": "test macro",
             "type": "go",
             "request": "launch",
             "mode": "test",
             "program": "${workspaceFolder}",
-            "args":["-test.run", "TestTryCatchFinally"]
+            "args":["-test.run", "TestMacro"]
         },
         {
             "name": "test ALL",

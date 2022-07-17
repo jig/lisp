@@ -28,7 +28,7 @@ func TestCursor(t *testing.T) {
 
 	ctx := context.Background()
 	// core.mal: defined using the language itself
-	_, err = REPL(ctx, bootEnv, `(def *host-language* "go")`)
+	_, err = REPL(ctx, bootEnv, `(def *host-language* "go")`, types.NewCursorFile(t.Name()))
 	if err != nil {
 		t.Fatal(err)
 	}

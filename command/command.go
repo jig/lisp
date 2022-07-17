@@ -23,7 +23,7 @@ func Execute(args []string, repl_env types.EnvType) error {
 	case 1:
 		// repl loop
 		ctx := context.Background()
-		if _, err := lisp.REPL(ctx, repl_env, `(println (str "Lisp Mal [" *host-language* "]"))`); err != nil {
+		if _, err := lisp.REPL(ctx, repl_env, `(println (str "Lisp Mal [" *host-language* "]"))`, types.NewCursorFile("REPL")); err != nil {
 			return fmt.Errorf("internal error: %s", err)
 		}
 		if err := repl.Execute(ctx, repl_env); err != nil {
@@ -41,7 +41,7 @@ func Execute(args []string, repl_env types.EnvType) error {
 						testParams := fmt.Sprintf(`(def *test-params* {:test-file %q :test-absolute-path %q})`, info.Name(), path)
 
 						ctx := context.Background()
-						if _, err := lisp.REPL(ctx, repl_env, testParams); err != nil {
+						if _, err := lisp.REPL(ctx, repl_env, testParams, types.NewCursorFile(info.Name())); err != nil {
 							return err
 						}
 						if _, err := lisp.REPLPosition(ctx, repl_env, `(load-file "`+path+`")`, &types.Position{

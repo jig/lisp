@@ -155,7 +155,6 @@ func macroexpand(ctx context.Context, ast MalType, env EnvType) (MalType, error)
 }
 
 func eval_ast(ctx context.Context, ast MalType, env EnvType) (MalType, error) {
-	//fmt.Printf("eval_ast: %#v\n", ast)
 	if Q[Symbol](ast) {
 		value, err := env.Get(ast.(Symbol))
 		if err != nil {
@@ -212,13 +211,13 @@ func EVAL(ctx context.Context, ast MalType, env EnvType) (MalType, error) {
 			}
 		}
 
-		switch ast.(type) {
+		switch ast := ast.(type) {
 		case List: // continue
 			// aStr, _ := PRINT(ast)
-			// fmt.Printf("%s> %s\n", ast.(List).Cursor, aStr)
+			// fmt.Printf("%s◉ %s\n", ast.Cursor, aStr)
 		default:
 			// aStr, _ := PRINT(ast)
-			// fmt.Printf("%T> %s\n", ast, aStr)
+			// fmt.Printf("%T○ %s\n", ast, aStr)
 			return eval_ast(ctx, ast, env)
 		}
 
@@ -528,7 +527,6 @@ func malRecover(err *error) {
 	rerr := recover()
 	if rerr != nil {
 		*err = rerr.(error)
-		fmt.Println("***********", *err)
 	}
 }
 
@@ -538,8 +536,8 @@ func PRINT(exp MalType) (string, error) {
 }
 
 // REPL
-func REPL(ctx context.Context, repl_env EnvType, str string) (MalType, error) {
-	return REPLPosition(ctx, repl_env, str, nil)
+func REPL(ctx context.Context, repl_env EnvType, str string, cursor *Position) (MalType, error) {
+	return REPLPosition(ctx, repl_env, str, cursor)
 }
 
 // REPLPosition
@@ -547,6 +545,9 @@ func REPLPosition(ctx context.Context, repl_env EnvType, str string, cursor *Pos
 	var exp MalType
 	var res string
 	var e error
+	// if cursor == nil {
+	// 	panic(":::")
+	// }
 	if exp, e = READ(str, cursor); e != nil {
 		return nil, e
 	}
