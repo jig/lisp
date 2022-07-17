@@ -12,9 +12,44 @@ import (
 )
 
 type Position struct {
-	Module *string
-	Row    int
-	Col    int
+	Module   *string
+	BeginRow int
+	BeginCol int
+	Row      int
+	Col      int
+}
+
+func NewCursor(here *Position) *Position {
+	return &Position{
+		Module:   here.Module,
+		BeginRow: here.BeginRow,
+		BeginCol: here.BeginCol,
+	}
+}
+
+func (c *Position) Close(here *Position) *Position {
+	return &Position{
+		Module:   c.Module,
+		BeginRow: c.BeginRow,
+		BeginCol: c.BeginCol,
+		Row:      here.Row,
+		Col:      here.Col,
+	}
+}
+
+func (cursor *Position) String() string {
+	if cursor == nil {
+		return ""
+	}
+	moduleName := ""
+	if cursor.Module != nil {
+		moduleName = *cursor.Module
+	}
+	if cursor.BeginRow != cursor.Row {
+		return fmt.Sprintf("%s§%d…%d", moduleName, cursor.BeginRow, cursor.Row)
+	} else {
+		return fmt.Sprintf("%s§%d,%d…%d", moduleName, cursor.Row, cursor.BeginCol, cursor.Col)
+	}
 }
 
 type Token struct {
@@ -378,29 +413,7 @@ func ConvertTo(from []MalType, _to MalType, meta MalType) (MalType, error) {
 }
 
 func Line(cursor *Position, message string) string {
-	if cursor == nil {
-		return message
-	}
-	moduleName := ""
-	if cursor.Module != nil {
-		moduleName = *cursor.Module
-	}
-	if cursor.Row == 0 {
-		if moduleName != "" {
-			return fmt.Sprintf("%s: %s", moduleName, message)
-		}
-		return message
-	}
-	if cursor.Col == 0 {
-		if cursor.Module != nil {
-			return fmt.Sprintf("%s(L%d): %s", moduleName, cursor.Row, message)
-		}
-		return fmt.Sprintf("(L%d): %s", cursor.Row, message)
-	}
-	if cursor.Module != nil {
-		return fmt.Sprintf("%s(L%d,%d): %s", moduleName, cursor.Row, cursor.Col, message)
-	}
-	return fmt.Sprintf("(L%d,%d): %s", cursor.Row, cursor.Col, message)
+	return cursor.String() + ": " + message
 }
 
 // Placeholder

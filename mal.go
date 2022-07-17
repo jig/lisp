@@ -214,7 +214,11 @@ func EVAL(ctx context.Context, ast MalType, env EnvType) (MalType, error) {
 
 		switch ast.(type) {
 		case List: // continue
+			// aStr, _ := PRINT(ast)
+			// fmt.Printf("%s> %s\n", ast.(List).Cursor, aStr)
 		default:
+			// aStr, _ := PRINT(ast)
+			// fmt.Printf("%T> %s\n", ast, aStr)
 			return eval_ast(ctx, ast, env)
 		}
 

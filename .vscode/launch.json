@@ -5,7 +5,15 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "test",
+            "name": "test try catch",
+            "type": "go",
+            "request": "launch",
+            "mode": "test",
+            "program": "${workspaceFolder}",
+            "args":["-test.run", "TestTryCatchFinally"]
+        },
+        {
+            "name": "test ALL",
             "type": "go",
             "request": "launch",
             "mode": "test",

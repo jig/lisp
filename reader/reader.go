@@ -56,29 +56,32 @@ func tokenize(str string, cursor *Position) []Token {
 		}
 		if groupConsumed[0] == '\n' {
 			cursor.Row++
-			cursor.Col = 0
+			cursor.Col = 1
 		}
 		groupTrimmed := group[1]
 		if (groupTrimmed == "") || (groupTrimmed[0] == ';') {
 			continue
 		}
 		var colDelta int
+		cursor.BeginCol = cursor.Col
+		cursor.BeginRow = cursor.Row
 		if strings.HasPrefix(groupTrimmed, "¬") {
 			for _, c := range groupConsumed {
 				colDelta++
 				if c == '\n' {
 					cursor.Row++
-					colDelta = 0
+					colDelta = 1
 				}
 			}
 		} else {
-			colDelta = len(groupConsumed)
+			colDelta = len(groupTrimmed)
 		}
+		cursor.Col += colDelta
 		results = append(results, Token{
 			Value:  groupTrimmed,
 			Cursor: *cursor,
 		})
-		cursor.Col += colDelta
+		// fmt.Printf("%s⇒%s\n", cursor, groupTrimmed)
 	}
 	return results
 }
@@ -130,6 +133,7 @@ func read_list(rdr Reader, start string, end string, placeholderValues *HashMap)
 	if tokenStruct == nil {
 		return nil, MalError{Obj: errors.New("read_list underflow"), Cursor: &tokenStruct.Cursor}
 	}
+	cursor := NewCursor(&tokenStruct.Cursor)
 	token := &tokenStruct.Value
 	if *token != start {
 		return nil, MalError{Obj: errors.New("expected '" + start + "'"), Cursor: &tokenStruct.Cursor}
@@ -154,7 +158,7 @@ func read_list(rdr Reader, start string, end string, placeholderValues *HashMap)
 		ast_list = append(ast_list, f)
 	}
 	rdr.next()
-	return List{Val: ast_list, Cursor: &tokenStruct.Cursor}, nil
+	return List{Val: ast_list, Cursor: cursor.Close(&tokenStruct.Cursor)}, nil
 }
 
 func read_vector(rdr Reader, placeholderValues *HashMap) (MalType, error) {
@@ -195,6 +199,7 @@ func read_form(rdr Reader, placeholderValues *HashMap) (MalType, error) {
 	if tokenStruct == nil {
 		return nil, MalError{Obj: errors.New("read_form underflow"), Cursor: &tokenStruct.Cursor}
 	}
+	cursor := NewCursor(&tokenStruct.Cursor)
 	switch tokenStruct.Value {
 	case `'`:
 		rdr.next()
@@ -202,28 +207,28 @@ func read_form(rdr Reader, placeholderValues *HashMap) (MalType, error) {
 		if e != nil {
 			return nil, e
 		}
-		return List{Val: []MalType{Symbol{Val: "quote", Cursor: &tokenStruct.Cursor}, form}, Cursor: &tokenStruct.Cursor}, nil
+		return List{Val: []MalType{Symbol{Val: "quote", Cursor: &tokenStruct.Cursor}, form}, Cursor: cursor.Close(&tokenStruct.Cursor)}, nil
 	case "`":
 		rdr.next()
 		form, e := read_form(rdr, placeholderValues)
 		if e != nil {
 			return nil, e
 		}
-		return List{Val: []MalType{Symbol{Val: "quasiquote", Cursor: &tokenStruct.Cursor}, form}, Cursor: &tokenStruct.Cursor}, nil
+		return List{Val: []MalType{Symbol{Val: "quasiquote", Cursor: &tokenStruct.Cursor}, form}, Cursor: cursor.Close(&tokenStruct.Cursor)}, nil
 	case `~`:
 		rdr.next()
 		form, e := read_form(rdr, placeholderValues)
 		if e != nil {
 			return nil, e
 		}
-		return List{Val: []MalType{Symbol{Val: "unquote", Cursor: &tokenStruct.Cursor}, form}, Cursor: &tokenStruct.Cursor}, nil
+		return List{Val: []MalType{Symbol{Val: "unquote", Cursor: &tokenStruct.Cursor}, form}, Cursor: cursor.Close(&tokenStruct.Cursor)}, nil
 	case `~@`:
 		rdr.next()
 		form, e := read_form(rdr, placeholderValues)
 		if e != nil {
 			return nil, e
 		}
-		return List{Val: []MalType{Symbol{Val: "splice-unquote", Cursor: &tokenStruct.Cursor}, form}, Cursor: &tokenStruct.Cursor}, nil
+		return List{Val: []MalType{Symbol{Val: "splice-unquote", Cursor: &tokenStruct.Cursor}, form}, Cursor: cursor.Close(&tokenStruct.Cursor)}, nil
 	case `^`:
 		rdr.next()
 		meta, e := read_form(rdr, placeholderValues)
@@ -234,14 +239,14 @@ func read_form(rdr Reader, placeholderValues *HashMap) (MalType, error) {
 		if e != nil {
 			return nil, e
 		}
-		return List{Val: []MalType{Symbol{Val: "with-meta", Cursor: &tokenStruct.Cursor}, form, meta}, Cursor: &tokenStruct.Cursor}, nil
+		return List{Val: []MalType{Symbol{Val: "with-meta", Cursor: &tokenStruct.Cursor}, form, meta}, Cursor: cursor.Close(&tokenStruct.Cursor)}, nil
 	case `@`:
 		rdr.next()
 		form, e := read_form(rdr, placeholderValues)
 		if e != nil {
 			return nil, e
 		}
-		return List{Val: []MalType{Symbol{Val: "deref", Cursor: &tokenStruct.Cursor}, form}, Cursor: &tokenStruct.Cursor}, nil
+		return List{Val: []MalType{Symbol{Val: "deref", Cursor: &tokenStruct.Cursor}, form}, Cursor: cursor.Close(&tokenStruct.Cursor)}, nil
 
 	// list
 	case ")":

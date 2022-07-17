@@ -1,18 +1,21 @@
 ;; uncomment to test
 
-;; (try
-;;     (println 1)
-;;     (println 2)
-;;     (println 3)
-;;     (throw true)
-;;     (catch e
-;;         (println 4)
-;;         (println 5)
-;;         (println 6)
-;;         e)
-;;     (finally
-;;         (println 7)
-;;         (println 8)
-;;         (println 9)))
+(try
+    (prn 1)
+    (prn 2)
+    (prn 3)
+    (throw true)
+    (catch e
+        (prn 4)
+        (prn 5)
+        (prn 6)
+        (prn {
+            :err e
+            :desc "miserable error"
+        })
+        e)
+    (finally
+        (prn 7)
+        (prn 8)
+        (prn 9)))
 
-true
