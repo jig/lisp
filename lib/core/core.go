@@ -1033,22 +1033,14 @@ func array2list(a []interface{}) MalType {
 	return l
 }
 
-func readLine(_prompt MalType) (MalType, error) {
-	prompt, ok := _prompt.(string)
-	if !ok {
-		return nil, errors.New("not a string")
-	}
+func readLine(prompt string) (MalType, error) {
 	scanner := bufio.NewScanner(os.Stdin)
 	fmt.Print(prompt)
 	scanner.Scan()
 	return scanner.Text(), nil
 }
 
-func sleep(ctx context.Context, _ms MalType) (MalType, error) {
-	ms, ok := _ms.(int)
-	if !ok {
-		return nil, errors.New("not an int")
-	}
+func sleep(ctx context.Context, ms int) (MalType, error) {
 	select {
 	case <-ctx.Done():
 		return nil, errors.New("timeout while evaluating expression")
@@ -1057,12 +1049,8 @@ func sleep(ctx context.Context, _ms MalType) (MalType, error) {
 	}
 }
 
-func str2binary(str MalType) (MalType, error) {
-	aStr, ok := str.(string)
-	if !ok {
-		return nil, errors.New("not a string")
-	}
-	return []byte(aStr), nil
+func str2binary(str string) (MalType, error) {
+	return []byte(str), nil
 }
 
 func binary2str(bytes MalType) (MalType, error) {
@@ -1073,20 +1061,12 @@ func binary2str(bytes MalType) (MalType, error) {
 	return string(aBytes), nil
 }
 
-func base64encode(bytes MalType) (MalType, error) {
-	aBytes, ok := bytes.([]byte)
-	if !ok {
-		return nil, errors.New("not a []byte")
-	}
-	return base64.StdEncoding.EncodeToString(aBytes), nil
+func base64encode(b []byte) (MalType, error) {
+	return base64.StdEncoding.EncodeToString(b), nil
 }
 
-func base64decode(str MalType) (MalType, error) {
-	aStr, ok := str.(string)
-	if !ok {
-		return nil, errors.New("not a string")
-	}
-	result, err := base64.StdEncoding.DecodeString(aStr)
+func base64decode(str string) (MalType, error) {
+	result, err := base64.StdEncoding.DecodeString(str)
 	if err != nil {
 		return nil, err
 	}
