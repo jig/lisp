@@ -103,13 +103,14 @@ var re = regexp.MustCompile(`[\t\r\n \(\)\[\]\{\}]`)
 func (l *lispCompleter) Do(line []rune, pos int) (newLine [][]rune, length int) {
 	partial := re.Split(string(line[:pos]), -1)
 	lastPartial := partial[len(partial)-1]
-	l.repl_env.Map().Range(func(_key, value interface{}) bool {
-		key := _key.(string)
+	mapEnvKeys, mu := l.repl_env.Map()
+	mu.Lock()
+	defer mu.Unlock()
+	for key := range mapEnvKeys {
 		if strings.HasPrefix(key, lastPartial) {
 			newLine = append(newLine, []rune(key[len(lastPartial):]))
 		}
-		return true
-	})
+	}
 	for _, form := range []string{
 		"try",
 		"finally",

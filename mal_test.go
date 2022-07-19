@@ -130,13 +130,15 @@ func BenchmarkFibonacci(b *testing.B) {
 	}
 	ctx := context.Background()
 	for i := 0; i < b.N; i++ {
-		if _, err := REPL(ctx, repl_env, `(do
-				(def fib
-				(fn [n]                              ; non-negative number
-				(if (<= n 1)
-					n
-					(+ (fib (- n 1)) (fib (- n 2))))))
-				(fib 10))`, types.NewCursorFile(b.Name())); err != nil {
+		_, err := REPL(ctx, repl_env, `(do
+			(def fib
+			(fn [n]                              ; non-negative number
+			(if (<= n 1)
+				n
+				(+ (fib (- n 1)) (fib (- n 2))))))
+			(fib 10))`, types.NewCursorFile(b.Name()))
+
+		if err != nil {
 			b.Fatal(err)
 		}
 	}
@@ -156,28 +158,7 @@ func BenchmarkParallelFibonacci(b *testing.B) {
 					(if (<= n 1)
 						n
 						(+ (fib (- n 1)) (fib (- n 2))))))
-					(fib 0))`, types.NewCursorFile(b.Name())); err != nil {
-				b.Fatal(err)
-			}
-		}
-	})
-}
-
-func BenchmarkParallelFibonacciExec(b *testing.B) {
-	repl_env, _ := NewEnv(nil, nil, nil)
-	for k, v := range core.NS {
-		repl_env.Set(Symbol{Val: k}, Func{Fn: v.(func(context.Context, []MalType) (MalType, error))})
-	}
-	ctx := context.Background()
-	b.RunParallel(func(pb *testing.PB) {
-		for pb.Next() {
-			if _, err := REPL(ctx, repl_env, `(do
-				(def fib
-				(fn [n]                              ; non-negative number
-				(if (<= n 1)
-					n
-					(+ (fib (- n 1)) (fib (- n 2))))))
-				(fib 0))`, types.NewCursorFile(b.Name())); err != nil {
+					(fib 9))`, types.NewCursorFile(b.Name())); err != nil {
 				b.Fatal(err)
 			}
 		}

@@ -6,14 +6,16 @@ import (
 	"testing"
 	"time"
 
+	"github.com/jig/lisp/env"
 	"github.com/jig/lisp/types"
 )
 
 func TestOK(t *testing.T) {
-	ns := map[string]types.MalType{}
+	ns, _ := env.NewEnv(nil, nil, nil)
 	Call(ns, divExample, false)
-	f, ok := ns["divexample"]
-	if !ok {
+
+	f, err := ns.Get(types.Symbol{Val: "divexample"})
+	if err != nil {
 		t.Fatal("test failed")
 	}
 	fcall, ok := f.(externalCall)
@@ -27,43 +29,57 @@ func TestOK(t *testing.T) {
 }
 
 func TestNoOKResult(t *testing.T) {
-	ns := map[string]types.MalType{}
+	ns, _ := env.NewEnv(nil, nil, nil)
 	Call(ns, divExample, false)
-	_, err := ns["divexample"].(externalCall)(context.Background(), 2, 0)
-	if err.Error() != "divide by zero" {
+
+	f, err := ns.Get(types.Symbol{Val: "divexample"})
+	if err != nil {
+		t.Fatal("test failed")
+	}
+	if _, err = f.(externalCall)(context.Background(), 2, 0); err.Error() != "divide by zero" {
 		t.Fatal("test failed")
 	}
 }
 
 func TestNoOKArguments(t *testing.T) {
-	ns := map[string]types.MalType{}
+	ns, _ := env.NewEnv(nil, nil, nil)
 	Call(ns, divExample, false)
+
 	defer func() {
 		rerr := recover()
 		if rerr.(string) != "wrong number of arguments (3 instead of 2)" {
 			t.Fatal("test failed")
 		}
 	}()
-	_, _ = ns["divexample"].(externalCall)(context.Background(), 2, 3, 4)
+	f, _ := ns.Get(types.Symbol{Val: "divexample"})
+	f.(externalCall)(context.Background(), 2, 3, 4)
 }
 
 func TestOKWithContext(t *testing.T) {
-	ns := map[string]types.MalType{}
+	ns, _ := env.NewEnv(nil, nil, nil)
 	Call(ns, sleepExample, true)
-	_, err := ns["sleepexample"].(externalCall)(context.Background(), 10)
+
+	f, err := ns.Get(types.Symbol{Val: "sleepexample"})
 	if err != nil {
+		t.Fatal("test failed")
+	}
+	if _, err = f.(externalCall)(context.Background(), 10); err != nil {
 		t.Fatal("test failed")
 	}
 }
 
 func TestOKWithContextTimeout(t *testing.T) {
-	ctx, cancel := context.WithTimeout(context.Background(), 50*time.Millisecond)
+	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
 	defer cancel()
 
-	ns := map[string]types.MalType{}
+	ns, _ := env.NewEnv(nil, nil, nil)
 	Call(ns, sleepExample, true)
-	_, err := ns["sleepexample"].(externalCall)(ctx, 10)
+
+	f, err := ns.Get(types.Symbol{Val: "sleepexample"})
 	if err != nil {
+		t.Fatal("test failed")
+	}
+	if _, err := f.(externalCall)(ctx, 10); err != nil {
 		t.Fatal("test failed")
 	}
 }

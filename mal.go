@@ -545,9 +545,7 @@ func REPLPosition(ctx context.Context, repl_env EnvType, str string, cursor *Pos
 	var exp MalType
 	var res string
 	var e error
-	// if cursor == nil {
-	// 	panic(":::")
-	// }
+
 	if exp, e = READ(str, cursor); e != nil {
 		return nil, e
 	}

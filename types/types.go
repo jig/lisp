@@ -92,7 +92,13 @@ type EnvType interface {
 	Set(key Symbol, value MalType) MalType
 	Get(key Symbol) (MalType, error)
 	Remove(key Symbol) error
-	Map() *sync.Map
+	RemoveNT(key Symbol) error
+	Map() (map[string]interface{}, *sync.RWMutex)
+	Update(key Symbol, f func(MalType) (MalType, error)) (MalType, error)
+
+	FindNT(key Symbol) EnvType
+	SetNT(key Symbol, value MalType) MalType
+	GetNT(key Symbol) (MalType, error)
 }
 
 // Scalars
