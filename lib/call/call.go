@@ -10,22 +10,15 @@ import (
 	"github.com/jig/lisp/types"
 )
 
-type nilType struct{}
-
-func Call(namespace types.EnvType, fIn types.MalType, args ...string) {
+func Call(namespace types.EnvType, fIn types.MalType, args ...int) {
 	call(nil, namespace, fIn, args...)
 }
 
-func CallOverrideFN(namespace types.EnvType, overrideFN string, fIn types.MalType, args ...string) {
+func CallOverrideFN(namespace types.EnvType, overrideFN string, fIn types.MalType, args ...int) {
 	call(&overrideFN, namespace, fIn, args...)
 }
 
-const variadic int = -10
-
-func call(overrideFN *string, namespace types.EnvType, fIn types.MalType, args ...string) {
-	if len(args) > 1 {
-		panic("invalid arguments in environment setup")
-	}
+func call(overrideFN *string, namespace types.EnvType, fIn types.MalType, args ...int) {
 	functionFullName := strings.ToLower(runtime.FuncForPC(reflect.ValueOf(fIn).Pointer()).Name())
 	n := strings.LastIndex(functionFullName, ".")
 	if len(functionFullName) == -1 {
@@ -48,11 +41,30 @@ func call(overrideFN *string, namespace types.EnvType, fIn types.MalType, args .
 		contextRequired = true
 	}
 
-	var inParams int
-	if finType.IsVariadic() {
-		inParams = variadic
-	} else {
-		inParams = finType.NumIn()
+	var minArgs, maxArgs int
+	switch len(args) {
+	case 1:
+		if !finType.IsVariadic() {
+			panic(fmt.Sprintf("%s: argument maximum argument count defined but implementation is not variadic", functionFullName))
+		}
+		minArgs, maxArgs = args[0], unlimitedArgments // if only one argument: it is the minimum number of arguments
+	case 2:
+		if !finType.IsVariadic() {
+			panic(fmt.Sprintf("%s: argument maximum and minimum argument count defined but implementation is not variadic", functionFullName))
+		}
+		minArgs, maxArgs = args[0], args[1]
+	default:
+		if !finType.IsVariadic() {
+			minArgs, maxArgs = finType.NumIn(), finType.NumIn()
+		} else {
+			minArgs, maxArgs = 0, unlimitedArgments
+		}
+	}
+	if minArgs > maxArgs {
+		panic(fmt.Sprintf("%s: maximum arguments (%d) is lower than minimum arguments (%d)", functionFullName, maxArgs, minArgs))
+	}
+	if minArgs < 0 || maxArgs < 0 {
+		panic(fmt.Sprintf("%s: argument count bounds cannot be negative", functionFullName))
 	}
 
 	var extCall func(context.Context, []types.MalType) (types.MalType, error)
@@ -61,36 +73,36 @@ func call(overrideFN *string, namespace types.EnvType, fIn types.MalType, args .
 		if contextRequired {
 			extCall = func(ctx context.Context, args []types.MalType) (result types.MalType, err error) {
 				defer _recover(functionFullName, &err)
-				return _nil_nil(finValue.Call(_args_ctx(ctx, inParams, args)))
+				return _nil_nil(finValue.Call(_args_ctx(ctx, minArgs, maxArgs, args)))
 			}
 		} else {
 			extCall = func(_ context.Context, args []types.MalType) (result types.MalType, err error) {
 				defer _recover(functionFullName, &err)
-				return _nil_nil(finValue.Call(_args(inParams, args)))
+				return _nil_nil(finValue.Call(_args(minArgs, maxArgs, args)))
 			}
 		}
 	case 1:
 		if contextRequired {
 			extCall = func(ctx context.Context, args []types.MalType) (result types.MalType, err error) {
 				defer _recover(functionFullName, &err)
-				return _nil_error(finValue.Call(_args_ctx(ctx, inParams, args)))
+				return _nil_error(finValue.Call(_args_ctx(ctx, minArgs, maxArgs, args)))
 			}
 		} else {
 			extCall = func(_ context.Context, args []types.MalType) (result types.MalType, err error) {
 				defer _recover(functionFullName, &err)
-				return _nil_error(finValue.Call(_args(inParams, args)))
+				return _nil_error(finValue.Call(_args(minArgs, maxArgs, args)))
 			}
 		}
 	case 2:
 		if contextRequired {
 			extCall = func(ctx context.Context, args []types.MalType) (result types.MalType, err error) {
 				defer _recover(functionFullName, &err)
-				return _result_error(finValue.Call(_args_ctx(ctx, inParams, args)))
+				return _result_error(finValue.Call(_args_ctx(ctx, minArgs, maxArgs, args)))
 			}
 		} else {
 			extCall = func(_ context.Context, args []types.MalType) (result types.MalType, err error) {
 				defer _recover(functionFullName, &err)
-				return _result_error(finValue.Call(_args(inParams, args)))
+				return _result_error(finValue.Call(_args(minArgs, maxArgs, args)))
 			}
 		}
 	default:
@@ -113,7 +125,7 @@ func call(overrideFN *string, namespace types.EnvType, fIn types.MalType, args .
 		return hm, nil
 	})
 	if err != nil {
-		panic(err)
+		panic(fmt.Errorf("%s: error loading implementation", packageName))
 	}
 }
 
@@ -124,9 +136,15 @@ func _recover(fFullName string, err *error) {
 	}
 }
 
-func _args_ctx(ctx context.Context, inParams int, args []types.MalType) []reflect.Value {
-	if inParams != variadic && len(args) != inParams-1 {
-		panic(fmt.Sprintf("wrong number of arguments (%d instead of %d)", len(args), inParams-1))
+const unlimitedArgments = 1000
+
+func _args_ctx(ctx context.Context, minParams, maxParams int, args []types.MalType) []reflect.Value {
+	if len(args) < minParams-1 || len(args) > maxParams-1 {
+		if maxParams == unlimitedArgments {
+			panic(fmt.Sprintf("wrong number of arguments (%d instead of a minimum of %d)", len(args), minParams-1))
+		} else {
+			panic(fmt.Sprintf("wrong number of arguments (%d instead of %d…%d)", len(args), minParams-1, maxParams-1))
+		}
 	}
 
 	in := make([]reflect.Value, 1+len(args))
@@ -141,9 +159,13 @@ func _args_ctx(ctx context.Context, inParams int, args []types.MalType) []reflec
 	return in
 }
 
-func _args(inParams int, args []types.MalType) []reflect.Value {
-	if inParams != variadic && len(args) != inParams {
-		panic(fmt.Sprintf("wrong number of arguments (%d instead of %d)", len(args), inParams))
+func _args(minParams, maxParams int, args []types.MalType) []reflect.Value {
+	if len(args) < minParams || len(args) > maxParams {
+		if maxParams == unlimitedArgments {
+			panic(fmt.Sprintf("wrong number of arguments (%d instead of a minimum of %d)", len(args), minParams))
+		} else {
+			panic(fmt.Sprintf("wrong number of arguments (%d instead of %d…%d)", len(args), minParams, maxParams))
+		}
 	}
 
 	in := make([]reflect.Value, len(args))

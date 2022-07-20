@@ -111,14 +111,10 @@ func Load(env EnvType) {
 	call.CallOverrideFN(env, "atom?", func(a MalType) (MalType, error) { return Q[*Atom](a), nil })
 	call.CallOverrideFN(env, "sequential?", func(a MalType) (MalType, error) { return Sequential_Q(a), nil })
 
-	call.Call(env, apply)
-	call.Call(env, conj)
+	call.Call(env, apply, 2)
+	call.Call(env, conj, 2)
 	call.CallOverrideFN(env, "swap!", swap_BANG)
-	call.Call(env, assert)
-	// "apply": call.CallVeC(2, 1000_000, apply), // at least 2
-	// "conj": call.CallVe(2, 1000_000, conj), // at least 2
-	// "swap!": call.CallNeC(swap_BANG),
-	// "assert": call.CallVe(1, 2, assert),
+	call.Call(env, assert, 1, 2)
 }
 
 func LoadInput(env types.EnvType) {
@@ -653,9 +649,6 @@ func mAp(ctx context.Context, f, seq MalType) (MalType, error) {
 }
 
 func conj(a ...MalType) (MalType, error) {
-	if len(a) < 2 {
-		return nil, errors.New("conj requires at least 2 arguments")
-	}
 	seq := a[0]
 	switch seq := seq.(type) {
 	case List:
@@ -842,8 +835,6 @@ func rename_keys(data, alternative HashMap) (HashMap, error) {
 func assert(a ...MalType) (MalType, error) {
 	var a0, a1 MalType
 	switch len(a) {
-	case 0:
-		return nil, errors.New("one or two parameters required")
 	case 1:
 		a0 = a[0]
 	case 2:

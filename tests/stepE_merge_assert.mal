@@ -40,7 +40,7 @@
 
 ;; assert
 (assert)
-;/Error: one or two parameters required
+;/.*wrong number of arguments \(0 instead of 1…2\)$
 (assert true)
 ;=>nil
 ;/^$
