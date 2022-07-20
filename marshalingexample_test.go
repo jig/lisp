@@ -3,12 +3,12 @@ package lisp
 import (
 	"encoding/json"
 
-	"github.com/jig/lisp/lib/call-helper"
+	"github.com/jig/lisp/lib/call"
 	"github.com/jig/lisp/types"
 )
 
-var NSMarshalExample = map[string]types.MalType{
-	"new-marshalexample": call.Call0e(newLispMarshalExample),
+func LoadMarshalExample(ns types.EnvType) {
+	call.Call(ns, new_marshalexample)
 }
 
 type MarshalExample struct {
@@ -33,11 +33,11 @@ type LispMarshalExampleFactory struct {
 	Type MarshalExample
 }
 
-func newLispMarshalExample() (types.MalType, error) {
+func new_marshalexample() (types.MalType, error) {
 	return LispMarshalExampleFactory{}, nil
 }
 
-func (lec LispMarshalExampleFactory) FromHashMap(_hm types.MalType) (interface{}, error) {
+func (lec LispMarshalExampleFactory) FromHashMap(_hm types.MalType) (types.MalType, error) {
 	hm := _hm.(types.HashMap)
 	ex := MarshalExample{
 		A: hm.Val["ʞa"].(int),
@@ -46,7 +46,7 @@ func (lec LispMarshalExampleFactory) FromHashMap(_hm types.MalType) (interface{}
 	return LispMarshalExample{ex}, nil
 }
 
-func (lec LispMarshalExampleFactory) FromJSON(b []byte) (interface{}, error) {
+func (lec LispMarshalExampleFactory) FromJSON(b []byte) (types.MalType, error) {
 	if err := json.Unmarshal(b, &lec.Type); err != nil {
 		return nil, err
 	}

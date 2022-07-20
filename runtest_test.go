@@ -116,10 +116,7 @@ func newEnv(fileName string) types.EnvType {
 	}})
 	newenv.Set(types.Symbol{Val: "*ARGV*"}, types.List{})
 
-	// package example to test marshalers
-	for k, v := range NSMarshalExample {
-		newenv.Set(types.Symbol{Val: k}, types.Func{Fn: v.(func(context.Context, []types.MalType) (types.MalType, error))})
-	}
+	LoadMarshalExample(newenv)
 
 	ctx := context.Background()
 	// core.mal: defined using the language itself
