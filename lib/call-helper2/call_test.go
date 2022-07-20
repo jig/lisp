@@ -298,40 +298,6 @@ func TestNilResponse(t *testing.T) {
 	}
 }
 
-func TestSwap(t *testing.T) {
-	ns, err := env.NewEnv(nil, nil, nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	CallOverrideFN(ns, "swap!", swap_BANG)
-
-	res, err := lisp.REPLPosition(context.Background(), ns, `(swap! 1 2)`, types.NewCursorFile(t.Name()))
-	if err != nil {
-		t.Fatal(err)
-	}
-	if res.(string) != "nil" {
-		t.Fatal("test failed")
-	}
-}
-
-func swap_BANG(ctx context.Context, a ...types.MalType) (types.MalType, error) {
-	if !types.Q[*types.Atom](a[0]) {
-		return nil, errors.New("swap! called with non-atom")
-	}
-	atm := a[0].(*types.Atom)
-	atm.Mutex.Lock()
-	defer atm.Mutex.Unlock()
-	args := []types.MalType{atm.Val}
-	f := a[1]
-	args = append(args, a[2:]...)
-	res, e := types.Apply(ctx, f, args)
-	if e != nil {
-		return nil, e
-	}
-	atm.Set(res)
-	return res, nil
-}
-
 // Function examples
 
 func divExample(a, b int) (int, error) {
