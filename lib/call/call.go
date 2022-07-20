@@ -126,7 +126,7 @@ func _recover(fFullName string, err *error) {
 
 func _args_ctx(ctx context.Context, inParams int, args []types.MalType) []reflect.Value {
 	if inParams != variadic && len(args) != inParams-1 {
-		panic(fmt.Sprintf("wrong number of arguments (%d instead of %d)", len(args), inParams))
+		panic(fmt.Sprintf("wrong number of arguments (%d instead of %d)", len(args), inParams-1))
 	}
 
 	in := make([]reflect.Value, 1+len(args))
