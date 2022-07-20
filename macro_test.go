@@ -519,12 +519,10 @@ type _here_ struct{}
 func TestMacro(t *testing.T) {
 	repl_env, _ := env.NewEnv(nil, nil, nil)
 	ctx := context.Background()
-	for k, v := range core.NS {
-		repl_env.Set(types.Symbol{Val: k}, types.Func{Fn: v.(func(context.Context, []types.MalType) (types.MalType, error))})
-	}
-	for k, v := range core.NSInput {
-		repl_env.Set(types.Symbol{Val: k}, types.Func{Fn: v.(func(context.Context, []types.MalType) (types.MalType, error))})
-	}
+
+	core.Load(repl_env)
+	core.LoadInput(repl_env)
+
 	repl_env.Set(types.Symbol{Val: "eval"}, types.Func{Fn: func(ctx context.Context, a []types.MalType) (types.MalType, error) {
 		return EVAL(ctx, a[0], repl_env)
 	}})

@@ -5,12 +5,18 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "test macro",
+            "name": "test root",
             "type": "go",
             "request": "launch",
             "mode": "test",
-            "program": "${workspaceFolder}",
-            "args":["-test.run", "TestMacro"]
+            "program": "${workspaceFolder}"
+        },
+        {
+            "name": "test calls",
+            "type": "go",
+            "request": "launch",
+            "mode": "test",
+            "program": "${workspaceFolder}/lib/call-helper2"
         },
         {
             "name": "test ALL",

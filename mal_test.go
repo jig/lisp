@@ -2,7 +2,6 @@ package lisp
 
 import (
 	"context"
-	"sync"
 	"testing"
 
 	. "github.com/jig/lisp/env"
@@ -14,17 +13,13 @@ import (
 func BenchmarkLoadSymbols(b *testing.B) {
 	repl_env, _ := NewEnv(nil, nil, nil)
 	for i := 0; i < b.N; i++ {
-		for k, v := range core.NS {
-			repl_env.Set(Symbol{Val: k}, Func{Fn: v.(func(context.Context, []MalType) (MalType, error))})
-		}
+		core.Load(repl_env)
 	}
 }
 
 func BenchmarkMAL1(b *testing.B) {
 	repl_env, _ := NewEnv(nil, nil, nil)
-	for k, v := range core.NS {
-		repl_env.Set(Symbol{Val: k}, Func{Fn: v.(func(context.Context, []MalType) (MalType, error))})
-	}
+	core.Load(repl_env)
 	ctx := context.Background()
 	for i := 0; i < b.N; i++ {
 		repl_env.Set(Symbol{Val: "eval"}, Func{Fn: func(ctx context.Context, a []MalType) (MalType, error) {
@@ -50,9 +45,7 @@ func BenchmarkMAL1(b *testing.B) {
 
 func BenchmarkMAL2(b *testing.B) {
 	repl_env, _ := NewEnv(nil, nil, nil)
-	for k, v := range core.NS {
-		repl_env.Set(Symbol{Val: k}, Func{Fn: v.(func(context.Context, []MalType) (MalType, error))})
-	}
+	core.Load(repl_env)
 	repl_env.Set(Symbol{Val: "eval"}, Func{Fn: func(ctx context.Context, a []MalType) (MalType, error) {
 		return EVAL(ctx, a[0], repl_env)
 	}})
@@ -67,9 +60,7 @@ func BenchmarkMAL2(b *testing.B) {
 
 func BenchmarkParallelREAD(b *testing.B) {
 	repl_env, _ := NewEnv(nil, nil, nil)
-	for k, v := range core.NS {
-		repl_env.Set(Symbol{Val: k}, Func{Fn: v.(func(context.Context, []MalType) (MalType, error))})
-	}
+	core.Load(repl_env)
 	repl_env.Set(Symbol{Val: "eval"}, Func{Fn: func(ctx context.Context, a []MalType) (MalType, error) {
 		return EVAL(ctx, a[0], repl_env)
 	}})
@@ -89,9 +80,7 @@ func BenchmarkParallelREAD(b *testing.B) {
 
 func BenchmarkParallelREP(b *testing.B) {
 	repl_env, _ := NewEnv(nil, nil, nil)
-	for k, v := range core.NS {
-		repl_env.Set(Symbol{Val: k}, Func{Fn: v.(func(context.Context, []MalType) (MalType, error))})
-	}
+	core.Load(repl_env)
 	repl_env.Set(Symbol{Val: "eval"}, Func{Fn: func(ctx context.Context, a []MalType) (MalType, error) {
 		return EVAL(ctx, a[0], repl_env)
 	}})
@@ -108,9 +97,7 @@ func BenchmarkParallelREP(b *testing.B) {
 
 func BenchmarkREP(b *testing.B) {
 	repl_env, _ := NewEnv(nil, nil, nil)
-	for k, v := range core.NS {
-		repl_env.Set(Symbol{Val: k}, Func{Fn: v.(func(context.Context, []MalType) (MalType, error))})
-	}
+	core.Load(repl_env)
 	repl_env.Set(Symbol{Val: "eval"}, Func{Fn: func(ctx context.Context, a []MalType) (MalType, error) {
 		return EVAL(ctx, a[0], repl_env)
 	}})
@@ -125,9 +112,7 @@ func BenchmarkREP(b *testing.B) {
 
 func BenchmarkFibonacci(b *testing.B) {
 	repl_env, _ := NewEnv(nil, nil, nil)
-	for k, v := range core.NS {
-		repl_env.Set(Symbol{Val: k}, Func{Fn: v.(func(context.Context, []MalType) (MalType, error))})
-	}
+	core.Load(repl_env)
 	ctx := context.Background()
 	for i := 0; i < b.N; i++ {
 		_, err := REPL(ctx, repl_env, `(do
@@ -146,9 +131,7 @@ func BenchmarkFibonacci(b *testing.B) {
 
 func BenchmarkParallelFibonacci(b *testing.B) {
 	repl_env, _ := NewEnv(nil, nil, nil)
-	for k, v := range core.NS {
-		repl_env.Set(Symbol{Val: k}, Func{Fn: v.(func(context.Context, []MalType) (MalType, error))})
-	}
+	core.Load(repl_env)
 	ctx := context.Background()
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
@@ -165,64 +148,60 @@ func BenchmarkParallelFibonacci(b *testing.B) {
 	})
 }
 
-func TestAtomParallel(t *testing.T) {
-	repl_env, _ := NewEnv(nil, nil, nil)
+// func TestAtomParallel(t *testing.T) {
+// 	repl_env, _ := NewEnv(nil, nil, nil)
 
-	// core.go: defined using go
-	for k, v := range core.NS {
-		repl_env.Set(Symbol{Val: k}, Func{Fn: v.(func(context.Context, []MalType) (MalType, error))})
-	}
-	repl_env.Set(Symbol{Val: "eval"}, Func{Fn: func(ctx context.Context, a []MalType) (MalType, error) {
-		return EVAL(ctx, a[0], repl_env)
-	}})
-	repl_env.Set(Symbol{Val: "*ARGV*"}, List{})
-	ctx := context.Background()
-	// core.mal: defined using the language itself
-	if _, err := REPL(ctx, repl_env, "(def *host-language* \"go\")", types.NewCursorFile(t.Name())); err != nil {
-		t.Fatal(err)
-	}
-	if _, err := REPL(ctx, repl_env, "(def not (fn (a) (if a false true)))", types.NewCursorFile(t.Name())); err != nil {
-		t.Fatal(err)
-	}
-	if _, err := REPL(ctx, repl_env, "(def load-file (fn (f) (eval (read-string (str \"(do \" (slurp f) \"\nnil)\")))))", types.NewCursorFile(t.Name())); err != nil {
-		t.Fatal(err)
-	}
-	if _, err := REPL(ctx, repl_env, "(defmacro cond (fn (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw \"odd number of forms to cond\")) (cons 'cond (rest (rest xs)))))))", types.NewCursorFile(t.Name())); err != nil {
-		t.Fatal(err)
-	}
+// 	// core.go: defined using go
+// 	core.Load(repl_env)
+// 	repl_env.Set(Symbol{Val: "eval"}, Func{Fn: func(ctx context.Context, a []MalType) (MalType, error) {
+// 		return EVAL(ctx, a[0], repl_env)
+// 	}})
+// 	repl_env.Set(Symbol{Val: "*ARGV*"}, List{})
+// 	ctx := context.Background()
+// 	// core.mal: defined using the language itself
+// 	if _, err := REPL(ctx, repl_env, "(def *host-language* \"go\")", types.NewCursorFile(t.Name())); err != nil {
+// 		t.Fatal(err)
+// 	}
+// 	if _, err := REPL(ctx, repl_env, "(def not (fn (a) (if a false true)))", types.NewCursorFile(t.Name())); err != nil {
+// 		t.Fatal(err)
+// 	}
+// 	if _, err := REPL(ctx, repl_env, "(def load-file (fn (f) (eval (read-string (str \"(do \" (slurp f) \"\nnil)\")))))", types.NewCursorFile(t.Name())); err != nil {
+// 		t.Fatal(err)
+// 	}
+// 	if _, err := REPL(ctx, repl_env, "(defmacro cond (fn (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw \"odd number of forms to cond\")) (cons 'cond (rest (rest xs)))))))", types.NewCursorFile(t.Name())); err != nil {
+// 		t.Fatal(err)
+// 	}
 
-	if _, err := REPL(ctx, repl_env, "(def count (atom 0))", types.NewCursorFile(t.Name())); err != nil {
-		t.Fatal(err)
-	}
-	if _, err := REPL(ctx, repl_env, "(def inc (fn [x] (+ 1 x)))", types.NewCursorFile(t.Name())); err != nil {
-		t.Fatal(err)
-	}
+// 	if _, err := REPL(ctx, repl_env, "(def count (atom 0))", types.NewCursorFile(t.Name())); err != nil {
+// 		t.Fatal(err)
+// 	}
+// 	if _, err := REPL(ctx, repl_env, "(def inc (fn [x] (+ 1 x)))", types.NewCursorFile(t.Name())); err != nil {
+// 		t.Fatal(err)
+// 	}
 
-	wd := sync.WaitGroup{}
-	for i := 0; i < 100; i++ {
-		wd.Add(1)
-		go func() {
-			for j := 0; j < 1000; j++ {
-				if _, err := REPL(ctx, repl_env, "(swap! count inc)", types.NewCursorFile(t.Name())); err != nil {
-					return
-				}
-			}
-			wd.Done()
-		}()
-	}
-	wd.Wait()
-	if _, err := REPL(ctx, repl_env, "(if (not (= @count 100000)) (throw @count))", types.NewCursorFile(t.Name())); err != nil {
-		t.Fatal(REPL(ctx, repl_env, `(println "@count != " @count)`, types.NewCursorFile(t.Name())))
-	}
-}
+// 	wd := sync.WaitGroup{}
+// 	for i := 0; i < 100; i++ {
+// 		wd.Add(1)
+// 		go func() {
+// 			for j := 0; j < 1000; j++ {
+// 				if _, err := REPL(ctx, repl_env, "(swap! count inc)", types.NewCursorFile(t.Name())); err != nil {
+// 					return
+// 				}
+// 			}
+// 			wd.Done()
+// 		}()
+// 	}
+// 	wd.Wait()
+// 	if _, err := REPL(ctx, repl_env, "(if (not (= @count 100000)) (throw @count))", types.NewCursorFile(t.Name())); err != nil {
+// 		t.Fatal(REPL(ctx, repl_env, `(println "@count != " @count)`, types.NewCursorFile(t.Name())))
+// 	}
+// }
 
 func BenchmarkAtomParallel(b *testing.B) {
 	repl_env, _ := NewEnv(nil, nil, nil)
 
 	// core.go: defined using go
-	for k, v := range core.NS {
-		repl_env.Set(Symbol{Val: k}, Func{Fn: v.(func(context.Context, []MalType) (MalType, error))})
-	}
+	core.Load(repl_env)
 	repl_env.Set(Symbol{Val: "eval"}, Func{Fn: func(ctx context.Context, a []MalType) (MalType, error) {
 		return EVAL(ctx, a[0], repl_env)
 	}})

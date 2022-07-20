@@ -3,9 +3,11 @@ package call2
 import (
 	"context"
 	"errors"
+	"fmt"
 	"testing"
 	"time"
 
+	"github.com/jig/lisp"
 	"github.com/jig/lisp/env"
 	"github.com/jig/lisp/types"
 )
@@ -18,11 +20,11 @@ func TestOK(t *testing.T) {
 	if err != nil {
 		t.Fatal("test failed")
 	}
-	fcall, ok := f.(externalCall)
+	fcall, ok := f.(types.Func)
 	if !ok {
 		t.Fatal("test failed")
 	}
-	result, err := fcall(context.Background(), 2, 6)
+	result, err := fcall.Fn(context.Background(), []types.MalType{2, 6})
 	if result.(int) != 8 || err != nil {
 		t.Fatal("test failed")
 	}
@@ -36,7 +38,7 @@ func TestNoOKResult(t *testing.T) {
 	if err != nil {
 		t.Fatal("test failed")
 	}
-	if _, err = f.(externalCall)(context.Background(), 2, 0); err.Error() != "divide by zero" {
+	if _, err = f.(types.Func).Fn(context.Background(), []types.MalType{2, 0}); err.Error() != "divide by zero" {
 		t.Fatal("test failed")
 	}
 }
@@ -45,14 +47,11 @@ func TestNoOKArguments(t *testing.T) {
 	ns, _ := env.NewEnv(nil, nil, nil)
 	Call(ns, divExample)
 
-	defer func() {
-		rerr := recover()
-		if rerr.(string) != "wrong number of arguments (3 instead of 2)" {
-			t.Fatal("test failed")
-		}
-	}()
 	f, _ := ns.Get(types.Symbol{Val: "divexample"})
-	f.(externalCall)(context.Background(), 2, 3, 4)
+	_, err := f.(types.Func).Fn(context.Background(), []types.MalType{2, 3, 4})
+	if err.Error() != "github.com/jig/lisp/lib/call-helper2.divexample: wrong number of arguments (3 instead of 2)" {
+		t.Fatal("test failed")
+	}
 }
 
 func TestOKWithContext(t *testing.T) {
@@ -63,7 +62,7 @@ func TestOKWithContext(t *testing.T) {
 	if err != nil {
 		t.Fatal("test failed")
 	}
-	if _, err = f.(externalCall)(context.Background(), 10); err != nil {
+	if _, err = f.(types.Func).Fn(context.Background(), []types.MalType{10}); err != nil {
 		t.Fatal("test failed")
 	}
 }
@@ -79,7 +78,7 @@ func TestOKWithContextTimeout(t *testing.T) {
 	if err != nil {
 		t.Fatal("test failed")
 	}
-	if _, err := f.(externalCall)(ctx, 10); err != nil {
+	if _, err := f.(types.Func).Fn(ctx, []types.MalType{10}); err != nil {
 		t.Fatal("test failed")
 	}
 }
@@ -113,6 +112,228 @@ func TestPackageRegister(t *testing.T) {
 	}
 }
 
+func TestNoArgsNoResult(t *testing.T) {
+	ns, _ := env.NewEnv(nil, nil, nil)
+	Call(ns, no_args_no_res)
+
+	f, err := ns.Get(types.Symbol{Val: "no-args-no-res"})
+	if err != nil {
+		t.Fatal("test failed")
+	}
+	fcall, ok := f.(types.Func)
+	if !ok {
+		t.Fatal("test failed")
+	}
+	result, err := fcall.Fn(context.Background(), []types.MalType{})
+	if result != nil || err != nil {
+		t.Fatal("test failed")
+	}
+}
+
+func TestVariadic(t *testing.T) {
+	ns, _ := env.NewEnv(nil, nil, nil)
+	Call(ns, sum_Example)
+
+	f, err := ns.Get(types.Symbol{Val: "sum-example"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	fcall, ok := f.(types.Func)
+	if !ok {
+		t.Fatal("test failed")
+	}
+	result, err := fcall.Fn(context.Background(), []types.MalType{1, 2, 3, 4, 5, 6})
+	if result.(int) != 21 || err != nil {
+		t.Fatal("test failed")
+	}
+}
+
+func TestVariadicNoArgs(t *testing.T) {
+	ns, _ := env.NewEnv(nil, nil, nil)
+	Call(ns, sum_Example)
+
+	f, err := ns.Get(types.Symbol{Val: "sum-example"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	fcall, ok := f.(types.Func)
+	if !ok {
+		t.Fatal("test failed")
+	}
+	result, err := fcall.Fn(context.Background(), []types.MalType{})
+	if result.(int) != 0 || err != nil {
+		t.Fatal("test failed")
+	}
+}
+
+func TestLisp(t *testing.T) {
+	ns, err := env.NewEnv(nil, nil, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	Call(ns, sum_Example)
+
+	res, err := lisp.REPLPosition(context.Background(), ns, `(sum-example 33)`, types.NewCursorFile(t.Name()))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.(string) != "33" {
+		t.Fatal("test failed")
+	}
+}
+
+func TestLispNil(t *testing.T) {
+	ns, err := env.NewEnv(nil, nil, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	Call(ns, sum_Example)
+
+	ast, err := lisp.READ(`(sum-example nil)`, types.NewCursorFile(t.Name()))
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = lisp.EVAL(context.Background(), ast, ns)
+	if err.Error() != "github.com/jig/lisp/lib/call-helper2.sum_example: reflect: cannot use types.MalType as type int in Call" {
+		t.Fatal(err)
+	}
+}
+
+func TestWrongTypePassed(t *testing.T) {
+	ns, err := env.NewEnv(nil, nil, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	Call(ns, divExample)
+
+	_, err = lisp.REPLPosition(context.Background(), ns, `(divexample "hello" "world")`, types.NewCursorFile(t.Name()))
+	if err.Error() != "github.com/jig/lisp/lib/call-helper2.divexample: reflect: Call using string as type int" {
+		t.Fatal(err)
+	}
+}
+
+func TestCount(t *testing.T) {
+	ns, err := env.NewEnv(nil, nil, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	Call(ns, count)
+
+	res, err := lisp.REPLPosition(context.Background(), ns, `(count nil)`, types.NewCursorFile(t.Name()))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.(string) != "0" {
+		t.Fatal("test failed")
+	}
+}
+
+func count(seq types.MalType) (types.MalType, error) {
+	switch seq := seq.(type) {
+	case types.List:
+		return len(seq.Val), nil
+	case types.Vector:
+		return len(seq.Val), nil
+	case types.HashMap:
+		return len(seq.Val), nil
+	case types.Set:
+		return len(seq.Val), nil
+	case nil:
+		return 0, nil
+	default:
+		return nil, fmt.Errorf("count called on non-sequence %T, %s, %#v", seq, seq, seq)
+	}
+}
+
+func TestEmpty(t *testing.T) {
+	ns, err := env.NewEnv(nil, nil, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	CallOverrideFN(ns, "empty?", empty_Q)
+
+	ast, err := lisp.READ(`(empty? "hello")`, types.NewCursorFile(t.Name()))
+	if err != nil {
+		t.Fatal(err)
+	}
+	res, err := lisp.EVAL(context.Background(), ast, ns)
+	if err.Error() != "empty? called on non-sequence" {
+		t.Fatal(err)
+	}
+	if res != nil {
+		t.Fatal("test failed")
+	}
+}
+
+func empty_Q(seq types.MalType) (types.MalType, error) {
+	switch seq := seq.(type) {
+	case types.List:
+		return len(seq.Val) == 0, nil
+	case types.Vector:
+		return len(seq.Val) == 0, nil
+	case types.HashMap:
+		return len(seq.Val) == 0, nil
+	case types.Set:
+		return len(seq.Val) == 0, nil
+	case nil:
+		return true, nil
+	default:
+		return nil, errors.New("empty? called on non-sequence")
+	}
+}
+
+func TestNilResponse(t *testing.T) {
+	ns, err := env.NewEnv(nil, nil, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	CallOverrideFN(ns, "nilly", func() (types.MalType, error) { return nil, nil })
+
+	res, err := lisp.REPLPosition(context.Background(), ns, `(nilly)`, types.NewCursorFile(t.Name()))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.(string) != "nil" {
+		t.Fatal("test failed")
+	}
+}
+
+func TestSwap(t *testing.T) {
+	ns, err := env.NewEnv(nil, nil, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	CallOverrideFN(ns, "swap!", swap_BANG)
+
+	res, err := lisp.REPLPosition(context.Background(), ns, `(swap! 1 2)`, types.NewCursorFile(t.Name()))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.(string) != "nil" {
+		t.Fatal("test failed")
+	}
+}
+
+func swap_BANG(ctx context.Context, a ...types.MalType) (types.MalType, error) {
+	if !types.Q[*types.Atom](a[0]) {
+		return nil, errors.New("swap! called with non-atom")
+	}
+	atm := a[0].(*types.Atom)
+	atm.Mutex.Lock()
+	defer atm.Mutex.Unlock()
+	args := []types.MalType{atm.Val}
+	f := a[1]
+	args = append(args, a[2:]...)
+	res, e := types.Apply(ctx, f, args)
+	if e != nil {
+		return nil, e
+	}
+	atm.Set(res)
+	return res, nil
+}
+
+// Function examples
+
 func divExample(a, b int) (int, error) {
 	if b == 0 {
 		return 0, errors.New("divide by zero")
@@ -133,6 +354,18 @@ func name_with_hyphens(ctx context.Context, ms int) error {
 	return nil
 }
 
+func no_args_no_res() {
+	return
+}
+
 func name_With_Caps(ctx context.Context, ms int) error {
 	return nil
+}
+
+func sum_Example(a ...int) (int, error) {
+	acc := 0
+	for _, item := range a {
+		acc += item
+	}
+	return acc, nil
 }

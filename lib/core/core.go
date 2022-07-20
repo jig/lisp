@@ -14,126 +14,202 @@ import (
 
 	spew "github.com/davecgh/go-spew/spew"
 	"github.com/google/uuid"
-	"github.com/jig/lisp/lib/call-helper"
+	call2 "github.com/jig/lisp/lib/call-helper2"
 	"github.com/jig/lisp/marshaler"
 	"github.com/jig/lisp/printer"
 	"github.com/jig/lisp/reader"
+	"github.com/jig/lisp/types"
 
 	. "github.com/jig/lisp/types"
 )
 
-var NS = map[string]MalType{
-	"=": call.Call2b(Equal_Q),
-
-	"nil?":   call.Call1b(Nil_Q),
-	"true?":  call.Call1b(True_Q),
-	"false?": call.Call1b(False_Q),
-
-	"empty?":      call.Call1e(empty_Q),
-	"symbol?":     call.Call1b(Q[Symbol]),
-	"keyword?":    call.Call1b(Keyword_Q),
-	"string?":     call.Call1b(String_Q),
-	"number?":     call.Call1b(Q[int]),
-	"fn?":         call.Call1e(fn_q),
-	"macro?":      call.Call1e(func(a MalType) (MalType, error) { return Q[MalFunc](a) && a.(MalFunc).GetMacro(), nil }),
-	"list?":       call.Call1b(Q[List]),
-	"vector?":     call.Call1b(Q[Vector]),
-	"map?":        call.Call1b(Q[HashMap]),
-	"set?":        call.Call1b(Q[Set]),
-	"atom?":       call.Call1b(Q[*Atom]),
-	"sequential?": call.Call1b(Sequential_Q),
-
-	"apply": call.CallVeC(2, 1000_000, apply), // at least 2
-
-	"conj": call.CallVe(2, 1000_000, conj), // at least 2
-
-	"swap!": call.CallNeC(swap_BANG),
-
-	"assert": call.CallVe(1, 2, assert),
-}
-
-func init() {
-	call.CallTNO3e(NS, "assoc-in", assocIn)
-	call.CallT3eC(NS, update)
-	call.CallTNO3eC(NS, "update-in", updateIn)
-
-	call.CallTNO2e(NS, "<", func(a, b int) (bool, error) { return a < b, nil })
-	call.CallTNO2e(NS, "<=", func(a, b int) (bool, error) { return a <= b, nil })
-	call.CallTNO2e(NS, ">", func(a, b int) (bool, error) { return a > b, nil })
-	call.CallTNO2e(NS, ">=", func(a, b int) (bool, error) { return a >= b, nil })
-	call.CallTNO2e(NS, "+", func(a, b int) (int, error) { return a + b, nil })
-	call.CallTNO2e(NS, "-", func(a, b int) (int, error) { return a - b, nil })
-	call.CallTNO2e(NS, "*", func(a, b int) (int, error) { return a * b, nil })
-	call.CallTNO2e(NS, "/", func(a, b int) (int, error) { return a / b, nil })
-	call.CallT2e(NS, get)
-	call.CallTNO2e(NS, "get-in", getIn)
-	call.CallTNO2e(NS, "contains?", func(seq MalType, key string) (MalType, error) { return contains_Q(seq, key) })
-	call.CallT2e(NS, cons)
-	call.CallT2e(NS, nth)
-	call.CallT2e(NS, with_meta)
-	call.CallTNO2e(NS, "reset!", reset_BANG)
-	call.CallTNO2e(NS, "range", rangeVector)
-	call.CallT2e(NS, hash_map_decode)
-	call.CallTNO2e(NS, "json-decode", JSONDecode)
-	call.CallTNO2e(NS, "merge", mergeHashMap)
-	call.CallT2e(NS, rename_keys)
-	call.CallT2e(NS, split)
-
-	call.CallTNO2eC(NS, "map", do_map)
-
-	call.CallT1e(NS, throw)
-	call.CallTNO1e(NS, "symbol", func(a MalType) (MalType, error) { return Symbol{Val: a.(string)}, nil })
-	call.CallTNO1e(NS, "keyword", func(a MalType) (MalType, error) {
+func Load(env EnvType) {
+	call2.Call(env, assoc_in)
+	call2.Call(env, update)
+	call2.Call(env, update_in)
+	call2.CallOverrideFN(env, "<", func(a, b int) (bool, error) { return a < b, nil })
+	call2.CallOverrideFN(env, "<=", func(a, b int) (bool, error) { return a <= b, nil })
+	call2.CallOverrideFN(env, ">", func(a, b int) (bool, error) { return a > b, nil })
+	call2.CallOverrideFN(env, ">=", func(a, b int) (bool, error) { return a >= b, nil })
+	call2.CallOverrideFN(env, "+", func(a, b int) (int, error) { return a + b, nil })
+	call2.CallOverrideFN(env, "-", func(a, b int) (int, error) { return a - b, nil })
+	call2.CallOverrideFN(env, "*", func(a, b int) (int, error) { return a * b, nil })
+	call2.CallOverrideFN(env, "/", func(a, b int) (int, error) { return a / b, nil })
+	call2.Call(env, get)
+	call2.Call(env, get_in)
+	call2.CallOverrideFN(env, "contains?", func(seq MalType, key string) (MalType, error) { return contains_Q(seq, key) })
+	call2.Call(env, cons)
+	call2.Call(env, nth)
+	call2.Call(env, with_meta)
+	call2.CallOverrideFN(env, "reset!", reset_BANG)
+	call2.Call(env, rAnge)
+	call2.Call(env, hash_map_decode)
+	call2.Call(env, JSON_Decode)
+	call2.Call(env, mErge)
+	call2.Call(env, rename_keys)
+	call2.Call(env, split)
+	call2.Call(env, mAp)
+	call2.Call(env, throw)
+	call2.CallOverrideFN(env, "symbol", func(a MalType) (MalType, error) { return Symbol{Val: a.(string)}, nil })
+	call2.CallOverrideFN(env, "keyword", func(a MalType) (MalType, error) {
 		if Keyword_Q(a) {
 			return a, nil
 		} else {
 			return NewKeyword(a.(string))
 		}
 	})
-	call.CallTNO1e(NS, "spew", spewDump)
-	call.CallTNO1e(NS, "read-string", func(a MalType) (MalType, error) { return reader.Read_str(a.(string), nil, nil) })
-	call.CallTNO1e(NS, "set", func(a MalType) (MalType, error) { return NewSet(a) })
-	call.CallT1e(NS, keys)
-	call.CallT1e(NS, vals)
-	call.CallT1e(NS, vec)
-	call.CallT1e(NS, first)
-	call.CallT1e(NS, rest)
-	call.CallT1e(NS, count)
-	call.CallT1e(NS, seq)
-	call.CallT1e(NS, meta)
-	call.CallTNO1e(NS, "atom", func(a MalType) (MalType, error) { return &Atom{Val: a}, nil })
-	call.CallT1e(NS, deref)
-	call.CallTNO1e(NS, "base64", base64encode)
-	call.CallTNO1e(NS, "unbase64", base64decode)
-	call.CallT1e(NS, str2binary)
-	call.CallT1e(NS, binary2str)
-	call.CallT1e(NS, json_encode)
-	call.CallT1eC(NS, sleep)
+	call2.Call(env, sPew)
+	call2.CallOverrideFN(env, "read-string", func(a MalType) (MalType, error) { return reader.Read_str(a.(string), nil, nil) })
+	call2.CallOverrideFN(env, "set", func(a MalType) (MalType, error) { return NewSet(a) })
+	call2.Call(env, keys)
+	call2.Call(env, vals)
+	call2.Call(env, vec)
+	call2.Call(env, first)
+	call2.Call(env, rest)
+	call2.Call(env, count)
+	call2.Call(env, seq)
+	call2.Call(env, meta)
+	call2.CallOverrideFN(env, "atom", func(a MalType) (MalType, error) { return &Atom{Val: a}, nil })
+	call2.Call(env, deref)
+	call2.Call(env, bAse64)
+	call2.Call(env, unbase64)
+	call2.Call(env, str2binary)
+	call2.Call(env, binary2str)
+	call2.Call(env, json_encode)
+	call2.Call(env, sleep)
+	call2.Call(env, time_ms)
+	call2.Call(env, time_ns)
+	call2.Call(env, uUid)
+	call2.Call(env, pr_str)
+	call2.Call(env, str)
+	call2.Call(env, prn)
+	call2.Call(env, println)
+	call2.CallOverrideFN(env, "list", func(a ...MalType) (MalType, error) { return List{Val: a}, nil })
+	call2.CallOverrideFN(env, "vector", func(a ...MalType) (MalType, error) { return Vector{Val: a}, nil })
+	call2.Call(env, hash_map)
+	call2.CallOverrideFN(env, "hash-set", func(a ...MalType) (MalType, error) { return NewSet(List{Val: a}) })
+	call2.Call(env, assoc)
+	call2.Call(env, dissoc)
+	call2.Call(env, concat)
 
-	call.CallT0e(NS, time_ms)
-	call.CallT0e(NS, time_ns)
-	call.CallTNO0e(NS, "uuid", genUUID)
+	call2.CallOverrideFN(env, "=", func(a, b MalType) (MalType, error) { return Equal_Q(a, b), nil })
 
-	call.CallTNe(NS, pr_str)
-	call.CallTNe(NS, str)
-	call.CallTNe(NS, prn)
-	call.CallTNe(NS, println)
-	call.CallTNONe(NS, "list", func(a ...MalType) (MalType, error) {
-		return List{Val: a}, nil
-	})
-	call.CallTNONe(NS, "vector", func(a ...MalType) (MalType, error) { return Vector{Val: a}, nil })
-	call.CallTNe(NS, hash_map)
-	call.CallTNONe(NS, "hash-set", func(a ...MalType) (MalType, error) { return NewSet(List{Val: a}) })
-	call.CallTNe(NS, assoc)
-	call.CallTNe(NS, dissoc)
-	call.CallTNe(NS, concat)
+	call2.CallOverrideFN(env, "nil?", func(a MalType) (MalType, error) { return Nil_Q(a), nil })
+	call2.CallOverrideFN(env, "true?", func(a MalType) (MalType, error) { return True_Q(a), nil })
+	call2.CallOverrideFN(env, "false?", func(a MalType) (MalType, error) { return False_Q(a), nil })
+	call2.CallOverrideFN(env, "empty?", empty_Q)
+	call2.CallOverrideFN(env, "symbol?", func(a MalType) (MalType, error) { return Q[Symbol](a), nil })
+	call2.CallOverrideFN(env, "keyword?", func(a MalType) (MalType, error) { return Keyword_Q(a), nil })
+	call2.CallOverrideFN(env, "string?", func(a MalType) (MalType, error) { return String_Q(a), nil })
+	call2.CallOverrideFN(env, "number?", func(a MalType) (MalType, error) { return Q[int](a), nil })
+	call2.CallOverrideFN(env, "fn?", fn_q)
+	call2.CallOverrideFN(env, "macro?", func(a MalType) (MalType, error) { return Q[MalFunc](a) && a.(MalFunc).GetMacro(), nil })
+	call2.CallOverrideFN(env, "list?", func(a MalType) (MalType, error) { return Q[List](a), nil })
+	call2.CallOverrideFN(env, "vector?", func(a MalType) (MalType, error) { return Q[Vector](a), nil })
+	call2.CallOverrideFN(env, "map?", func(a MalType) (MalType, error) { return Q[HashMap](a), nil })
+	call2.CallOverrideFN(env, "set?", func(a MalType) (MalType, error) { return Q[Set](a), nil })
+	call2.CallOverrideFN(env, "atom?", func(a MalType) (MalType, error) { return Q[*Atom](a), nil })
+	call2.CallOverrideFN(env, "sequential?", func(a MalType) (MalType, error) { return Sequential_Q(a), nil })
 
-	// NSInput namespace
-	call.CallT1e(NSInput, slurp)
-	call.CallT1e(NSInput, readLine)
+	call2.Call(env, apply)
+	call2.Call(env, conj)
+	call2.CallOverrideFN(env, "swap!", swap_BANG)
+	call2.Call(env, assert)
+	// "apply": call.CallVeC(2, 1000_000, apply), // at least 2
+	// "conj": call.CallVe(2, 1000_000, conj), // at least 2
+	// "swap!": call.CallNeC(swap_BANG),
+	// "assert": call.CallVe(1, 2, assert),
 }
 
-var NSInput = map[string]MalType{}
+func LoadInput(env types.EnvType) {
+	call2.Call(env, slurp)
+	call2.Call(env, readLine)
+}
+
+// var NS = map[string]MalType{}
+
+// func init() {
+// 	call.CallTNO3e(NS, "assoc-in", assoc_in)
+// 	call.CallT3eC(NS, update)
+// 	call.CallTNO3eC(NS, "update-in", update_in)
+
+// 	call.CallTNO2e(NS, "<", func(a, b int) (bool, error) { return a < b, nil })
+// 	call.CallTNO2e(NS, "<=", func(a, b int) (bool, error) { return a <= b, nil })
+// 	call.CallTNO2e(NS, ">", func(a, b int) (bool, error) { return a > b, nil })
+// 	call.CallTNO2e(NS, ">=", func(a, b int) (bool, error) { return a >= b, nil })
+// 	call.CallTNO2e(NS, "+", func(a, b int) (int, error) { return a + b, nil })
+// 	call.CallTNO2e(NS, "-", func(a, b int) (int, error) { return a - b, nil })
+// 	call.CallTNO2e(NS, "*", func(a, b int) (int, error) { return a * b, nil })
+// 	call.CallTNO2e(NS, "/", func(a, b int) (int, error) { return a / b, nil })
+// 	call.CallT2e(NS, get)
+// 	call.CallTNO2e(NS, "get-in", get_in)
+// 	call.CallTNO2e(NS, "contains?", func(seq MalType, key string) (MalType, error) { return contains_Q(seq, key) })
+// 	call.CallT2e(NS, cons)
+// 	call.CallT2e(NS, nth)
+// 	call.CallT2e(NS, with_meta)
+// 	call.CallTNO2e(NS, "reset!", reset_BANG)
+// 	call.CallTNO2e(NS, "range", rAnge)
+// 	call.CallT2e(NS, hash_map_decode)
+// 	call.CallTNO2e(NS, "json-decode", JSON_Decode)
+// 	call.CallTNO2e(NS, "merge", mErge)
+// 	call.CallT2e(NS, rename_keys)
+// 	call.CallT2e(NS, split)
+
+// 	call.CallTNO2eC(NS, "map", mAp)
+
+// 	call.CallT1e(NS, throw)
+// 	call.CallTNO1e(NS, "symbol", func(a MalType) (MalType, error) { return Symbol{Val: a.(string)}, nil })
+// 	call.CallTNO1e(NS, "keyword", func(a MalType) (MalType, error) {
+// 		if Keyword_Q(a) {
+// 			return a, nil
+// 		} else {
+// 			return NewKeyword(a.(string))
+// 		}
+// 	})
+// 	call.CallTNO1e(NS, "spew", sPew)
+// 	call.CallTNO1e(NS, "read-string", func(a MalType) (MalType, error) { return reader.Read_str(a.(string), nil, nil) })
+// 	call.CallTNO1e(NS, "set", func(a MalType) (MalType, error) { return NewSet(a) })
+// 	call.CallT1e(NS, keys)
+// 	call.CallT1e(NS, vals)
+// 	call.CallT1e(NS, vec)
+// 	call.CallT1e(NS, first)
+// 	call.CallT1e(NS, rest)
+// 	call.CallT1e(NS, count)
+// 	call.CallT1e(NS, seq)
+// 	call.CallT1e(NS, meta)
+// 	call.CallTNO1e(NS, "atom", func(a MalType) (MalType, error) { return &Atom{Val: a}, nil })
+// 	call.CallT1e(NS, deref)
+// 	call.CallTNO1e(NS, "base64", bAse64)
+// 	call.CallTNO1e(NS, "unbase64", unbase64)
+// 	call.CallT1e(NS, str2binary)
+// 	call.CallT1e(NS, binary2str)
+// 	call.CallT1e(NS, json_encode)
+// 	call.CallT1eC(NS, sleep)
+
+// 	call.CallT0e(NS, time_ms)
+// 	call.CallT0e(NS, time_ns)
+// 	call.CallTNO0e(NS, "uuid", uUid)
+
+// 	call.CallTNe(NS, pr_str)
+// 	call.CallTNe(NS, str)
+// 	call.CallTNe(NS, prn)
+// 	call.CallTNe(NS, println)
+// 	call.CallTNONe(NS, "list", func(a ...MalType) (MalType, error) {
+// 		return List{Val: a}, nil
+// 	})
+// 	call.CallTNONe(NS, "vector", func(a ...MalType) (MalType, error) { return Vector{Val: a}, nil })
+// 	call.CallTNe(NS, hash_map)
+// 	call.CallTNONe(NS, "hash-set", func(a ...MalType) (MalType, error) { return NewSet(List{Val: a}) })
+// 	call.CallTNe(NS, assoc)
+// 	call.CallTNe(NS, dissoc)
+// 	call.CallTNe(NS, concat)
+
+// 	// NSInput namespace
+// 	call.CallT1e(NSInput, slurp)
+// 	call.CallT1e(NSInput, readLine)
+// }
+
+// var NSInput = map[string]MalType{}
 
 // Errors/Exceptions
 func throw(a MalType) (MalType, error) {
@@ -163,7 +239,7 @@ func str(a ...MalType) (string, error) {
 	return printer.Pr_list(a, false, "", "", ""), nil
 }
 
-func spewDump(a MalType) (MalType, error) {
+func sPew(a MalType) (MalType, error) {
 	spew.Dump(a)
 	return nil, nil
 }
@@ -326,7 +402,7 @@ func get(hm, key MalType) (MalType, error) {
 	}
 }
 
-func getIn(hm, _pathVector MalType) (MalType, error) {
+func get_in(hm, _pathVector MalType) (MalType, error) {
 	if Nil_Q(hm) {
 		return nil, nil
 	}
@@ -395,7 +471,7 @@ func _update(ctx context.Context, argMapOrVector, index, f MalType) (MalType, er
 	}
 }
 
-func updateIn(ctx context.Context, seq MalType, posVector Vector, f MalType) (MalType, error) {
+func update_in(ctx context.Context, seq MalType, posVector Vector, f MalType) (MalType, error) {
 	if Nil_Q(seq) {
 		return nil, nil
 	}
@@ -440,7 +516,7 @@ func _updateIn(ctx context.Context, seq MalType, posVector Vector, f MalType) (M
 	}
 }
 
-func assocIn(hm MalType, posVector Vector, data MalType) (MalType, error) {
+func assoc_in(hm MalType, posVector Vector, data MalType) (MalType, error) {
 	return _assocIn(hm, posVector, data)
 }
 
@@ -624,7 +700,7 @@ func count(seq MalType) (MalType, error) {
 	case nil:
 		return 0, nil
 	default:
-		return nil, errors.New("count called on non-sequence")
+		return nil, fmt.Errorf("count called on non-sequence type %T", seq)
 	}
 }
 
@@ -645,7 +721,7 @@ func apply(ctx context.Context, a ...MalType) (MalType, error) {
 	return Apply(ctx, f, args)
 }
 
-func do_map(ctx context.Context, f, seq MalType) (MalType, error) {
+func mAp(ctx context.Context, f, seq MalType) (MalType, error) {
 	results := []MalType{}
 	args, e := GetSlice(seq)
 	if e != nil {
@@ -817,7 +893,7 @@ func swap_BANG(ctx context.Context, a ...MalType) (MalType, error) {
 
 // Core extended
 
-func genUUID() (string, error) {
+func uUid() (string, error) {
 	return uuid.New().String(), nil
 }
 
@@ -890,7 +966,27 @@ func assert(a ...MalType) (MalType, error) {
 	}
 }
 
-func mergeHashMap(hm0, hm1 HashMap) (MalType, error) {
+func mErge(_hm0, _hm1 MalType) (MalType, error) {
+	if _hm0 == nil && _hm1 == nil {
+		return nil, nil
+	}
+
+	var hm0 HashMap
+	if _hm0 != nil {
+		var ok bool
+		hm0, ok = _hm0.(HashMap)
+		if !ok {
+			return nil, errors.New("expected hash map")
+		}
+	}
+	var hm1 HashMap
+	if _hm1 != nil {
+		var ok bool
+		hm1, ok = _hm1.(HashMap)
+		if !ok {
+			return nil, errors.New("expected hash map")
+		}
+	}
 	if hm0.Val == nil && hm1.Val == nil {
 		return nil, nil
 	}
@@ -929,7 +1025,7 @@ func hash_map_decode(objFactory marshaler.FactoryHashMap, hm HashMap) (MalType, 
 	return objFactory.FromHashMap(hm)
 }
 
-func JSONDecode(obj, bytesIn MalType) (MalType, error) {
+func JSON_Decode(obj, bytesIn MalType) (MalType, error) {
 	var b []byte
 
 	switch a := bytesIn.(type) {
@@ -1061,11 +1157,11 @@ func binary2str(bytes MalType) (MalType, error) {
 	return string(aBytes), nil
 }
 
-func base64encode(b []byte) (MalType, error) {
+func bAse64(b []byte) (MalType, error) {
 	return base64.StdEncoding.EncodeToString(b), nil
 }
 
-func base64decode(str string) (MalType, error) {
+func unbase64(str string) (MalType, error) {
 	result, err := base64.StdEncoding.DecodeString(str)
 	if err != nil {
 		return nil, err
@@ -1073,7 +1169,7 @@ func base64decode(str string) (MalType, error) {
 	return result, nil
 }
 
-func rangeVector(from, to int) (MalType, error) {
+func rAnge(from, to int) (MalType, error) {
 	var value []MalType
 	for i := from; i < to; i++ {
 		value = append(value, i)

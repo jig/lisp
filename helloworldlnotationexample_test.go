@@ -32,8 +32,6 @@ func newTestEnv() types.EnvType {
 	if err != nil {
 		log.Fatalf("Environment Setup Error: %v\n", err)
 	}
-	for k, v := range core.NS {
-		newEnv.Set(types.Symbol{Val: k}, types.Func{Fn: v.(func(context.Context, []types.MalType) (types.MalType, error))})
-	}
+	core.Load(newEnv)
 	return newEnv
 }

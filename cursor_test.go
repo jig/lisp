@@ -14,13 +14,9 @@ func TestCursor(t *testing.T) {
 	if err != nil {
 		panic(err)
 	}
-	// core.go: defined using go
-	for k, v := range core.NS {
-		bootEnv.Set(types.Symbol{Val: k}, types.Func{Fn: v.(func(context.Context, []types.MalType) (types.MalType, error))})
-	}
-	for k, v := range core.NSInput {
-		bootEnv.Set(types.Symbol{Val: k}, types.Func{Fn: v.(func(context.Context, []types.MalType) (types.MalType, error))})
-	}
+	core.Load(bootEnv)
+	core.LoadInput(bootEnv)
+
 	bootEnv.Set(types.Symbol{Val: "eval"}, types.Func{Fn: func(ctx context.Context, a []types.MalType) (types.MalType, error) {
 		return EVAL(ctx, a[0], bootEnv)
 	}})
@@ -111,11 +107,11 @@ func TestCursor(t *testing.T) {
 		default:
 			//			t.Fatal(err)
 		}
-		if ast == nil {
+		if ast == "" {
 			t.Error(testCase.Module, "(no error) AST is nil")
 			continue
 		}
-		if ast.(string) != "1234" {
+		if ast != "1234" {
 			t.Error(testCase.Module, "(no error) REPL didn't reach the end")
 			continue
 		}

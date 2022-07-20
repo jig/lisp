@@ -8,18 +8,18 @@
 
 (+ 1 :hello)
 ;=>nil
-;/^.*Error: \+: second argument of type string unsupported$
+;/^.*using string as type int$
 
 (+ 1 "hello")
 ;=>nil
-;/^.*Error: \+: second argument of type string unsupported$
+;/^.*using string as type int$
 
 (try (/ 1 0))
 ;=>nil
-;/^.*runtime error: integer divide by zero$
+;/^.*integer divide by zero$
 
 (try (/ 1 0) (catch e e))
-;=>runtime error: integer divide by zero
+;=>github.com/jig/lisp/lib/core.load.func8: runtime error: integer divide by zero
 ;/^$
 
 (context (/ 1 0))
