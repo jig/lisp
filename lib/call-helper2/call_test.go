@@ -12,7 +12,7 @@ import (
 
 func TestOK(t *testing.T) {
 	ns, _ := env.NewEnv(nil, nil, nil)
-	Call(ns, divExample, false)
+	Call(ns, divExample)
 
 	f, err := ns.Get(types.Symbol{Val: "divexample"})
 	if err != nil {
@@ -30,7 +30,7 @@ func TestOK(t *testing.T) {
 
 func TestNoOKResult(t *testing.T) {
 	ns, _ := env.NewEnv(nil, nil, nil)
-	Call(ns, divExample, false)
+	Call(ns, divExample)
 
 	f, err := ns.Get(types.Symbol{Val: "divexample"})
 	if err != nil {
@@ -43,7 +43,7 @@ func TestNoOKResult(t *testing.T) {
 
 func TestNoOKArguments(t *testing.T) {
 	ns, _ := env.NewEnv(nil, nil, nil)
-	Call(ns, divExample, false)
+	Call(ns, divExample)
 
 	defer func() {
 		rerr := recover()
@@ -57,7 +57,7 @@ func TestNoOKArguments(t *testing.T) {
 
 func TestOKWithContext(t *testing.T) {
 	ns, _ := env.NewEnv(nil, nil, nil)
-	Call(ns, sleepExample, true)
+	Call(ns, sleepExample)
 
 	f, err := ns.Get(types.Symbol{Val: "sleepexample"})
 	if err != nil {
@@ -73,13 +73,42 @@ func TestOKWithContextTimeout(t *testing.T) {
 	defer cancel()
 
 	ns, _ := env.NewEnv(nil, nil, nil)
-	Call(ns, sleepExample, true)
+	Call(ns, sleepExample)
 
 	f, err := ns.Get(types.Symbol{Val: "sleepexample"})
 	if err != nil {
 		t.Fatal("test failed")
 	}
 	if _, err := f.(externalCall)(ctx, 10); err != nil {
+		t.Fatal("test failed")
+	}
+}
+
+func TestPackageRegister(t *testing.T) {
+	ns, _ := env.NewEnv(nil, nil, nil)
+	Call(ns, sleepExample)
+	Call(ns, divExample)
+	Call(ns, name_with_hyphens)
+	Call(ns, name_With_Caps)
+
+	hm, err := ns.Get(types.Symbol{Val: "_PACKAGES_"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	set := hm.(types.HashMap).Val["github.com/jig/lisp/lib/call-helper2"].(types.Set).Val
+	if len(set) != 4 {
+		t.Fatal("test failed")
+	}
+	if _, ok := set["divexample"]; !ok {
+		t.Fatal("test failed")
+	}
+	if _, ok := set["sleepexample"]; !ok {
+		t.Fatal("test failed")
+	}
+	if _, ok := set["name-with-hyphens"]; !ok {
+		t.Fatal("test failed")
+	}
+	if _, ok := set["name-with-caps"]; !ok {
 		t.Fatal("test failed")
 	}
 }
@@ -98,4 +127,12 @@ func sleepExample(ctx context.Context, ms int) error {
 	case <-time.After(time.Millisecond * time.Duration(ms)):
 		return nil
 	}
+}
+
+func name_with_hyphens(ctx context.Context, ms int) error {
+	return nil
+}
+
+func name_With_Caps(ctx context.Context, ms int) error {
+	return nil
 }

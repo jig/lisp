@@ -12,7 +12,7 @@ import (
 
 type externalCall func(context.Context, ...interface{}) (interface{}, error)
 
-func Call(namespace types.EnvType, fIn interface{}, contextRequired bool, args ...string) {
+func Call(namespace types.EnvType, fIn interface{}, args ...string) {
 	if len(args) > 1 {
 		panic("invalid arguments in environment setup")
 	}
@@ -22,12 +22,16 @@ func Call(namespace types.EnvType, fIn interface{}, contextRequired bool, args .
 		panic(fmt.Errorf("invalid function full name (name is %s)", runtime.FuncForPC(reflect.ValueOf(fIn).Pointer()).Name()))
 	}
 	packageName := functionFullName[:n]
-	functionName := functionFullName[n+1:]
+	functionName := strings.Replace(functionFullName[n+1:], "_", "-", -1)
 
 	finType := reflect.TypeOf(fIn)
 	finValue := reflect.ValueOf(fIn)
-	inParams := finType.NumIn()
 	outParams := finType.NumOut()
+	inParams := finType.NumIn()
+	contextRequired := false
+	if inParams >= 1 && finType.In(0).Implements(reflect.TypeOf((*context.Context)(nil)).Elem()) {
+		contextRequired = true
+	}
 
 	var extCall externalCall
 	switch finType.NumOut() {
