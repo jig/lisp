@@ -228,23 +228,6 @@ func TestCount(t *testing.T) {
 	}
 }
 
-func count(seq types.MalType) (types.MalType, error) {
-	switch seq := seq.(type) {
-	case types.List:
-		return len(seq.Val), nil
-	case types.Vector:
-		return len(seq.Val), nil
-	case types.HashMap:
-		return len(seq.Val), nil
-	case types.Set:
-		return len(seq.Val), nil
-	case nil:
-		return 0, nil
-	default:
-		return nil, fmt.Errorf("count called on non-sequence %T, %s, %#v", seq, seq, seq)
-	}
-}
-
 func TestEmpty(t *testing.T) {
 	ns, err := env.NewEnv(nil, nil, nil)
 	if err != nil {
@@ -265,6 +248,39 @@ func TestEmpty(t *testing.T) {
 	}
 }
 
+func TestNilResponse(t *testing.T) {
+	ns, err := env.NewEnv(nil, nil, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	CallOverrideFN(ns, "nilly", func() (types.MalType, error) { return nil, nil })
+
+	res, err := lisp.REPLPosition(context.Background(), ns, `(nilly)`, types.NewCursorFile(t.Name()))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.(string) != "nil" {
+		t.Fatal("test failed")
+	}
+}
+
+func count(seq types.MalType) (types.MalType, error) {
+	switch seq := seq.(type) {
+	case types.List:
+		return len(seq.Val), nil
+	case types.Vector:
+		return len(seq.Val), nil
+	case types.HashMap:
+		return len(seq.Val), nil
+	case types.Set:
+		return len(seq.Val), nil
+	case nil:
+		return 0, nil
+	default:
+		return nil, fmt.Errorf("count called on non-sequence %T, %s, %#v", seq, seq, seq)
+	}
+}
+
 func empty_Q(seq types.MalType) (types.MalType, error) {
 	switch seq := seq.(type) {
 	case types.List:
@@ -279,22 +295,6 @@ func empty_Q(seq types.MalType) (types.MalType, error) {
 		return true, nil
 	default:
 		return nil, errors.New("empty? called on non-sequence")
-	}
-}
-
-func TestNilResponse(t *testing.T) {
-	ns, err := env.NewEnv(nil, nil, nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	CallOverrideFN(ns, "nilly", func() (types.MalType, error) { return nil, nil })
-
-	res, err := lisp.REPLPosition(context.Background(), ns, `(nilly)`, types.NewCursorFile(t.Name()))
-	if err != nil {
-		t.Fatal(err)
-	}
-	if res.(string) != "nil" {
-		t.Fatal("test failed")
 	}
 }
 

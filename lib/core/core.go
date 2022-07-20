@@ -1051,25 +1051,21 @@ func readLine(prompt string) (MalType, error) {
 	return scanner.Text(), nil
 }
 
-func sleep(ctx context.Context, ms int) (MalType, error) {
+func sleep(ctx context.Context, ms int) error {
 	select {
 	case <-ctx.Done():
-		return nil, errors.New("timeout while evaluating expression")
+		return errors.New("timeout while evaluating expression")
 	case <-time.After(time.Millisecond * time.Duration(ms)):
-		return ms, nil
+		return nil
 	}
 }
 
-func str2binary(str string) (MalType, error) {
+func str2binary(str string) ([]byte, error) {
 	return []byte(str), nil
 }
 
-func binary2str(bytes MalType) (MalType, error) {
-	aBytes, ok := bytes.([]byte)
-	if !ok {
-		return nil, errors.New("not a []byte")
-	}
-	return string(aBytes), nil
+func binary2str(b []byte) (string, error) {
+	return string(b), nil
 }
 
 func bAse64(b []byte) (MalType, error) {
