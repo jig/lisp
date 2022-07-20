@@ -32,9 +32,6 @@ const (
 )
 
 func Load(env EnvType) error {
-	// for k, v := range core.NS {
-	// 	env.Set(Symbol{Val: k}, Func{Fn: v.(func(context.Context, []MalType) (MalType, error))})
-	// }
 	core.Load(env)
 	env.Set(Symbol{Val: "eval"}, Func{Fn: func(ctx context.Context, a []MalType) (MalType, error) {
 		return lisp.EVAL(ctx, a[0], env)
@@ -54,9 +51,6 @@ func Load(env EnvType) error {
 }
 
 func LoadInput(env EnvType) error {
-	// for k, v := range core.NSInput {
-	// 	env.Set(Symbol{Val: k}, Func{Fn: v.(func(context.Context, []MalType) (MalType, error))})
-	// }
 	core.LoadInput(env)
 	env.Set(Symbol{Val: "eval"}, Func{Fn: func(ctx context.Context, a []MalType) (MalType, error) {
 		return lisp.EVAL(ctx, a[0], env)

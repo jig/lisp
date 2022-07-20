@@ -111,10 +111,10 @@ func Load(env EnvType) {
 	call.CallOverrideFN(env, "atom?", func(a MalType) (MalType, error) { return Q[*Atom](a), nil })
 	call.CallOverrideFN(env, "sequential?", func(a MalType) (MalType, error) { return Sequential_Q(a), nil })
 
-	call.Call(env, apply, 2)
-	call.Call(env, conj, 2)
+	call.Call(env, apply, 2) // at least two parameters
+	call.Call(env, conj, 2)  // at least two parameters
 	call.CallOverrideFN(env, "swap!", swap_BANG)
-	call.Call(env, assert, 1, 2)
+	call.Call(env, assert, 1, 2) // at least one parameter, at most two
 }
 
 func LoadInput(env types.EnvType) {

@@ -28,8 +28,11 @@ func call(overrideFN *string, namespace types.EnvType, fIn types.MalType, args .
 	var functionName string
 	if overrideFN != nil {
 		functionName = *overrideFN
+		m := strings.LastIndex(packageName, ".")
+		functionFullName = fmt.Sprintf("%s[%s]", packageName[:m], *overrideFN)
 	} else {
 		functionName = strings.Replace(functionFullName[n+1:], "_", "-", -1)
+		functionFullName = fmt.Sprintf("%s[%s]", packageName, functionName)
 	}
 
 	finType := reflect.TypeOf(fIn)

@@ -467,7 +467,7 @@ func EVAL(ctx context.Context, ast MalType, env EnvType) (MalType, error) {
 				if !ok {
 					return nil, MalError{
 						Obj:    fmt.Errorf("attempt to call non-function (was of type %T)", f),
-						Cursor: f.(List).Cursor,
+						Cursor: el.(List).Cursor,
 					}
 				}
 				result, err := fn.Fn(ctx, el.(List).Val[1:])

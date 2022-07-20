@@ -19,7 +19,7 @@
 ;/^.*integer divide by zero$
 
 (try (/ 1 0) (catch e e))
-;=>github.com/jig/lisp/lib/core.load.func8: runtime error: integer divide by zero
+;=>github.com/jig/lisp/lib/core[/]: runtime error: integer divide by zero
 ;/^$
 
 (context (/ 1 0))

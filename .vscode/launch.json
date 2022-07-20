@@ -16,15 +16,7 @@
             "type": "go",
             "request": "launch",
             "mode": "test",
-            "program": "${workspaceFolder}/lib/call-helper2"
-        },
-        {
-            "name": "test ALL",
-            "type": "go",
-            "request": "launch",
-            "mode": "test",
-            "program": "${workspaceFolder}",
-            "args":["./..."]
+            "program": "${workspaceFolder}/lib/call"
         },
         {
             "name": "Lisp REPL",

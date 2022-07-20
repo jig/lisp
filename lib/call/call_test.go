@@ -49,8 +49,8 @@ func TestNoOKArguments(t *testing.T) {
 
 	f, _ := ns.Get(types.Symbol{Val: "divexample"})
 	_, err := f.(types.Func).Fn(context.Background(), []types.MalType{2, 3, 4})
-	if err.Error() != "github.com/jig/lisp/lib/call.divexample: wrong number of arguments (3 instead of 2)" {
-		t.Fatal("test failed")
+	if err.Error() != "github.com/jig/lisp/lib/call[divexample]: wrong number of arguments (3 instead of 2…2)" {
+		t.Fatal(err)
 	}
 }
 
@@ -194,7 +194,7 @@ func TestLispNil(t *testing.T) {
 		t.Fatal(err)
 	}
 	_, err = lisp.EVAL(context.Background(), ast, ns)
-	if err.Error() != "github.com/jig/lisp/lib/call.sum_example: reflect: cannot use types.MalType as type int in Call" {
+	if err.Error() != "github.com/jig/lisp/lib/call[sum-example]: reflect: cannot use types.MalType as type int in Call" {
 		t.Fatal(err)
 	}
 }
@@ -207,7 +207,7 @@ func TestWrongTypePassed(t *testing.T) {
 	Call(ns, divExample)
 
 	_, err = lisp.REPL(context.Background(), ns, `(divexample "hello" "world")`, types.NewCursorFile(t.Name()))
-	if err.Error() != "github.com/jig/lisp/lib/call.divexample: reflect: Call using string as type int" {
+	if err.Error() != "github.com/jig/lisp/lib/call[divexample]: reflect: Call using string as type int" {
 		t.Fatal(err)
 	}
 }
