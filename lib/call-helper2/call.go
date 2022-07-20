@@ -13,6 +13,14 @@ import (
 type externalCall func(context.Context, ...interface{}) (interface{}, error)
 
 func Call(namespace types.EnvType, fIn interface{}, args ...string) {
+	call(nil, namespace, fIn, args...)
+}
+
+func CallOverrideFN(namespace types.EnvType, overrideFN string, fIn interface{}, args ...string) {
+	call(&overrideFN, namespace, fIn, args...)
+}
+
+func call(overrideFN *string, namespace types.EnvType, fIn interface{}, args ...string) {
 	if len(args) > 1 {
 		panic("invalid arguments in environment setup")
 	}
@@ -22,7 +30,12 @@ func Call(namespace types.EnvType, fIn interface{}, args ...string) {
 		panic(fmt.Errorf("invalid function full name (name is %s)", runtime.FuncForPC(reflect.ValueOf(fIn).Pointer()).Name()))
 	}
 	packageName := functionFullName[:n]
-	functionName := strings.Replace(functionFullName[n+1:], "_", "-", -1)
+	var functionName string
+	if overrideFN != nil {
+		functionName = *overrideFN
+	} else {
+		functionName = strings.Replace(functionFullName[n+1:], "_", "-", -1)
+	}
 
 	finType := reflect.TypeOf(fIn)
 	finValue := reflect.ValueOf(fIn)
