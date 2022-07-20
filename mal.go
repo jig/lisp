@@ -537,35 +537,26 @@ func PRINT(exp MalType) (string, error) {
 
 // REPL
 func REPL(ctx context.Context, repl_env EnvType, str string, cursor *Position) (MalType, error) {
-	var exp MalType
-	var res string
-	var e error
-
-	if exp, e = READ(str, cursor); e != nil {
-		return nil, e
+	ast, err := READ(str, cursor)
+	if err != nil {
+		return nil, err
 	}
-	if exp, e = EVAL(ctx, exp, repl_env); e != nil {
-		return nil, e
+	exp, err := EVAL(ctx, ast, repl_env)
+	if err != nil {
+		return nil, err
 	}
-	if res, e = PRINT(exp); e != nil {
-		return nil, e
-	}
-	return res, nil
+	return PRINT(exp)
 }
 
 // REPLWithPreamble
 func REPLWithPreamble(ctx context.Context, repl_env EnvType, str string, cursor *Position) (MalType, error) {
-	var exp MalType
-	var res string
-	var e error
-	if exp, e = READWithPreamble(str, cursor); e != nil {
-		return nil, e
+	ast, err := READWithPreamble(str, cursor)
+	if err != nil {
+		return nil, err
 	}
-	if exp, e = EVAL(ctx, exp, repl_env); e != nil {
-		return nil, e
+	exp, err := EVAL(ctx, ast, repl_env)
+	if err != nil {
+		return nil, err
 	}
-	if res, e = PRINT(exp); e != nil {
-		return nil, e
-	}
-	return res, nil
+	return PRINT(exp)
 }
