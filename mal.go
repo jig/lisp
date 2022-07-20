@@ -537,11 +537,6 @@ func PRINT(exp MalType) (string, error) {
 
 // REPL
 func REPL(ctx context.Context, repl_env EnvType, str string, cursor *Position) (MalType, error) {
-	return REPLPosition(ctx, repl_env, str, cursor)
-}
-
-// REPLPosition
-func REPLPosition(ctx context.Context, repl_env EnvType, str string, cursor *Position) (MalType, error) {
 	var exp MalType
 	var res string
 	var e error

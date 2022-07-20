@@ -23,11 +23,11 @@ func TestCursor2(t *testing.T) {
 	bootEnv.Set(types.Symbol{Val: "*ARGV*"}, types.List{})
 
 	ctx := context.Background()
-	_, err = REPLPosition(ctx, bootEnv, codeMacro, types.NewCursorFile(t.Name()))
+	_, err = REPL(ctx, bootEnv, codeMacro, types.NewCursorFile(t.Name()))
 	if err != nil {
 		t.Fatal(err)
 	}
-	_, err = REPLPosition(ctx, bootEnv, testCode, types.NewCursorFile(t.Name()))
+	_, err = REPL(ctx, bootEnv, testCode, types.NewCursorFile(t.Name()))
 	switch err := err.(type) {
 	case nil:
 		t.Error("unexpected: no error returned")

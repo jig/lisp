@@ -89,7 +89,7 @@ func TestCursor(t *testing.T) {
 		if err != nil {
 			panic(err)
 		}
-		ast, err := REPLPosition(ctx, subEnv, "(do\n"+testCase.Code+"\na)", &types.Position{
+		ast, err := REPL(ctx, subEnv, "(do\n"+testCase.Code+"\na)", &types.Position{
 			Module: &testCase.Module,
 			Row:    0,
 		})

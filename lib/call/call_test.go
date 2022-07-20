@@ -173,7 +173,7 @@ func TestLisp(t *testing.T) {
 	}
 	Call(ns, sum_Example)
 
-	res, err := lisp.REPLPosition(context.Background(), ns, `(sum-example 33)`, types.NewCursorFile(t.Name()))
+	res, err := lisp.REPL(context.Background(), ns, `(sum-example 33)`, types.NewCursorFile(t.Name()))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -206,7 +206,7 @@ func TestWrongTypePassed(t *testing.T) {
 	}
 	Call(ns, divExample)
 
-	_, err = lisp.REPLPosition(context.Background(), ns, `(divexample "hello" "world")`, types.NewCursorFile(t.Name()))
+	_, err = lisp.REPL(context.Background(), ns, `(divexample "hello" "world")`, types.NewCursorFile(t.Name()))
 	if err.Error() != "github.com/jig/lisp/lib/call.divexample: reflect: Call using string as type int" {
 		t.Fatal(err)
 	}
@@ -219,7 +219,7 @@ func TestCount(t *testing.T) {
 	}
 	Call(ns, count)
 
-	res, err := lisp.REPLPosition(context.Background(), ns, `(count nil)`, types.NewCursorFile(t.Name()))
+	res, err := lisp.REPL(context.Background(), ns, `(count nil)`, types.NewCursorFile(t.Name()))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -255,7 +255,7 @@ func TestNilResponse(t *testing.T) {
 	}
 	CallOverrideFN(ns, "nilly", func() (types.MalType, error) { return nil, nil })
 
-	res, err := lisp.REPLPosition(context.Background(), ns, `(nilly)`, types.NewCursorFile(t.Name()))
+	res, err := lisp.REPL(context.Background(), ns, `(nilly)`, types.NewCursorFile(t.Name()))
 	if err != nil {
 		t.Fatal(err)
 	}
