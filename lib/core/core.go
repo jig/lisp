@@ -990,7 +990,7 @@ func JSON_Decode(obj, bytesIn MalType) (MalType, error) {
 	}
 }
 
-func map2hashmap(m map[string]interface{}) MalType {
+func map2hashmap(m map[string]interface{}) HashMap {
 	hm := HashMap{
 		Val:  map[string]MalType{},
 		Meta: nil,
@@ -1008,7 +1008,7 @@ func map2hashmap(m map[string]interface{}) MalType {
 	return hm
 }
 
-func array2vector(a []interface{}) MalType {
+func array2vector(a []interface{}) Vector {
 	l := Vector{
 		Val:  []MalType{},
 		Meta: nil,
@@ -1026,7 +1026,7 @@ func array2vector(a []interface{}) MalType {
 	return l
 }
 
-func array2list(a []interface{}) MalType {
+func array2list(a []interface{}) List {
 	l := List{
 		Val:  []MalType{},
 		Meta: nil,
@@ -1044,7 +1044,7 @@ func array2list(a []interface{}) MalType {
 	return l
 }
 
-func readLine(prompt string) (MalType, error) {
+func readLine(prompt string) (string, error) {
 	scanner := bufio.NewScanner(os.Stdin)
 	fmt.Print(prompt)
 	scanner.Scan()
@@ -1068,11 +1068,11 @@ func binary2str(b []byte) (string, error) {
 	return string(b), nil
 }
 
-func bAse64(b []byte) (MalType, error) {
+func bAse64(b []byte) (string, error) {
 	return base64.StdEncoding.EncodeToString(b), nil
 }
 
-func unbase64(str string) (MalType, error) {
+func unbase64(str string) ([]byte, error) {
 	result, err := base64.StdEncoding.DecodeString(str)
 	if err != nil {
 		return nil, err
@@ -1080,7 +1080,7 @@ func unbase64(str string) (MalType, error) {
 	return result, nil
 }
 
-func rAnge(from, to int) (MalType, error) {
+func rAnge(from, to int) (Vector, error) {
 	var value []MalType
 	for i := from; i < to; i++ {
 		value = append(value, i)
