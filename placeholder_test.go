@@ -3,7 +3,6 @@ package lisp
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"testing"
 
 	"github.com/jig/lisp/env"
@@ -21,12 +20,7 @@ type Example struct {
 
 func TestPlaceholders(t *testing.T) {
 	repl_env, _ := env.NewEnv(nil, nil, nil)
-	for k, v := range core.NS {
-		repl_env.Set(
-			Symbol{Val: k},
-			Func{Fn: v.(func(context.Context, []MalType) (MalType, error))},
-		)
-	}
+	core.Load(repl_env)
 
 	str := `(do
 				(def v0 $0)
@@ -111,12 +105,7 @@ func TestPlaceholders(t *testing.T) {
 
 func TestREADWithPreamble(t *testing.T) {
 	repl_env, _ := env.NewEnv(nil, nil, nil)
-	for k, v := range core.NS {
-		repl_env.Set(
-			Symbol{Val: k},
-			Func{Fn: v.(func(context.Context, []MalType) (MalType, error))},
-		)
-	}
+	core.Load(repl_env)
 
 	str :=
 		`;; $0 "hello"
@@ -210,12 +199,7 @@ func TestREADWithPreamble(t *testing.T) {
 
 func TestAddPreamble(t *testing.T) {
 	repl_env, _ := env.NewEnv(nil, nil, nil)
-	for k, v := range core.NS {
-		repl_env.Set(
-			Symbol{Val: k},
-			Func{Fn: v.(func(context.Context, []MalType) (MalType, error))},
-		)
-	}
+	core.Load(repl_env)
 
 	str := `(do
 	(def v0 $EXAMPLESTRING)
@@ -318,12 +302,7 @@ func TestAddPreamble(t *testing.T) {
 
 func TestPlaceholdersEmbeddedWrong1(t *testing.T) {
 	repl_env, _ := env.NewEnv(nil, nil, nil)
-	for k, v := range core.NS {
-		repl_env.Set(
-			Symbol{Val: k},
-			Func{Fn: v.(func(context.Context, []MalType) (MalType, error))},
-		)
-	}
+	core.Load(repl_env)
 
 	str :=
 		`$0 "hello"
@@ -345,19 +324,14 @@ func TestPlaceholdersEmbeddedWrong1(t *testing.T) {
 	if err == nil {
 		t.Fatal("error expected but err was nil")
 	}
-	if err.Error() != "Error: not all tokens where parsed" {
+	if err.Error() != "not all tokens where parsed" {
 		t.Fatal(err)
 	}
 }
 
 func TestPlaceholdersEmbeddedNoBlankLine(t *testing.T) {
 	repl_env, _ := env.NewEnv(nil, nil, nil)
-	for k, v := range core.NS {
-		repl_env.Set(
-			Symbol{Val: k},
-			Func{Fn: v.(func(context.Context, []MalType) (MalType, error))},
-		)
-	}
+	core.Load(repl_env)
 
 	// missing blank line must fail
 	str :=
@@ -376,8 +350,6 @@ func TestPlaceholdersEmbeddedNoBlankLine(t *testing.T) {
 		t.Fatal(err)
 	}
 	if !res.(bool) {
-		fmt.Println(PRINT(exp))
-		fmt.Println(PRINT(res))
 		t.Fatal("failed")
 	}
 }
@@ -411,9 +383,7 @@ var notOptimiseBenchFunc2 MalType
 
 func BenchmarkAddPreambleAlternative(b *testing.B) {
 	repl_env, _ := env.NewEnv(nil, nil, nil)
-	for k, v := range core.NS {
-		repl_env.Set(Symbol{Val: k}, Func{Fn: v.(func(context.Context, []MalType) (MalType, error))})
-	}
+	core.Load(repl_env)
 
 	for n := 0; n < b.N; n++ {
 		EXAMPLESTRING := "hello"
@@ -466,9 +436,7 @@ func BenchmarkREADWithPreamble(b *testing.B) {
 
 func BenchmarkNewEnv(b *testing.B) {
 	repl_env, _ := env.NewEnv(nil, nil, nil)
-	for k, v := range core.NS {
-		repl_env.Set(Symbol{Val: k}, Func{Fn: v.(func(context.Context, []MalType) (MalType, error))})
-	}
+	core.Load(repl_env)
 	sourceWithPreamble := `(do
 		(def v0 $EXAMPLESTRING)
 		(def v2 $EXAMPLEINTEGER)
@@ -536,9 +504,7 @@ func BenchmarkCompleteSendingWithPreamble(b *testing.B) {
 		}
 
 		repl_env, _ := env.NewEnv(nil, nil, nil)
-		for k, v := range core.NS {
-			repl_env.Set(Symbol{Val: k}, Func{Fn: v.(func(context.Context, []MalType) (MalType, error))})
-		}
+		core.Load(repl_env)
 		ctx := context.Background()
 		res, err := EVAL(ctx, ast, repl_env)
 		if err != nil {
@@ -591,9 +557,7 @@ func BenchmarkCompleteSendingWithPreambleSolved(b *testing.B) {
 		}
 
 		repl_env, _ := env.NewEnv(nil, nil, nil)
-		for k, v := range core.NS {
-			repl_env.Set(Symbol{Val: k}, Func{Fn: v.(func(context.Context, []MalType) (MalType, error))})
-		}
+		core.Load(repl_env)
 		ctx := context.Background()
 		res, err := EVAL(ctx, ast, repl_env)
 		if err != nil {
@@ -607,12 +571,7 @@ func BenchmarkCompleteSendingWithPreambleSolved(b *testing.B) {
 
 func TestHashMapMarshalers(t *testing.T) {
 	repl_env, _ := env.NewEnv(nil, nil, nil)
-	for k, v := range core.NS {
-		repl_env.Set(
-			Symbol{Val: k},
-			Func{Fn: v.(func(context.Context, []MalType) (MalType, error))},
-		)
-	}
+	core.Load(repl_env)
 
 	str := `(do
 				(def go-struct $GOSTRUCT)

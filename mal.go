@@ -13,14 +13,6 @@ import (
 	. "github.com/jig/lisp/types"
 )
 
-// TODO(jig): to be removed for strings.Cut when migrating to 1.18
-func Cut(s, sep string) (before, after string, found bool) {
-	if i := strings.Index(s, sep); i >= 0 {
-		return s[:i], s[i+len(sep):], true
-	}
-	return s, "", false
-}
-
 var placeholderRE = regexp.MustCompile(`^(;; \$[\d\w]+)+\s(.+)`)
 
 const preamblePrefix = ";; $"
@@ -37,7 +29,7 @@ func READWithPreamble(str string, cursor *Position) (MalType, error) {
 	for ; ; i++ {
 		var line string
 		// line, str, _ = strings.Cut(str, "\n")
-		line, str, _ = Cut(str, "\n")
+		line, str, _ = strings.Cut(str, "\n")
 		line = strings.Trim(line, " \t\r\n")
 		if len(line) == 0 {
 			return reader.Read_str(str, cursor, placeholderMap)
@@ -47,8 +39,8 @@ func READWithPreamble(str string, cursor *Position) (MalType, error) {
 		}
 		lineItems := placeholderRE.FindAllStringSubmatch(line, -1)
 		if len(lineItems) != 1 || len(lineItems[0]) != 3 {
-			return nil, RuntimeError{
-				ErrorVal: errors.New("invalid preamble format"),
+			return nil, MalError{
+				Obj: errors.New("invalid preamble format"),
 				Cursor: &Position{
 					Row: i + 1,
 					Col: 1,
@@ -124,18 +116,18 @@ func quasiquote(ast MalType) MalType {
 }
 
 func is_macro_call(ast MalType, env EnvType) bool {
-	if List_Q(ast) {
+	if Q[List](ast) {
 		slc, _ := GetSlice(ast)
 		if len(slc) == 0 {
 			return false
 		}
 		a0 := slc[0]
-		if Symbol_Q(a0) && env.Find(a0.(Symbol)) != nil {
+		if Q[Symbol](a0) && env.Find(a0.(Symbol)) != nil {
 			mac, e := env.Get(a0.(Symbol))
 			if e != nil {
 				return false
 			}
-			if MalFunc_Q(mac) {
+			if Q[MalFunc](mac) {
 				return mac.(MalFunc).GetMacro()
 			}
 		}
@@ -163,43 +155,42 @@ func macroexpand(ctx context.Context, ast MalType, env EnvType) (MalType, error)
 }
 
 func eval_ast(ctx context.Context, ast MalType, env EnvType) (MalType, error) {
-	//fmt.Printf("eval_ast: %#v\n", ast)
-	if Symbol_Q(ast) {
+	if Q[Symbol](ast) {
 		value, err := env.Get(ast.(Symbol))
 		if err != nil {
-			return nil, PushError(ast.(Symbol).Cursor, ast, err)
+			return nil, PushError(ast.(Symbol).Cursor, err)
 		}
 		return value, nil
-	} else if List_Q(ast) {
+	} else if Q[List](ast) {
 		lst := []MalType{}
 		for _, a := range ast.(List).Val {
 			exp, e := EVAL(ctx, a, env)
 			if e != nil {
 				if a, ok := a.(List); ok {
-					return nil, PushError(a.Cursor, a, e)
+					return nil, PushError(a.Cursor, e)
 				}
-				return nil, PushError(nil, a, e)
+				return nil, PushError(nil, e)
 			}
 			lst = append(lst, exp)
 		}
 		return List{Val: lst}, nil
-	} else if Vector_Q(ast) {
+	} else if Q[Vector](ast) {
 		lst := []MalType{}
 		for _, a := range ast.(Vector).Val {
 			exp, e := EVAL(ctx, a, env)
 			if e != nil {
-				return nil, PushError(ast.(Vector).Cursor, ast, e)
+				return nil, PushError(ast.(Vector).Cursor, e)
 			}
 			lst = append(lst, exp)
 		}
 		return Vector{Val: lst}, nil
-	} else if HashMap_Q(ast) {
+	} else if Q[HashMap](ast) {
 		m := ast.(HashMap)
 		new_hm := HashMap{Val: map[string]MalType{}}
 		for k, v := range m.Val {
 			kv, e2 := EVAL(ctx, v, env)
 			if e2 != nil {
-				return nil, PushError(ast.(HashMap).Cursor, ast, e2)
+				return nil, PushError(ast.(HashMap).Cursor, e2)
 			}
 			new_hm.Val[k] = kv
 		}
@@ -220,9 +211,13 @@ func EVAL(ctx context.Context, ast MalType, env EnvType) (MalType, error) {
 			}
 		}
 
-		switch ast.(type) {
+		switch ast := ast.(type) {
 		case List: // continue
+			// aStr, _ := PRINT(ast)
+			// fmt.Printf("%s◉ %s\n", ast.Cursor, aStr)
 		default:
+			// aStr, _ := PRINT(ast)
+			// fmt.Printf("%T○ %s\n", ast, aStr)
 			return eval_ast(ctx, ast, env)
 		}
 
@@ -231,7 +226,7 @@ func EVAL(ctx context.Context, ast MalType, env EnvType) (MalType, error) {
 		if e != nil {
 			return nil, e
 		}
-		if !List_Q(ast) {
+		if !Q[List](ast) {
 			return eval_ast(ctx, ast, env)
 		}
 		if len(ast.(List).Val) == 0 {
@@ -256,22 +251,22 @@ func EVAL(ctx context.Context, ast MalType, env EnvType) (MalType, error) {
 			a2 = ast.(List).Val[2]
 		}
 		a0sym := "__<*fn>__"
-		if Symbol_Q(a0) {
+		if Q[Symbol](a0) {
 			a0sym = a0.(Symbol).Val
 		}
 		switch a0sym {
 		case "def":
 			res, e := EVAL(ctx, a2, env)
 			if e != nil {
-				return nil, PushError(ast.(List).Cursor, ast, e)
+				return nil, PushError(ast.(List).Cursor, e)
 			}
 			switch a1 := a1.(type) {
 			case Symbol:
 				return env.Set(a1, res), nil
 			default:
-				return nil, RuntimeError{
-					ErrorVal: fmt.Errorf("cannot use '%T' as identifier", a1),
-					Cursor:   ast.(List).Cursor,
+				return nil, MalError{
+					Obj:    fmt.Errorf("cannot use '%T' as identifier", a1),
+					Cursor: ast.(List).Cursor,
 				}
 			}
 		case "let":
@@ -284,21 +279,21 @@ func EVAL(ctx context.Context, ast MalType, env EnvType) (MalType, error) {
 				return nil, e
 			}
 			if len(arr1)%2 != 0 {
-				return nil, RuntimeError{
-					ErrorVal: errors.New("let: odd elements on binding vector"),
-					Cursor:   a1.(Vector).Cursor,
+				return nil, MalError{
+					Obj:    errors.New("let: odd elements on binding vector"),
+					Cursor: a1.(Vector).Cursor,
 				}
 			}
 			for i := 0; i < len(arr1); i += 2 {
-				if !Symbol_Q(arr1[i]) {
-					return nil, RuntimeError{
-						ErrorVal: errors.New("non-symbol bind value"),
-						Cursor:   a1.(Vector).Cursor,
+				if !Q[Symbol](arr1[i]) {
+					return nil, MalError{
+						Obj:    errors.New("non-symbol bind value"),
+						Cursor: a1.(Vector).Cursor,
 					}
 				}
 				exp, e := EVAL(ctx, arr1[i+1], let_env)
 				if e != nil {
-					return nil, PushError(arr1[i].(Symbol).Cursor, arr1[i], e)
+					return nil, PushError(arr1[i].(Symbol).Cursor, e)
 				}
 				let_env.Set(arr1[i].(Symbol), exp)
 			}
@@ -351,7 +346,7 @@ func EVAL(ctx context.Context, ast MalType, env EnvType) (MalType, error) {
 				catchDo = List{Val: last.(List).Val[2:]}
 				tryDo = List{Val: lst[1 : len(lst)-1]}
 				if len(catchDo.(List).Val) == 0 {
-					return nil, PushError(ast.(List).Cursor, ast, errors.New("catch must have 2 arguments at least"))
+					return nil, PushError(ast.(List).Cursor, errors.New("catch must have 2 arguments at least"))
 				}
 			case "finally":
 				finallyDo = List{Val: last.(List).Val[1:]}
@@ -385,10 +380,11 @@ func EVAL(ctx context.Context, ast MalType, env EnvType) (MalType, error) {
 					switch e := e.(type) {
 					case MalError:
 						exc = e.Obj
-					case RuntimeError:
-						exc = e.Error()
 					default:
-						exc = e.Error()
+						exc = MalError{
+							Obj:    e,
+							Cursor: catchDo.(List).Cursor,
+						}
 					}
 					binds := NewList(catchBind)
 					new_env, e := NewEnv(env, binds, NewList(exc))
@@ -406,9 +402,9 @@ func EVAL(ctx context.Context, ast MalType, env EnvType) (MalType, error) {
 			}
 		case "context":
 			if a2 != nil {
-				return nil, RuntimeError{
-					ErrorVal: fmt.Errorf("context does not allow more than one argument"),
-					Cursor:   a2.(Vector).Cursor,
+				return nil, MalError{
+					Obj:    fmt.Errorf("context does not allow more than one argument"),
+					Cursor: a2.(Vector).Cursor,
 				}
 			}
 			childCtx, cancel := context.WithCancel(ctx)
@@ -430,7 +426,7 @@ func EVAL(ctx context.Context, ast MalType, env EnvType) (MalType, error) {
 		case "if":
 			cond, e := EVAL(ctx, a1, env)
 			if e != nil {
-				return nil, PushError(ast.(List).Cursor, ast, e)
+				return nil, PushError(ast.(List).Cursor, e)
 			}
 			if cond == nil || cond == false {
 				if len(ast.(List).Val) >= 4 {
@@ -456,45 +452,27 @@ func EVAL(ctx context.Context, ast MalType, env EnvType) (MalType, error) {
 		default:
 			el, e := eval_ast(ctx, ast, env)
 			if e != nil {
-				return nil, PushError(ast.(List).Cursor, ast, e)
+				return nil, PushError(ast.(List).Cursor, e)
 			}
 			f := el.(List).Val[0]
-			if MalFunc_Q(f) {
+			if Q[MalFunc](f) {
 				fn := f.(MalFunc)
 				ast = fn.Exp
 				env, e = NewEnv(fn.Env, fn.Params, List{Val: el.(List).Val[1:]})
 				if e != nil {
-					return nil, PushError(ast.(List).Cursor, ast, e)
+					return nil, PushError(ast.(List).Cursor, e)
 				}
 			} else {
 				fn, ok := f.(Func)
 				if !ok {
-					switch f := f.(type) {
-					case int:
-						return nil, RuntimeError{
-							ErrorVal: fmt.Errorf("attempt to call non-function (was integer %v)", f),
-							Cursor:   ast.(List).Cursor,
-						}
-					case string:
-						return nil, RuntimeError{
-							ErrorVal: fmt.Errorf("attempt to call non-function (was string %q)", f),
-							Cursor:   ast.(List).Cursor,
-						}
-					case Symbol:
-						return nil, RuntimeError{
-							ErrorVal: fmt.Errorf("attempt to call non-function (was symbol %q)", f.Val),
-							Cursor:   ast.(List).Cursor,
-						}
-					default:
-						return nil, RuntimeError{
-							ErrorVal: fmt.Errorf("attempt to call non-function (was %T)", f),
-							Cursor:   ast.(List).Cursor,
-						}
+					return nil, MalError{
+						Obj:    fmt.Errorf("attempt to call non-function (was of type %T)", f),
+						Cursor: el.(List).Cursor,
 					}
 				}
 				result, err := fn.Fn(ctx, el.(List).Val[1:])
 				if err != nil {
-					return nil, PushError(ast.(List).Cursor, ast, err)
+					return nil, PushError(ast.(List).Cursor, err)
 				}
 				return result, nil
 			}
@@ -503,7 +481,7 @@ func EVAL(ctx context.Context, ast MalType, env EnvType) (MalType, error) {
 }
 
 func first(list MalType) string {
-	if list != nil && List_Q(list) && Symbol_Q(list.(List).Val[0]) {
+	if list != nil && Q[List](list) && Q[Symbol](list.(List).Val[0]) {
 		return list.(List).Val[0].(Symbol).Val
 	}
 	return ""
@@ -519,7 +497,7 @@ func do(ctx context.Context, ast MalType, from, to int, env EnvType) (MalType, e
 	}
 	evaledAST, e := eval_ast(ctx, List{Val: lst[from : len(lst)+to]}, env)
 	if e != nil {
-		return nil, PushError(ast.(List).Cursor, ast, e)
+		return nil, PushError(ast.(List).Cursor, e)
 	}
 	evaledLst := evaledAST.(List).Val
 	if to == 0 {
@@ -528,33 +506,26 @@ func do(ctx context.Context, ast MalType, from, to int, env EnvType) (MalType, e
 	return lst[len(lst)-1], nil
 }
 
-func PushError(cursor *Position, ast MalType, err error) error {
+func PushError(cursor *Position, err error) error {
 	switch err := err.(type) {
 	case MalError:
 		if err.Cursor == nil {
 			err.Cursor = cursor
 		}
 		return err
-	case RuntimeError:
-		return RuntimeError{
-			ErrorVal: nil,
-			Parent:   &err,
-			Trace:    printer.Pr_str(ast, true),
-			Cursor:   cursor,
-		}
 	default:
-		return RuntimeError{
-			ErrorVal: err,
-			Trace:    printer.Pr_str(ast, true),
-			Cursor:   cursor,
+		return MalError{
+			Obj:    err,
+			Cursor: cursor,
 		}
 	case nil:
-		return nil
+		panic(err)
 	}
 }
 
 func malRecover(err *error) {
-	if rerr := recover(); rerr != nil {
+	rerr := recover()
+	if rerr != nil {
 		*err = rerr.(error)
 	}
 }
@@ -565,40 +536,27 @@ func PRINT(exp MalType) (string, error) {
 }
 
 // REPL
-func REPL(ctx context.Context, repl_env EnvType, str string) (MalType, error) {
-	return REPLPosition(ctx, repl_env, str, nil)
-}
-
-// REPLPosition
-func REPLPosition(ctx context.Context, repl_env EnvType, str string, cursor *Position) (MalType, error) {
-	var exp MalType
-	var res string
-	var e error
-	if exp, e = READ(str, cursor); e != nil {
-		return nil, e
+func REPL(ctx context.Context, repl_env EnvType, str string, cursor *Position) (MalType, error) {
+	ast, err := READ(str, cursor)
+	if err != nil {
+		return nil, err
 	}
-	if exp, e = EVAL(ctx, exp, repl_env); e != nil {
-		return nil, e
+	exp, err := EVAL(ctx, ast, repl_env)
+	if err != nil {
+		return nil, err
 	}
-	if res, e = PRINT(exp); e != nil {
-		return nil, e
-	}
-	return res, nil
+	return PRINT(exp)
 }
 
 // REPLWithPreamble
 func REPLWithPreamble(ctx context.Context, repl_env EnvType, str string, cursor *Position) (MalType, error) {
-	var exp MalType
-	var res string
-	var e error
-	if exp, e = READWithPreamble(str, cursor); e != nil {
-		return nil, e
+	ast, err := READWithPreamble(str, cursor)
+	if err != nil {
+		return nil, err
 	}
-	if exp, e = EVAL(ctx, exp, repl_env); e != nil {
-		return nil, e
+	exp, err := EVAL(ctx, ast, repl_env)
+	if err != nil {
+		return nil, err
 	}
-	if res, e = PRINT(exp); e != nil {
-		return nil, e
-	}
-	return res, nil
+	return PRINT(exp)
 }

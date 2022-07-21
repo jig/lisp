@@ -14,13 +14,9 @@ func TestCursor(t *testing.T) {
 	if err != nil {
 		panic(err)
 	}
-	// core.go: defined using go
-	for k, v := range core.NS {
-		bootEnv.Set(types.Symbol{Val: k}, types.Func{Fn: v.(func(context.Context, []types.MalType) (types.MalType, error))})
-	}
-	for k, v := range core.NSInput {
-		bootEnv.Set(types.Symbol{Val: k}, types.Func{Fn: v.(func(context.Context, []types.MalType) (types.MalType, error))})
-	}
+	core.Load(bootEnv)
+	core.LoadInput(bootEnv)
+
 	bootEnv.Set(types.Symbol{Val: "eval"}, types.Func{Fn: func(ctx context.Context, a []types.MalType) (types.MalType, error) {
 		return EVAL(ctx, a[0], bootEnv)
 	}})
@@ -28,7 +24,7 @@ func TestCursor(t *testing.T) {
 
 	ctx := context.Background()
 	// core.mal: defined using the language itself
-	_, err = REPL(ctx, bootEnv, `(def *host-language* "go")`)
+	_, err = REPL(ctx, bootEnv, `(def *host-language* "go")`, types.NewCursorFile(t.Name()))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -58,14 +54,14 @@ func TestCursor(t *testing.T) {
 		{
 			Module: "codeUndefinedSymbol",
 			Code:   codeUndefinedSymbol,
-			Error: types.RuntimeError{
+			Error: types.MalError{
 				Cursor: &types.Position{Row: 3},
 			},
 		},
 		{
 			Module: "codeLetIsBogus",
 			Code:   codeLetIsBogus,
-			Error: types.RuntimeError{
+			Error: types.MalError{
 				Cursor: &types.Position{Row: 4},
 			},
 		},
@@ -77,14 +73,14 @@ func TestCursor(t *testing.T) {
 		{
 			Module: "codeMissingRightBracket",
 			Code:   codeMissingRightBracket,
-			Error: types.RuntimeError{
+			Error: types.MalError{
 				Cursor: &types.Position{Row: 8},
 			},
 		},
 		{
 			Module: "codeTooManyRightBrackets",
 			Code:   codeTooManyRightBrackets,
-			Error: types.RuntimeError{
+			Error: types.MalError{
 				Cursor: &types.Position{Row: 25},
 			},
 		},
@@ -93,7 +89,7 @@ func TestCursor(t *testing.T) {
 		if err != nil {
 			panic(err)
 		}
-		ast, err := REPLPosition(ctx, subEnv, "(do\n"+testCase.Code+"\na)", &types.Position{
+		ast, err := REPL(ctx, subEnv, "(do\n"+testCase.Code+"\na)", &types.Position{
 			Module: &testCase.Module,
 			Row:    0,
 		})
@@ -101,11 +97,6 @@ func TestCursor(t *testing.T) {
 		case nil:
 			if testCase.Error != nil {
 				t.Fatalf("Expected error %q", testCase.Error)
-			}
-			continue
-		case types.RuntimeError:
-			if err.ErrorPosition().Row != testCase.Error.(types.RuntimeError).Cursor.Row {
-				t.Fatal(err.Error(), err.ErrorPosition().Row, testCase.Error.(types.RuntimeError).Cursor.Row)
 			}
 			continue
 		case types.MalError:
@@ -116,11 +107,11 @@ func TestCursor(t *testing.T) {
 		default:
 			//			t.Fatal(err)
 		}
-		if ast == nil {
+		if ast == "" {
 			t.Error(testCase.Module, "(no error) AST is nil")
 			continue
 		}
-		if ast.(string) != "1234" {
+		if ast != "1234" {
 			t.Error(testCase.Module, "(no error) REPL didn't reach the end")
 			continue
 		}

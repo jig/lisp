@@ -9,9 +9,9 @@ type HashMap interface {
 }
 
 type FactoryJSON interface {
-	FromJSON(b []byte) (interface{}, error)
+	FromJSON(b []byte) (types.MalType, error)
 }
 
 type FactoryHashMap interface {
-	FromHashMap(data types.MalType) (interface{}, error)
+	FromHashMap(data types.MalType) (types.MalType, error)
 }

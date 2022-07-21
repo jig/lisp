@@ -1,12 +1,18 @@
-package nscoreextended
+package lisp
 
 import (
 	"context"
+	_ "embed"
 	"reflect"
+	"testing"
 
-	"github.com/jig/lisp"
+	"github.com/jig/lisp/env"
+	"github.com/jig/lisp/lib/core"
 	"github.com/jig/lisp/types"
 )
+
+//go:embed macro_test.lisp
+var macro_test string
 
 func Load(repl_env types.EnvType) error {
 	ctx := context.Background()
@@ -23,7 +29,7 @@ func Load(repl_env types.EnvType) error {
 		test_cascade,
 		load_file_once,
 	} {
-		if _, err := lisp.REPL(ctx, repl_env, `(eval (read-string (str "(do "`+symbols+`" nil)")))`, types.NewCursorFile(reflect.TypeOf(&symbols).PkgPath())); err != nil {
+		if _, err := REPL(ctx, repl_env, `(eval (read-string (str "(do "`+symbols+`" nil)")))`, types.NewCursorFile(reflect.TypeOf(_here_{}).PkgPath())); err != nil {
 			return err
 		}
 	}
@@ -507,3 +513,52 @@ var load_file_once = `;; Like load-file, but will never load the same path twice
             (swap! seen assoc filename nil)
             (load-file filename))))))))
 `
+
+type _here_ struct{}
+
+func TestMacro(t *testing.T) {
+	repl_env, _ := env.NewEnv(nil, nil, nil)
+	ctx := context.Background()
+
+	core.Load(repl_env)
+	core.LoadInput(repl_env)
+
+	repl_env.Set(types.Symbol{Val: "eval"}, types.Func{Fn: func(ctx context.Context, a []types.MalType) (types.MalType, error) {
+		return EVAL(ctx, a[0], repl_env)
+	}})
+
+	if _, err := REPL(ctx, repl_env, `(def *host-language* "go")`, types.NewCursorFile(reflect.TypeOf(_here_{}).PkgPath())); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := REPL(ctx, repl_env, "(def not (fn (a) (if a false true)))", types.NewCursorFile(reflect.TypeOf(_here_{}).PkgPath())); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := REPL(ctx, repl_env, "(def load-file (fn (f) (eval (read-string (str \"(do \" (slurp f) \"\nnil)\")))))", types.NewCursorFile(reflect.TypeOf(_here_{}).PkgPath())); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := REPL(ctx, repl_env, "(defmacro cond (fn (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw \"odd number of forms to cond\")) (cons 'cond (rest (rest xs)))))))", types.NewCursorFile(reflect.TypeOf(_here_{}).PkgPath())); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := REPL(ctx, repl_env, `(def db (atom {}))`, types.NewCursorFile(reflect.TypeOf(_here_{}).PkgPath())); err != nil {
+		t.Fatal(err)
+	}
+	if err := Load(repl_env); err != nil {
+		t.Fatal(err)
+	}
+
+	exp, err := READ(macro_test, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	exp, err = EVAL(ctx, exp, repl_env)
+	if err != nil {
+		t.Fatal(err)
+	}
+	res, err := PRINT(exp)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res != "true" {
+		t.Fatal(res)
+	}
+}

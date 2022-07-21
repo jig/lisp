@@ -8,18 +8,18 @@
 
 (+ 1 :hello)
 ;=>nil
-;/^.*interface conversion: types.MalType is string, not int$
+;/^.*using string as type int$
 
 (+ 1 "hello")
 ;=>nil
-;/^.*interface conversion: types.MalType is string, not int$
+;/^.*using string as type int$
 
 (try (/ 1 0))
 ;=>nil
-;/^.*runtime error: integer divide by zero$
+;/^.*integer divide by zero$
 
 (try (/ 1 0) (catch e e))
-;=>"(L1,12): Error: runtime error: integer divide by zero"
+;=>github.com/jig/lisp/lib/core[/]: runtime error: integer divide by zero
 ;/^$
 
 (context (/ 1 0))

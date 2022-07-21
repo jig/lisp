@@ -2,20 +2,22 @@ package nstest
 
 import (
 	"context"
+	"reflect"
 
 	"github.com/jig/lisp"
+	"github.com/jig/lisp/types"
 	. "github.com/jig/lisp/types"
 )
 
 func Load(repl_env EnvType) error {
 	ctx := context.Background()
-	if _, err := lisp.REPL(ctx, repl_env, `(eval (read-string (str "(do "`+AssertMacros+`" nil)")))`); err != nil {
+	if _, err := lisp.REPL(ctx, repl_env, `(eval (read-string (str "(do "`+assertMacros+`" nil)")))`, types.NewCursorFile(reflect.TypeOf(&assertMacros).PkgPath())); err != nil {
 		return err
 	}
 	return nil
 }
 
-var AssertMacros = `;; assert macros
+var assertMacros = `;; assert macros
 (defmacro assert-true
     (fn [name expr]
         (list

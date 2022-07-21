@@ -6,14 +6,58 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"runtime"
 	"strings"
 	"sync"
 )
 
 type Position struct {
-	Module *string
-	Row    int
-	Col    int
+	Module   *string
+	BeginRow int
+	BeginCol int
+	Row      int
+	Col      int
+}
+
+func NewCursorFile(module string) *Position {
+	return &Position{
+		Module:   &module,
+		BeginRow: 1,
+		BeginCol: 1,
+	}
+}
+
+func NewCursor(here *Position) *Position {
+	return &Position{
+		Module:   here.Module,
+		BeginRow: here.BeginRow,
+		BeginCol: here.BeginCol,
+	}
+}
+
+func (c *Position) Close(here *Position) *Position {
+	return &Position{
+		Module:   c.Module,
+		BeginRow: c.BeginRow,
+		BeginCol: c.BeginCol,
+		Row:      here.Row,
+		Col:      here.Col,
+	}
+}
+
+func (cursor *Position) String() string {
+	if cursor == nil {
+		return ""
+	}
+	moduleName := ""
+	if cursor.Module != nil {
+		moduleName = *cursor.Module
+	}
+	if cursor.BeginRow != cursor.Row {
+		return fmt.Sprintf("%s§%d…%d", moduleName, cursor.BeginRow, cursor.Row)
+	} else {
+		return fmt.Sprintf("%s§%d,%d…%d", moduleName, cursor.Row, cursor.BeginCol, cursor.Col)
+	}
 }
 
 type Token struct {
@@ -28,24 +72,33 @@ type MalError struct {
 }
 
 func (e MalError) Error() string {
-	switch v := e.Obj.(type) {
+	switch err := e.Obj.(type) {
 	case string:
-		return v
+		return err
+	case runtime.Error:
+		return err.Error()
+	case error:
+		return err.Error()
 	default:
-		return fmt.Sprintf("%#v", v)
+		return fmt.Sprintf("%T: %s", err, err)
 	}
 }
 
 // General types
-type MalType interface {
-}
+type MalType interface{}
 
 type EnvType interface {
 	Find(key Symbol) EnvType
 	Set(key Symbol, value MalType) MalType
 	Get(key Symbol) (MalType, error)
 	Remove(key Symbol) error
-	Map() *sync.Map
+	RemoveNT(key Symbol) error
+	Map() (map[string]interface{}, *sync.RWMutex)
+	Update(key Symbol, f func(MalType) (MalType, error)) (MalType, error)
+
+	FindNT(key Symbol) EnvType
+	SetNT(key Symbol, value MalType) MalType
+	GetNT(key Symbol) (MalType, error)
 }
 
 // Scalars
@@ -63,8 +116,8 @@ func False_Q(obj MalType) bool {
 	return ok && !b
 }
 
-func Number_Q(obj MalType) bool {
-	_, ok := obj.(int)
+func Q[T any](obj MalType) bool {
+	_, ok := obj.(T)
 	return ok
 }
 
@@ -74,37 +127,27 @@ type Symbol struct {
 	Cursor *Position
 }
 
-func Symbol_Q(obj MalType) bool {
-	_, ok := obj.(Symbol)
-	return ok
-}
-
 // Keywords
 func NewKeyword(s string) (MalType, error) {
 	return "\u029e" + s, nil
 }
 
 func Keyword_Q(obj MalType) bool {
-	s, ok := obj.(string)
-	return ok && strings.HasPrefix(s, "\u029e")
+	return Q[string](obj) && strings.HasPrefix(obj.(string), "\u029e")
 }
 
-// Strings
 func String_Q(obj MalType) bool {
-	_, ok := obj.(string)
-	return ok
+	return Q[string](obj) && !strings.HasPrefix(obj.(string), "\u029e")
 }
+
+type ExternalCall func(context.Context, []MalType) (MalType, error)
 
 // Functions
 type Func struct {
-	Fn     func(context.Context, []MalType) (MalType, error)
+	// Fn     func(context.Context, []MalType) (MalType, error)
+	Fn     ExternalCall
 	Meta   MalType
 	Cursor *Position
-}
-
-func Func_Q(obj MalType) bool {
-	_, ok := obj.(Func)
-	return ok
 }
 
 type MalFunc struct {
@@ -116,11 +159,6 @@ type MalFunc struct {
 	GenEnv  func(EnvType, MalType, MalType) (EnvType, error)
 	Meta    MalType
 	Cursor  *Position
-}
-
-func MalFunc_Q(obj MalType) bool {
-	_, ok := obj.(MalFunc)
-	return ok
 }
 
 func (f MalFunc) SetMacro() MalType {
@@ -137,7 +175,10 @@ func (f MalFunc) GetMacro() bool {
 func Apply(ctx context.Context, f_mt MalType, a []MalType) (MalType, error) {
 	switch f := f_mt.(type) {
 	case MalFunc:
-		env, e := f.GenEnv(f.Env, f.Params, List{a, nil, f.Cursor})
+		env, e := f.GenEnv(f.Env, f.Params, List{
+			Val:    a,
+			Cursor: f.Cursor,
+		})
 		if e != nil {
 			return nil, e
 		}
@@ -147,7 +188,7 @@ func Apply(ctx context.Context, f_mt MalType, a []MalType) (MalType, error) {
 	case func([]MalType) (MalType, error):
 		return f(a)
 	default:
-		return nil, fmt.Errorf("Invalid function to Apply (%T)", f)
+		return nil, fmt.Errorf("invalid function to Apply (%T)", f)
 	}
 }
 
@@ -162,21 +203,11 @@ func NewList(a ...MalType) MalType {
 	return List{Val: a}
 }
 
-func List_Q(obj MalType) bool {
-	_, ok := obj.(List)
-	return ok
-}
-
 // Vectors
 type Vector struct {
 	Val    []MalType
 	Meta   MalType
 	Cursor *Position
-}
-
-func Vector_Q(obj MalType) bool {
-	_, ok := obj.(Vector)
-	return ok
 }
 
 func GetSlice(seq MalType) ([]MalType, error) {
@@ -203,7 +234,7 @@ func NewHashMap(seq MalType) (MalType, error) {
 		return nil, e
 	}
 	if len(lst)%2 == 1 {
-		return nil, errors.New("Odd number of arguments to NewHashMap")
+		return nil, errors.New("odd number of arguments to NewHashMap")
 	}
 	m := map[string]MalType{}
 	for i := 0; i < len(lst); i += 2 {
@@ -214,11 +245,6 @@ func NewHashMap(seq MalType) (MalType, error) {
 		m[str] = lst[i+1]
 	}
 	return HashMap{Val: m}, nil
-}
-
-func HashMap_Q(obj MalType) bool {
-	_, ok := obj.(HashMap)
-	return ok
 }
 
 // Sets
@@ -249,11 +275,6 @@ func NewSet(seq MalType) (MalType, error) {
 	return Set{Val: m}, nil
 }
 
-func Set_Q(obj MalType) bool {
-	_, ok := obj.(Set)
-	return ok
-}
-
 // Atoms
 type Atom struct {
 	Mutex  sync.RWMutex
@@ -265,11 +286,6 @@ type Atom struct {
 func (a *Atom) Set(val MalType) MalType {
 	a.Val = val
 	return a
-}
-
-func Atom_Q(obj MalType) bool {
-	_, ok := obj.(*Atom)
-	return ok
 }
 
 // General functions
@@ -416,69 +432,8 @@ func ConvertTo(from []MalType, _to MalType, meta MalType) (MalType, error) {
 	}
 }
 
-type RuntimeError struct {
-	ErrorVal error         // deep cause of the stack error
-	Trace    string        // intermediate evaluated form
-	Parent   *RuntimeError // outer stack
-	Cursor   *Position     // source code line and column
-}
-
-// Stack shows error stack. Last element on array is the original error the generated the stack
-func (e RuntimeError) Stack() []string {
-	errStack := []string{}
-	for {
-		errStack = append(errStack, Line(e.Cursor, "Trace: "+e.Trace))
-		if e.ErrorVal != nil {
-			errStack = append(errStack, e.Error())
-		}
-		if e.Parent == nil {
-			return errStack
-		}
-		e = *e.Parent
-	}
-}
-
-func (e RuntimeError) Error() string {
-	if e.Parent != nil {
-		return e.Parent.Error()
-	}
-	return Line(e.Cursor, "Error: "+e.ErrorVal.Error())
-}
-
-func (e RuntimeError) ErrorPosition() Position {
-	if e.Parent != nil {
-		return e.Parent.ErrorPosition()
-	}
-	if e.Cursor != nil {
-		return *e.Cursor
-	}
-	return Position{}
-}
-
 func Line(cursor *Position, message string) string {
-	if cursor == nil {
-		return message
-	}
-	moduleName := ""
-	if cursor.Module != nil {
-		moduleName = *cursor.Module
-	}
-	if cursor.Row == 0 {
-		if moduleName != "" {
-			return fmt.Sprintf("%s: %s", moduleName, message)
-		}
-		return message
-	}
-	if cursor.Col == 0 {
-		if cursor.Module != nil {
-			return fmt.Sprintf("%s(L%d): %s", moduleName, cursor.Row, message)
-		}
-		return fmt.Sprintf("(L%d): %s", cursor.Row, message)
-	}
-	if cursor.Module != nil {
-		return fmt.Sprintf("%s(L%d,%d): %s", moduleName, cursor.Row, cursor.Col, message)
-	}
-	return fmt.Sprintf("(L%d,%d): %s", cursor.Row, cursor.Col, message)
+	return cursor.String() + ": " + message
 }
 
 // Placeholder

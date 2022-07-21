@@ -52,7 +52,7 @@ func parseFile(ctx context.Context, fileName string, code string) error {
 	lines := strings.Split(string(code), "\n")
 	currentLine := 0
 
-	env := newEnv()
+	env := newEnv(fileName)
 	var result types.MalType
 	var stdoutResult string
 	for _, line := range lines {
@@ -91,7 +91,7 @@ func parseFile(ctx context.Context, fileName string, code string) error {
 		default:
 			// fmt.Println(currentLine, line)
 			result, stdoutResult = captureStdout(func() (types.MalType, error) {
-				v, err := REPL(ctx, env, line)
+				v, err := REPL(ctx, env, line, types.NewCursorFile(fileName))
 				if v == nil {
 					return "nil", err
 				}
@@ -103,46 +103,39 @@ func parseFile(ctx context.Context, fileName string, code string) error {
 	return nil
 }
 
-func newEnv() types.EnvType {
-	env, err := env.NewEnv(nil, nil, nil)
+func newEnv(fileName string) types.EnvType {
+	newenv, err := env.NewEnv(nil, nil, nil)
 	if err != nil {
 		panic(err)
 	}
 	// core.go: defined using go
-	for k, v := range core.NS {
-		env.Set(types.Symbol{Val: k}, types.Func{Fn: v.(func(context.Context, []types.MalType) (types.MalType, error))})
-	}
-	for k, v := range core.NSInput {
-		env.Set(types.Symbol{Val: k}, types.Func{Fn: v.(func(context.Context, []types.MalType) (types.MalType, error))})
-	}
-	env.Set(types.Symbol{Val: "eval"}, types.Func{Fn: func(ctx context.Context, a []types.MalType) (types.MalType, error) {
-		return EVAL(ctx, a[0], env)
+	core.Load(newenv)
+	core.LoadInput(newenv)
+	newenv.Set(types.Symbol{Val: "eval"}, types.Func{Fn: func(ctx context.Context, a []types.MalType) (types.MalType, error) {
+		return EVAL(ctx, a[0], newenv)
 	}})
-	env.Set(types.Symbol{Val: "*ARGV*"}, types.List{})
+	newenv.Set(types.Symbol{Val: "*ARGV*"}, types.List{})
 
-	// package example to test marshalers
-	for k, v := range NSMarshalExample {
-		env.Set(types.Symbol{Val: k}, types.Func{Fn: v.(func(context.Context, []types.MalType) (types.MalType, error))})
-	}
+	LoadMarshalExample(newenv)
 
 	ctx := context.Background()
 	// core.mal: defined using the language itself
-	if _, err := REPL(ctx, env, `(def *host-language* "go")`); err != nil {
+	if _, err := REPL(ctx, newenv, `(def *host-language* "go")`, types.NewCursorFile(fileName)); err != nil {
 		return nil
 	}
-	if _, err := REPL(ctx, env, "(def not (fn (a) (if a false true)))"); err != nil {
+	if _, err := REPL(ctx, newenv, "(def not (fn (a) (if a false true)))", types.NewCursorFile(fileName)); err != nil {
 		return nil
 	}
-	if _, err := REPL(ctx, env, "(def load-file (fn (f) (eval (read-string (str \"(do \" (slurp f) \"\nnil)\")))))"); err != nil {
+	if _, err := REPL(ctx, newenv, "(def load-file (fn (f) (eval (read-string (str \"(do \" (slurp f) \"\nnil)\")))))", types.NewCursorFile(fileName)); err != nil {
 		return nil
 	}
-	if _, err := REPL(ctx, env, "(defmacro cond (fn (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw \"odd number of forms to cond\")) (cons 'cond (rest (rest xs)))))))"); err != nil {
+	if _, err := REPL(ctx, newenv, "(defmacro cond (fn (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw \"odd number of forms to cond\")) (cons 'cond (rest (rest xs)))))))", types.NewCursorFile(fileName)); err != nil {
 		return nil
 	}
-	if _, err := REPL(ctx, env, `(def db (atom {}))`); err != nil {
+	if _, err := REPL(ctx, newenv, `(def db (atom {}))`, types.NewCursorFile(fileName)); err != nil {
 		return nil
 	}
-	return env
+	return newenv
 }
 
 func captureStdout(REPL func() (types.MalType, error)) (result types.MalType, stdoutResult string) {

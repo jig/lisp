@@ -14,31 +14,25 @@ func TestCursor2(t *testing.T) {
 	if err != nil {
 		panic(err)
 	}
-	// core.go: defined using go
-	for k, v := range core.NS {
-		bootEnv.Set(types.Symbol{Val: k}, types.Func{Fn: v.(func(context.Context, []types.MalType) (types.MalType, error))})
-	}
-	for k, v := range core.NSInput {
-		bootEnv.Set(types.Symbol{Val: k}, types.Func{Fn: v.(func(context.Context, []types.MalType) (types.MalType, error))})
-	}
+	core.Load(bootEnv)
+	core.LoadInput(bootEnv)
+
 	bootEnv.Set(types.Symbol{Val: "eval"}, types.Func{Fn: func(ctx context.Context, a []types.MalType) (types.MalType, error) {
 		return EVAL(ctx, a[0], bootEnv)
 	}})
 	bootEnv.Set(types.Symbol{Val: "*ARGV*"}, types.List{})
 
 	ctx := context.Background()
-	_, err = REPLPosition(ctx, bootEnv, codeMacro, &types.Position{})
+	_, err = REPL(ctx, bootEnv, codeMacro, types.NewCursorFile(t.Name()))
 	if err != nil {
 		t.Fatal(err)
 	}
-	_, err = REPLPosition(ctx, bootEnv, testCode, &types.Position{})
+	_, err = REPL(ctx, bootEnv, testCode, types.NewCursorFile(t.Name()))
 	switch err := err.(type) {
 	case nil:
 		t.Error("unexpected: no error returned")
 	case types.MalError:
-		t.Fatal(err)
-	case types.RuntimeError:
-		if err.Cursor.Row != 12 {
+		if err.Cursor.Row != 11 {
 			t.Fatalf("%+v %s", err.Cursor, err)
 		}
 	}

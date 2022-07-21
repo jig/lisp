@@ -50,15 +50,15 @@ func Execute(ctx context.Context, repl_env types.EnvType) error {
 		lines = append(lines, line)
 		completeLine := strings.Join(lines, "\n")
 
-		out, err := lisp.REPL(ctx, repl_env, completeLine)
+		out, err := lisp.REPL(ctx, repl_env, completeLine, types.NewCursorFile("REPL"))
 		if err != nil {
 			if err.Error() == "<empty line>" {
 				continue
 			}
-			if err, ok := err.(types.RuntimeError); ok && err.ErrorVal != nil {
-				if err.ErrorVal.Error() == "expected ')', got EOF" ||
-					err.ErrorVal.Error() == "expected ']', got EOF" ||
-					err.ErrorVal.Error() == "expected '}', got EOF" {
+			if err, ok := err.(types.MalError); ok && err.Obj != nil {
+				if err.Error() == "expected ')', got EOF" ||
+					err.Error() == "expected ']', got EOF" ||
+					err.Error() == "expected '}', got EOF" {
 					l.SetPrompt("\033[31m›\033[0m ")
 					continue
 				}
@@ -66,9 +66,6 @@ func Execute(ctx context.Context, repl_env types.EnvType) error {
 			lines = []string{}
 			l.SetPrompt("\033[32m»\033[0m ")
 			switch err := err.(type) {
-			case types.RuntimeError:
-				fmt.Printf("\033[31mError:\033[0m %s\n", err.Error())
-				continue
 			case types.MalError:
 				errorString, err2 := lisp.PRINT(err.Obj)
 				if err2 != nil {
@@ -106,13 +103,14 @@ var re = regexp.MustCompile(`[\t\r\n \(\)\[\]\{\}]`)
 func (l *lispCompleter) Do(line []rune, pos int) (newLine [][]rune, length int) {
 	partial := re.Split(string(line[:pos]), -1)
 	lastPartial := partial[len(partial)-1]
-	l.repl_env.Map().Range(func(_key, value interface{}) bool {
-		key := _key.(string)
+	mapEnvKeys, mu := l.repl_env.Map()
+	mu.Lock()
+	defer mu.Unlock()
+	for key := range mapEnvKeys {
 		if strings.HasPrefix(key, lastPartial) {
 			newLine = append(newLine, []rune(key[len(lastPartial):]))
 		}
-		return true
-	})
+	}
 	for _, form := range []string{
 		"try",
 		"finally",

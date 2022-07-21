@@ -4,43 +4,45 @@ import (
 	"errors"
 	"sync"
 
-	. "github.com/jig/lisp/types"
+	"github.com/jig/lisp/types"
 )
 
 type Env struct {
-	data  sync.Map
-	outer EnvType
+	mu    *sync.RWMutex
+	data  map[string]interface{}
+	outer types.EnvType
 }
 
-func NewEnv(outer EnvType, binds_mt MalType, exprs_mt MalType) (EnvType, error) {
+func NewEnv(outer types.EnvType, binds_mt types.MalType, exprs_mt types.MalType) (types.EnvType, error) {
 	env := &Env{
-		data:  sync.Map{},
+		data:  map[string]interface{}{},
 		outer: outer,
+		mu:    &sync.RWMutex{},
 	}
 
 	if binds_mt != nil && exprs_mt != nil {
-		binds, e := GetSlice(binds_mt)
+		binds, e := types.GetSlice(binds_mt)
 		if e != nil {
 			return nil, e
 		}
-		exprs, e := GetSlice(exprs_mt)
+		exprs, e := types.GetSlice(exprs_mt)
 		if e != nil {
 			return nil, e
 		}
-		// Return a new Env with symbols in binds bound to
+		// Return a new Env with types.symbols in binds bound to
 		// corresponding values in exprs
 		var varargs bool
 		i := 0
 		for ; i < len(binds); i++ {
-			if Symbol_Q(binds[i]) && binds[i].(Symbol).Val == "&" {
-				env.data.Store(binds[i+1].(Symbol).Val, List{Val: exprs[i:]})
+			if types.Q[types.Symbol](binds[i]) && binds[i].(types.Symbol).Val == "&" {
+				env.data[binds[i+1].(types.Symbol).Val] = types.List{Val: exprs[i:]}
 				varargs = true
 				break
 			} else {
 				if i == len(exprs) {
 					return nil, errors.New("not enough arguments passed")
 				}
-				env.data.Store(binds[i].(Symbol).Val, exprs[i])
+				env.data[binds[i].(types.Symbol).Val] = exprs[i]
 			}
 		}
 		if !varargs && len(exprs) != i {
@@ -51,38 +53,81 @@ func NewEnv(outer EnvType, binds_mt MalType, exprs_mt MalType) (EnvType, error) 
 	return env, nil
 }
 
-func (e *Env) Find(key Symbol) EnvType {
-	if _, ok := e.data.Load(key.Val); ok {
+func (e *Env) Find(key types.Symbol) types.EnvType {
+	e.mu.RLock()
+	defer e.mu.RUnlock()
+
+	return e.FindNT(key)
+}
+
+func (e *Env) Set(key types.Symbol, value types.MalType) types.MalType {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+
+	return e.SetNT(key, value)
+}
+
+func (e *Env) Remove(key types.Symbol) error {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+
+	return e.RemoveNT(key)
+}
+
+func (e *Env) Get(key types.Symbol) (types.MalType, error) {
+	e.mu.RLock()
+	defer e.mu.RUnlock()
+
+	return e.GetNT(key)
+}
+
+func (e *Env) Update(key types.Symbol, f func(types.MalType) (types.MalType, error)) (types.MalType, error) {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+
+	v, _ := e.GetNT(key)
+	newV, err := f(v)
+	if err != nil {
+		return nil, err
+	}
+	return e.SetNT(key, newV), nil
+}
+
+func (e *Env) Map() (map[string]interface{}, *sync.RWMutex) {
+	return e.data, e.mu
+}
+
+func (e *Env) FindNT(key types.Symbol) types.EnvType {
+	if _, ok := e.data[key.Val]; ok {
 		return e
 	} else if e.outer != nil {
+		// do-not-use-FindNT-here
 		return e.outer.Find(key)
 	} else {
 		return nil
 	}
 }
 
-func (e *Env) Set(key Symbol, value MalType) MalType {
-	e.data.Store(key.Val, value)
+func (e *Env) SetNT(key types.Symbol, value types.MalType) types.MalType {
+	e.data[key.Val] = value
 	return value
 }
 
-func (e *Env) Remove(key Symbol) error {
-	if _, ok := e.data.LoadAndDelete(key.Val); !ok {
-		return errors.New("symbol not found")
-	}
-	return nil
-}
-
-func (e *Env) Get(key Symbol) (MalType, error) {
-	env := e.Find(key)
-	if env == nil {
+func (e *Env) GetNT(key types.Symbol) (types.MalType, error) {
+	if v, ok := e.data[key.Val]; ok {
+		return v, nil
+	} else if e.outer != nil {
+		// do-not-use-GetNT-here
+		return e.outer.Get(key)
+	} else {
 		return nil, errors.New("'" + key.Val + "' not found")
 	}
-
-	v, _ := env.(*Env).data.Load(key.Val)
-	return v, nil
 }
 
-func (e *Env) Map() *sync.Map {
-	return &e.data
+func (e *Env) RemoveNT(key types.Symbol) error {
+	if _, ok := e.data[key.Val]; !ok {
+		return errors.New("types.symbol not found")
+	}
+	delete(e.data, key.Val)
+	return nil
 }
