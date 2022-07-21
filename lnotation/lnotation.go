@@ -27,15 +27,32 @@ func LS(symbol string, args ...MalType) List {
 }
 
 // V returns a lisp vector of its arguments
-func V(args ...MalType) Vector {
-	return Vector{Val: args}
+func V[T any](args []T) Vector {
+	result := []MalType{}
+	for _, k := range args {
+		result = append(result, k)
+	}
+	return Vector{Val: result}
 }
 
 // M converts Go map to lisp HashMap
-func HM(arg map[string]MalType) HashMap {
-	return HashMap{Val: arg}
+func HM(arg map[string]interface{}) HashMap {
+	result := map[string]MalType{}
+	for k, v := range arg {
+		switch v := v.(type) {
+		case map[string]interface{}:
+			result[k] = HM(v)
+		default:
+			result[k] = v
+		}
+	}
+	return HashMap{Val: result}
 }
 
-func SET(arg map[string]struct{}) Set {
-	return Set{Val: arg}
+func SET(args []string) Set {
+	result := map[string]struct{}{}
+	for _, k := range args {
+		result[k] = struct{}{}
+	}
+	return Set{Val: result}
 }

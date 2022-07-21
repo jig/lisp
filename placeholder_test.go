@@ -8,6 +8,7 @@ import (
 	"github.com/jig/lisp/env"
 	"github.com/jig/lisp/lib/core"
 	"github.com/jig/lisp/reader"
+	"github.com/jig/lisp/types"
 
 	. "github.com/jig/lisp/lnotation"
 	. "github.com/jig/lisp/types"
@@ -397,7 +398,7 @@ func BenchmarkAddPreambleAlternative(b *testing.B) {
 			LS("def", "v4", EXAMPLEAST),
 			LS("def", "v5", EXAMPLEBYTESTRING),
 
-			LS("def", LS("not", LS("fn", V("a")))),
+			LS("def", LS("not", LS("fn", V([]string{"a"})))),
 		)
 		str, err := PRINT(ast)
 		if err != nil {
@@ -608,5 +609,59 @@ func TestHashMapMarshalers(t *testing.T) {
 		if goStruct.(HashMap).Val["ʞb"] != "I am B" {
 			t.Fatal("no B")
 		}
+	}
+}
+
+func TestPassingLispDataFromGo(t *testing.T) {
+	m := map[string]interface{}{
+		"a": 1,
+		"b": 2,
+		"c": map[string]interface{}{
+			"d": 4,
+		},
+	}
+	v := []string{"hello", "world"}
+	vs := []MarshalExample{
+		{A: 0, B: "hello"},
+		{A: 1, B: "world"},
+	}
+	source := `(do
+					(def hm $HM)
+					(def l $L)
+					(def v $V)
+					(def s $S)
+					(def vs $VS)
+					(assert (= 2 l))
+					(assert (contains? s "bob"))
+					(assert (= "hello" (get v 0)))
+					;; (assert (= "hello" (get-in vs [1 "b"])))
+					true)`
+	sentCode, err := AddPreamble(source, map[string]MalType{
+		"$HM": HM(m),
+		"$L":  LS("+", 1, 1),
+		"$V":  V(v),
+		"$S":  SET([]string{"alice", "bob", "charly"}),
+		"$VS": V(vs),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// protocol here
+
+	ast, err := READWithPreamble(sentCode, types.NewCursorFile(t.Name()))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	ns, _ := env.NewEnv(nil, nil, nil)
+	core.Load(ns)
+	ctx := context.Background()
+	res, err := EVAL(ctx, ast, ns)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !res.(bool) {
+		t.Fatal(err)
 	}
 }
