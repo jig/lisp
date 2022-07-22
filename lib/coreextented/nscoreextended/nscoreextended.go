@@ -81,6 +81,17 @@ var reducers = `;; Left and right folds.
       init
       (reduce f (f init (first xs)) (rest xs)))))
 
+;; Left fold for maps (f (.. (f (f init x1) x2) ..) xn)
+(def reduce-kv
+  (fn [f init xs]
+  ;; f      : Accumulator Element -> Accumulator
+  ;; init   : Accumulator
+  ;; xs     : sequence of key-value pairs k1-v1 k2-v2...
+  ;; return : Accumulator
+  (if (empty? xs)
+    init
+    (reduce-kv f (f init (nth xs 0) (nth xs 1)) (rest (rest xs))))))
+
 ;; Right fold (f x1 (f x2 (.. (f xn init)) ..))
 ;; The natural implementation for 'foldr' is not tail-recursive, and
 ;; the one based on 'reduce' constructs many intermediate functions, so we
