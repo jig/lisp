@@ -17,6 +17,7 @@ This implementation uses [chzyer/readline](https://github.com/chzyer/readline) i
 
 Changes respect to [kanaka/mal](https://github.com/kanaka/mal):
 
+- Using `def` insted of `def!`, `try` instead of `try*`, etc. symbols
 - `atom` is multithread
 - Tests executed using Go test library. Original implementation uses a `runtest.py` in Python to keep all implementations compatible. But it makes the Go development less enjoyable. Tests files are the original ones, there is simply a new `runtest_test.go` that substitutes the original Python script
 - Some tests are actually in lisp (mal), using the macros commented in _Additions_ section (now only the test library itself). Well, actually not many at this moment, see "Test file specs" below
