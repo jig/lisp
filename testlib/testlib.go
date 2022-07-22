@@ -43,7 +43,7 @@ func File(t *testing.T, entryName, testFile string, packages PackageDecl) {
 			log.Fatalf("Library Load Error: %v\n", err)
 		}
 	}
-	expr, err := lisp.READ(string(testFile), nil)
+	expr, err := lisp.READ(string(testFile), types.NewCursorFile(entryName))
 	if err != nil {
 		t.Fatalf("%s/READ Error: %s", entryName, err)
 	}
