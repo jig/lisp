@@ -29,6 +29,7 @@ Changes respect to [kanaka/mal](https://github.com/kanaka/mal):
 - `(let () A B C)` returns `C` as Clojure `let` instead of `A`, and evaluates `A`, `B` and `C`
 - `(do)` returns nil as Clojure instead of panicking
 - `hash-map` creates maps or converts a Go object to a map if the marshaler is defined in Go for that object
+- `reduce-kv` added
 
 To test the implementation use:
 
