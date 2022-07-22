@@ -146,7 +146,11 @@ func _args_ctx(ctx context.Context, minParams, maxParams int, args []types.MalTy
 		if maxParams == unlimitedArgments {
 			panic(fmt.Sprintf("wrong number of arguments (%d instead of a minimum of %d)", len(args), minParams-1))
 		} else {
-			panic(fmt.Sprintf("wrong number of arguments (%d instead of %d…%d)", len(args), minParams-1, maxParams-1))
+			if minParams == maxParams {
+				panic(fmt.Sprintf("wrong number of arguments (%d instead of %d)", len(args), minParams-1))
+			} else {
+				panic(fmt.Sprintf("wrong number of arguments (%d instead of %d…%d)", len(args), minParams-1, maxParams-1))
+			}
 		}
 	}
 
@@ -167,7 +171,11 @@ func _args(minParams, maxParams int, args []types.MalType) []reflect.Value {
 		if maxParams == unlimitedArgments {
 			panic(fmt.Sprintf("wrong number of arguments (%d instead of a minimum of %d)", len(args), minParams))
 		} else {
-			panic(fmt.Sprintf("wrong number of arguments (%d instead of %d…%d)", len(args), minParams, maxParams))
+			if minParams == maxParams {
+				panic(fmt.Sprintf("wrong number of arguments (%d instead of %d)", len(args), minParams))
+			} else {
+				panic(fmt.Sprintf("wrong number of arguments (%d instead of %d…%d)", len(args), minParams, maxParams))
+			}
 		}
 	}
 

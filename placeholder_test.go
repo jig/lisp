@@ -3,6 +3,7 @@ package lisp
 import (
 	"context"
 	"encoding/json"
+	"strings"
 	"testing"
 
 	"github.com/jig/lisp/env"
@@ -325,7 +326,7 @@ func TestPlaceholdersEmbeddedWrong1(t *testing.T) {
 	if err == nil {
 		t.Fatal("error expected but err was nil")
 	}
-	if err.Error() != "not all tokens where parsed" {
+	if !strings.HasSuffix(err.Error(), "not all tokens where parsed") {
 		t.Fatal(err)
 	}
 }

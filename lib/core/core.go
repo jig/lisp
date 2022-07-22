@@ -493,7 +493,7 @@ func keys(hm MalType) (MalType, error) {
 
 func vals(hm MalType) (MalType, error) {
 	if !Q[HashMap](hm) {
-		return nil, errors.New("keys called on non-hash map")
+		return nil, errors.New("vals called on non-hash map")
 	}
 	slc := []MalType{}
 	for _, v := range hm.(HashMap).Val {

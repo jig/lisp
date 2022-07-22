@@ -2,6 +2,7 @@ package lisp
 
 import (
 	"context"
+	"strings"
 	"testing"
 	"time"
 
@@ -15,8 +16,8 @@ func TestContextTimeoutFiresOnTime(t *testing.T) {
 	if _, err := REPL(ctx, newEnv(t.Name()), `(sleep 1000)`, types.NewCursorFile(t.Name())); err == nil {
 		t.Fatalf("Must fail")
 	} else {
-		if err.Error() != "timeout while evaluating expression" {
-			t.Fatal(err)
+		if !strings.HasSuffix(err.Error(), "timeout while evaluating expression") {
+			t.Fatalf("%s != %s", err.Error(), "timeout while evaluating expression")
 		}
 	}
 }

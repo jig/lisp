@@ -2,6 +2,7 @@ package env
 
 import (
 	"errors"
+	"fmt"
 	"sync"
 
 	"github.com/jig/lisp/types"
@@ -40,13 +41,13 @@ func NewEnv(outer types.EnvType, binds_mt types.MalType, exprs_mt types.MalType)
 				break
 			} else {
 				if i == len(exprs) {
-					return nil, errors.New("not enough arguments passed")
+					return nil, fmt.Errorf("not enough arguments passed (%d binds, %d arguments passed)", len(binds), len(exprs))
 				}
 				env.data[binds[i].(types.Symbol).Val] = exprs[i]
 			}
 		}
 		if !varargs && len(exprs) != i {
-			return nil, errors.New("too many arguments passed")
+			return nil, fmt.Errorf("too many arguments passed (%d binds, %d arguments passed)", len(binds), len(exprs))
 		}
 	}
 	//return &et, nil
