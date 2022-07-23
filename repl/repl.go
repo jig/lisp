@@ -56,9 +56,9 @@ func Execute(ctx context.Context, repl_env types.EnvType) error {
 				continue
 			}
 			if err, ok := err.(types.MalError); ok && err.Obj != nil {
-				if err.Error() == "expected ')', got EOF" ||
-					err.Error() == "expected ']', got EOF" ||
-					err.Error() == "expected '}', got EOF" {
+				if err.ErrorMessageString() == "expected ')', got EOF" ||
+					err.ErrorMessageString() == "expected ']', got EOF" ||
+					err.ErrorMessageString() == "expected '}', got EOF" {
 					l.SetPrompt("\033[31m›\033[0m ")
 					continue
 				}

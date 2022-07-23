@@ -80,6 +80,10 @@ func (e MalError) Error() string {
 	}
 }
 
+func (e MalError) ErrorMessageString() string {
+	return fmt.Sprintf("%s", e.Obj)
+}
+
 // General types
 type MalType interface{}
 
