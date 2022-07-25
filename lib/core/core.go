@@ -760,14 +760,21 @@ func meta(meta MalType) (MalType, error) {
 }
 
 // Atom functions
-func deref(atomRef MalType) (MalType, error) {
-	if !Q[*Atom](atomRef) {
-		return nil, errors.New("deref called with non-atom")
+func deref(ref MalType) (MalType, error) {
+	switch ref := ref.(type) {
+	case *Atom:
+		ref.Mutex.RLock()
+		defer ref.Mutex.RUnlock()
+		return ref.Val, nil
+	case Future:
+		return nil, nil
+	default:
+		return nil, fmt.Errorf("deref called with a non reference (%T)", ref)
 	}
-	atm := atomRef.(*Atom)
-	atm.Mutex.RLock()
-	defer atm.Mutex.RUnlock()
-	return atm.Val, nil
+}
+
+func future(ctx context.Context) Future {
+	return Future{}
 }
 
 func reset_BANG(atomRef, value MalType) (MalType, error) {

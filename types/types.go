@@ -288,14 +288,12 @@ func (a *Atom) Set(val MalType) MalType {
 	return a
 }
 
-// General functions
-
-// func _obj_type(obj MalType) string {
-// 	if obj == nil {
-// 		return "nil"
-// 	}
-// 	return reflect.TypeOf(obj).Name()
-// }
+// Future
+type Future struct {
+	Val    chan MalType
+	Meta   MalType
+	Cursor *Position
+}
 
 func Sequential_Q(seq MalType) bool {
 	if seq == nil {
