@@ -73,15 +73,15 @@ type MalError struct {
 
 func (e MalError) Error() string {
 	switch err := e.Obj.(type) {
-	case string:
-		return err
-	case runtime.Error:
-		return err.Error()
-	case error:
-		return err.Error()
+	case string, runtime.Error, error:
+		return fmt.Sprintf("%s: %s", e.Cursor, err)
 	default:
-		return fmt.Sprintf("%T: %s", err, err)
+		return fmt.Sprintf("%s: %s (%T)", e.Cursor, err, err)
 	}
+}
+
+func (e MalError) ErrorMessageString() string {
+	return fmt.Sprintf("%s", e.Obj)
 }
 
 // General types

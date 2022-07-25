@@ -463,7 +463,12 @@ func EVAL(ctx context.Context, ast MalType, env EnvType) (MalType, error) {
 				ast = fn.Exp
 				env, e = NewEnv(fn.Env, fn.Params, List{Val: el.(List).Val[1:]})
 				if e != nil {
-					return nil, PushError(ast.(List).Cursor, e)
+					switch v := ast.(List).Val[0].(type) {
+					case Symbol:
+						return nil, PushError(ast.(List).Cursor, fmt.Errorf("%s (around %s)", e, v.Val))
+					default:
+						return nil, PushError(ast.(List).Cursor, e)
+					}
 				}
 			} else {
 				fn, ok := f.(Func)
