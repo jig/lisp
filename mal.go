@@ -13,7 +13,7 @@ import (
 	. "github.com/jig/lisp/types"
 )
 
-var placeholderRE = regexp.MustCompile(`^(;; \$[\d\w]+)+\s(.+)`)
+var placeholderRE = regexp.MustCompile(`^(;; \$[\-\d\w]+)+\s(.+)`)
 
 const preamblePrefix = ";; $"
 
