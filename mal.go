@@ -48,13 +48,10 @@ func READWithPreamble(str string, cursor *Position) (MalType, error) {
 			}
 		}
 		placeholderValue := lineItems[0][2]
-		item, err := reader.Read_str(placeholderValue, &Position{
+		item, _ := reader.Read_str(placeholderValue, &Position{
 			Row: i + 1,
 			Col: 1,
 		}, nil)
-		if err != nil {
-			return nil, err
-		}
 		placeholderKey := lineItems[0][1][3:]
 		placeholderMap.Val[placeholderKey] = item
 	}
