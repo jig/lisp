@@ -7,11 +7,13 @@ import (
 	"io"
 	"log"
 	"os"
+	"reflect"
 	"regexp"
 	"strings"
 	"testing"
 
 	"github.com/jig/lisp/env"
+	"github.com/jig/lisp/lib/concurrent"
 	"github.com/jig/lisp/lib/core"
 	"github.com/jig/lisp/types"
 )
@@ -111,14 +113,19 @@ func newEnv(fileName string) types.EnvType {
 	// core.go: defined using go
 	core.Load(newenv)
 	core.LoadInput(newenv)
+	concurrent.Load(newenv)
 	newenv.Set(types.Symbol{Val: "eval"}, types.Func{Fn: func(ctx context.Context, a []types.MalType) (types.MalType, error) {
 		return EVAL(ctx, a[0], newenv)
 	}})
 	newenv.Set(types.Symbol{Val: "*ARGV*"}, types.List{})
 
 	LoadMarshalExample(newenv)
-
 	ctx := context.Background()
+	future := "(defmacro future (fn [& body] `(^{:once true} future-call (fn [] ~@body))))"
+	if _, err := REPL(ctx, newenv, `(eval (read-string (str "(do "`+future+`" nil)")))`, types.NewCursorFile(reflect.TypeOf(&future).PkgPath())); err != nil {
+		return nil
+	}
+
 	// core.mal: defined using the language itself
 	if _, err := REPL(ctx, newenv, `(def *host-language* "go")`, types.NewCursorFile(fileName)); err != nil {
 		return nil

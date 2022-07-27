@@ -1,0 +1,24 @@
+(deref (future (+ 1 1)))
+;=>2
+@(future (+ 1 1))
+;=>2
+(deref (future (do (sleep 10) (+ 1 1))))
+;=>2
+
+;; TODO(fxor): this is not supported (notice (do) has been removed)
+;; (deref (future (sleep 10) (+ 1 1)))
+;; ;=>2
+
+(def async-sum (future (do (sleep 10) (+ 1 1))))
+@async-sum
+;=>2
+(def async-sum (future (do (sleep 10) (+ 1 1))))
+(def async-sum2 (future (do (sleep 10) (+ 2 2))))
+@async-sum
+;=>2
+(deref async-sum2)
+;=>4
+
+@(future (/ 1 0))
+;/.*integer divide by zero$
+;=>nil
