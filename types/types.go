@@ -275,6 +275,11 @@ func NewSet(seq MalType) (MalType, error) {
 	return Set{Val: m}, nil
 }
 
+// Dereferable type
+type Dereferable interface {
+	Deref(context.Context) (MalType, error)
+}
+
 // Atoms
 type Atom struct {
 	Mutex  sync.RWMutex
@@ -288,11 +293,64 @@ func (a *Atom) Set(val MalType) MalType {
 	return a
 }
 
+func (a *Atom) Deref(_ context.Context) (MalType, error) {
+	a.Mutex.RLock()
+	defer a.Mutex.RUnlock()
+	return a.Val, nil
+}
+
 // Future
 type Future struct {
-	Val    chan MalType
+	ValChan    chan MalType
+	ErrChan    chan error
+	CancelFunc context.CancelFunc
+	Done       bool
+	Cancelled  bool
+
 	Meta   MalType
 	Cursor *Position
+}
+
+func NewFuture(ctx context.Context, fn MalFunc) *Future {
+	ctx, cancel := context.WithCancel(ctx)
+	f := &Future{
+		ValChan:    make(chan MalType, 1),
+		ErrChan:    make(chan error, 1),
+		CancelFunc: cancel,
+	}
+	go func() {
+		defer func() { f.Done = true }()
+		res, err := Apply(ctx, fn, nil)
+		if err != nil {
+			f.ErrChan <- err
+			return
+		}
+		f.ValChan <- res
+	}()
+
+	return f
+}
+
+func (f *Future) Cancel() bool {
+	if !f.Done {
+		f.Cancelled = true
+		f.Done = true
+		f.CancelFunc()
+	}
+	return f.Cancelled
+}
+
+func (f *Future) Deref(ctx context.Context) (MalType, error) {
+	select {
+	case <-ctx.Done():
+		return nil, errors.New("timeout while dereferencing future")
+	case err := <-f.ErrChan:
+		f.ErrChan <- err
+		return nil, err
+	case res := <-f.ValChan:
+		f.ValChan <- res
+		return res, nil
+	}
 }
 
 func Sequential_Q(seq MalType) bool {
