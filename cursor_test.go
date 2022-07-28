@@ -34,6 +34,18 @@ func TestCursor(t *testing.T) {
 		Error  error
 	}{
 		{
+			Module: "nested",
+			Code:   nested,
+			Error: types.MalError{
+				Cursor: &types.Position{Row: 1},
+			},
+		}, {
+			Module: "singleline-string",
+			Code:   singleline,
+			Error: types.MalError{
+				Cursor: &types.Position{Row: 1},
+			},
+		}, {
 			Module: "multiline-string",
 			Code:   multiline,
 			Error: types.MalError{
@@ -117,6 +129,14 @@ func TestCursor(t *testing.T) {
 		}
 	}
 }
+
+var singleline = `(throw "pum")`
+
+var nested = `(def fpum (fn [x] (throw x)))
+(def f1 (fn [x] x))
+(def f2 (fn [x] x))
+(def f3 (fn [x] x))
+(f1 (f2 (f3 (fpum "pum"))))`
 
 var multiline = `;; multiline strings
 
