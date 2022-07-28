@@ -52,7 +52,7 @@ go test -benchmem -benchtime 5s -bench '^.+$' github.com/jig/lisp
 - `(merge hm1 hm2)` returns the merge of two hash maps, second takes precedence
 - `(unbase64 string)`, `(unbase64 byteString)`, `(str2binary string)`, `(binary2str byteString)` to deal with `[]byte` variables
 - `(sleep ms)` sleeps `ms` milliseconds
-- Support of `¬` as string terminator to simplify JSON strings. Strings that start with `{"` and end with `"}` are printed using `¬`, otherwise strings are printed as usual (with `"`). To escape a `¬` character in a `¬` delimited string you must escape it by doubling it: `¬Hello¬¬World!¬` would be printed as `Hello¬World`. This behaviour allows to not to have to escape `"` nor `\` characters.
+- Support of `¬` as string terminator to simplify JSON strings. Strings that start with `{"` and end with `"}` are printed using `¬`, otherwise strings are printed as usual (with `"`). To escape a `¬` character in a `¬` delimited string you must escape it by doubling it: `¬Hello¬¬World!¬` would be printed as `Hello¬World`. This behaviour allows to not to have to escape `"` nor `\` characters
 - `(json-decode {} ¬{"key": "value"}¬)` to decode JSON to lisp hash map
 - `(json-encode obj)` JSON encodes either a lisp structure or a go. Example: `(json-encode (json-decode {} ¬{"key":"value","key1": [{"a":"b","c":"d"},2,3]}¬))`. Note that lisp vectors (e.g. `[1 2 3]`) and lisp lists (e.g. `(list 1 2 3)` are both converted to JSON vectors always. Decoding a JSON vector is done on a lisp vector always though
 - `(hash-map-decode (new-go-object) ¬{"key": "value"}¬)` to decode hash map to a Go struct if that struct has the appropiate Go marshaler
@@ -66,11 +66,12 @@ go test -benchmem -benchtime 5s -bench '^.+$' github.com/jig/lisp
 - `(get-in m ks)` to access nested values from a `m` map; `ks` must be a vector of hash map keys
 - `(uuid)` returns an 128 bit rfc4122 random UUID
 - `(split string cutset)` returns a lisp Vector of the elements splitted by the cutset (see [./tests/stepH_strings](./tests/stepH_strings.mal) for examples)
-- support of (hashed, unordered) sets. Only sets of strings or keywords supported. Use `#{}` for literal sets. Functions supported for sets: `set`, `set?`, `conj`, `get`, `assoc`, `dissoc`, `contains?`, `empty?`. `meta`, `with-meta` (see [./tests/stepA_mal](./tests/stepF_set.mal) and (see [./tests/stepA_mal](./tests/stepF_set.mal) for examples). `json-encode` will encode a set to a JSON array.
-- `update`, `update-in` and `assoc-in` supported for hash maps and vectors.
-- Go function `READ_WithPreamble` works like `READ` but supports placeholders to be filled on READ time (see [./placeholder_test.go](./placeholder_test.go) for som samples).
-- Added support for `finally` inside `try`. `finally` expression is evaluated for side effects only.
+- support of (hashed, unordered) sets. Only sets of strings or keywords supported. Use `#{}` for literal sets. Functions supported for sets: `set`, `set?`, `conj`, `get`, `assoc`, `dissoc`, `contains?`, `empty?`. `meta`, `with-meta` (see [./tests/stepA_mal](./tests/stepF_set.mal) and (see [./tests/stepA_mal](./tests/stepF_set.mal) for examples). `json-encode` will encode a set to a JSON array
+- `update`, `update-in` and `assoc-in` supported for hash maps and vectors
+- Go function `READ_WithPreamble` works like `READ` but supports placeholders to be filled on READ time (see [./placeholder_test.go](./placeholder_test.go) for som samples)
+- Added support for `finally` inside `try`. `finally` expression is evaluated for side effects only. `finally` is optional
 - Added `spew`
+- Added `future`, and `future-*` companion functions from Clojure
 
 # Embed Lisp in Go code
 
