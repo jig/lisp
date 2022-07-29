@@ -16,6 +16,10 @@ func (e MalError) Error() string {
 	return fmt.Sprintf("%s", e.Obj)
 }
 
+func (e MalError) ErrorEncapsuled() MalType {
+	return e.Obj
+}
+
 func (e MalError) Position() *Position {
 	return e.Cursor
 }

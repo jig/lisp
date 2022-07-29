@@ -39,13 +39,10 @@ func READWithPreamble(str string, cursor *Position) (MalType, error) {
 		}
 		lineItems := placeholderRE.FindAllStringSubmatch(line, -1)
 		if len(lineItems) != 1 || len(lineItems[0]) != 3 {
-			return nil, MalError{
-				Obj: errors.New("invalid preamble format"),
-				Cursor: &Position{
-					Row: i + 1,
-					Col: 1,
-				},
-			}
+			return nil, NewMalError(errors.New("invalid preamble format"), &Position{
+				Row: i + 1,
+				Col: 1,
+			})
 		}
 		placeholderValue := lineItems[0][2]
 		item, _ := reader.Read_str(placeholderValue, &Position{
@@ -273,17 +270,11 @@ func EVAL(ctx context.Context, ast MalType, env EnvType) (MalType, error) {
 				return nil, e
 			}
 			if len(arr1)%2 != 0 {
-				return nil, MalError{
-					Obj:    errors.New("let: odd elements on binding vector"),
-					Cursor: a1.(Vector).Cursor,
-				}
+				return nil, NewMalError(errors.New("let: odd elements on binding vector"), a1)
 			}
 			for i := 0; i < len(arr1); i += 2 {
 				if !Q[Symbol](arr1[i]) {
-					return nil, MalError{
-						Obj:    errors.New("non-symbol bind value"),
-						Cursor: a1.(Vector).Cursor,
-					}
+					return nil, NewMalError(errors.New("non-symbol bind value"), a1)
 				}
 				exp, e := EVAL(ctx, arr1[i+1], let_env)
 				if e != nil {
@@ -372,13 +363,11 @@ func EVAL(ctx context.Context, ast MalType, env EnvType) (MalType, error) {
 			} else {
 				if catchDo != nil {
 					switch e := e.(type) {
-					case MalError:
-						exc = e.Obj
+					case interface{ ErrorEncapsuled() MalType }:
+						exc = e.ErrorEncapsuled()
 					default:
-						exc = MalError{
-							Obj:    e,
-							Cursor: catchDo.(List).Cursor,
-						}
+						// branch not used
+						exc = e
 					}
 					binds := NewList(catchBind)
 					new_env, e := NewEnv(env, binds, NewList(exc))
@@ -396,10 +385,7 @@ func EVAL(ctx context.Context, ast MalType, env EnvType) (MalType, error) {
 			}
 		case "context":
 			if a2 != nil {
-				return nil, MalError{
-					Obj:    fmt.Errorf("context does not allow more than one argument"),
-					Cursor: a2.(Vector).Cursor,
-				}
+				return nil, NewMalError(fmt.Errorf("context does not allow more than one argument"), a2)
 			}
 			childCtx, cancel := context.WithCancel(ctx)
 			exp, e := func() (res MalType, err error) {
