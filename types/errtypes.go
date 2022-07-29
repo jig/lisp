@@ -1,58 +1,59 @@
 package types
 
 import (
-	"errors"
 	"fmt"
 	"runtime"
 )
 
 // Errors/Exceptions
 type malError struct {
-	Obj      MalType
-	CausedBy error
-	Cursor   *Position
+	err      MalType
+	causedBy error
+	cursor   *Position
 }
 
 func (e malError) Error() string {
-	return fmt.Sprintf("%s", e.Obj)
+	switch e.err.(type) {
+	case string, runtime.Error, error:
+		if e.cursor != nil {
+			return fmt.Sprintf("%s: %s", e.cursor, e.err)
+		}
+		return fmt.Sprintf("%s", e.err)
+	default:
+		if e.cursor != nil {
+			return fmt.Sprintf("%s: %[1]s (%[1]T)", e.cursor, e.err)
+		}
+		return fmt.Sprintf("%s", e.err)
+	}
 }
 
 func (e malError) Unwrap() error {
-	return e.CausedBy
+	return e.causedBy
+}
+
+func (err *malError) Is(target error) bool {
+	if target == nil {
+		return err == nil
+	}
+	if e, ok := err.err.(interface{ Is(error) bool }); ok && e.Is(target) {
+		return true
+	}
+	if err2, ok := target.(malError); ok {
+		return err.ErrorID() == err2.ErrorID()
+	}
+	return err.ErrorID() == target.Error()
+}
+
+func (e malError) ErrorID() string {
+	return fmt.Sprintf("%s", e.err)
 }
 
 func (e malError) ErrorEncapsuled() MalType {
-	return e.Obj
+	return e.err
 }
 
 func (e malError) Position() *Position {
-	return e.Cursor
-}
-
-func (e malError) ErrorMessageString() string {
-	switch err := e.Obj.(type) {
-	case string, runtime.Error, error:
-		return fmt.Sprintf("%s: %s", e.Cursor, err)
-	default:
-		return fmt.Sprintf("%s: %s (%T)", e.Cursor, err, err)
-	}
-}
-
-func ErrorMessageStack(err error) string {
-	parentErr := errors.Unwrap(err)
-
-	switch errTyped := err.(type) {
-	case interface{ ErrorMessageString() string }:
-		if parentErr != nil {
-			return errTyped.ErrorMessageString() + "\n" + ErrorMessageStack(parentErr)
-		}
-		return errTyped.ErrorMessageString()
-	default:
-		if parentErr != nil {
-			return err.Error() + "\n" + ErrorMessageStack(errors.Unwrap(err))
-		}
-		return errTyped.Error()
-	}
+	return e.cursor
 }
 
 // NewGoError is used to create a malError on errors returned by go functions
@@ -63,21 +64,21 @@ func NewGoError(fFullName string, err interface{}) error {
 		Error() string
 	}:
 		return malError{
-			Obj:      fmt.Errorf("%s", fFullName),
-			CausedBy: err,
+			err:      fmt.Errorf("%s", fFullName),
+			causedBy: err,
 		}
 	case error:
 		return malError{
-			Obj: fmt.Errorf("%s: %s", fFullName, err),
+			err: fmt.Errorf("%s: %s", fFullName, err),
 		}
 	case string:
 		// TODO(jig): is only called when type mismatch on arguments on a call handled by caller package
 		return malError{
-			Obj: fmt.Errorf("%s: %s", fFullName, err),
+			err: fmt.Errorf("%s: %s", fFullName, err),
 		}
 	default:
 		return malError{
-			Obj: fmt.Errorf("%s: %s", fFullName, err),
+			err: fmt.Errorf("%s: %s", fFullName, err),
 		}
 	}
 }
@@ -109,7 +110,7 @@ func GetPosition(ast MalType) *Position {
 func SetPosition(e error, ast MalType) error {
 	switch e := e.(type) {
 	case malError:
-		e.Cursor = GetPosition(ast)
+		e.cursor = GetPosition(ast)
 		return e
 	case nil:
 		// used by throw and assert
@@ -124,8 +125,8 @@ func NewMalError(err MalType, ast MalType) error {
 	case malError:
 		return SetPosition(err, ast)
 	case error:
-		return SetPosition(malError{Obj: err}, ast)
+		return SetPosition(malError{err: err}, ast)
 	default:
-		return SetPosition(malError{Obj: err}, ast)
+		return SetPosition(malError{err: err}, ast)
 	}
 }
