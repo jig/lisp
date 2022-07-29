@@ -90,12 +90,12 @@ func SetPosition(e error, ast MalType) error {
 func NewMalError(err error, ast MalType) error {
 	switch err := err.(type) {
 	case MalError:
+		return SetPosition(err, ast)
 	case error:
-		return MalError{Obj: err}
+		return SetPosition(MalError{Obj: err}, ast)
 	default:
-		return MalError{Obj: err}
+		return SetPosition(MalError{Obj: err}, ast)
 	}
-	return SetPosition(err, ast)
 }
 
 // // func PushError(cursor *Position, err error) error {

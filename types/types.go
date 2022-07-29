@@ -64,6 +64,10 @@ type Token struct {
 	Cursor Position
 }
 
+func (token Token) GetPosition() *Position {
+	return &token.Cursor
+}
+
 // General types
 type MalType interface{}
 

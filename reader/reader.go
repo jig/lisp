@@ -144,8 +144,7 @@ func read_list(rdr Reader, start string, end string, placeholderValues *HashMap)
 	tokenStruct = rdr.peek()
 	for ; true; tokenStruct = rdr.peek() {
 		if tokenStruct == nil {
-			// return nil, NewMalError(errors.New("expected '"+end+"', got EOF"), &lastKnown)
-			return nil, MalError{Obj: errors.New("expected '" + end + "', got EOF"), Cursor: &lastKnown.Cursor}
+			return nil, NewMalError(errors.New("expected '"+end+"', got EOF"), lastKnown)
 		}
 		lastKnown = tokenStruct
 		token = &tokenStruct.Value
@@ -291,8 +290,7 @@ func Read_str(str string, cursor *Position, placeholderValues *HashMap) (MalType
 		return nil, err
 	}
 	if tokenReader.position != len(tokenReader.tokens) {
-		// return nil, NewMalError(errors.New("not all tokens whed"), cursor)
-		return nil, MalError{Obj: errors.New("not all tokens where parsed"), Cursor: cursor}
+		return nil, NewMalError(errors.New("not all tokens where parsed"), cursor)
 	}
 	return res, nil
 }
