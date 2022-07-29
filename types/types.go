@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
-	"runtime"
 	"strings"
 	"sync"
 )
@@ -63,26 +62,6 @@ func (cursor *Position) String() string {
 type Token struct {
 	Value  string
 	Cursor Position
-}
-
-// Errors/Exceptions
-type MalError struct {
-	Obj      MalType
-	CausedBy error
-	Cursor   *Position
-}
-
-func (e MalError) Error() string {
-	switch err := e.Obj.(type) {
-	case string, runtime.Error, error:
-		return fmt.Sprintf("%s: %s", e.Cursor, err)
-	default:
-		return fmt.Sprintf("%s: %s (%T)", e.Cursor, err, err)
-	}
-}
-
-func (e MalError) ErrorMessageString() string {
-	return fmt.Sprintf("%s", e.Obj)
 }
 
 // General types

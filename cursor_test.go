@@ -112,6 +112,9 @@ func TestCursor(t *testing.T) {
 			}
 			continue
 		case types.MalError:
+			if err.Cursor == nil {
+				t.Fatal("error")
+			}
 			if err.Cursor.Row != testCase.Error.(types.MalError).Cursor.Row {
 				t.Fatal(err.Error(), err.Cursor.Row, testCase.Error.(types.MalError).Cursor.Row)
 			}

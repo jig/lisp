@@ -462,22 +462,19 @@ func EVAL(ctx context.Context, ast MalType, env EnvType) (MalType, error) {
 				if e != nil {
 					switch v := ast.(List).Val[0].(type) {
 					case Symbol:
-						return nil, PushError(ast.(List).Cursor, fmt.Errorf("%s (around %s)", e, v.Val))
+						return nil, NewMalError(fmt.Errorf("%s (around %s)", e, v.Val), ast)
 					default:
-						return nil, PushError(ast.(List).Cursor, e)
+						return nil, NewMalError(e, ast)
 					}
 				}
 			} else {
 				fn, ok := f.(Func)
 				if !ok {
-					return nil, MalError{
-						Obj:    fmt.Errorf("attempt to call non-function (was of type %T)", f),
-						Cursor: el.(List).Cursor,
-					}
+					return nil, NewMalError(fmt.Errorf("attempt to call non-function (was of type %T)", f), el)
 				}
 				result, err := fn.Fn(ctx, el.(List).Val[1:])
 				if err != nil {
-					return nil, PushError(ast.(List).Cursor, err)
+					return nil, NewMalError(err, ast)
 				}
 				return result, nil
 			}
