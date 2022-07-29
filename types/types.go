@@ -27,10 +27,21 @@ func NewCursorFile(module string) *Position {
 }
 
 func NewCursor(here *Position) *Position {
+	if here.Row == 0 && here.Col == 0 {
+		return &Position{
+			Module:   here.Module,
+			BeginRow: here.BeginRow,
+			BeginCol: here.BeginCol,
+			Row:      here.BeginRow,
+			Col:      here.BeginCol,
+		}
+	}
 	return &Position{
 		Module:   here.Module,
 		BeginRow: here.BeginRow,
 		BeginCol: here.BeginCol,
+		Row:      here.Row,
+		Col:      here.Col,
 	}
 }
 
@@ -52,11 +63,21 @@ func (cursor *Position) String() string {
 	if cursor.Module != nil {
 		moduleName = *cursor.Module
 	}
-	if cursor.BeginRow != cursor.Row {
-		return fmt.Sprintf("%s§%d…%d", moduleName, cursor.BeginRow, cursor.Row)
-	} else {
-		return fmt.Sprintf("%s§%d,%d…%d", moduleName, cursor.Row, cursor.BeginCol, cursor.Col)
-	}
+	// if cursor.BeginRow != cursor.Row {
+	// 	return fmt.Sprintf("%s§%d…%d", moduleName, cursor.BeginRow, cursor.Row)
+	// } else {
+	// 	return fmt.Sprintf("%s§%d,%d…%d", moduleName, cursor.Row, cursor.BeginCol, cursor.Col)
+	// }
+	return fmt.Sprintf("%s§%d…%d,%d…%d", moduleName, cursor.BeginRow, cursor.Row, cursor.BeginCol, cursor.Col)
+}
+
+func (cursor Position) Includes(inside Position) bool {
+	return (cursor.BeginRow < inside.BeginRow ||
+		(cursor.BeginRow == inside.BeginRow &&
+			cursor.BeginCol <= inside.BeginCol)) &&
+		(cursor.Row > inside.Row ||
+			(cursor.Row == inside.Row &&
+				cursor.Col >= inside.Col))
 }
 
 type Token struct {
