@@ -1,6 +1,7 @@
 package types
 
 import (
+	"errors"
 	"fmt"
 	"runtime"
 )
@@ -14,6 +15,10 @@ type malError struct {
 
 func (e malError) Error() string {
 	return fmt.Sprintf("%s", e.Obj)
+}
+
+func (e malError) Unwrap() error {
+	return e.CausedBy
 }
 
 func (e malError) ErrorEncapsuled() MalType {
@@ -30,6 +35,23 @@ func (e malError) ErrorMessageString() string {
 		return fmt.Sprintf("%s: %s", e.Cursor, err)
 	default:
 		return fmt.Sprintf("%s: %s (%T)", e.Cursor, err, err)
+	}
+}
+
+func ErrorMessageStack(err error) string {
+	parentErr := errors.Unwrap(err)
+
+	switch errTyped := err.(type) {
+	case interface{ ErrorMessageString() string }:
+		if parentErr != nil {
+			return errTyped.ErrorMessageString() + "\n" + ErrorMessageStack(parentErr)
+		}
+		return errTyped.ErrorMessageString()
+	default:
+		if parentErr != nil {
+			return err.Error() + "\n" + ErrorMessageStack(errors.Unwrap(err))
+		}
+		return errTyped.Error()
 	}
 }
 
