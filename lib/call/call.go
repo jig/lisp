@@ -48,12 +48,12 @@ func call(overrideFN *string, namespace types.EnvType, fIn types.MalType, args .
 	switch len(args) {
 	case 1:
 		if !finType.IsVariadic() {
-			panic(fmt.Sprintf("%s: argument maximum argument count defined but implementation is not variadic", functionFullName))
+			panic(fmt.Errorf("%s: argument maximum argument count defined but implementation is not variadic", functionFullName))
 		}
 		minArgs, maxArgs = args[0], unlimitedArgments // if only one argument: it is the minimum number of arguments
 	case 2:
 		if !finType.IsVariadic() {
-			panic(fmt.Sprintf("%s: argument maximum and minimum argument count defined but implementation is not variadic", functionFullName))
+			panic(fmt.Errorf("%s: argument maximum and minimum argument count defined but implementation is not variadic", functionFullName))
 		}
 		minArgs, maxArgs = args[0], args[1]
 	default:
@@ -64,10 +64,10 @@ func call(overrideFN *string, namespace types.EnvType, fIn types.MalType, args .
 		}
 	}
 	if minArgs > maxArgs {
-		panic(fmt.Sprintf("%s: maximum arguments (%d) is lower than minimum arguments (%d)", functionFullName, maxArgs, minArgs))
+		panic(fmt.Errorf("%s: maximum arguments (%d) is lower than minimum arguments (%d)", functionFullName, maxArgs, minArgs))
 	}
 	if minArgs < 0 || maxArgs < 0 {
-		panic(fmt.Sprintf("%s: argument count bounds cannot be negative", functionFullName))
+		panic(fmt.Errorf("%s: argument count bounds cannot be negative", functionFullName))
 	}
 
 	var extCall func(context.Context, []types.MalType) (types.MalType, error)
@@ -109,7 +109,7 @@ func call(overrideFN *string, namespace types.EnvType, fIn types.MalType, args .
 			}
 		}
 	default:
-		panic(fmt.Sprintf("%s: wrong number of results (%d instead of 2)", functionFullName, outParams))
+		panic(fmt.Errorf("%s: wrong number of results (%d instead of 2)", functionFullName, outParams))
 	}
 
 	namespace.Set(types.Symbol{Val: functionName}, types.Func{Fn: extCall})
@@ -135,7 +135,20 @@ func call(overrideFN *string, namespace types.EnvType, fIn types.MalType, args .
 func _recover(fFullName string, err *error) {
 	rerr := recover()
 	if rerr != nil {
-		*err = fmt.Errorf("%s: %s", fFullName, rerr)
+		switch rerr := rerr.(type) {
+		case interface {
+			Unwrap() error
+			Error() error
+		}:
+			*err = fmt.Errorf("%s: %s", fFullName, rerr)
+		case error:
+			*err = fmt.Errorf("%s: %s", fFullName, rerr)
+		case string:
+			// TODO(jig): is only string when type mismatch on arguments
+			*err = fmt.Errorf("%s: %s", fFullName, rerr)
+		default:
+			*err = fmt.Errorf("%s: %s", fFullName, rerr)
+		}
 	}
 }
 
@@ -144,12 +157,12 @@ const unlimitedArgments = 1000
 func _args_ctx(ctx context.Context, minParams, maxParams int, args []types.MalType) []reflect.Value {
 	if len(args) < minParams-1 || len(args) > maxParams-1 {
 		if maxParams == unlimitedArgments {
-			panic(fmt.Sprintf("wrong number of arguments (%d instead of a minimum of %d)", len(args), minParams-1))
+			panic(fmt.Errorf("wrong number of arguments (%d instead of a minimum of %d)", len(args), minParams-1))
 		} else {
 			if minParams == maxParams {
-				panic(fmt.Sprintf("wrong number of arguments (%d instead of %d)", len(args), minParams-1))
+				panic(fmt.Errorf("wrong number of arguments (%d instead of %d)", len(args), minParams-1))
 			} else {
-				panic(fmt.Sprintf("wrong number of arguments (%d instead of %d…%d)", len(args), minParams-1, maxParams-1))
+				panic(fmt.Errorf("wrong number of arguments (%d instead of %d…%d)", len(args), minParams-1, maxParams-1))
 			}
 		}
 	}
@@ -169,12 +182,12 @@ func _args_ctx(ctx context.Context, minParams, maxParams int, args []types.MalTy
 func _args(minParams, maxParams int, args []types.MalType) []reflect.Value {
 	if len(args) < minParams || len(args) > maxParams {
 		if maxParams == unlimitedArgments {
-			panic(fmt.Sprintf("wrong number of arguments (%d instead of a minimum of %d)", len(args), minParams))
+			panic(fmt.Errorf("wrong number of arguments (%d instead of a minimum of %d)", len(args), minParams))
 		} else {
 			if minParams == maxParams {
-				panic(fmt.Sprintf("wrong number of arguments (%d instead of %d)", len(args), minParams))
+				panic(fmt.Errorf("wrong number of arguments (%d instead of %d)", len(args), minParams))
 			} else {
-				panic(fmt.Sprintf("wrong number of arguments (%d instead of %d…%d)", len(args), minParams, maxParams))
+				panic(fmt.Errorf("wrong number of arguments (%d instead of %d…%d)", len(args), minParams, maxParams))
 			}
 		}
 	}
