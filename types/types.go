@@ -67,8 +67,9 @@ type Token struct {
 
 // Errors/Exceptions
 type MalError struct {
-	Obj    MalType
-	Cursor *Position
+	Obj      MalType
+	CausedBy error
+	Cursor   *Position
 }
 
 func (e MalError) Error() string {

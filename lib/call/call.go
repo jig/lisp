@@ -135,20 +135,7 @@ func call(overrideFN *string, namespace types.EnvType, fIn types.MalType, args .
 func _recover(fFullName string, err *error) {
 	rerr := recover()
 	if rerr != nil {
-		switch rerr := rerr.(type) {
-		case interface {
-			Unwrap() error
-			Error() error
-		}:
-			*err = fmt.Errorf("%s: %s", fFullName, rerr)
-		case error:
-			*err = fmt.Errorf("%s: %s", fFullName, rerr)
-		case string:
-			// TODO(jig): is only string when type mismatch on arguments
-			*err = fmt.Errorf("%s: %s", fFullName, rerr)
-		default:
-			*err = fmt.Errorf("%s: %s", fFullName, rerr)
-		}
+		*err = types.NewGoError(fFullName, rerr)
 	}
 }
 

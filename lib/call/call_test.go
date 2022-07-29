@@ -50,7 +50,7 @@ func TestNoOKArguments(t *testing.T) {
 
 	f, _ := ns.Get(types.Symbol{Val: "divexample"})
 	_, err := f.(types.Func).Fn(context.Background(), []types.MalType{2, 3, 4})
-	if err.Error() != "github.com/jig/lisp/lib/call[divexample]: wrong number of arguments (3 instead of 2)" {
+	if !strings.HasSuffix(err.Error(), "wrong number of arguments (3 instead of 2)") {
 		t.Fatal(err)
 	}
 }
