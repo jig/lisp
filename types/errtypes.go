@@ -97,30 +97,3 @@ func NewMalError(err error, ast MalType) error {
 		return SetPosition(MalError{Obj: err}, ast)
 	}
 }
-
-// // func PushError(cursor *Position, err error) error {
-// 	switch err := err.(type) {
-// 	case MalError:
-// 		// if err.Cursor == nil {
-// 		// 	err.Cursor = cursor
-// 		// }
-// 		return err
-// 	case GoError:
-// 		return MalError{
-// 			Obj:    err.Obj,
-// 			Cursor: cursor,
-// 		}
-// 	case error:
-// 		return MalError{
-// 			Obj:    err,
-// 			Cursor: cursor,
-// 		}
-// 	default:
-// 		return MalError{
-// 			Obj:    err,
-// 			Cursor: cursor,
-// 		}
-// 	case nil:
-// 		panic(err)
-// 	}
-// }

@@ -158,7 +158,7 @@ func eval_ast(ctx context.Context, ast MalType, env EnvType) (MalType, error) {
 	if Q[Symbol](ast) {
 		value, err := env.Get(ast.(Symbol))
 		if err != nil {
-			return nil, PushError(ast.(Symbol).Cursor, err)
+			return nil, NewMalError(err, ast)
 		}
 		return value, nil
 	} else if Q[List](ast) {
@@ -166,10 +166,7 @@ func eval_ast(ctx context.Context, ast MalType, env EnvType) (MalType, error) {
 		for _, a := range ast.(List).Val {
 			exp, e := EVAL(ctx, a, env)
 			if e != nil {
-				if a, ok := a.(List); ok {
-					return nil, PushError(a.Cursor, e)
-				}
-				return nil, PushError(nil, e)
+				return nil, e
 			}
 			lst = append(lst, exp)
 		}
@@ -179,7 +176,7 @@ func eval_ast(ctx context.Context, ast MalType, env EnvType) (MalType, error) {
 		for _, a := range ast.(Vector).Val {
 			exp, e := EVAL(ctx, a, env)
 			if e != nil {
-				return nil, PushError(ast.(Vector).Cursor, e)
+				return nil, e
 			}
 			lst = append(lst, exp)
 		}
@@ -190,7 +187,7 @@ func eval_ast(ctx context.Context, ast MalType, env EnvType) (MalType, error) {
 		for k, v := range m.Val {
 			kv, e2 := EVAL(ctx, v, env)
 			if e2 != nil {
-				return nil, PushError(ast.(HashMap).Cursor, e2)
+				return nil, e2
 			}
 			new_hm.Val[k] = kv
 		}
@@ -258,16 +255,13 @@ func EVAL(ctx context.Context, ast MalType, env EnvType) (MalType, error) {
 		case "def":
 			res, e := EVAL(ctx, a2, env)
 			if e != nil {
-				return nil, PushError(ast.(List).Cursor, e)
+				return nil, e
 			}
 			switch a1 := a1.(type) {
 			case Symbol:
 				return env.Set(a1, res), nil
 			default:
-				return nil, MalError{
-					Obj:    fmt.Errorf("cannot use '%T' as identifier", a1),
-					Cursor: ast.(List).Cursor,
-				}
+				return nil, NewMalError(fmt.Errorf("cannot use '%T' as identifier", a1), ast)
 			}
 		case "let":
 			let_env, e := NewEnv(env, nil, nil)
@@ -293,7 +287,7 @@ func EVAL(ctx context.Context, ast MalType, env EnvType) (MalType, error) {
 				}
 				exp, e := EVAL(ctx, arr1[i+1], let_env)
 				if e != nil {
-					return nil, PushError(arr1[i].(Symbol).Cursor, e)
+					return nil, e
 				}
 				let_env.Set(arr1[i].(Symbol), exp)
 			}
@@ -346,7 +340,7 @@ func EVAL(ctx context.Context, ast MalType, env EnvType) (MalType, error) {
 				catchDo = List{Val: last.(List).Val[2:]}
 				tryDo = List{Val: lst[1 : len(lst)-1]}
 				if len(catchDo.(List).Val) == 0 {
-					return nil, PushError(ast.(List).Cursor, errors.New("catch must have 2 arguments at least"))
+					return nil, NewMalError(errors.New("catch must have 2 arguments at least"), ast)
 				}
 			case "finally":
 				finallyDo = List{Val: last.(List).Val[1:]}
@@ -426,7 +420,7 @@ func EVAL(ctx context.Context, ast MalType, env EnvType) (MalType, error) {
 		case "if":
 			cond, e := EVAL(ctx, a1, env)
 			if e != nil {
-				return nil, PushError(ast.(List).Cursor, e)
+				return nil, e
 			}
 			if cond == nil || cond == false {
 				if len(ast.(List).Val) >= 4 {
@@ -452,7 +446,7 @@ func EVAL(ctx context.Context, ast MalType, env EnvType) (MalType, error) {
 		default:
 			el, e := eval_ast(ctx, ast, env)
 			if e != nil {
-				return nil, PushError(ast.(List).Cursor, e)
+				return nil, e
 			}
 			f := el.(List).Val[0]
 			if Q[MalFunc](f) {
@@ -499,30 +493,13 @@ func do(ctx context.Context, ast MalType, from, to int, env EnvType) (MalType, e
 	}
 	evaledAST, e := eval_ast(ctx, List{Val: lst[from : len(lst)+to]}, env)
 	if e != nil {
-		return nil, PushError(ast.(List).Cursor, e)
+		return nil, e
 	}
 	evaledLst := evaledAST.(List).Val
 	if to == 0 {
 		return evaledLst[len(evaledLst)-1], nil
 	}
 	return lst[len(lst)-1], nil
-}
-
-func PushError(cursor *Position, err error) error {
-	switch err := err.(type) {
-	case MalError:
-		if err.Cursor == nil {
-			err.Cursor = cursor
-		}
-		return err
-	default:
-		return MalError{
-			Obj:    err,
-			Cursor: cursor,
-		}
-	case nil:
-		panic(err)
-	}
 }
 
 func malRecover(err *error) {
