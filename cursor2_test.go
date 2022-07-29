@@ -31,9 +31,9 @@ func TestCursor2(t *testing.T) {
 	switch err := err.(type) {
 	case nil:
 		t.Error("unexpected: no error returned")
-	case types.MalError:
-		if err.Cursor.Row != 11 {
-			t.Fatalf("%+v %s", err.Cursor, err)
+	case interface{ GetPosition() *types.Position }:
+		if err.GetPosition().Row != 11 {
+			t.Fatalf("%+v %s", err.GetPosition(), err)
 		}
 	}
 }

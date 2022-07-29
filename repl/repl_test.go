@@ -16,7 +16,10 @@ func TestMultiline(t *testing.T) {
 		if err == nil {
 			t.Fatal("test failed")
 		}
-		if err, ok := err.(types.MalError); ok && err.Obj != nil {
+		if err, ok := err.(interface {
+			Error() string
+			GetEncapsulated() types.MalType
+		}); ok && err.GetEncapsulated() != nil {
 			if err.Error() == "expected ')', got EOF" ||
 				err.Error() == "expected ']', got EOF" ||
 				err.Error() == "expected '}', got EOF" {

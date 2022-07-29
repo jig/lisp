@@ -6,25 +6,25 @@ import (
 )
 
 // Errors/Exceptions
-type MalError struct {
+type malError struct {
 	Obj      MalType
 	CausedBy error
 	Cursor   *Position
 }
 
-func (e MalError) Error() string {
+func (e malError) Error() string {
 	return fmt.Sprintf("%s", e.Obj)
 }
 
-func (e MalError) ErrorEncapsuled() MalType {
+func (e malError) ErrorEncapsuled() MalType {
 	return e.Obj
 }
 
-func (e MalError) Position() *Position {
+func (e malError) Position() *Position {
 	return e.Cursor
 }
 
-func (e MalError) ErrorMessageString() string {
+func (e malError) ErrorMessageString() string {
 	switch err := e.Obj.(type) {
 	case string, runtime.Error, error:
 		return fmt.Sprintf("%s: %s", e.Cursor, err)
@@ -33,28 +33,28 @@ func (e MalError) ErrorMessageString() string {
 	}
 }
 
-// NewGoError is used to create a MalError on errors returned by go functions
+// NewGoError is used to create a malError on errors returned by go functions
 func NewGoError(fFullName string, err interface{}) error {
 	switch err := err.(type) {
 	case interface {
 		Unwrap() error
 		Error() string
 	}:
-		return MalError{
+		return malError{
 			Obj:      fmt.Errorf("%s", fFullName),
 			CausedBy: err,
 		}
 	case error:
-		return MalError{
+		return malError{
 			Obj: fmt.Errorf("%s: %s", fFullName, err),
 		}
 	case string:
 		// TODO(jig): is only called when type mismatch on arguments on a call handled by caller package
-		return MalError{
+		return malError{
 			Obj: fmt.Errorf("%s: %s", fFullName, err),
 		}
 	default:
-		return MalError{
+		return malError{
 			Obj: fmt.Errorf("%s: %s", fFullName, err),
 		}
 	}
@@ -76,6 +76,9 @@ func GetPosition(ast MalType) *Position {
 		return value.GetPosition()
 	case *Position:
 		return value
+	case nil:
+		// throw or assert
+		return nil
 	default:
 		panic(fmt.Errorf("GetPosition(%T)", value))
 	}
@@ -83,21 +86,24 @@ func GetPosition(ast MalType) *Position {
 
 func SetPosition(e error, ast MalType) error {
 	switch e := e.(type) {
-	case MalError:
+	case malError:
 		e.Cursor = GetPosition(ast)
+		return e
+	case nil:
+		// used by throw and assert
 		return e
 	default:
 		return e
 	}
 }
 
-func NewMalError(err error, ast MalType) error {
+func NewMalError(err MalType, ast MalType) error {
 	switch err := err.(type) {
-	case MalError:
+	case malError:
 		return SetPosition(err, ast)
 	case error:
-		return SetPosition(MalError{Obj: err}, ast)
+		return SetPosition(malError{Obj: err}, ast)
 	default:
-		return SetPosition(MalError{Obj: err}, ast)
+		return SetPosition(malError{Obj: err}, ast)
 	}
 }

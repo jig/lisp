@@ -124,7 +124,7 @@ func LoadInput(env types.EnvType) {
 
 // Errors/Exceptions
 func throw(a MalType) (MalType, error) {
-	return nil, MalError{Obj: a}
+	return nil, NewMalError(a, nil)
 }
 
 func fn_q(a MalType) (MalType, error) {
@@ -862,7 +862,7 @@ func assert(a ...MalType) (MalType, error) {
 	case string:
 		return nil, errors.New(a1)
 	default:
-		return nil, MalError{Obj: a1}
+		return nil, NewMalError(a1, nil)
 	}
 }
 

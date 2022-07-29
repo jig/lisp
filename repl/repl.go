@@ -55,7 +55,7 @@ func Execute(ctx context.Context, repl_env types.EnvType) error {
 			if err.Error() == "<empty line>" {
 				continue
 			}
-			if err, ok := err.(types.MalError); ok && err.Obj != nil {
+			if err, ok := err.(interface{ ErrorMessageString() string }); ok && err.(interface{ ErrorEncapsuled() types.MalType }).ErrorEncapsuled() != nil {
 				if err.ErrorMessageString() == "expected ')', got EOF" ||
 					err.ErrorMessageString() == "expected ']', got EOF" ||
 					err.ErrorMessageString() == "expected '}', got EOF" {
@@ -66,8 +66,8 @@ func Execute(ctx context.Context, repl_env types.EnvType) error {
 			lines = []string{}
 			l.SetPrompt("\033[32m»\033[0m ")
 			switch err := err.(type) {
-			case types.MalError:
-				errorString, err2 := lisp.PRINT(err.Obj)
+			case interface{ ErrorEncapsuled() types.MalType }:
+				errorString, err2 := lisp.PRINT(err.ErrorEncapsuled())
 				if err2 != nil {
 					fmt.Printf("\033[31mMalError:\033[0m %s\n", "UNPRINTABLE-ERROR")
 					continue
