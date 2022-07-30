@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/eiannone/keyboard"
+	"github.com/fatih/color"
 	"github.com/jig/lisp"
 	"github.com/jig/lisp/command"
 	"github.com/jig/lisp/env"
@@ -20,6 +21,13 @@ import (
 )
 
 var replOnEnd bool
+
+var (
+	colorFileName  = color.New(color.FgCyan)
+	colorSeparator = color.New(color.FgWhite)
+	colorPosition  = color.New(color.FgGreen)
+	colorAlert     = color.New(color.FgRed)
+)
 
 func stepper(moduleName string) func(ast types.MalType, ns types.EnvType) {
 	help := `During debugging session:
@@ -43,7 +51,10 @@ func stepper(moduleName string) func(ast types.MalType, ns types.EnvType) {
 		if pos != nil && pos.Module != nil && strings.Contains(*pos.Module, moduleName) {
 			if trace {
 				str, _ := lisp.PRINT(expr)
-				fmt.Printf("--- [%d]%s%s ---\n%s\n", ns.Deepness(), strings.Repeat("· ", ns.Deepness()), pos, str)
+				colorFileName.Print(pos.StringModule())
+				colorSeparator.Print("§")
+				colorPosition.Println(pos.StringPosition())
+				fmt.Println(str)
 			}
 			if stop {
 				for {
@@ -58,12 +69,14 @@ func stepper(moduleName string) func(ast types.MalType, ns types.EnvType) {
 						repl.Execute(context.Background(), ns)
 						return
 					case keyboard.KeyF5:
+						colorAlert.Println("running to the end (F5)")
 						keyboard.Close()
 						stop = false
 						trace = false
 						replOnEnd = false
 						return
 					case keyboard.KeyF1:
+						colorAlert.Println("running to the end (F1)")
 						keyboard.Close()
 						stop = false
 						trace = true
@@ -79,6 +92,8 @@ func stepper(moduleName string) func(ast types.MalType, ns types.EnvType) {
 						keyboard.Close()
 						fmt.Println("debug session aborted")
 						os.Exit(1)
+					default:
+						colorAlert.Printf("key %s not bound\n")
 					}
 				}
 			}

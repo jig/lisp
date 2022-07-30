@@ -471,8 +471,6 @@ func EVAL(ctx context.Context, ast MalType, env EnvType) (MalType, error) {
 				return result, nil
 			}
 		}
-
-		// env.DeepnessTCOAdd()
 	} // TCO loop
 }
 

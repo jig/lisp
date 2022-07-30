@@ -9,10 +9,9 @@ import (
 )
 
 type Env struct {
-	mu       *sync.RWMutex
-	data     map[string]interface{}
-	outer    *Env
-	deepness int
+	mu    *sync.RWMutex
+	data  map[string]interface{}
+	outer *Env
 }
 
 func NewEnv() types.EnvType {
@@ -37,7 +36,6 @@ func _newEnv() *Env {
 func _newSubordinateEnv(outer *Env) *Env {
 	env := _newEnv()
 	env.outer = outer
-	env.deepness = outer.Deepness() + 1
 	return env
 }
 
@@ -154,11 +152,4 @@ func (e *Env) RemoveNT(key types.Symbol) error {
 	}
 	delete(e.data, key.Val)
 	return nil
-}
-
-func (e *Env) Deepness() int {
-	e.mu.RLock()
-	defer e.mu.RUnlock()
-
-	return e.deepness
 }
