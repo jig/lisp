@@ -194,6 +194,20 @@ func eval_ast(ctx context.Context, ast MalType, env EnvType) (MalType, error) {
 	}
 }
 
+var target = NewAnonymousCursorHere(4, 1)
+
+func debug(ast MalType) {
+	expr, ok := ast.(List)
+	if !ok {
+		return
+	}
+	pos := GetPosition(ast)
+	// if pos.Includes(*target) {
+	str, _ := PRINT(expr)
+	fmt.Println("\n", pos, str)
+	// }
+}
+
 func EVAL(ctx context.Context, ast MalType, env EnvType) (MalType, error) {
 	var e error
 	for {
@@ -214,6 +228,8 @@ func EVAL(ctx context.Context, ast MalType, env EnvType) (MalType, error) {
 			// fmt.Printf("%T○ %s\n", ast, aStr)
 			return eval_ast(ctx, ast, env)
 		}
+
+		// debug(ast)
 
 		// apply list
 		ast, e = macroexpand(ctx, ast, env)

@@ -32,7 +32,17 @@
             "mode": "auto",
             "program": "${workspaceFolder}/cmd/lisp",
             "args":[
-                "./examples/fibonacci.clj"
+                "../../examples/fibonacci.lisp"
+            ]
+        },
+        {
+            "name": "MAL",
+            "type": "go",
+            "request": "launch",
+            "mode": "auto",
+            "program": "${workspaceFolder}/cmd/lisp",
+            "args":[
+                "./examples/mal.lisp"
             ]
         }
     ]

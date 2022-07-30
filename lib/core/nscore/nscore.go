@@ -20,7 +20,7 @@ const (
 	malLoadFile = `(def load-file (fn (f)
 						(eval
 							(read-string
-								(str "(do " (slurp f) " nil)")))))`
+								(str ";; $MODULE " f "\n(do " (slurp f) " nil)")))))`
 	malCond = `(defmacro cond (fn (& xs)
 					(if (> (count xs) 0)
 						(list

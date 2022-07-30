@@ -72,10 +72,7 @@ func Execute(args []string, repl_env types.EnvType) error {
 // ExecuteFile executes a file on the given path
 func ExecuteFile(fileName string, repl_env types.EnvType) (types.MalType, error) {
 	ctx := context.Background()
-	result, err := lisp.REPL(ctx, repl_env, `(load-file "`+fileName+`")`, &types.Position{
-		Module: &fileName,
-		Row:    -3, // "ugly hack: load-file implementation is 4 lines long"
-	})
+	result, err := lisp.REPL(ctx, repl_env, `(load-file "`+fileName+`")`, types.NewAnonymousCursorHere(-3, 1))
 	if err != nil {
 		return nil, err
 	}

@@ -26,14 +26,38 @@ func NewCursorFile(module string) *Position {
 	}
 }
 
-func NewCursor(here *Position) *Position {
-	if here.Row == 0 && here.Col == 0 {
+func NewAnonymousCursorHere(row, col int) *Position {
+	return &Position{
+		BeginRow: row,
+		BeginCol: col,
+		Row:      row,
+		Col:      col,
+	}
+}
+
+func NewCursorHere(moduleName string, row, col int) *Position {
+	pos := NewAnonymousCursorHere(row, col)
+	pos.Module = &moduleName
+	return pos
+}
+
+func NewCursor() *Position {
+	return &Position{
+		BeginRow: 1,
+		BeginCol: 1,
+		Row:      1,
+		Col:      1,
+	}
+}
+
+func (p *Position) Here(here *Position) *Position {
+	if here.Module == nil {
 		return &Position{
-			Module:   here.Module,
+			Module:   p.Module,
 			BeginRow: here.BeginRow,
 			BeginCol: here.BeginCol,
-			Row:      here.BeginRow,
-			Col:      here.BeginCol,
+			Row:      here.Row,
+			Col:      here.Col,
 		}
 	}
 	return &Position{
@@ -42,6 +66,32 @@ func NewCursor(here *Position) *Position {
 		BeginCol: here.BeginCol,
 		Row:      here.Row,
 		Col:      here.Col,
+	}
+}
+
+// func (p *Position) Row(row int) *Position {
+// 	p := &Position{}
+// }
+
+func (p *Position) Copy() *Position {
+	if p == nil {
+		return nil
+	}
+	if p.Module == nil {
+		return &Position{
+			Row:      p.Row,
+			Col:      p.Col,
+			BeginRow: p.BeginRow,
+			BeginCol: p.BeginCol,
+		}
+	}
+	v := *p.Module
+	return &Position{
+		Module:   &v,
+		Row:      p.Row,
+		Col:      p.Col,
+		BeginRow: p.BeginRow,
+		BeginCol: p.BeginCol,
 	}
 }
 

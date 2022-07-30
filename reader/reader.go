@@ -45,9 +45,6 @@ var (
 )
 
 func tokenize(str string, cursor *Position) []Token {
-	if cursor == nil {
-		cursor = &Position{Row: 1, Col: 1}
-	}
 	results := make([]Token, 0, 1)
 	for _, group := range tokenizerRE.FindAllStringSubmatch(str, -1) {
 		groupConsumed := group[0]
@@ -133,7 +130,7 @@ func read_list(rdr Reader, start string, end string, placeholderValues *HashMap)
 	if tokenStruct == nil {
 		return nil, NewMalError(errors.New("read_list underflow"), &tokenStruct)
 	}
-	cursor := NewCursor(&tokenStruct.Cursor)
+	cursor := tokenStruct.Cursor.Copy()
 	token := &tokenStruct.Value
 	if *token != start {
 		return nil, NewMalError(errors.New("expected '"+start+"'"), &tokenStruct)
@@ -199,7 +196,7 @@ func read_form(rdr Reader, placeholderValues *HashMap) (MalType, error) {
 	if tokenStruct == nil {
 		return nil, NewMalError(errors.New("read_form underflow"), &tokenStruct)
 	}
-	cursor := NewCursor(&tokenStruct.Cursor)
+	cursor := tokenStruct.Cursor.Copy()
 	switch tokenStruct.Value {
 	case `'`:
 		rdr.next()
@@ -275,7 +272,19 @@ func read_form(rdr Reader, placeholderValues *HashMap) (MalType, error) {
 	}
 }
 
+// ";; $MODULE ../../examples/fibonacci.lisp\n(do (do\n    (def fib\n
+var moduleNamePrefixRE = regexp.MustCompile(`^;; [$]MODULE (.+)`)
+
 func Read_str(str string, cursor *Position, placeholderValues *HashMap) (MalType, error) {
+	if cursor == nil {
+		cursor = NewAnonymousCursorHere(1, 1)
+	}
+	if cursor.Module == nil {
+		matches := moduleNamePrefixRE.FindStringSubmatch(str)
+		if matches != nil {
+			cursor = NewCursorFile(matches[0])
+		}
+	}
 	var tokens = tokenize(str, cursor)
 	if len(tokens) == 0 {
 		return nil, errors.New("<empty line>")

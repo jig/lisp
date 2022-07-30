@@ -36,19 +36,19 @@ func TestCursor(t *testing.T) {
 		{
 			Module: "nested",
 			Code:   nested,
-			Cursor: types.NewCursor(&types.Position{BeginRow: 1, BeginCol: 15}),
+			Cursor: types.NewAnonymousCursorHere(1, 15),
 		}, {
 			Module: "singleline-string",
 			Code:   singleline,
-			Cursor: types.NewCursor(&types.Position{BeginRow: 1, BeginCol: 1}),
+			Cursor: types.NewAnonymousCursorHere(1, 1),
 		}, {
 			Module: "multiline-string",
 			Code:   multiline,
-			Cursor: types.NewCursor(&types.Position{BeginRow: 6, BeginCol: 1}),
+			Cursor: types.NewAnonymousCursorHere(6, 1),
 		}, {
 			Module: "codeThrow",
 			Code:   codeThrow,
-			Cursor: types.NewCursor(&types.Position{BeginRow: 4, BeginCol: 1}),
+			Cursor: types.NewAnonymousCursorHere(4, 1),
 		},
 		{
 			Module: "codeTryAndThrowAndCatch",
@@ -58,12 +58,12 @@ func TestCursor(t *testing.T) {
 		{
 			Module: "codeUndefinedSymbol",
 			Code:   codeUndefinedSymbol,
-			Cursor: types.NewCursor(&types.Position{BeginRow: 3, BeginCol: 1}),
+			Cursor: types.NewAnonymousCursorHere(3, 1),
 		},
 		{
 			Module: "codeLetIsBogus",
 			Code:   codeLetIsBogus,
-			Cursor: types.NewCursor(&types.Position{BeginRow: 3, BeginCol: 5}),
+			Cursor: types.NewAnonymousCursorHere(3, 5),
 		},
 		{
 			Module: "codeCorrect",
@@ -73,12 +73,12 @@ func TestCursor(t *testing.T) {
 		{
 			Module: "codeMissingRightBracket",
 			Code:   codeMissingRightBracket,
-			Cursor: types.NewCursor(&types.Position{BeginRow: 8, BeginCol: 1}),
+			Cursor: types.NewAnonymousCursorHere(8, 1),
 		},
 		{
 			Module: "codeTooManyRightBrackets",
 			Code:   codeTooManyRightBrackets,
-			Cursor: types.NewCursor(&types.Position{BeginRow: 25, BeginCol: 2}),
+			Cursor: types.NewAnonymousCursorHere(25, 2),
 		},
 	} {
 		subEnv, err := env.NewEnv(bootEnv, nil, nil)
