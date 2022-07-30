@@ -119,7 +119,11 @@ func (cursor *Position) String() string {
 	// } else {
 	// 	return fmt.Sprintf("%s§%d,%d…%d", moduleName, cursor.Row, cursor.BeginCol, cursor.Col)
 	// }
-	return fmt.Sprintf("%s§%d…%d,%d…%d", moduleName, cursor.BeginRow, cursor.Row, cursor.BeginCol, cursor.Col)
+	if cursor.Row < 0 {
+		return fmt.Sprintf("%s§", moduleName)
+	} else {
+		return fmt.Sprintf("%s§%d…%d,%d…%d", moduleName, cursor.BeginRow, cursor.Row, cursor.BeginCol, cursor.Col)
+	}
 }
 
 func (cursor *Position) Includes(inside Position) bool {

@@ -19,48 +19,67 @@ import (
 	"github.com/jig/lisp/types"
 )
 
+var replOnEnd bool
+
 func stepper(moduleName string) func(ast types.MalType, ns types.EnvType) {
-	help := `Keys Cheat Sheet:
-	F10 to execute till next expr
-	Enter to spawn a REPL on current expr
-	F5 to execute till the end of the program
-	Esc or ^C to kill this debugging session
+	help := `During debugging session:
+	F10:    to execute till next expr
+	Enter:  to spawn a REPL on current expr (on REPL you can use Tab for autocomplete symbols on current namespace)
+	F5:     to execute till the end of the program
+	Esc:    to execute till the end of the program and spawn a REPL in existing environment
+	F1:     to execute till the end of the program and trace executed code
+	Ctrl+C: to kill this debugging session
 `
 	fmt.Println(help)
 
 	stop := true
+	trace := true
 	return func(ast types.MalType, ns types.EnvType) {
-		if !stop {
-			return
-		}
 		expr, ok := ast.(types.List)
 		if !ok {
 			return
 		}
 		pos := types.GetPosition(expr)
 		if pos != nil && pos.Module != nil && strings.Contains(*pos.Module, moduleName) {
-			str, _ := lisp.PRINT(expr)
-			fmt.Printf("--- [%d]%s ---\n%s\n", ns.Deepness(), pos, str)
-
-			for {
-				_, key, err := keyboard.GetKey()
-				if err != nil {
-					panic(err)
-				}
-				switch key {
-				case keyboard.KeyF10:
-					return
-				case keyboard.KeyEnter:
-					repl.Execute(context.Background(), ns)
-					return
-				case keyboard.KeyF5:
-					keyboard.Close()
-					stop = false
-					return
-				case keyboard.KeyEsc, keyboard.KeyCtrlC:
-					keyboard.Close()
-					fmt.Println("debug session aborted")
-					os.Exit(1)
+			if trace {
+				str, _ := lisp.PRINT(expr)
+				fmt.Printf("--- [%d]%s%s ---\n%s\n", ns.Deepness(), strings.Repeat("· ", ns.Deepness()), pos, str)
+			}
+			if stop {
+				for {
+					_, key, err := keyboard.GetKey()
+					if err != nil {
+						return
+					}
+					switch key {
+					case keyboard.KeyF10:
+						return
+					case keyboard.KeyEnter:
+						repl.Execute(context.Background(), ns)
+						return
+					case keyboard.KeyF5:
+						keyboard.Close()
+						stop = false
+						trace = false
+						replOnEnd = false
+						return
+					case keyboard.KeyF1:
+						keyboard.Close()
+						stop = false
+						trace = true
+						replOnEnd = false
+						return
+					case keyboard.KeyEsc:
+						keyboard.Close()
+						stop = false
+						trace = false
+						replOnEnd = true
+						return
+					case keyboard.KeyCtrlC:
+						keyboard.Close()
+						fmt.Println("debug session aborted")
+						os.Exit(1)
+					}
 				}
 			}
 		}
@@ -95,4 +114,9 @@ func main() {
 		log.Fatalf("Error: %v\n", err)
 	}
 	keyboard.Close()
+
+	if replOnEnd {
+		fmt.Println("Program ended")
+		repl.Execute(context.Background(), ns)
+	}
 }
