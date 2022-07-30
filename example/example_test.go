@@ -13,10 +13,7 @@ import (
 )
 
 func ExampleEVAL() {
-	newEnv, err := env.NewEnv(nil, nil, nil)
-	if err != nil {
-		log.Fatalf("Environment Setup Error: %v", err)
-	}
+	newEnv := env.NewEnv()
 
 	// Load required lisp libraries
 	for _, library := range []struct {

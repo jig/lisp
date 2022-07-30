@@ -34,6 +34,8 @@ type EnvType interface {
 	FindNT(key Symbol) EnvType
 	SetNT(key Symbol, value MalType) MalType
 	GetNT(key Symbol) (MalType, error)
+
+	Deepness() int
 }
 
 // Scalars

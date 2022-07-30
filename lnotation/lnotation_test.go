@@ -91,10 +91,7 @@ func TestLNotationFibonacci(t *testing.T) {
 }
 
 func NewTestEnv() EnvType {
-	repl_env, err := NewEnv(nil, nil, nil)
-	if err != nil {
-		log.Fatalf("Environment Setup Error: %v\n", err)
-	}
+	repl_env := NewEnv()
 
 	for _, library := range []struct {
 		name string

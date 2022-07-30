@@ -9,17 +9,40 @@ import (
 )
 
 type Env struct {
-	mu    *sync.RWMutex
-	data  map[string]interface{}
-	outer types.EnvType
+	mu       *sync.RWMutex
+	data     map[string]interface{}
+	outer    *Env
+	deepness int
 }
 
-func NewEnv(outer types.EnvType, binds_mt types.MalType, exprs_mt types.MalType) (types.EnvType, error) {
-	env := &Env{
-		data:  map[string]interface{}{},
-		outer: outer,
-		mu:    &sync.RWMutex{},
+func NewEnv() types.EnvType {
+	return _newEnv()
+}
+
+func NewSubordinateEnv(outer types.EnvType) types.EnvType {
+	return _newSubordinateEnv(outer.(*Env))
+}
+
+func NewSubordinateEnvWithBinds(outer types.EnvType, binds_mt types.MalType, exprs_mt types.MalType) (types.EnvType, error) {
+	return _newSubordinateEnvWithBinds(outer.(*Env), binds_mt, exprs_mt)
+}
+
+func _newEnv() *Env {
+	return &Env{
+		data: map[string]interface{}{},
+		mu:   &sync.RWMutex{},
 	}
+}
+
+func _newSubordinateEnv(outer *Env) *Env {
+	env := _newEnv()
+	env.outer = outer
+	env.deepness = outer.Deepness() + 1
+	return env
+}
+
+func _newSubordinateEnvWithBinds(outer *Env, binds_mt types.MalType, exprs_mt types.MalType) (types.EnvType, error) {
+	env := _newSubordinateEnv(outer)
 
 	if binds_mt != nil && exprs_mt != nil {
 		binds, e := types.GetSlice(binds_mt)
@@ -131,4 +154,11 @@ func (e *Env) RemoveNT(key types.Symbol) error {
 	}
 	delete(e.data, key.Val)
 	return nil
+}
+
+func (e *Env) Deepness() int {
+	e.mu.RLock()
+	defer e.mu.RUnlock()
+
+	return e.deepness
 }

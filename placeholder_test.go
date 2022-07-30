@@ -21,7 +21,7 @@ type Example struct {
 }
 
 func TestPlaceholders(t *testing.T) {
-	repl_env, _ := env.NewEnv(nil, nil, nil)
+	repl_env := env.NewEnv()
 	core.Load(repl_env)
 
 	str := `(do
@@ -106,7 +106,7 @@ func TestPlaceholders(t *testing.T) {
 }
 
 func TestREADWithPreamble(t *testing.T) {
-	repl_env, _ := env.NewEnv(nil, nil, nil)
+	repl_env := env.NewEnv()
 	core.Load(repl_env)
 
 	str :=
@@ -200,7 +200,7 @@ func TestREADWithPreamble(t *testing.T) {
 }
 
 func TestAddPreamble(t *testing.T) {
-	repl_env, _ := env.NewEnv(nil, nil, nil)
+	repl_env := env.NewEnv()
 	core.Load(repl_env)
 
 	str := `(do
@@ -303,7 +303,7 @@ func TestAddPreamble(t *testing.T) {
 }
 
 func TestPlaceholdersEmbeddedWrong1(t *testing.T) {
-	repl_env, _ := env.NewEnv(nil, nil, nil)
+	repl_env := env.NewEnv()
 	core.Load(repl_env)
 
 	str :=
@@ -332,7 +332,7 @@ func TestPlaceholdersEmbeddedWrong1(t *testing.T) {
 }
 
 func TestPlaceholdersEmbeddedNoBlankLine(t *testing.T) {
-	repl_env, _ := env.NewEnv(nil, nil, nil)
+	repl_env := env.NewEnv()
 	core.Load(repl_env)
 
 	// missing blank line must fail
@@ -384,7 +384,7 @@ func BenchmarkAddPreamble(b *testing.B) {
 var notOptimiseBenchFunc2 MalType
 
 func BenchmarkAddPreambleAlternative(b *testing.B) {
-	repl_env, _ := env.NewEnv(nil, nil, nil)
+	repl_env := env.NewEnv()
 	core.Load(repl_env)
 
 	for n := 0; n < b.N; n++ {
@@ -437,7 +437,7 @@ func BenchmarkREADWithPreamble(b *testing.B) {
 }
 
 func BenchmarkNewEnv(b *testing.B) {
-	repl_env, _ := env.NewEnv(nil, nil, nil)
+	repl_env := env.NewEnv()
 	core.Load(repl_env)
 	sourceWithPreamble := `(do
 		(def v0 $EXAMPLESTRING)
@@ -505,7 +505,7 @@ func BenchmarkCompleteSendingWithPreamble(b *testing.B) {
 			b.Fatal(err)
 		}
 
-		repl_env, _ := env.NewEnv(nil, nil, nil)
+		repl_env := env.NewEnv()
 		core.Load(repl_env)
 		ctx := context.Background()
 		res, err := EVAL(ctx, ast, repl_env)
@@ -558,7 +558,7 @@ func BenchmarkCompleteSendingWithPreambleSolved(b *testing.B) {
 			b.Fatal(err)
 		}
 
-		repl_env, _ := env.NewEnv(nil, nil, nil)
+		repl_env := env.NewEnv()
 		core.Load(repl_env)
 		ctx := context.Background()
 		res, err := EVAL(ctx, ast, repl_env)
@@ -572,7 +572,7 @@ func BenchmarkCompleteSendingWithPreambleSolved(b *testing.B) {
 }
 
 func TestHashMapMarshalers(t *testing.T) {
-	repl_env, _ := env.NewEnv(nil, nil, nil)
+	repl_env := env.NewEnv()
 	core.Load(repl_env)
 
 	str := `(do
@@ -655,7 +655,7 @@ func TestPassingLispDataFromGo(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	ns, _ := env.NewEnv(nil, nil, nil)
+	ns := env.NewEnv()
 	core.Load(ns)
 	ctx := context.Background()
 	res, err := EVAL(ctx, ast, ns)
