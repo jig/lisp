@@ -161,6 +161,7 @@ func eval_ast(ctx context.Context, ast MalType, env EnvType) (MalType, error) {
 	} else if Q[List](ast) {
 		lst := []MalType{}
 		for _, a := range ast.(List).Val {
+			// debug("fibonacci", ast)
 			exp, e := EVAL(ctx, a, env)
 			if e != nil {
 				return nil, e
@@ -196,16 +197,16 @@ func eval_ast(ctx context.Context, ast MalType, env EnvType) (MalType, error) {
 
 var target = NewAnonymousCursorHere(4, 1)
 
-func debug(ast MalType) {
+func debug(moduleFilter string, ast MalType) {
 	expr, ok := ast.(List)
 	if !ok {
 		return
 	}
 	pos := GetPosition(ast)
-	// if pos.Includes(*target) {
-	str, _ := PRINT(expr)
-	fmt.Println("\n", pos, str)
-	// }
+	if pos != nil && strings.Contains(*pos.Module, moduleFilter) {
+		str, _ := PRINT(expr)
+		fmt.Println("\n", pos, str)
+	}
 }
 
 func EVAL(ctx context.Context, ast MalType, env EnvType) (MalType, error) {
@@ -228,8 +229,6 @@ func EVAL(ctx context.Context, ast MalType, env EnvType) (MalType, error) {
 			// fmt.Printf("%T○ %s\n", ast, aStr)
 			return eval_ast(ctx, ast, env)
 		}
-
-		// debug(ast)
 
 		// apply list
 		ast, e = macroexpand(ctx, ast, env)

@@ -44,10 +44,7 @@ func Execute(args []string, repl_env types.EnvType) error {
 						if _, err := lisp.REPL(ctx, repl_env, testParams, types.NewCursorFile(info.Name())); err != nil {
 							return err
 						}
-						if _, err := lisp.REPL(ctx, repl_env, `(load-file "`+path+`")`, &types.Position{
-							Module: &path,
-							Row:    -3, // "ugly hack: load-file implementation is 4 lines long"
-						}); err != nil {
+						if _, err := lisp.REPL(ctx, repl_env, `(load-file "`+path+`")`, types.NewCursorHere(path, -3, 1)); err != nil {
 							return err
 						}
 					}
@@ -72,7 +69,7 @@ func Execute(args []string, repl_env types.EnvType) error {
 // ExecuteFile executes a file on the given path
 func ExecuteFile(fileName string, repl_env types.EnvType) (types.MalType, error) {
 	ctx := context.Background()
-	result, err := lisp.REPL(ctx, repl_env, `(load-file "`+fileName+`")`, types.NewAnonymousCursorHere(-3, 1))
+	result, err := lisp.REPL(ctx, repl_env, `(load-file "`+fileName+`")`, types.NewCursorHere(fileName, -3, 1))
 	if err != nil {
 		return nil, err
 	}

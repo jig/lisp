@@ -282,7 +282,7 @@ func Read_str(str string, cursor *Position, placeholderValues *HashMap) (MalType
 	if cursor.Module == nil {
 		matches := moduleNamePrefixRE.FindStringSubmatch(str)
 		if matches != nil {
-			cursor = NewCursorFile(matches[0])
+			cursor = NewCursorFile(matches[1])
 		}
 	}
 	var tokens = tokenize(str, cursor)
