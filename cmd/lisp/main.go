@@ -23,9 +23,9 @@ func main() {
 		{"core mal", nscore.Load},
 		{"core mal with input", nscore.LoadInput},
 		{"command line args", nscore.LoadCmdLineArgs},
+		{"concurrent", nsconcurrent.Load},
 		{"core mal extended", nscoreextended.Load},
 		{"test", nstest.Load},
-		{"concurrent", nsconcurrent.Load},
 	} {
 		if err := library.load(ns); err != nil {
 			log.Fatalf("Library Load Error: %v\n", err)

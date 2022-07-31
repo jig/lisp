@@ -7,6 +7,7 @@ import (
 
 	"github.com/jig/lisp"
 	"github.com/jig/lisp/env"
+	"github.com/jig/lisp/lib/concurrent/nsconcurrent"
 	"github.com/jig/lisp/lib/core/nscore"
 	"github.com/jig/lisp/lib/coreextented/nscoreextended"
 	"github.com/jig/lisp/types"
@@ -23,6 +24,7 @@ func ExampleEVAL() {
 		{"core mal", nscore.Load},
 		{"core mal with input", nscore.LoadInput},
 		{"command line args", nscore.LoadCmdLineArgs},
+		{"concurrent", nsconcurrent.Load},
 		{"core mal extended", nscoreextended.Load},
 	} {
 		if err := library.load(newEnv); err != nil {

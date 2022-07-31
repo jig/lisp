@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	. "github.com/jig/lisp/env"
+	"github.com/jig/lisp/lib/concurrent"
 	"github.com/jig/lisp/lib/core"
 	"github.com/jig/lisp/types"
 	. "github.com/jig/lisp/types"
@@ -202,6 +203,7 @@ func BenchmarkAtomParallel(b *testing.B) {
 
 	// core.go: defined using go
 	core.Load(repl_env)
+	concurrent.Load(repl_env)
 	repl_env.Set(Symbol{Val: "eval"}, Func{Fn: func(ctx context.Context, a []MalType) (MalType, error) {
 		return EVAL(ctx, a[0], repl_env)
 	}})
