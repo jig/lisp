@@ -110,7 +110,7 @@ func (deb *Debugger) Stepper(ast types.MalType, ns types.EnvType, isMacro bool) 
 						if _, ok := deb.config.Exprs[line]; ok {
 							delete(deb.config.Exprs, line)
 						} else {
-							colorAlert.Printf("watch %s unexistent\n")
+							colorAlert.Printf("watch %s unexistent\n", line)
 						}
 					default:
 						colorAlert.Printf("key '%c' not bound\n", rune)

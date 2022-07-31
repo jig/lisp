@@ -47,7 +47,7 @@ go test -benchmem -benchtime 5s -bench '^.+$' github.com/jig/lisp
 
 # Additions
 
-- Debugger. Use `cmd/debugger/main.go` instead `cmd/lisp/main.go`. File to debug is the sole argument supported
+- Debugger: prefix program name with `--debug`. File to debug is the sole argument supported
 - Errors return line position and stack trace
 - `(range a b)` returns a vector of integers from `a` to `b-1`
 - `(merge hm1 hm2)` returns the merge of two hash maps, second takes precedence
