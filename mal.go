@@ -133,10 +133,14 @@ func is_macro_call(ast MalType, env EnvType) bool {
 	return false
 }
 
+var Stepper func(ast MalType, ns types.EnvType, isMacro bool)
+
 func macroexpand(ctx context.Context, ast MalType, env EnvType) (MalType, error) {
 	var mac MalType
 	var e error
+	var isMacro bool
 	for is_macro_call(ast, env) {
+		isMacro = true
 		slc, _ := GetSlice(ast)
 		a0 := slc[0]
 		mac, e = env.Get(a0.(Symbol))
@@ -148,6 +152,9 @@ func macroexpand(ctx context.Context, ast MalType, env EnvType) (MalType, error)
 		if e != nil {
 			return nil, e
 		}
+	}
+	if Stepper != nil {
+		Stepper(ast, env, isMacro)
 	}
 	return ast, nil
 }
@@ -204,8 +211,6 @@ const (
 	In
 )
 
-var Stepper func(ast MalType, ns types.EnvType)
-
 func EVAL(ctx context.Context, ast MalType, env EnvType) (MalType, error) {
 	var e error
 	for {
@@ -227,9 +232,6 @@ func EVAL(ctx context.Context, ast MalType, env EnvType) (MalType, error) {
 			return eval_ast(ctx, ast, env)
 		}
 
-		if Stepper != nil {
-			Stepper(ast, env)
-		}
 		// apply list
 		ast, e = macroexpand(ctx, ast, env)
 		if e != nil {

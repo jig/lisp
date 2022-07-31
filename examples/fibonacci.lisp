@@ -13,8 +13,13 @@
 ;; (prn (fib 6))
 (def m 6)
 
+(def s 6)
+
+(prn (fib s))
+
 (prn
     (fib
         (fib
             (fib m))))
+
 (prn "Done")
