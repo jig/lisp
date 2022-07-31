@@ -3,6 +3,8 @@ package env
 import (
 	"errors"
 	"fmt"
+	"sort"
+	"strings"
 	"sync"
 
 	"github.com/jig/lisp/types"
@@ -115,8 +117,28 @@ func (e *Env) Update(key types.Symbol, f func(types.MalType) (types.MalType, err
 	return e.SetNT(key, newV), nil
 }
 
-func (e *Env) Map() (map[string]interface{}, *sync.RWMutex) {
-	return e.data, e.mu
+func (e *Env) Symbols(newLine [][]rune, lastPartial string) [][]rune {
+	e.mu.RLock()
+	defer e.mu.RUnlock()
+
+	var localNewLine []string
+
+	for key := range e.data {
+		if strings.HasPrefix(key, lastPartial) {
+			localNewLine = append(localNewLine, key[len(lastPartial):])
+		}
+	}
+	sort.Strings(localNewLine)
+
+	// append localNewLine to newLine
+	for _, s := range localNewLine {
+		newLine = append(newLine, []rune(s))
+	}
+
+	if e.outer != nil {
+		return e.outer.Symbols(newLine, lastPartial)
+	}
+	return newLine
 }
 
 func (e *Env) FindNT(key types.Symbol) types.EnvType {

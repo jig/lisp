@@ -11,8 +11,10 @@
 ;; (prn (fib 4))
 ;; (prn (fib 5))
 ;; (prn (fib 6))
+(def m 6)
+
 (prn
     (fib
         (fib
-            (fib 6))))
+            (fib m))))
 (prn "Done")
