@@ -3,6 +3,8 @@ package env
 import (
 	"errors"
 	"fmt"
+	"sort"
+	"strings"
 	"sync"
 
 	"github.com/jig/lisp/types"
@@ -11,15 +13,36 @@ import (
 type Env struct {
 	mu    *sync.RWMutex
 	data  map[string]interface{}
-	outer types.EnvType
+	outer *Env
 }
 
-func NewEnv(outer types.EnvType, binds_mt types.MalType, exprs_mt types.MalType) (types.EnvType, error) {
-	env := &Env{
-		data:  map[string]interface{}{},
-		outer: outer,
-		mu:    &sync.RWMutex{},
+func NewEnv() types.EnvType {
+	return _newEnv()
+}
+
+func NewSubordinateEnv(outer types.EnvType) types.EnvType {
+	return _newSubordinateEnv(outer.(*Env))
+}
+
+func NewSubordinateEnvWithBinds(outer types.EnvType, binds_mt types.MalType, exprs_mt types.MalType) (types.EnvType, error) {
+	return _newSubordinateEnvWithBinds(outer.(*Env), binds_mt, exprs_mt)
+}
+
+func _newEnv() *Env {
+	return &Env{
+		data: map[string]interface{}{},
+		mu:   &sync.RWMutex{},
 	}
+}
+
+func _newSubordinateEnv(outer *Env) *Env {
+	env := _newEnv()
+	env.outer = outer
+	return env
+}
+
+func _newSubordinateEnvWithBinds(outer *Env, binds_mt types.MalType, exprs_mt types.MalType) (types.EnvType, error) {
+	env := _newSubordinateEnv(outer)
 
 	if binds_mt != nil && exprs_mt != nil {
 		binds, e := types.GetSlice(binds_mt)
@@ -94,8 +117,28 @@ func (e *Env) Update(key types.Symbol, f func(types.MalType) (types.MalType, err
 	return e.SetNT(key, newV), nil
 }
 
-func (e *Env) Map() (map[string]interface{}, *sync.RWMutex) {
-	return e.data, e.mu
+func (e *Env) Symbols(newLine [][]rune, lastPartial string) [][]rune {
+	e.mu.RLock()
+	defer e.mu.RUnlock()
+
+	var localNewLine []string
+
+	for key := range e.data {
+		if strings.HasPrefix(key, lastPartial) {
+			localNewLine = append(localNewLine, key[len(lastPartial):])
+		}
+	}
+	sort.Strings(localNewLine)
+
+	// append localNewLine to newLine
+	for _, s := range localNewLine {
+		newLine = append(newLine, []rune(s))
+	}
+
+	if e.outer != nil {
+		return e.outer.Symbols(newLine, lastPartial)
+	}
+	return newLine
 }
 
 func (e *Env) FindNT(key types.Symbol) types.EnvType {

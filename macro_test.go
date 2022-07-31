@@ -528,7 +528,7 @@ var load_file_once = `;; Like load-file, but will never load the same path twice
 type _here_ struct{}
 
 func TestMacro(t *testing.T) {
-	repl_env, _ := env.NewEnv(nil, nil, nil)
+	repl_env := env.NewEnv()
 	ctx := context.Background()
 
 	core.Load(repl_env)

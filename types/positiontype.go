@@ -110,16 +110,28 @@ func (cursor *Position) String() string {
 	if cursor == nil {
 		return ""
 	}
+	return cursor.StringModule() + "§" + cursor.StringPosition()
+}
+
+func (cursor *Position) StringModule() string {
+	if cursor == nil {
+		return ""
+	}
 	moduleName := ""
 	if cursor.Module != nil {
 		moduleName = *cursor.Module
 	}
-	// if cursor.BeginRow != cursor.Row {
-	// 	return fmt.Sprintf("%s§%d…%d", moduleName, cursor.BeginRow, cursor.Row)
-	// } else {
-	// 	return fmt.Sprintf("%s§%d,%d…%d", moduleName, cursor.Row, cursor.BeginCol, cursor.Col)
-	// }
-	return fmt.Sprintf("%s§%d…%d,%d…%d", moduleName, cursor.BeginRow, cursor.Row, cursor.BeginCol, cursor.Col)
+	return moduleName
+}
+
+func (cursor *Position) StringPosition() string {
+	if cursor == nil {
+		return ""
+	}
+	if cursor.Row < 0 {
+		return ""
+	}
+	return fmt.Sprintf("%d…%d,%d…%d", cursor.BeginRow, cursor.Row, cursor.BeginCol, cursor.Col)
 }
 
 func (cursor *Position) Includes(inside Position) bool {

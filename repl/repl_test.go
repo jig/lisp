@@ -11,7 +11,7 @@ import (
 
 func TestMultiline(t *testing.T) {
 	for _, partialLine := range []string{"(", "{", "["} {
-		ns, _ := env.NewEnv(nil, nil, nil)
+		ns := env.NewEnv()
 		_, err := lisp.REPL(context.Background(), ns, partialLine, types.NewCursorFile("REPL TEST"))
 		if err == nil {
 			t.Fatal("test failed")

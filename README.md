@@ -47,6 +47,7 @@ go test -benchmem -benchtime 5s -bench '^.+$' github.com/jig/lisp
 
 # Additions
 
+- Debugger. Use `cmd/debugger/main.go` instead `cmd/lisp/main.go`. File to debug is the sole argument supported
 - Errors return line position and stack trace
 - `(range a b)` returns a vector of integers from `a` to `b-1`
 - `(merge hm1 hm2)` returns the merge of two hash maps, second takes precedence
@@ -79,10 +80,7 @@ You execute lisp from Go code and get results from it back to Go. Example from [
 
 ```go
 func ExampleEVAL() {
-	newEnv, err := env.NewEnv(nil, nil, nil)
-	if err != nil {
-		log.Fatalf("Environment Setup Error: %v", err)
-	}
+	newEnv := env.NewEnv()
 
 	// Load required lisp libraries
 	for _, library := range []struct {

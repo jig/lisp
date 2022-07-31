@@ -10,10 +10,7 @@ import (
 )
 
 func TestCursor2(t *testing.T) {
-	bootEnv, err := env.NewEnv(nil, nil, nil)
-	if err != nil {
-		panic(err)
-	}
+	bootEnv := env.NewEnv()
 	core.Load(bootEnv)
 	core.LoadInput(bootEnv)
 
@@ -23,7 +20,7 @@ func TestCursor2(t *testing.T) {
 	bootEnv.Set(types.Symbol{Val: "*ARGV*"}, types.List{})
 
 	ctx := context.Background()
-	_, err = REPL(ctx, bootEnv, codeMacro, types.NewCursorFile(t.Name()))
+	_, err := REPL(ctx, bootEnv, codeMacro, types.NewCursorFile(t.Name()))
 	if err != nil {
 		t.Fatal(err)
 	}

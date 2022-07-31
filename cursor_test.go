@@ -10,10 +10,7 @@ import (
 )
 
 func TestCursor(t *testing.T) {
-	bootEnv, err := env.NewEnv(nil, nil, nil)
-	if err != nil {
-		panic(err)
-	}
+	bootEnv := env.NewEnv()
 	core.Load(bootEnv)
 	core.LoadInput(bootEnv)
 
@@ -24,7 +21,7 @@ func TestCursor(t *testing.T) {
 
 	ctx := context.Background()
 	// core.mal: defined using the language itself
-	_, err = REPL(ctx, bootEnv, `(def *host-language* "go")`, types.NewCursorFile(t.Name()))
+	_, err := REPL(ctx, bootEnv, `(def *host-language* "go")`, types.NewCursorFile(t.Name()))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -81,10 +78,7 @@ func TestCursor(t *testing.T) {
 			Cursor: types.NewAnonymousCursorHere(25, 2),
 		},
 	} {
-		subEnv, err := env.NewEnv(bootEnv, nil, nil)
-		if err != nil {
-			panic(err)
-		}
+		subEnv := env.NewSubordinateEnv(bootEnv)
 		ast, err := REPL(ctx, subEnv, "(do\n"+testCase.Code+"\na)", &types.Position{
 			Module: &testCase.Module,
 			Row:    0,

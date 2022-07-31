@@ -10,6 +10,7 @@ import (
 	. "github.com/jig/lisp/env"
 	"github.com/jig/lisp/printer"
 	"github.com/jig/lisp/reader"
+	"github.com/jig/lisp/types"
 	. "github.com/jig/lisp/types"
 )
 
@@ -161,7 +162,6 @@ func eval_ast(ctx context.Context, ast MalType, env EnvType) (MalType, error) {
 	} else if Q[List](ast) {
 		lst := []MalType{}
 		for _, a := range ast.(List).Val {
-			// debug("fibonacci", ast)
 			exp, e := EVAL(ctx, a, env)
 			if e != nil {
 				return nil, e
@@ -195,19 +195,16 @@ func eval_ast(ctx context.Context, ast MalType, env EnvType) (MalType, error) {
 	}
 }
 
-var target = NewAnonymousCursorHere(4, 1)
+type Command int
 
-func debug(moduleFilter string, ast MalType) {
-	expr, ok := ast.(List)
-	if !ok {
-		return
-	}
-	pos := GetPosition(ast)
-	if pos != nil && strings.Contains(*pos.Module, moduleFilter) {
-		str, _ := PRINT(expr)
-		fmt.Println("\n", pos, str)
-	}
-}
+const (
+	NoOp Command = iota
+	Next
+	Out
+	In
+)
+
+var Stepper func(ast MalType, ns types.EnvType)
 
 func EVAL(ctx context.Context, ast MalType, env EnvType) (MalType, error) {
 	var e error
@@ -230,6 +227,9 @@ func EVAL(ctx context.Context, ast MalType, env EnvType) (MalType, error) {
 			return eval_ast(ctx, ast, env)
 		}
 
+		if Stepper != nil {
+			Stepper(ast, env)
+		}
 		// apply list
 		ast, e = macroexpand(ctx, ast, env)
 		if e != nil {
@@ -276,10 +276,7 @@ func EVAL(ctx context.Context, ast MalType, env EnvType) (MalType, error) {
 				return nil, NewMalError(fmt.Errorf("cannot use '%T' as identifier", a1), ast)
 			}
 		case "let":
-			let_env, e := NewEnv(env, nil, nil)
-			if e != nil {
-				return nil, e
-			}
+			let_env := NewSubordinateEnv(env)
 			arr1, e := GetSlice(a1)
 			if e != nil {
 				return nil, e
@@ -385,7 +382,7 @@ func EVAL(ctx context.Context, ast MalType, env EnvType) (MalType, error) {
 						exc = e
 					}
 					binds := NewList(catchBind)
-					new_env, e := NewEnv(env, binds, NewList(exc))
+					new_env, e := NewSubordinateEnvWithBinds(env, binds, NewList(exc))
 					if e != nil {
 						return nil, e
 					}
@@ -439,7 +436,7 @@ func EVAL(ctx context.Context, ast MalType, env EnvType) (MalType, error) {
 				Env:     env,
 				Params:  a1,
 				IsMacro: false,
-				GenEnv:  NewEnv,
+				GenEnv:  NewSubordinateEnvWithBinds,
 				Meta:    nil,
 				Cursor:  ast.(List).Cursor,
 			}
@@ -453,7 +450,7 @@ func EVAL(ctx context.Context, ast MalType, env EnvType) (MalType, error) {
 			if Q[MalFunc](f) {
 				fn := f.(MalFunc)
 				ast = fn.Exp
-				env, e = NewEnv(fn.Env, fn.Params, List{Val: el.(List).Val[1:]})
+				env, e = NewSubordinateEnvWithBinds(fn.Env, fn.Params, List{Val: el.(List).Val[1:]})
 				if e != nil {
 					switch v := ast.(List).Val[0].(type) {
 					case Symbol:

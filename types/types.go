@@ -28,8 +28,8 @@ type EnvType interface {
 	Get(key Symbol) (MalType, error)
 	Remove(key Symbol) error
 	RemoveNT(key Symbol) error
-	Map() (map[string]interface{}, *sync.RWMutex)
 	Update(key Symbol, f func(MalType) (MalType, error)) (MalType, error)
+	Symbols(newLine [][]rune, lastPartial string) [][]rune
 
 	FindNT(key Symbol) EnvType
 	SetNT(key Symbol, value MalType) MalType

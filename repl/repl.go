@@ -100,17 +100,11 @@ type lispCompleter struct {
 
 var re = regexp.MustCompile(`[\t\r\n \(\)\[\]\{\}]`)
 
-func (l *lispCompleter) Do(line []rune, pos int) (newLine [][]rune, length int) {
+func (l *lispCompleter) Do(line []rune, pos int) ([][]rune, int) {
 	partial := re.Split(string(line[:pos]), -1)
 	lastPartial := partial[len(partial)-1]
-	mapEnvKeys, mu := l.repl_env.Map()
-	mu.Lock()
-	defer mu.Unlock()
-	for key := range mapEnvKeys {
-		if strings.HasPrefix(key, lastPartial) {
-			newLine = append(newLine, []rune(key[len(lastPartial):]))
-		}
-	}
+	var newLine [][]rune
+	newLine = l.repl_env.Symbols(newLine, lastPartial)
 	for _, form := range []string{
 		"try",
 		"finally",

@@ -28,10 +28,7 @@ func ExampleL() {
 }
 
 func newTestEnv() types.EnvType {
-	newEnv, err := env.NewEnv(nil, nil, nil)
-	if err != nil {
-		log.Fatalf("Environment Setup Error: %v\n", err)
-	}
+	newEnv := env.NewEnv()
 	core.Load(newEnv)
 	return newEnv
 }

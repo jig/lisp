@@ -11,14 +11,14 @@ import (
 )
 
 func BenchmarkLoadSymbols(b *testing.B) {
-	repl_env, _ := NewEnv(nil, nil, nil)
+	repl_env := NewEnv()
 	for i := 0; i < b.N; i++ {
 		core.Load(repl_env)
 	}
 }
 
 func BenchmarkMAL1(b *testing.B) {
-	repl_env, _ := NewEnv(nil, nil, nil)
+	repl_env := NewEnv()
 	core.Load(repl_env)
 	ctx := context.Background()
 	for i := 0; i < b.N; i++ {
@@ -44,7 +44,7 @@ func BenchmarkMAL1(b *testing.B) {
 }
 
 func BenchmarkMAL2(b *testing.B) {
-	repl_env, _ := NewEnv(nil, nil, nil)
+	repl_env := NewEnv()
 	core.Load(repl_env)
 	repl_env.Set(Symbol{Val: "eval"}, Func{Fn: func(ctx context.Context, a []MalType) (MalType, error) {
 		return EVAL(ctx, a[0], repl_env)
@@ -59,7 +59,7 @@ func BenchmarkMAL2(b *testing.B) {
 }
 
 func BenchmarkParallelREAD(b *testing.B) {
-	repl_env, _ := NewEnv(nil, nil, nil)
+	repl_env := NewEnv()
 	core.Load(repl_env)
 	repl_env.Set(Symbol{Val: "eval"}, Func{Fn: func(ctx context.Context, a []MalType) (MalType, error) {
 		return EVAL(ctx, a[0], repl_env)
@@ -79,7 +79,7 @@ func BenchmarkParallelREAD(b *testing.B) {
 }
 
 func BenchmarkParallelREP(b *testing.B) {
-	repl_env, _ := NewEnv(nil, nil, nil)
+	repl_env := NewEnv()
 	core.Load(repl_env)
 	repl_env.Set(Symbol{Val: "eval"}, Func{Fn: func(ctx context.Context, a []MalType) (MalType, error) {
 		return EVAL(ctx, a[0], repl_env)
@@ -96,7 +96,7 @@ func BenchmarkParallelREP(b *testing.B) {
 }
 
 func BenchmarkREP(b *testing.B) {
-	repl_env, _ := NewEnv(nil, nil, nil)
+	repl_env := NewEnv()
 	core.Load(repl_env)
 	repl_env.Set(Symbol{Val: "eval"}, Func{Fn: func(ctx context.Context, a []MalType) (MalType, error) {
 		return EVAL(ctx, a[0], repl_env)
@@ -111,7 +111,7 @@ func BenchmarkREP(b *testing.B) {
 }
 
 func BenchmarkFibonacci(b *testing.B) {
-	repl_env, _ := NewEnv(nil, nil, nil)
+	repl_env := NewEnv()
 	core.Load(repl_env)
 	ctx := context.Background()
 	for i := 0; i < b.N; i++ {
@@ -130,7 +130,7 @@ func BenchmarkFibonacci(b *testing.B) {
 }
 
 func BenchmarkParallelFibonacci(b *testing.B) {
-	repl_env, _ := NewEnv(nil, nil, nil)
+	repl_env := NewEnv()
 	core.Load(repl_env)
 	ctx := context.Background()
 	b.RunParallel(func(pb *testing.PB) {
@@ -149,7 +149,7 @@ func BenchmarkParallelFibonacci(b *testing.B) {
 }
 
 // func TestAtomParallel(t *testing.T) {
-// 	repl_env, _ := NewEnv(nil, nil, nil)
+// 	repl_env= NewEnv()
 
 // 	// core.go: defined using go
 // 	core.Load(repl_env)
@@ -198,7 +198,7 @@ func BenchmarkParallelFibonacci(b *testing.B) {
 // }
 
 func BenchmarkAtomParallel(b *testing.B) {
-	repl_env, _ := NewEnv(nil, nil, nil)
+	repl_env := NewEnv()
 
 	// core.go: defined using go
 	core.Load(repl_env)
