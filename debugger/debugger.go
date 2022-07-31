@@ -112,6 +112,21 @@ func (deb *Debugger) Stepper(ast types.MalType, ns types.EnvType, isMacro bool) 
 						} else {
 							colorAlert.Printf("watch %s unexistent\n", line)
 						}
+					case '0':
+						colorAlert.Println("removing all watches (0)")
+						line, err := varREPL().Readline()
+						if err != nil {
+							break
+						}
+						line = strings.Trim(line, " \t\n\r")
+						if len(line) == 0 {
+							break
+						}
+						if _, ok := deb.config.Exprs[line]; ok {
+							delete(deb.config.Exprs, line)
+						} else {
+							colorAlert.Printf("watch %s unexistent\n", line)
+						}
 					default:
 						colorAlert.Printf("key '%c' not bound\n", rune)
 					}
@@ -267,6 +282,7 @@ func printHelp() {
   F1:     to execute till the end and trace executed code
   +:      to add a new expression to dump view
   -:      to remove a expression from dump view
+  0:	  to remove all expressions from dump view
   Ctrl+C: to kill this debugging session
 `
 	for _, line := range strings.Split(help, "\n") {
