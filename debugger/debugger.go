@@ -63,6 +63,7 @@ func (deb *Debugger) Shutdown() {
 var (
 	colorFileName  = color.New(color.FgCyan)
 	colorSeparator = color.New(color.FgWhite)
+	colorExpr      = color.New(color.FgYellow, color.Bold)
 	colorPosition  = color.New(color.FgGreen)
 	colorAlert     = color.New(color.FgRed)
 	colorCode      = color.New(color.FgHiWhite, color.Bold)
@@ -113,19 +114,11 @@ func (deb *Debugger) Stepper(ast types.MalType, ns types.EnvType, isMacro bool) 
 							colorAlert.Printf("watch %s unexistent\n", line)
 						}
 					case '0':
-						colorAlert.Println("removing all watches (0)")
-						line, err := varREPL().Readline()
-						if err != nil {
-							break
-						}
-						line = strings.Trim(line, " \t\n\r")
-						if len(line) == 0 {
-							break
-						}
-						if _, ok := deb.config.Exprs[line]; ok {
-							delete(deb.config.Exprs, line)
+						if len(deb.config.Exprs) > 0 {
+							colorAlert.Println("removing all watches (0)")
+							deb.config.Exprs = make(map[string]bool)
 						} else {
-							colorAlert.Printf("watch %s unexistent\n", line)
+							colorAlert.Println("no watches to remove (0)")
 						}
 					default:
 						colorAlert.Printf("key '%c' not bound\n", rune)
@@ -227,7 +220,7 @@ func saveState(deb *Debugger) {
 func (deb *Debugger) printTrace(expr types.MalType, ns types.EnvType, pos *types.Position, isMacro bool) {
 	if deb.trace {
 		// dump expressions
-		ctx, cancel := context.WithTimeout(context.Background(), 20*time.Millisecond)
+		ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
 		defer cancel()
 
 		exprsSorted := []string{}
@@ -251,7 +244,7 @@ func (deb *Debugger) printTrace(expr types.MalType, ns types.EnvType, pos *types
 				colorAlert.Println(err)
 				continue
 			}
-			colorCode.Print(exprString)
+			colorExpr.Print(exprString)
 			colorSeparator.Print(": ")
 			colorDump.Println(strRes)
 		}
