@@ -8,7 +8,6 @@ import (
 	"strings"
 
 	. "github.com/jig/lisp/env"
-	"github.com/jig/lisp/marshaler"
 	"github.com/jig/lisp/printer"
 	"github.com/jig/lisp/reader"
 	"github.com/jig/lisp/types"
@@ -378,12 +377,13 @@ func EVAL(ctx context.Context, ast MalType, env EnvType) (MalType, error) {
 			} else {
 				if catchDo != nil {
 					switch e := e.(type) {
-					case marshaler.HashMap:
-						var e2 error
-						exc, e2 = e.MarshalHashMap()
-						if e2 != nil {
-							panic(e2)
-						}
+					// TODO: this should work but error is not being propagated if the err is marshaled
+					// case marshaler.HashMap:
+					// 	var e2 error
+					// 	exc, e2 = e.MarshalHashMap()
+					// 	if e2 != nil {
+					// 		panic(e2)
+					// 	}
 					default:
 						// branch not used
 						exc = e
