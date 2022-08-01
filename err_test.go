@@ -26,8 +26,13 @@ func TestTryCatchError2(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if res != `'abc' not found` {
-		t.Fatalf("fatal error: %s", res)
+	hm, err := READ(res.(string), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if hm.(types.HashMap).Val["ʞerr"].(string) != `'abc' not found` {
+		t.Fatalf("fatal error: %s", hm.(types.HashMap).Val["ʞerr"])
 	}
 }
 
@@ -37,7 +42,12 @@ func TestTryCatchError3(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if res != `'abc' not found` {
-		t.Fatalf("fatal error: %s", res)
+	hm, err := READ(res.(string), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if hm.(types.HashMap).Val["ʞerr"].(string) != `'abc' not found` {
+		t.Fatalf("fatal error: %s", hm.(types.HashMap).Val["ʞerr"])
 	}
 }

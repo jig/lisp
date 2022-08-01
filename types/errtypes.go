@@ -1,8 +1,9 @@
 package types
 
 import (
+	"errors"
 	"fmt"
-	"runtime"
+	"strings"
 )
 
 // Errors/Exceptions
@@ -13,18 +14,15 @@ type malError struct {
 }
 
 func (e malError) Error() string {
-	switch e.err.(type) {
-	case string, runtime.Error, error:
-		if e.cursor != nil {
-			return fmt.Sprintf("%s: %s", e.cursor, e.err)
-		}
-		return fmt.Sprintf("%s", e.err)
-	default:
-		if e.cursor != nil {
-			return fmt.Sprintf("%s: %[1]s (%[1]T)", e.cursor, e.err)
-		}
-		return fmt.Sprintf("%s", e.err)
+	var errorStr strings.Builder
+	errorStr.WriteString(e.ErrorID())
+
+	if cause := e.Unwrap(); cause != nil {
+		errorStr.WriteString("\n--")
+		errorStr.WriteString(cause.Error())
 	}
+
+	return errorStr.String()
 }
 
 func (e malError) Unwrap() error {
@@ -124,9 +122,81 @@ func NewMalError(err MalType, ast MalType) error {
 	switch err := err.(type) {
 	case malError:
 		return SetPosition(err, ast)
-	case error:
-		return SetPosition(malError{err: err}, ast)
+	case interface {
+		Unwrap() error
+		Error() string
+	}:
+		return SetPosition(malError{err: errors.New("new mal error"), causedBy: err}, ast)
 	default:
 		return SetPosition(malError{err: err}, ast)
 	}
+}
+
+func (e malError) MarshalHashMap() (MalType, error) {
+	hm := HashMap{
+		Val: map[string]MalType{
+			"ʞerr": e.ErrorID(),
+		},
+	}
+
+	if e2 := e.Unwrap(); e2 != nil {
+		var cause MalType
+		var err error
+		if m, ok := e2.(malError); ok {
+			cause, err = m.MarshalHashMap()
+			if err != nil {
+				return nil, err
+			}
+		} else {
+			cause = e2.Error()
+		}
+
+		hm.Val["ʞcause"] = cause
+	}
+
+	if p := e.Position(); p != nil {
+		hm.Val["ʞpos"] = p.String()
+	}
+
+	return hm, nil
+}
+
+type LispMalErrorFactory struct {
+	Type malError
+}
+
+func new_malerror() (MalType, error) {
+	return LispMalErrorFactory{}, nil
+}
+
+func (e LispMalErrorFactory) FromHashMap(_hm MalType) (MalType, error) {
+	hm := _hm.(HashMap)
+	cause := hm.Val["ʞcause"]
+
+	me := malError{
+		err: hm.Val["ʞerr"].(string),
+	}
+
+	if cause != nil {
+		var hmParent MalType
+		var err error
+		if hmE, ok := cause.(HashMap); ok {
+			hmParent, err = e.FromHashMap(hmE)
+			if err != nil {
+				return nil, err
+			}
+		} else {
+			// if not hashmap it must be a raw string
+			hmParent = errors.New(cause.(string))
+		}
+
+		me.causedBy = hmParent.(error)
+	}
+
+	// TODO: we need complementary of position().string
+	// if p,ok := hm.Val["ʞpos"]; ok {
+	// 	me.cursor=p
+	// }
+
+	return me, nil
 }

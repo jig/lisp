@@ -99,7 +99,6 @@ func parseFile(ctx context.Context, fileName string, code string) error {
 				}
 				return v, err
 			})
-			// fmt.Printf("\t\t%s\t\t\t%s\n", line, stdoutResult)
 		}
 	}
 	return nil
