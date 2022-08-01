@@ -47,6 +47,7 @@ go test -benchmem -benchtime 5s -bench '^.+$' github.com/jig/lisp
 
 # Additions
 
+- Debugger: prefix program name with `--debug`. File to debug is the sole argument supported
 - Errors return line position and stack trace
 - `(range a b)` returns a vector of integers from `a` to `b-1`
 - `(merge hm1 hm2)` returns the merge of two hash maps, second takes precedence
@@ -59,7 +60,6 @@ go test -benchmem -benchtime 5s -bench '^.+$' github.com/jig/lisp
 - `(context (do ...))` provides a Go context. Context contents depend on Go, and might be passed to specific functions context compatible
 - Test minimal library to be used with `maltest` interpreter (see [./cmd/maltest/](./cmd/maltest/) folder). See below test specs
 - Project compatible with GitHub CodeSpaces. Press `.` on your keyboard and you are ready to deploy a CodeSpace with mal in it
-- _Temporarily removed_: `(trace expr)` to trace the `expr` code
 - `(assert expr & optional-error)` asserts expression is not `nil` nor `false`, otherwise it success returning `nil`
 - Errors are decorated with line numbers
 - `(rename-keys hm hmAlterKeys)` as in Clojure
@@ -79,10 +79,7 @@ You execute lisp from Go code and get results from it back to Go. Example from [
 
 ```go
 func ExampleEVAL() {
-	newEnv, err := env.NewEnv(nil, nil, nil)
-	if err != nil {
-		log.Fatalf("Environment Setup Error: %v", err)
-	}
+	newEnv := env.NewEnv()
 
 	// Load required lisp libraries
 	for _, library := range []struct {

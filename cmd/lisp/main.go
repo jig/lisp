@@ -14,28 +14,25 @@ import (
 )
 
 func main() {
-	repl_env, err := env.NewEnv(nil, nil, nil)
-	if err != nil {
-		log.Fatalf("Environment Setup Error: %v\n", err)
-	}
+	ns := env.NewEnv()
 
 	for _, library := range []struct {
 		name string
-		load func(repl_env types.EnvType) error
+		load func(ns types.EnvType) error
 	}{
 		{"core mal", nscore.Load},
 		{"core mal with input", nscore.LoadInput},
 		{"command line args", nscore.LoadCmdLineArgs},
+		{"concurrent", nsconcurrent.Load},
 		{"core mal extended", nscoreextended.Load},
 		{"test", nstest.Load},
-		{"concurrent", nsconcurrent.Load},
 	} {
-		if err := library.load(repl_env); err != nil {
+		if err := library.load(ns); err != nil {
 			log.Fatalf("Library Load Error: %v\n", err)
 		}
 	}
 
-	if err := command.Execute(os.Args, repl_env); err != nil {
+	if err := command.Execute(os.Args, ns); err != nil {
 		log.Fatalf("Error: %v\n", err)
 	}
 }

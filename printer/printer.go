@@ -63,9 +63,11 @@ func Pr_str(obj types.MalType, print_readably bool) string {
 			Pr_str(tobj.Exp, true) + ")"
 	case func([]types.MalType) (types.MalType, error):
 		return fmt.Sprintf("<function %v>", obj)
-	case *types.Atom:
-		return "(atom " +
-			Pr_str(tobj.Val, true) + ")"
+	case types.LispPrintable:
+		return tobj.LispPrint(Pr_str)
+	// case *types.Atom:
+	// 	return "(atom " +
+	// 		Pr_str(tobj.Val, true) + ")"
 	default:
 		return fmt.Sprintf("%v", obj)
 	}

@@ -8,6 +8,10 @@ import (
 	"github.com/jig/lisp/types"
 )
 
+type Here struct{}
+
+var _package_ = reflect.TypeOf(Here{}).PkgPath()
+
 func Load(repl_env types.EnvType) error {
 	ctx := context.Background()
 	for _, symbols := range []string{
@@ -23,7 +27,7 @@ func Load(repl_env types.EnvType) error {
 		test_cascade,
 		load_file_once,
 	} {
-		if _, err := lisp.REPL(ctx, repl_env, `(eval (read-string (str "(do "`+symbols+`" nil)")))`, types.NewCursorFile(reflect.TypeOf(&symbols).PkgPath())); err != nil {
+		if _, err := lisp.REPL(ctx, repl_env, `(eval (read-string (str "(do "`+symbols+`" nil)")))`, types.NewCursorFile(_package_)); err != nil {
 			return err
 		}
 	}

@@ -5,17 +5,16 @@ import (
 	"testing"
 
 	"github.com/jig/lisp/env"
+	"github.com/jig/lisp/lib/concurrent"
 	"github.com/jig/lisp/lib/core"
 	"github.com/jig/lisp/types"
 )
 
 func TestCursor2(t *testing.T) {
-	bootEnv, err := env.NewEnv(nil, nil, nil)
-	if err != nil {
-		panic(err)
-	}
+	bootEnv := env.NewEnv()
 	core.Load(bootEnv)
 	core.LoadInput(bootEnv)
+	concurrent.Load(bootEnv)
 
 	bootEnv.Set(types.Symbol{Val: "eval"}, types.Func{Fn: func(ctx context.Context, a []types.MalType) (types.MalType, error) {
 		return EVAL(ctx, a[0], bootEnv)
@@ -23,7 +22,7 @@ func TestCursor2(t *testing.T) {
 	bootEnv.Set(types.Symbol{Val: "*ARGV*"}, types.List{})
 
 	ctx := context.Background()
-	_, err = REPL(ctx, bootEnv, codeMacro, types.NewCursorFile(t.Name()))
+	_, err := REPL(ctx, bootEnv, codeMacro, types.NewCursorFile(t.Name()))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -31,9 +30,9 @@ func TestCursor2(t *testing.T) {
 	switch err := err.(type) {
 	case nil:
 		t.Error("unexpected: no error returned")
-	case types.MalError:
-		if err.Cursor.Row != 11 {
-			t.Fatalf("%+v %s", err.Cursor, err)
+	case interface{ GetPosition() *types.Position }:
+		if err.GetPosition().Row != 11 {
+			t.Fatalf("%+v %s", err.GetPosition(), err)
 		}
 	}
 }

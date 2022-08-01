@@ -7,6 +7,7 @@ import (
 
 	"github.com/jig/lisp"
 	. "github.com/jig/lisp/env"
+	"github.com/jig/lisp/lib/concurrent/nsconcurrent"
 	"github.com/jig/lisp/lib/core/nscore"
 	"github.com/jig/lisp/lib/coreextented/nscoreextended"
 	"github.com/jig/lisp/lib/test/nstest"
@@ -91,10 +92,7 @@ func TestLNotationFibonacci(t *testing.T) {
 }
 
 func NewTestEnv() EnvType {
-	repl_env, err := NewEnv(nil, nil, nil)
-	if err != nil {
-		log.Fatalf("Environment Setup Error: %v\n", err)
-	}
+	repl_env := NewEnv()
 
 	for _, library := range []struct {
 		name string
@@ -103,6 +101,7 @@ func NewTestEnv() EnvType {
 		{"core mal", nscore.Load},
 		{"core mal with input", nscore.LoadInput},
 		{"command line args", nscore.LoadCmdLineArgs},
+		{"concurrent", nsconcurrent.Load},
 		{"core mal extended", nscoreextended.Load},
 		{"test", nstest.Load},
 	} {

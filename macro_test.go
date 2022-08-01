@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/jig/lisp/env"
+	"github.com/jig/lisp/lib/concurrent"
 	"github.com/jig/lisp/lib/core"
 	"github.com/jig/lisp/types"
 )
@@ -528,11 +529,12 @@ var load_file_once = `;; Like load-file, but will never load the same path twice
 type _here_ struct{}
 
 func TestMacro(t *testing.T) {
-	repl_env, _ := env.NewEnv(nil, nil, nil)
+	repl_env := env.NewEnv()
 	ctx := context.Background()
 
 	core.Load(repl_env)
 	core.LoadInput(repl_env)
+	concurrent.Load(repl_env)
 
 	repl_env.Set(types.Symbol{Val: "eval"}, types.Func{Fn: func(ctx context.Context, a []types.MalType) (types.MalType, error) {
 		return EVAL(ctx, a[0], repl_env)

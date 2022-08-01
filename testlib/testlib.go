@@ -34,10 +34,7 @@ func Directory(t *testing.T, directory embed.FS, packages PackageDecl) error {
 }
 
 func File(t *testing.T, entryName, testFile string, packages PackageDecl) {
-	tenv, err := env.NewEnv(nil, nil, nil)
-	if err != nil {
-		t.Fatalf("Environment Setup Error: %v\n", err)
-	}
+	tenv := env.NewEnv()
 	for _, library := range packages {
 		if err := library.Load(tenv); err != nil {
 			log.Fatalf("Library Load Error: %v\n", err)

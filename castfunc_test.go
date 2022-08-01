@@ -15,7 +15,7 @@ import (
 var castfunc_test string
 
 func TestCastFunc(t *testing.T) {
-	repl_env, _ := env.NewEnv(nil, nil, nil)
+	repl_env := env.NewEnv()
 	core.Load(repl_env)
 	ctx := context.Background()
 	ast, err := READ(castfunc_test, types.NewCursorFile(castfunc_test))

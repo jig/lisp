@@ -440,3 +440,8 @@
 ;=>nil
 (try (try (throw 2) (catch err (throw 3))) (catch err err))
 ;=>3
+
+(try (/ 0 0) (catch e (prn e)))
+;=>nil
+;/^.*integer divide by zero.*
+

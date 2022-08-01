@@ -55,7 +55,7 @@ func Execute(ctx context.Context, repl_env types.EnvType) error {
 			if err.Error() == "<empty line>" {
 				continue
 			}
-			if err, ok := err.(types.MalError); ok && err.Obj != nil {
+			if err, ok := err.(interface{ ErrorMessageString() string }); ok && err.(interface{ ErrorEncapsuled() types.MalType }).ErrorEncapsuled() != nil {
 				if err.ErrorMessageString() == "expected ')', got EOF" ||
 					err.ErrorMessageString() == "expected ']', got EOF" ||
 					err.ErrorMessageString() == "expected '}', got EOF" {
@@ -66,8 +66,8 @@ func Execute(ctx context.Context, repl_env types.EnvType) error {
 			lines = []string{}
 			l.SetPrompt("\033[32m»\033[0m ")
 			switch err := err.(type) {
-			case types.MalError:
-				errorString, err2 := lisp.PRINT(err.Obj)
+			case interface{ ErrorEncapsuled() types.MalType }:
+				errorString, err2 := lisp.PRINT(err.ErrorEncapsuled())
 				if err2 != nil {
 					fmt.Printf("\033[31mMalError:\033[0m %s\n", "UNPRINTABLE-ERROR")
 					continue
@@ -100,17 +100,11 @@ type lispCompleter struct {
 
 var re = regexp.MustCompile(`[\t\r\n \(\)\[\]\{\}]`)
 
-func (l *lispCompleter) Do(line []rune, pos int) (newLine [][]rune, length int) {
+func (l *lispCompleter) Do(line []rune, pos int) ([][]rune, int) {
 	partial := re.Split(string(line[:pos]), -1)
 	lastPartial := partial[len(partial)-1]
-	mapEnvKeys, mu := l.repl_env.Map()
-	mu.Lock()
-	defer mu.Unlock()
-	for key := range mapEnvKeys {
-		if strings.HasPrefix(key, lastPartial) {
-			newLine = append(newLine, []rune(key[len(lastPartial):]))
-		}
-	}
+	var newLine [][]rune
+	newLine = l.repl_env.Symbols(newLine, lastPartial)
 	for _, form := range []string{
 		"try",
 		"finally",

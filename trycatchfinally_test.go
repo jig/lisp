@@ -13,7 +13,7 @@ import (
 var trycatchfinally_test string
 
 func TestTryCatchFinally(t *testing.T) {
-	repl_env, _ := env.NewEnv(nil, nil, nil)
+	repl_env := env.NewEnv()
 	core.Load(repl_env)
 	ctx := context.Background()
 	exp, err := READ(trycatchfinally_test, nil)

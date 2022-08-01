@@ -41,7 +41,6 @@ func Load(env EnvType) {
 	call.Call(env, cons)
 	call.Call(env, nth)
 	call.Call(env, with_meta)
-	call.CallOverrideFN(env, "reset!", reset_BANG)
 	call.Call(env, rAnge)
 	call.Call(env, hash_map_decode)
 	call.Call(env, JSON_Decode)
@@ -69,7 +68,6 @@ func Load(env EnvType) {
 	call.Call(env, count)
 	call.Call(env, seq)
 	call.Call(env, meta)
-	call.CallOverrideFN(env, "atom", func(a MalType) (MalType, error) { return &Atom{Val: a}, nil })
 	call.Call(env, deref)
 	call.Call(env, bAse64)
 	call.Call(env, unbase64)
@@ -108,12 +106,10 @@ func Load(env EnvType) {
 	call.CallOverrideFN(env, "vector?", func(a MalType) (MalType, error) { return Q[Vector](a), nil })
 	call.CallOverrideFN(env, "map?", func(a MalType) (MalType, error) { return Q[HashMap](a), nil })
 	call.CallOverrideFN(env, "set?", func(a MalType) (MalType, error) { return Q[Set](a), nil })
-	call.CallOverrideFN(env, "atom?", func(a MalType) (MalType, error) { return Q[*Atom](a), nil })
 	call.CallOverrideFN(env, "sequential?", func(a MalType) (MalType, error) { return Sequential_Q(a), nil })
 
-	call.Call(env, apply, 2) // at least two parameters
-	call.Call(env, conj, 2)  // at least two parameters
-	call.CallOverrideFN(env, "swap!", swap_BANG)
+	call.Call(env, apply, 2)     // at least two parameters
+	call.Call(env, conj, 2)      // at least two parameters
 	call.Call(env, assert, 1, 2) // at least one parameter, at most two
 }
 
@@ -124,7 +120,7 @@ func LoadInput(env types.EnvType) {
 
 // Errors/Exceptions
 func throw(a MalType) (MalType, error) {
-	return nil, MalError{Obj: a}
+	return nil, NewMalError(a, nil)
 }
 
 func fn_q(a MalType) (MalType, error) {
@@ -763,36 +759,6 @@ func deref(ctx context.Context, ref Dereferable) (MalType, error) {
 	return ref.Deref(ctx)
 }
 
-// Atom functions
-func reset_BANG(atomRef, value MalType) (MalType, error) {
-	if !Q[*Atom](atomRef) {
-		return nil, errors.New("reset! called with non-atom")
-	}
-	atm := atomRef.(*Atom)
-	atm.Mutex.Lock()
-	defer atm.Mutex.Unlock()
-	atm.Set(value)
-	return value, nil
-}
-
-func swap_BANG(ctx context.Context, a ...MalType) (MalType, error) {
-	if !Q[*Atom](a[0]) {
-		return nil, errors.New("swap! called with non-atom")
-	}
-	atm := a[0].(*Atom)
-	atm.Mutex.Lock()
-	defer atm.Mutex.Unlock()
-	args := []MalType{atm.Val}
-	f := a[1]
-	args = append(args, a[2:]...)
-	res, e := Apply(ctx, f, args)
-	if e != nil {
-		return nil, e
-	}
-	atm.Set(res)
-	return res, nil
-}
-
 // Core extended
 
 func uUid() (string, error) {
@@ -862,7 +828,7 @@ func assert(a ...MalType) (MalType, error) {
 	case string:
 		return nil, errors.New(a1)
 	default:
-		return nil, MalError{Obj: a1}
+		return nil, NewMalError(a1, nil)
 	}
 }
 

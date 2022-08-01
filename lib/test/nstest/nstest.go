@@ -9,9 +9,13 @@ import (
 	. "github.com/jig/lisp/types"
 )
 
+type Here struct{}
+
+var _package_ = reflect.TypeOf(Here{}).PkgPath()
+
 func Load(repl_env EnvType) error {
 	ctx := context.Background()
-	if _, err := lisp.REPL(ctx, repl_env, `(eval (read-string (str "(do "`+assertMacros+`" nil)")))`, types.NewCursorFile(reflect.TypeOf(&assertMacros).PkgPath())); err != nil {
+	if _, err := lisp.REPL(ctx, repl_env, `(eval (read-string (str "(do "`+assertMacros+`" nil)")))`, types.NewCursorFile(_package_)); err != nil {
 		return err
 	}
 	return nil

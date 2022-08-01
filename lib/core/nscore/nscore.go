@@ -20,7 +20,7 @@ const (
 	malLoadFile = `(def load-file (fn (f)
 						(eval
 							(read-string
-								(str "(do " (slurp f) " nil)")))))`
+								(str ";; $MODULE " f "\n(do " (slurp f) " nil)")))))`
 	malCond = `(defmacro cond (fn (& xs)
 					(if (> (count xs) 0)
 						(list
@@ -31,6 +31,10 @@ const (
 								(cons 'cond (rest (rest xs)))))))`
 )
 
+type Here struct{}
+
+var _package_ = reflect.TypeOf(Here{}).PkgPath()
+
 func Load(env EnvType) error {
 	core.Load(env)
 	env.Set(Symbol{Val: "eval"}, Func{Fn: func(ctx context.Context, a []MalType) (MalType, error) {
@@ -38,13 +42,13 @@ func Load(env EnvType) error {
 	}})
 
 	ctx := context.Background()
-	if _, err := lisp.REPL(ctx, env, malHostLanguage, types.NewCursorFile(reflect.TypeOf(malHostLanguage).PkgPath())); err != nil {
+	if _, err := lisp.REPL(ctx, env, malHostLanguage, types.NewCursorFile(_package_)); err != nil {
 		return err
 	}
-	if _, err := lisp.REPL(ctx, env, malNot, types.NewCursorFile(reflect.TypeOf(malNot).PkgPath())); err != nil {
+	if _, err := lisp.REPL(ctx, env, malNot, types.NewCursorFile(_package_)); err != nil {
 		return err
 	}
-	if _, err := lisp.REPL(ctx, env, malCond, types.NewCursorFile(reflect.TypeOf(malCond).PkgPath())); err != nil {
+	if _, err := lisp.REPL(ctx, env, malCond, types.NewCursorFile(_package_)); err != nil {
 		return err
 	}
 	return nil
@@ -57,7 +61,7 @@ func LoadInput(env EnvType) error {
 	}})
 
 	ctx := context.Background()
-	if _, err := lisp.REPL(ctx, env, malLoadFile, types.NewCursorFile(reflect.TypeOf(malLoadFile).PkgPath())); err != nil {
+	if _, err := lisp.REPL(ctx, env, malLoadFile, types.NewCursorFile(_package_)); err != nil {
 		return err
 	}
 	return nil

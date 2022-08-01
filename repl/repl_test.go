@@ -11,15 +11,18 @@ import (
 
 func TestMultiline(t *testing.T) {
 	for _, partialLine := range []string{"(", "{", "["} {
-		ns, _ := env.NewEnv(nil, nil, nil)
+		ns := env.NewEnv()
 		_, err := lisp.REPL(context.Background(), ns, partialLine, types.NewCursorFile("REPL TEST"))
 		if err == nil {
 			t.Fatal("test failed")
 		}
-		if err, ok := err.(types.MalError); ok && err.Obj != nil {
-			if err.ErrorMessageString() == "expected ')', got EOF" ||
-				err.ErrorMessageString() == "expected ']', got EOF" ||
-				err.ErrorMessageString() == "expected '}', got EOF" {
+		if err, ok := err.(interface {
+			Error() string
+			GetEncapsulated() types.MalType
+		}); ok && err.GetEncapsulated() != nil {
+			if err.Error() == "expected ')', got EOF" ||
+				err.Error() == "expected ']', got EOF" ||
+				err.Error() == "expected '}', got EOF" {
 				continue
 			}
 			t.Fatalf("test failed for %s", partialLine)

@@ -45,9 +45,6 @@ var (
 )
 
 func tokenize(str string, cursor *Position) []Token {
-	if cursor == nil {
-		cursor = &Position{Row: 1, Col: 1}
-	}
 	results := make([]Token, 0, 1)
 	for _, group := range tokenizerRE.FindAllStringSubmatch(str, -1) {
 		groupConsumed := group[0]
@@ -89,14 +86,14 @@ func tokenize(str string, cursor *Position) []Token {
 func read_atom(rdr Reader) (MalType, error) {
 	tokenStruct := rdr.next()
 	if tokenStruct == nil {
-		return nil, MalError{Obj: errors.New("read_atom underflow"), Cursor: &tokenStruct.Cursor}
+		return nil, NewMalError(errors.New("read_atom underflow"), &tokenStruct)
 	}
 	token := &tokenStruct.Value
 	if match := integerRE.MatchString(*token); match {
 		var i int
 		var e error
 		if i, e = strconv.Atoi(*token); e != nil {
-			return nil, MalError{Obj: errors.New("number parse error"), Cursor: &tokenStruct.Cursor}
+			return nil, NewMalError(errors.New("number parse error"), &tokenStruct)
 		}
 		return i, nil
 	} else if match := stringRE.MatchString(*token); match {
@@ -109,12 +106,12 @@ func read_atom(rdr Reader) (MalType, error) {
 				`\n`, "\n", -1),
 			"\u029e", "\\", -1), nil
 	} else if (*token)[0] == '"' {
-		return nil, MalError{Obj: errors.New("expected '\"', got EOF"), Cursor: &tokenStruct.Cursor}
+		return nil, NewMalError(errors.New("expected '\"', got EOF"), &tokenStruct)
 	} else if match := jsonStringRE.MatchString(*token); match {
 		str := (*token)[2 : len(*token)-2]
 		return strings.Replace(str, `¬¬`, `¬`, -1), nil
 	} else if (*token)[0] == '¬' {
-		return nil, MalError{Obj: errors.New("expected '¬', got EOF"), Cursor: &tokenStruct.Cursor}
+		return nil, NewMalError(errors.New("expected '¬', got EOF"), &tokenStruct)
 	} else if (*token)[0] == ':' {
 		return NewKeyword((*token)[1:len(*token)])
 	} else if *token == "nil" {
@@ -131,12 +128,12 @@ func read_atom(rdr Reader) (MalType, error) {
 func read_list(rdr Reader, start string, end string, placeholderValues *HashMap) (MalType, error) {
 	tokenStruct := rdr.next()
 	if tokenStruct == nil {
-		return nil, MalError{Obj: errors.New("read_list underflow"), Cursor: &tokenStruct.Cursor}
+		return nil, NewMalError(errors.New("read_list underflow"), &tokenStruct)
 	}
-	cursor := NewCursor(&tokenStruct.Cursor)
+	cursor := tokenStruct.Cursor.Copy()
 	token := &tokenStruct.Value
 	if *token != start {
-		return nil, MalError{Obj: errors.New("expected '" + start + "'"), Cursor: &tokenStruct.Cursor}
+		return nil, NewMalError(errors.New("expected '"+start+"'"), &tokenStruct)
 	}
 	lastKnown := tokenStruct
 
@@ -144,7 +141,7 @@ func read_list(rdr Reader, start string, end string, placeholderValues *HashMap)
 	tokenStruct = rdr.peek()
 	for ; true; tokenStruct = rdr.peek() {
 		if tokenStruct == nil {
-			return nil, MalError{Obj: errors.New("expected '" + end + "', got EOF"), Cursor: &lastKnown.Cursor}
+			return nil, NewMalError(errors.New("expected '"+end+"', got EOF"), lastKnown)
 		}
 		lastKnown = tokenStruct
 		token = &tokenStruct.Value
@@ -189,7 +186,7 @@ func read_set(rdr Reader, placeholderValues *HashMap) (MalType, error) {
 func read_placeholder(rdr Reader, placeholderValues *HashMap) (MalType, error) {
 	tokenStruct := rdr.next()
 	if tokenStruct == nil {
-		return nil, MalError{Obj: errors.New("read_placeholder underflow"), Cursor: &tokenStruct.Cursor}
+		return nil, NewMalError(errors.New("read_placeholder underflow"), &tokenStruct)
 	}
 	return placeholderValues.Val[tokenStruct.Value], nil
 }
@@ -197,9 +194,9 @@ func read_placeholder(rdr Reader, placeholderValues *HashMap) (MalType, error) {
 func read_form(rdr Reader, placeholderValues *HashMap) (MalType, error) {
 	tokenStruct := rdr.peek()
 	if tokenStruct == nil {
-		return nil, MalError{Obj: errors.New("read_form underflow"), Cursor: &tokenStruct.Cursor}
+		return nil, NewMalError(errors.New("read_form underflow"), &tokenStruct)
 	}
-	cursor := NewCursor(&tokenStruct.Cursor)
+	cursor := tokenStruct.Cursor.Copy()
 	switch tokenStruct.Value {
 	case `'`:
 		rdr.next()
@@ -250,19 +247,19 @@ func read_form(rdr Reader, placeholderValues *HashMap) (MalType, error) {
 
 	// list
 	case ")":
-		return nil, MalError{Obj: errors.New("unexpected ')'"), Cursor: &tokenStruct.Cursor}
+		return nil, NewMalError(errors.New("unexpected ')'"), &tokenStruct)
 	case "(":
 		return read_list(rdr, "(", ")", placeholderValues)
 
 	// vector
 	case "]":
-		return nil, MalError{Obj: errors.New("unexpected ']'"), Cursor: &tokenStruct.Cursor}
+		return nil, NewMalError(errors.New("unexpected ']'"), &tokenStruct)
 	case "[":
 		return read_vector(rdr, placeholderValues)
 
 	// hash-map
 	case "}":
-		return nil, MalError{Obj: errors.New("unexpected '}'"), Cursor: &tokenStruct.Cursor}
+		return nil, NewMalError(errors.New("unexpected '}'"), &tokenStruct)
 	case "{":
 		return read_hash_map(rdr, placeholderValues)
 	case "#{":
@@ -275,7 +272,19 @@ func read_form(rdr Reader, placeholderValues *HashMap) (MalType, error) {
 	}
 }
 
+// ";; $MODULE ../../examples/fibonacci.lisp\n(do (do\n    (def fib\n
+var moduleNamePrefixRE = regexp.MustCompile(`^;; [$]MODULE (.+)`)
+
 func Read_str(str string, cursor *Position, placeholderValues *HashMap) (MalType, error) {
+	if cursor == nil {
+		cursor = NewAnonymousCursorHere(1, 1)
+	}
+	if cursor.Module == nil {
+		matches := moduleNamePrefixRE.FindStringSubmatch(str)
+		if matches != nil {
+			cursor = NewCursorFile(matches[1])
+		}
+	}
 	var tokens = tokenize(str, cursor)
 	if len(tokens) == 0 {
 		return nil, errors.New("<empty line>")
@@ -290,7 +299,7 @@ func Read_str(str string, cursor *Position, placeholderValues *HashMap) (MalType
 		return nil, err
 	}
 	if tokenReader.position != len(tokenReader.tokens) {
-		return nil, MalError{Obj: errors.New("not all tokens where parsed"), Cursor: cursor}
+		return nil, NewMalError(errors.New("not all tokens where parsed"), cursor)
 	}
 	return res, nil
 }

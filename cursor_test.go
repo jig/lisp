@@ -5,17 +5,16 @@ import (
 	"testing"
 
 	"github.com/jig/lisp/env"
+	"github.com/jig/lisp/lib/concurrent"
 	"github.com/jig/lisp/lib/core"
 	"github.com/jig/lisp/types"
 )
 
 func TestCursor(t *testing.T) {
-	bootEnv, err := env.NewEnv(nil, nil, nil)
-	if err != nil {
-		panic(err)
-	}
+	bootEnv := env.NewEnv()
 	core.Load(bootEnv)
 	core.LoadInput(bootEnv)
+	concurrent.Load(bootEnv)
 
 	bootEnv.Set(types.Symbol{Val: "eval"}, types.Func{Fn: func(ctx context.Context, a []types.MalType) (types.MalType, error) {
 		return EVAL(ctx, a[0], bootEnv)
@@ -24,87 +23,87 @@ func TestCursor(t *testing.T) {
 
 	ctx := context.Background()
 	// core.mal: defined using the language itself
-	_, err = REPL(ctx, bootEnv, `(def *host-language* "go")`, types.NewCursorFile(t.Name()))
+	_, err := REPL(ctx, bootEnv, `(def *host-language* "go")`, types.NewCursorFile(t.Name()))
 	if err != nil {
 		t.Fatal(err)
 	}
 	for _, testCase := range []struct {
 		Module string
 		Code   string
-		Error  error
+		Cursor *types.Position
 	}{
 		{
+			Module: "nested",
+			Code:   nested,
+			Cursor: types.NewAnonymousCursorHere(1, 15),
+		}, {
+			Module: "singleline-string",
+			Code:   singleline,
+			Cursor: types.NewAnonymousCursorHere(1, 1),
+		}, {
 			Module: "multiline-string",
 			Code:   multiline,
-			Error: types.MalError{
-				Cursor: &types.Position{Row: 6},
-			},
+			Cursor: types.NewAnonymousCursorHere(6, 1),
 		}, {
 			Module: "codeThrow",
 			Code:   codeThrow,
-			Error: types.MalError{
-				Cursor: &types.Position{Row: 4},
-			},
+			Cursor: types.NewAnonymousCursorHere(4, 1),
 		},
 		{
 			Module: "codeTryAndThrowAndCatch",
 			Code:   codeTryAndThrowAndCatch,
-			Error:  nil,
+			Cursor: nil,
 		},
 		{
 			Module: "codeUndefinedSymbol",
 			Code:   codeUndefinedSymbol,
-			Error: types.MalError{
-				Cursor: &types.Position{Row: 3},
-			},
+			Cursor: types.NewAnonymousCursorHere(3, 1),
 		},
 		{
 			Module: "codeLetIsBogus",
 			Code:   codeLetIsBogus,
-			Error: types.MalError{
-				Cursor: &types.Position{Row: 4},
-			},
+			Cursor: types.NewAnonymousCursorHere(3, 5),
 		},
 		{
 			Module: "codeCorrect",
 			Code:   codeCorrect,
-			Error:  nil,
+			Cursor: nil,
 		},
 		{
 			Module: "codeMissingRightBracket",
 			Code:   codeMissingRightBracket,
-			Error: types.MalError{
-				Cursor: &types.Position{Row: 8},
-			},
+			Cursor: types.NewAnonymousCursorHere(8, 1),
 		},
 		{
 			Module: "codeTooManyRightBrackets",
 			Code:   codeTooManyRightBrackets,
-			Error: types.MalError{
-				Cursor: &types.Position{Row: 25},
-			},
+			Cursor: types.NewAnonymousCursorHere(25, 2),
 		},
 	} {
-		subEnv, err := env.NewEnv(bootEnv, nil, nil)
-		if err != nil {
-			panic(err)
-		}
+		subEnv := env.NewSubordinateEnv(bootEnv)
 		ast, err := REPL(ctx, subEnv, "(do\n"+testCase.Code+"\na)", &types.Position{
 			Module: &testCase.Module,
 			Row:    0,
 		})
 		switch err := err.(type) {
 		case nil:
-			if testCase.Error != nil {
-				t.Fatalf("Expected error %q", testCase.Error)
+			if testCase.Cursor != nil {
+				t.Fatalf("Expected error %q", testCase.Cursor)
 			}
 			continue
-		case types.MalError:
-			if err.Cursor.Row != testCase.Error.(types.MalError).Cursor.Row {
-				t.Fatal(err.Error(), err.Cursor.Row, testCase.Error.(types.MalError).Cursor.Row)
+		case interface {
+			Position() *types.Position
+			Error() string
+		}:
+			if err.Position() == nil {
+				t.Fatal("error")
+			}
+			if !err.Position().Includes(*testCase.Cursor) {
+				t.Fatal(err.Error(), err.Position(), testCase.Cursor)
 			}
 			continue
 		default:
+			t.Fatal(err)
 			//			t.Fatal(err)
 		}
 		if ast == "" {
@@ -117,6 +116,14 @@ func TestCursor(t *testing.T) {
 		}
 	}
 }
+
+var singleline = `(throw "pum")`
+
+var nested = `(def fpum (fn [x] (throw x)))
+(def f1 (fn [x] x))
+(def f2 (fn [x] x))
+(def f3 (fn [x] x))
+(f1 (f2 (f3 (fpum "pum"))))`
 
 var multiline = `;; multiline strings
 
