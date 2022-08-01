@@ -275,7 +275,7 @@ func printHelp() {
   F1:     to execute till the end and trace executed code
   +:      to add a new expression to dump view
   -:      to remove a expression from dump view
-  0:	  to remove all expressions from dump view
+  0:      to remove all expressions from dump view
   Ctrl+C: to kill this debugging session
 `
 	for _, line := range strings.Split(help, "\n") {
