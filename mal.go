@@ -10,7 +10,6 @@ import (
 	. "github.com/jig/lisp/env"
 	"github.com/jig/lisp/printer"
 	"github.com/jig/lisp/reader"
-	"github.com/jig/lisp/types"
 	. "github.com/jig/lisp/types"
 )
 
@@ -133,7 +132,7 @@ func is_macro_call(ast MalType, env EnvType) bool {
 	return false
 }
 
-var Stepper func(ast MalType, ns types.EnvType, isMacro bool)
+var Stepper func(ast MalType, ns EnvType, isMacro bool)
 
 func macroexpand(ctx context.Context, ast MalType, env EnvType) (MalType, error) {
 	var mac MalType
