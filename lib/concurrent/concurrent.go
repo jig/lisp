@@ -91,6 +91,7 @@ type Future struct {
 	Done       bool
 	Cancelled  bool
 
+	Fn     MalFunc
 	Meta   MalType
 	Cursor *Position
 }
@@ -101,6 +102,7 @@ func NewFuture(ctx context.Context, fn MalFunc) *Future {
 		ValChan:    make(chan MalType, 1),
 		ErrChan:    make(chan error, 1),
 		CancelFunc: cancel,
+		Fn:         fn,
 	}
 	go func() {
 		defer func() { f.Done = true }()
@@ -137,6 +139,6 @@ func (f *Future) Deref(ctx context.Context) (MalType, error) {
 	}
 }
 
-func (fut *Future) LispPrint(func(MalType, bool) string) string {
-	return "(future-reference)"
+func (fut *Future) LispPrint(_Pr_str func(obj MalType, print_readably bool) string) string {
+	return "(future " + _Pr_str(fut.Fn.Exp, true) + ")"
 }
