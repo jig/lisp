@@ -272,10 +272,9 @@ func printHelp() {
   F5:     to execute till the end
   F6:     to execute till the end and spawn a REPL
   F7:     to execute till the end, trace expressions and spawn a REPL
-  F1:     to execute till the end and trace executed code
-  +:      to add a new expression to dump view
-  -:      to remove a expression from dump view
-  0:      to remove all expressions from dump view
+  +:      to add a new expression to watch view
+  -:      to remove a expression from watch view
+  0:      to remove all expressions from watch view
   Ctrl+C: to kill this debugging session
 `
 	for _, line := range strings.Split(help, "\n") {
