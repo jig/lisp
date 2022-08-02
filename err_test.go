@@ -26,6 +26,8 @@ func TestTryCatchError2(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	//if !strings.HasSuffix(res.(string), `'abc' not found`) {
 	if res != `'abc' not found` {
 		t.Fatalf("fatal error: %s", res)
 	}
@@ -37,6 +39,8 @@ func TestTryCatchError3(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+
+	// if !strings.HasSuffix(res.(string), `'abc' not found`) {
 	if res != `'abc' not found` {
 		t.Fatalf("fatal error: %s", res)
 	}

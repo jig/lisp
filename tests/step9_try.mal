@@ -445,3 +445,11 @@
 ;=>nil
 ;/^.*integer divide by zero.*
 
+(try (throw "wrapped sample") (catch err err))
+;=>"wrapped sample"
+(try (throw "wrapped sample") (catch err (type? err)))
+;=>"string"
+(try (throw-wrapped-sample) (catch err err))
+;=>wrapped sample
+(try (throw-wrapped-sample) (catch err (type? err)))
+;=>"*fmt.wrapError"

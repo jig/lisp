@@ -111,6 +111,15 @@ func Load(env EnvType) {
 	call.Call(env, apply, 2)     // at least two parameters
 	call.Call(env, conj, 2)      // at least two parameters
 	call.Call(env, assert, 1, 2) // at least one parameter, at most two
+
+	// TODO(jig): remove before flight
+	call.CallOverrideFN(env, "type?", func(a MalType) (MalType, error) { return fmt.Sprintf("%T", a), nil })
+	call.Call(env, throw_wrapped_sample)
+}
+
+// TODO(jig): remove before flight
+func throw_wrapped_sample() (MalType, error) {
+	return nil, fmt.Errorf("wrapped %w", errors.New("sample"))
 }
 
 func LoadInput(env types.EnvType) {

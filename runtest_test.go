@@ -154,8 +154,8 @@ func captureStdout(REPL func() (types.MalType, error)) (result types.MalType, st
 	result, errREPL := REPL()
 	if errREPL != nil {
 		switch errREPL := errREPL.(type) {
-		case interface{ ErrorEncapsuled() types.MalType }:
-			errorString, err := PRINT(errREPL.ErrorEncapsuled())
+		case interface{ ErrorValue() types.MalType }:
+			errorString, err := PRINT(errREPL.ErrorValue())
 			if err != nil {
 				fmt.Print("Error: UNPRINTABLE-ERROR")
 			} else {

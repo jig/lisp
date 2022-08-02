@@ -7,9 +7,12 @@ import (
 
 // Errors/Exceptions
 type malError struct {
-	err      MalType
-	causedBy error
-	cursor   *Position
+	err    MalType
+	cursor *Position
+}
+
+func (e malError) ErrorValue() MalType {
+	return e.err
 }
 
 func (e malError) Error() string {
@@ -27,30 +30,30 @@ func (e malError) Error() string {
 	}
 }
 
-func (e malError) Unwrap() error {
-	return e.causedBy
-}
+// func (e malError) Unwrap() error {
+// 	return e.causedBy
+// }
 
-func (err *malError) Is(target error) bool {
-	if target == nil {
-		return err == nil
-	}
-	if e, ok := err.err.(interface{ Is(error) bool }); ok && e.Is(target) {
-		return true
-	}
-	if err2, ok := target.(malError); ok {
-		return err.ErrorID() == err2.ErrorID()
-	}
-	return err.ErrorID() == target.Error()
-}
+// func (err *malError) Is(target error) bool {
+// 	if target == nil {
+// 		return err == nil
+// 	}
+// 	if e, ok := err.err.(interface{ Is(error) bool }); ok && e.Is(target) {
+// 		return true
+// 	}
+// 	if err2, ok := target.(malError); ok {
+// 		return err.ErrorID() == err2.ErrorID()
+// 	}
+// 	return err.ErrorID() == target.Error()
+// }
 
-func (e malError) ErrorID() string {
-	return fmt.Sprintf("%s", e.err)
-}
+// func (e malError) ErrorID() string {
+// 	return fmt.Sprintf("%s", e.err)
+// }
 
-func (e malError) ErrorEncapsuled() MalType {
-	return e.err
-}
+// func (e malError) ErrorEncapsuled() MalType {
+// 	return e.err
+// }
 
 func (e malError) Position() *Position {
 	return e.cursor
@@ -64,12 +67,11 @@ func NewGoError(fFullName string, err interface{}) error {
 		Error() string
 	}:
 		return malError{
-			err:      fmt.Errorf("%s", fFullName),
-			causedBy: err,
+			err: fmt.Errorf("%s: %w", fFullName, err),
 		}
 	case error:
 		return malError{
-			err: fmt.Errorf("%s: %s", fFullName, err),
+			err: fmt.Errorf("%s: %w", fFullName, err),
 		}
 	case string:
 		// TODO(jig): is only called when type mismatch on arguments on a call handled by caller package

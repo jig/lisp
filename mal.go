@@ -376,8 +376,8 @@ func EVAL(ctx context.Context, ast MalType, env EnvType) (MalType, error) {
 			} else {
 				if catchDo != nil {
 					switch e := e.(type) {
-					case interface{ ErrorEncapsuled() MalType }:
-						exc = e.ErrorEncapsuled()
+					case interface{ ErrorValue() MalType }:
+						exc = e.ErrorValue()
 					default:
 						// branch not used
 						exc = e
