@@ -467,3 +467,7 @@
 (a)
 ;/Error: wrapped sample
 
+(def b (fn [] (throw 9)))
+(b)
+;/Error: 9
+;=>nil

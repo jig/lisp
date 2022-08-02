@@ -1,5 +1,6 @@
-(def a 1)
+(do
+    (def a 1)
 
-(def b (throw 9))
+    (def b (fn [] (throw 9)))
 
-b
+    (b))
