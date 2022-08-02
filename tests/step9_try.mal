@@ -461,6 +461,10 @@
 ;=>nil
 (try (a) (catch err err))
 ;=>wrapped sample
+(try (a) (catch err (str err)))
+;=>"wrapped sample"
+(nth (split (str (try (/ 0 0) (catch err err))) "runtime error: ") 1)
+;=>"integer divide by zero"
 (type? (try (a) (catch err err)))
 ;=>"*fmt.wrapError"
 (def b (fn [] (a)))

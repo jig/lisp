@@ -112,6 +112,10 @@ func Load(env EnvType) {
 	call.Call(env, conj, 2)      // at least two parameters
 	call.Call(env, assert, 1, 2) // at least one parameter, at most two
 
+	call.Call(env, go_error, 1) // at least one parameter
+	call.Call(env, pAnic)       // at least one parameter
+	call.Call(env, unwrap)      // at least one parameter
+
 	// TODO(jig): remove before flight
 	call.CallOverrideFN(env, "type?", func(a MalType) (MalType, error) { return fmt.Sprintf("%T", a), nil })
 	call.Call(env, throw_wrapped_sample)
@@ -129,7 +133,31 @@ func LoadInput(env types.EnvType) {
 
 // Errors/Exceptions
 func throw(a MalType) (MalType, error) {
-	return nil, NewMalError(a, nil)
+	switch a := a.(type) {
+	case error:
+		return nil, a
+	default:
+		return nil, NewMalError(a, nil)
+	}
+}
+
+func pAnic(arg MalType) {
+	panic(arg)
+}
+
+func unwrap(err error) (MalType, error) {
+	return errors.Unwrap(err), nil
+}
+
+func go_error(args ...MalType) (MalType, error) {
+	if len(args) == 1 {
+		return errors.New(args[0].(string)), nil
+	}
+	var errorfArgs []any
+	for _, i := range args[1:] {
+		errorfArgs = append(errorfArgs, i)
+	}
+	return fmt.Errorf(args[0].(string), errorfArgs...), nil
 }
 
 func fn_q(a MalType) (MalType, error) {
