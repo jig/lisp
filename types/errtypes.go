@@ -30,31 +30,6 @@ func (e malError) Error() string {
 	}
 }
 
-// func (e malError) Unwrap() error {
-// 	return e.causedBy
-// }
-
-// func (err *malError) Is(target error) bool {
-// 	if target == nil {
-// 		return err == nil
-// 	}
-// 	if e, ok := err.err.(interface{ Is(error) bool }); ok && e.Is(target) {
-// 		return true
-// 	}
-// 	if err2, ok := target.(malError); ok {
-// 		return err.ErrorID() == err2.ErrorID()
-// 	}
-// 	return err.ErrorID() == target.Error()
-// }
-
-// func (e malError) ErrorID() string {
-// 	return fmt.Sprintf("%s", e.err)
-// }
-
-// func (e malError) ErrorEncapsuled() MalType {
-// 	return e.err
-// }
-
 func (e malError) Position() *Position {
 	return e.cursor
 }
