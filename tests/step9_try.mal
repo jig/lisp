@@ -453,3 +453,17 @@
 ;=>wrapped sample
 (try (throw-wrapped-sample) (catch err (type? err)))
 ;=>"*fmt.wrapError"
+
+
+(def a (fn [] (throw-wrapped-sample)))
+(a)
+;/Error: wrapped sample
+;=>nil
+(try (a) (catch err err))
+;=>wrapped sample
+(type? (try (a) (catch err err)))
+;=>"*fmt.wrapError"
+(def b (fn [] (a)))
+(a)
+;/Error: wrapped sample
+
