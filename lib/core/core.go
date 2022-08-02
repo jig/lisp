@@ -173,9 +173,9 @@ func istype(arg MalType) (string, error) {
 	case Set:
 		return "set", nil
 	case int:
-		return "int", nil
+		return "integer", nil
 	case bool:
-		return "bool", nil
+		return "boolean", nil
 	case Symbol:
 		return "symbol", nil
 	case string:
@@ -187,14 +187,15 @@ func istype(arg MalType) (string, error) {
 		return "function", nil
 	case interface{ ErrorValue() MalType }:
 		return "error", nil
+	case Typed:
+		return arg.Type(), nil
+
 	case interface{ Unwrap() error }:
 		return "go-wrappederror", nil
 	case error:
 		return "go-error", nil
 	case Func:
 		return "go-function", nil
-	case Typed:
-		return arg.Type(), nil
 	default:
 		return fmt.Sprintf("unsupported(%T)", arg), nil
 	}
