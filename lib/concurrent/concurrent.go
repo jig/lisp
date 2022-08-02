@@ -68,6 +68,10 @@ type Atom struct {
 	Cursor *Position
 }
 
+func (a *Atom) Type() string {
+	return "atom"
+}
+
 func (a *Atom) Set(val MalType) MalType {
 	a.Val = val
 	return a
@@ -141,4 +145,8 @@ func (f *Future) Deref(ctx context.Context) (MalType, error) {
 
 func (fut *Future) LispPrint(_Pr_str func(obj MalType, print_readably bool) string) string {
 	return "(future " + _Pr_str(fut.Fn.Exp, true) + ")"
+}
+
+func (a *Future) Type() string {
+	return "future"
 }

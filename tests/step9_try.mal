@@ -452,7 +452,7 @@
 (try (throw-wrapped-sample) (catch err err))
 ;=>wrapped sample
 (try (throw-wrapped-sample) (catch err (type? err)))
-;=>"*fmt.wrapError"
+;=>"go-wrappederror"
 
 
 (def a (fn [] (throw-wrapped-sample)))
@@ -466,7 +466,7 @@
 (nth (split (str (try (/ 0 0) (catch err err))) "runtime error: ") 1)
 ;=>"integer divide by zero"
 (type? (try (a) (catch err err)))
-;=>"*fmt.wrapError"
+;=>"go-wrappederror"
 (def b (fn [] (a)))
 (a)
 ;/Error: wrapped sample
@@ -475,3 +475,8 @@
 (b)
 ;/Error: 9
 ;=>nil
+
+(type? (atom 3))
+;=>"atom"
+(type? (future 3))
+;=>"future"

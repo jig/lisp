@@ -117,7 +117,7 @@ func Load(env EnvType) {
 	call.Call(env, unwrap)      // at least one parameter
 
 	// TODO(jig): remove before flight
-	call.CallOverrideFN(env, "type?", func(a MalType) (MalType, error) { return fmt.Sprintf("%T", a), nil })
+	call.CallOverrideFN(env, "type?", istype)
 	call.Call(env, throw_wrapped_sample)
 }
 
@@ -158,6 +158,46 @@ func go_error(args ...MalType) (MalType, error) {
 		errorfArgs = append(errorfArgs, i)
 	}
 	return fmt.Errorf(args[0].(string), errorfArgs...), nil
+}
+
+func istype(arg MalType) (string, error) {
+	switch arg := arg.(type) {
+	case nil:
+		return "nil", nil
+	case List:
+		return "list", nil
+	case HashMap:
+		return "hash-map", nil
+	case Vector:
+		return "vector", nil
+	case Set:
+		return "set", nil
+	case int:
+		return "int", nil
+	case bool:
+		return "bool", nil
+	case Symbol:
+		return "symbol", nil
+	case string:
+		if len(arg) != 0 && strings.HasPrefix(arg, "ʞ") {
+			return "keyword", nil
+		}
+		return "string", nil
+	case MalFunc:
+		return "function", nil
+	case interface{ ErrorValue() MalType }:
+		return "error", nil
+	case interface{ Unwrap() error }:
+		return "go-wrappederror", nil
+	case error:
+		return "go-error", nil
+	case Func:
+		return "go-function", nil
+	case Typed:
+		return arg.Type(), nil
+	default:
+		return fmt.Sprintf("unsupported(%T)", arg), nil
+	}
 }
 
 func fn_q(a MalType) (MalType, error) {
