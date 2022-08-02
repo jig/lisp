@@ -112,18 +112,11 @@ func Load(env EnvType) {
 	call.Call(env, conj, 2)      // at least two parameters
 	call.Call(env, assert, 1, 2) // at least one parameter, at most two
 
-	call.Call(env, go_error, 1) // at least one parameter
-	call.Call(env, pAnic)       // at least one parameter
-	call.Call(env, unwrap)      // at least one parameter
+	call.Call(env, go_error, 1)  // at least one parameter
+	call.Call(env, pAnic)        // at least one parameter
+	call.Call(env, unwrap_error) // at least one parameter
 
-	// TODO(jig): remove before flight
 	call.CallOverrideFN(env, "type?", istype)
-	call.Call(env, throw_wrapped_sample)
-}
-
-// TODO(jig): remove before flight
-func throw_wrapped_sample() (MalType, error) {
-	return nil, fmt.Errorf("wrapped %w", errors.New("sample"))
 }
 
 func LoadInput(env types.EnvType) {
@@ -145,19 +138,19 @@ func pAnic(arg MalType) {
 	panic(arg)
 }
 
-func unwrap(err error) (MalType, error) {
+func unwrap_error(err error) (MalType, error) {
 	return errors.Unwrap(err), nil
 }
 
-func go_error(args ...MalType) (MalType, error) {
-	if len(args) == 1 {
-		return errors.New(args[0].(string)), nil
+func go_error(format string, args ...MalType) (MalType, error) {
+	if len(args) == 0 {
+		return errors.New(format), nil
 	}
 	var errorfArgs []any
-	for _, i := range args[1:] {
+	for _, i := range args {
 		errorfArgs = append(errorfArgs, i)
 	}
-	return fmt.Errorf(args[0].(string), errorfArgs...), nil
+	return fmt.Errorf(format, errorfArgs...), nil
 }
 
 func istype(arg MalType) (string, error) {

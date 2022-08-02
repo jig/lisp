@@ -317,7 +317,6 @@ func EVAL(ctx context.Context, ast MalType, env EnvType) (MalType, error) {
 		case "macroexpand":
 			return macroexpand(ctx, a1, env)
 		case "try":
-			var exc MalType
 			lst := ast.(List).Val
 			var last MalType
 			var prelast MalType
@@ -375,21 +374,15 @@ func EVAL(ctx context.Context, ast MalType, env EnvType) (MalType, error) {
 				return exp, nil
 			} else {
 				if catchDo != nil {
-					switch e := e.(type) {
-					case interface{ ErrorValue() MalType }:
-						exc = e.ErrorValue()
-					default:
-						// branch not used
-						exc = e
-					}
+					cathedError := e.(interface{ ErrorValue() MalType }).ErrorValue()
 					binds := NewList(catchBind)
-					new_env, e := NewSubordinateEnvWithBinds(env, binds, NewList(exc))
-					if e != nil {
-						return nil, e
+					new_env, err := NewSubordinateEnvWithBinds(env, binds, NewList(cathedError))
+					if err != nil {
+						return nil, err
 					}
-					ast, e = do(ctx, catchDo, 0, 0, new_env)
-					if e != nil {
-						return nil, e
+					ast, err = do(ctx, catchDo, 0, 0, new_env)
+					if err != nil {
+						return nil, err
 					}
 					env = new_env
 					continue

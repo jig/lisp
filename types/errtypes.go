@@ -2,7 +2,6 @@ package types
 
 import (
 	"fmt"
-	"runtime"
 )
 
 // Errors/Exceptions
@@ -17,16 +16,13 @@ func (e malError) ErrorValue() MalType {
 
 func (e malError) Error() string {
 	switch e.err.(type) {
-	case string, runtime.Error, error:
+	case error:
 		if e.cursor != nil {
 			return fmt.Sprintf("%s: %s", e.cursor, e.err)
 		}
-		return fmt.Sprintf("%s", e.err)
+		return fmt.Sprint(e.err)
 	default:
-		if e.cursor != nil {
-			return fmt.Sprintf("%s: %[1]s (%[1]T)", e.cursor, e.err)
-		}
-		return fmt.Sprintf("%s", e.err)
+		panic("internal error: malError.Error() called on non-error")
 	}
 }
 
@@ -37,25 +33,13 @@ func (e malError) Position() *Position {
 // NewGoError is used to create a malError on errors returned by go functions
 func NewGoError(fFullName string, err interface{}) error {
 	switch err := err.(type) {
-	case interface {
-		Unwrap() error
-		Error() string
-	}:
-		return malError{
-			err: fmt.Errorf("%s: %w", fFullName, err),
-		}
 	case error:
 		return malError{
 			err: fmt.Errorf("%s: %w", fFullName, err),
 		}
-	case string:
-		// TODO(jig): is only called when type mismatch on arguments on a call handled by caller package
-		return malError{
-			err: fmt.Errorf("%s: %s", fFullName, err),
-		}
 	default:
 		return malError{
-			err: fmt.Errorf("%s: %s", fFullName, err),
+			err: fmt.Errorf("%s: %w", fFullName, fmt.Errorf("%v", err)),
 		}
 	}
 }
@@ -84,26 +68,15 @@ func GetPosition(ast MalType) *Position {
 	}
 }
 
-func SetPosition(e error, ast MalType) error {
-	switch e := e.(type) {
-	case malError:
-		e.cursor = GetPosition(ast)
-		return e
-	case nil:
-		// used by throw and assert
-		return e
-	default:
-		return e
-	}
-}
-
 func NewMalError(err MalType, ast MalType) error {
 	switch err := err.(type) {
 	case malError:
-		return SetPosition(err, ast)
-	case error:
-		return SetPosition(malError{err: err}, ast)
+		err.cursor = GetPosition(ast)
+		return err
 	default:
-		return SetPosition(malError{err: err}, ast)
+		return malError{
+			err:    err,
+			cursor: GetPosition(ast),
+		}
 	}
 }
