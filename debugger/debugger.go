@@ -60,17 +60,6 @@ func (deb *Debugger) Shutdown() {
 	saveState(deb)
 }
 
-var (
-	colorFileName  = color.New(color.FgCyan)
-	colorSeparator = color.New(color.FgWhite)
-	colorExpr      = color.New(color.FgYellow, color.Bold)
-	colorPosition  = color.New(color.FgGreen)
-	colorAlert     = color.New(color.FgRed)
-	colorCode      = color.New(color.FgHiWhite, color.Bold)
-	colorKey       = color.New(color.FgHiRed, color.Bold)
-	colorDump      = color.New(color.FgYellow)
-)
-
 func (deb *Debugger) Stepper(ast types.MalType, ns types.EnvType, isMacro bool) {
 	expr, ok := ast.(types.List)
 	if !ok {
@@ -311,3 +300,15 @@ func filterInput(r rune) (rune, bool) {
 	}
 	return r, true
 }
+
+var (
+	colorFileName  = color.New(color.FgCyan)
+	colorSeparator = color.New(color.FgWhite)
+	colorExpr      = color.New(color.FgYellow, color.Bold)
+	colorPosition  = color.New(color.FgGreen)
+	colorAlert     = color.New(color.FgRed)
+	colorCode      = color.New(color.FgHiWhite, color.Bold)
+	colorResult    = color.New(color.FgCyan)
+	colorKey       = color.New(color.FgHiRed, color.Bold)
+	colorDump      = color.New(color.FgYellow)
+)

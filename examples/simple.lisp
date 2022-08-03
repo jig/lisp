@@ -1,3 +1,3 @@
 (def a 1)
-(def b 2)
-(prn a b)
+(def b (fn [x] x))
+(prn a (b 2))

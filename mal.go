@@ -10,6 +10,7 @@ import (
 	. "github.com/jig/lisp/env"
 	"github.com/jig/lisp/printer"
 	"github.com/jig/lisp/reader"
+	"github.com/jig/lisp/types"
 	. "github.com/jig/lisp/types"
 )
 
@@ -132,14 +133,12 @@ func is_macro_call(ast MalType, env EnvType) bool {
 	return false
 }
 
-var Stepper func(ast MalType, ns EnvType, isMacro bool)
+var Stepper func(ast types.MalType, ns types.EnvType, isMacro bool)
 
 func macroexpand(ctx context.Context, ast MalType, env EnvType) (MalType, error) {
 	var mac MalType
 	var e error
-	var isMacro bool
 	for is_macro_call(ast, env) {
-		isMacro = true
 		slc, _ := GetSlice(ast)
 		a0 := slc[0]
 		mac, e = env.Get(a0.(Symbol))
@@ -151,9 +150,6 @@ func macroexpand(ctx context.Context, ast MalType, env EnvType) (MalType, error)
 		if e != nil {
 			return nil, e
 		}
-	}
-	if Stepper != nil {
-		Stepper(ast, env, isMacro)
 	}
 	return ast, nil
 }
@@ -210,7 +206,7 @@ const (
 	In
 )
 
-func EVAL(ctx context.Context, ast MalType, env EnvType) (MalType, error) {
+func EVAL(ctx context.Context, ast MalType, env EnvType) (__res MalType, __err error) {
 	var e error
 	for {
 		if ctx != nil {
@@ -229,6 +225,9 @@ func EVAL(ctx context.Context, ast MalType, env EnvType) (MalType, error) {
 			// aStr, _ := PRINT(ast)
 			// fmt.Printf("%T○ %s\n", ast, aStr)
 			return eval_ast(ctx, ast, env)
+		}
+		if Stepper != nil {
+			Stepper(ast, env, false)
 		}
 
 		// apply list
