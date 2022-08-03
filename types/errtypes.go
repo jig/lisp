@@ -1,6 +1,7 @@
 package types
 
 import (
+	"errors"
 	"fmt"
 )
 
@@ -10,8 +11,31 @@ type malError struct {
 	cursor *Position
 }
 
+func (e malError) Unwrap() error {
+	if ee, ok := e.err.(error); ok {
+		return errors.Unwrap(ee)
+	}
+	return nil
+}
+
 func (e malError) ErrorValue() MalType {
 	return e.err
+}
+
+func (e malError) Is(target error) bool {
+	if target == nil {
+		return e.ErrorValue() == nil
+	}
+	// if the error (err.Err) implements its own Is() function use it
+	if ee, ok := e.ErrorValue().(interface{ Is(error) bool }); ok && ee.Is(target) {
+		return true
+	}
+
+	err2, ok := target.(malError)
+	if ok {
+		return e.ErrorValue() == err2.ErrorValue()
+	}
+	return false
 }
 
 func (e malError) Error() string {
@@ -22,7 +46,12 @@ func (e malError) Error() string {
 		}
 		return fmt.Sprint(e.err)
 	default:
-		panic("internal error: malError.Error() called on non-error")
+		// TODO: this should be prt_str
+		// panic("internal error: malError.Error() called on non-error")
+		if e.cursor != nil {
+			return fmt.Sprintf("%s: %s", e.cursor, e.err)
+		}
+		return fmt.Sprint(e.err)
 	}
 }
 
