@@ -374,9 +374,9 @@ func EVAL(ctx context.Context, ast MalType, env EnvType) (MalType, error) {
 				return exp, nil
 			} else {
 				if catchDo != nil {
-					cathedError := e.(interface{ ErrorValue() MalType }).ErrorValue()
+					caughtError := e.(interface{ ErrorValue() MalType }).ErrorValue()
 					binds := NewList(catchBind)
-					new_env, err := NewSubordinateEnvWithBinds(env, binds, NewList(cathedError))
+					new_env, err := NewSubordinateEnvWithBinds(env, binds, NewList(caughtError))
 					if err != nil {
 						return nil, err
 					}

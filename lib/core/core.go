@@ -182,9 +182,6 @@ func istype(arg MalType) (string, error) {
 		return "error", nil
 	case Typed:
 		return arg.Type(), nil
-
-	case interface{ Unwrap() error }:
-		return "go-wrappederror", nil
 	case error:
 		return "go-error", nil
 	case Func:

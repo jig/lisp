@@ -18,7 +18,7 @@
 (nth (split (str (try (/ 0 0) (catch err err))) "runtime error: ") 1)
 ;=>"integer divide by zero"
 (type? (try (a) (catch err err)))
-;=>"go-wrappederror"
+;=>"go-error"
 (def b (fn [] (a)))
 (a)
 ;/Error: wrapped sample
@@ -96,13 +96,13 @@
 ;=>"set"
 ;; panic wraps on go error
 (type? (try (panic 3) (catch e e)))
-;=>"go-wrappederror"
+;=>"go-error"
 (type? (go-error "pum"))
 ;=>"go-error"
 (type? (go-error "pum %s" (go-error "pum!")))
 ;=>"go-error"
 (type? (go-error "pum %w" (go-error "pum!")))
-;=>"go-wrappederror"
+;=>"go-error"
 (def zero 0)
 (type? 'zero)
 ;=>"symbol"
@@ -113,4 +113,4 @@
 (type? (go-error "simple"))
 ;=>"go-error"
 (type? (try (panic "simple") (catch err err)))
-;=>"go-wrappederror"
+;=>"go-error"

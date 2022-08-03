@@ -19,6 +19,8 @@ func Pr_list(lst []types.MalType, pr bool,
 
 func Pr_str(obj types.MalType, print_readably bool) string {
 	switch tobj := obj.(type) {
+	case types.LispPrintable:
+		return tobj.LispPrint(Pr_str)
 	case types.List:
 		return Pr_list(tobj.Val, print_readably, "(", ")", " ")
 	case types.Vector:
@@ -63,8 +65,8 @@ func Pr_str(obj types.MalType, print_readably bool) string {
 			Pr_str(tobj.Exp, true) + ")"
 	case func([]types.MalType) (types.MalType, error):
 		return fmt.Sprintf("<function %v>", obj)
-	case types.LispPrintable:
-		return tobj.LispPrint(Pr_str)
+	// case error:
+	// 	return "(go-error " + Pr_str(tobj.Error(), true) + ")"
 	// case *types.Atom:
 	// 	return "(atom " +
 	// 		Pr_str(tobj.Val, true) + ")"

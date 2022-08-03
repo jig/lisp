@@ -30,6 +30,14 @@ func (e malError) Position() *Position {
 	return e.cursor
 }
 
+// func (e malError) LispPrint(_Pr_str func(obj MalType, print_readably bool) string) string {
+// 	return "(error " + _Pr_str(e.err, true) + ")"
+// }
+
+// func (e malError) Type() string {
+// 	return "error"
+// }
+
 // NewGoError is used to create a malError on errors returned by go functions
 func NewGoError(fFullName string, err interface{}) error {
 	switch err := err.(type) {

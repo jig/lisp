@@ -16,8 +16,8 @@ func TestBasicError(t *testing.T) {
 	if err == nil {
 		t.Fatal("fatal error")
 	}
-	if !strings.HasSuffix(err.Error(), `'abc' not found`) {
-		t.Fatalf("fatal error: %s", err)
+	if !strings.HasSuffix(err.Error(), `symbol 'abc' not found`) {
+		t.Fatal(err)
 	}
 }
 
@@ -29,8 +29,8 @@ func TestTryCatchError2(t *testing.T) {
 	}
 
 	//if !strings.HasSuffix(res.(string), `'abc' not found`) {
-	if res != `'abc' not found` {
-		t.Fatalf("fatal error: %s", res)
+	if res != `symbol 'abc' not found` {
+		t.Fatalf("%s", res)
 	}
 }
 
@@ -42,8 +42,8 @@ func TestTryCatchError3(t *testing.T) {
 	}
 
 	// if !strings.HasSuffix(res.(string), `'abc' not found`) {
-	if res != `'abc' not found` {
-		t.Fatalf("fatal error: %s", res)
+	if res != `symbol 'abc' not found` {
+		t.Fatalf("%s", res)
 	}
 }
 
@@ -57,6 +57,6 @@ func TestTryCatchThrowsMalType(t *testing.T) {
 
 	// if !strings.HasSuffix(res.(string), `'abc' not found`) {
 	if res != `{:a 1}` {
-		t.Fatalf("fatal error: %s", res)
+		t.Fatalf("%s", res)
 	}
 }
