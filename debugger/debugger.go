@@ -16,6 +16,7 @@ import (
 	"github.com/eiannone/keyboard"
 	"github.com/fatih/color"
 	"github.com/jig/lisp"
+	"github.com/jig/lisp/lisperror"
 	"github.com/jig/lisp/repl"
 	"github.com/jig/lisp/types"
 )
@@ -65,7 +66,7 @@ func (deb *Debugger) Stepper(ast types.MalType, ns types.EnvType, isMacro bool) 
 	if !ok {
 		return
 	}
-	pos := types.GetPosition(expr)
+	pos := lisperror.GetPosition(expr)
 	if pos != nil && pos.Module != nil && strings.Contains(*pos.Module, deb.name) {
 		deb.printTrace(expr, ns, pos, isMacro)
 		if deb.stop {

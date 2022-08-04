@@ -1,21 +1,18 @@
-package types
+package lisperror
 
 import (
 	"errors"
 	"fmt"
+
+	"github.com/jig/lisp/marshaler"
+	"github.com/jig/lisp/printer"
+	. "github.com/jig/lisp/types"
 )
 
 // Errors/Exceptions
 type LispError struct {
 	err    MalType
 	cursor *Position
-}
-
-func NewLispError(value MalType) LispError {
-	return LispError{
-		err:    value,
-		cursor: nil,
-	}
 }
 
 func (e LispError) Unwrap() error {
@@ -54,7 +51,7 @@ func (e LispError) Error() string {
 		return fmt.Sprint(e.err)
 	default:
 		// TODO: this should be prt_str
-		// panic("internal error: malError.Error() called on non-error")
+		// panic("internal error: LispError.Error() called on non-error")
 		if e.cursor != nil {
 			return fmt.Sprintf("%s: %s", e.cursor, e.err)
 		}
@@ -66,15 +63,15 @@ func (e LispError) Position() *Position {
 	return e.cursor
 }
 
-// func (e malError) LispPrint(_Pr_str func(obj MalType, print_readably bool) string) string {
+// func (e LispError) LispPrint(_Pr_str func(obj MalType, print_readably bool) string) string {
 // 	return "(error " + _Pr_str(e.err, true) + ")"
 // }
 
-// func (e malError) Type() string {
+// func (e LispError) Type() string {
 // 	return "error"
 // }
 
-// NewGoError is used to create a malError on errors returned by go functions
+// NewGoError is used to create a LispError on errors returned by go functions
 func NewGoError(fFullName string, err interface{}) error {
 	switch err := err.(type) {
 	case error:
@@ -125,6 +122,27 @@ func NewMalError(err MalType, ast MalType) error {
 	}
 }
 
-func (e LispError) LispPrint(pr_str func(obj MalType, print_readably bool) string) string {
-	return "(error " + pr_str(e.err, true) + ")"
+func (e LispError) MarshalHashMap() (MalType, error) {
+	hm := HashMap{
+		Val: map[string]MalType{
+			"ʞtype": fmt.Sprintf("%T", e),
+		},
+	}
+
+	switch ee := e.ErrorValue().(type) {
+	case marshaler.HashMap:
+		pHm, err := ee.MarshalHashMap()
+		if err != nil {
+			return nil, err
+		}
+		hm.Val["ʞerr"] = pHm
+	default:
+		hm.Val["ʞerr"] = printer.Pr_str(ee, true)
+	}
+
+	if e.cursor != nil {
+		hm.Val["ʞpos"] = e.cursor.String()
+	}
+
+	return hm, nil
 }

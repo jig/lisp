@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	. "github.com/jig/lisp/env"
+	"github.com/jig/lisp/lisperror"
 	"github.com/jig/lisp/printer"
 	"github.com/jig/lisp/reader"
 	"github.com/jig/lisp/types"
@@ -40,7 +41,7 @@ func READWithPreamble(str string, cursor *Position) (MalType, error) {
 		}
 		lineItems := placeholderRE.FindAllStringSubmatch(line, -1)
 		if len(lineItems) != 1 || len(lineItems[0]) != 3 {
-			return nil, NewMalError(errors.New("invalid preamble format"), &Position{
+			return nil, lisperror.NewMalError(errors.New("invalid preamble format"), &Position{
 				Row: i + 1,
 				Col: 1,
 			})
@@ -158,7 +159,7 @@ func eval_ast(ctx context.Context, ast MalType, env EnvType) (MalType, error) {
 	if Q[Symbol](ast) {
 		value, err := env.Get(ast.(Symbol))
 		if err != nil {
-			return nil, NewMalError(err, ast)
+			return nil, lisperror.NewMalError(err, ast)
 		}
 		return value, nil
 	} else if Q[List](ast) {
@@ -273,7 +274,7 @@ func EVAL(ctx context.Context, ast MalType, env EnvType) (__res MalType, __err e
 			case Symbol:
 				return env.Set(a1, res), nil
 			default:
-				return nil, NewMalError(fmt.Errorf("cannot use '%T' as identifier", a1), ast)
+				return nil, lisperror.NewMalError(fmt.Errorf("cannot use '%T' as identifier", a1), ast)
 			}
 		case "let":
 			let_env := NewSubordinateEnv(env)
@@ -282,11 +283,11 @@ func EVAL(ctx context.Context, ast MalType, env EnvType) (__res MalType, __err e
 				return nil, e
 			}
 			if len(arr1)%2 != 0 {
-				return nil, NewMalError(errors.New("let: odd elements on binding vector"), a1)
+				return nil, lisperror.NewMalError(errors.New("let: odd elements on binding vector"), a1)
 			}
 			for i := 0; i < len(arr1); i += 2 {
 				if !Q[Symbol](arr1[i]) {
-					return nil, NewMalError(errors.New("non-symbol bind value"), a1)
+					return nil, lisperror.NewMalError(errors.New("non-symbol bind value"), a1)
 				}
 				exp, e := EVAL(ctx, arr1[i+1], let_env)
 				if e != nil {
@@ -342,7 +343,7 @@ func EVAL(ctx context.Context, ast MalType, env EnvType) (__res MalType, __err e
 				catchDo = List{Val: last.(List).Val[2:]}
 				tryDo = List{Val: lst[1 : len(lst)-1]}
 				if len(catchDo.(List).Val) == 0 {
-					return nil, NewMalError(errors.New("catch must have 2 arguments at least"), ast)
+					return nil, lisperror.NewMalError(errors.New("catch must have 2 arguments at least"), ast)
 				}
 			case "finally":
 				finallyDo = List{Val: last.(List).Val[1:]}
@@ -390,7 +391,7 @@ func EVAL(ctx context.Context, ast MalType, env EnvType) (__res MalType, __err e
 			}
 		case "context":
 			if a2 != nil {
-				return nil, NewMalError(fmt.Errorf("context does not allow more than one argument"), a2)
+				return nil, lisperror.NewMalError(fmt.Errorf("context does not allow more than one argument"), a2)
 			}
 			childCtx, cancel := context.WithCancel(ctx)
 			exp, e := func() (res MalType, err error) {
@@ -447,19 +448,19 @@ func EVAL(ctx context.Context, ast MalType, env EnvType) (__res MalType, __err e
 				if e != nil {
 					switch v := ast.(List).Val[0].(type) {
 					case Symbol:
-						return nil, NewMalError(fmt.Errorf("%s (around %s)", e, v.Val), ast)
+						return nil, lisperror.NewMalError(fmt.Errorf("%s (around %s)", e, v.Val), ast)
 					default:
-						return nil, NewMalError(e, ast)
+						return nil, lisperror.NewMalError(e, ast)
 					}
 				}
 			} else {
 				fn, ok := f.(Func)
 				if !ok {
-					return nil, NewMalError(fmt.Errorf("attempt to call non-function (was of type %T)", f), el)
+					return nil, lisperror.NewMalError(fmt.Errorf("attempt to call non-function (was of type %T)", f), el)
 				}
 				result, err := fn.Fn(ctx, el.(List).Val[1:])
 				if err != nil {
-					return nil, NewMalError(err, ast)
+					return nil, lisperror.NewMalError(err, ast)
 				}
 				return result, nil
 			}

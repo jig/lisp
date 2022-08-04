@@ -7,6 +7,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/jig/lisp/lisperror"
 	"github.com/jig/lisp/types"
 )
 
@@ -65,14 +66,14 @@ func _newSubordinateEnvWithBinds(outer *Env, binds_mt types.MalType, exprs_mt ty
 			} else {
 				if i == len(exprs) {
 					// return nil, fmt.Errorf("not enough arguments passed (%d binds, %d arguments passed)", len(binds), len(exprs))
-					return nil, types.NewMalError(fmt.Errorf("too many arguments passed (%d binds, %d arguments passed)", len(binds), len(exprs)), exprs)
+					return nil, lisperror.NewMalError(fmt.Errorf("too many arguments passed (%d binds, %d arguments passed)", len(binds), len(exprs)), exprs)
 				}
 				env.data[binds[i].(types.Symbol).Val] = exprs[i]
 			}
 		}
 		if !varargs && len(exprs) != i {
 			// return nil, fmt.Errorf("too many arguments passed (%d binds, %d arguments passed)", len(binds), len(exprs))
-			return nil, types.NewMalError(fmt.Errorf("too many arguments passed (%d binds, %d arguments passed)", len(binds), len(exprs)), binds)
+			return nil, lisperror.NewMalError(fmt.Errorf("too many arguments passed (%d binds, %d arguments passed)", len(binds), len(exprs)), binds)
 		}
 	}
 	//return &et, nil
@@ -167,14 +168,14 @@ func (e *Env) GetNT(key types.Symbol) (types.MalType, error) {
 		return e.outer.Get(key)
 	} else {
 		// return nil, errors.New("'" + key.Val + "' not found")
-		return nil, types.NewMalError(fmt.Errorf("symbol '%w' not found", errors.New(key.Val)), key)
+		return nil, lisperror.NewMalError(fmt.Errorf("symbol '%w' not found", errors.New(key.Val)), key)
 	}
 }
 
 func (e *Env) RemoveNT(key types.Symbol) error {
 	if _, ok := e.data[key.Val]; !ok {
 		// return errors.New("types.symbol not found")
-		return types.NewMalError(fmt.Errorf("symbol '%w' not found", errors.New(key.Val)), key)
+		return lisperror.NewMalError(fmt.Errorf("symbol '%w' not found", errors.New(key.Val)), key)
 	}
 	delete(e.data, key.Val)
 	return nil

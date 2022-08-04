@@ -15,6 +15,7 @@ import (
 	spew "github.com/davecgh/go-spew/spew"
 	"github.com/google/uuid"
 	"github.com/jig/lisp/lib/call"
+	"github.com/jig/lisp/lisperror"
 	"github.com/jig/lisp/marshaler"
 	"github.com/jig/lisp/printer"
 	"github.com/jig/lisp/reader"
@@ -117,7 +118,6 @@ func Load(env EnvType) {
 	call.Call(env, unwrap_error) // at least one parameter
 
 	call.CallOverrideFN(env, "type?", istype)
-	call.CallOverrideFN(env, "error", NewLispError)
 }
 
 func LoadInput(env types.EnvType) {
@@ -131,7 +131,7 @@ func throw(a MalType) (MalType, error) {
 	case error:
 		return nil, a
 	default:
-		return nil, NewMalError(a, nil)
+		return nil, lisperror.NewMalError(a, nil)
 	}
 }
 
@@ -897,7 +897,7 @@ func assert(a ...MalType) (MalType, error) {
 	case string:
 		return nil, errors.New(a1)
 	default:
-		return nil, NewMalError(a1, nil)
+		return nil, lisperror.NewMalError(a1, nil)
 	}
 }
 

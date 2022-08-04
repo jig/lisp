@@ -21,8 +21,8 @@ func Pr_str(obj types.MalType, print_readably bool) string {
 	switch tobj := obj.(type) {
 	case types.LispPrintable:
 		return tobj.LispPrint(Pr_str)
-	case types.LispError:
-		return tobj.LispPrint(Pr_str)
+	// case lisperror.LispError:
+	// 	return tobj.LispPrint(Pr_str)
 	case types.List:
 		return Pr_list(tobj.Val, print_readably, "(", ")", " ")
 	case types.Vector:
