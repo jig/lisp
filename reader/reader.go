@@ -264,6 +264,12 @@ func read_form(rdr Reader, placeholderValues *HashMap) (MalType, error) {
 		return read_hash_map(rdr, placeholderValues)
 	case "#{":
 		return read_set(rdr, placeholderValues)
+	// case "¿":
+	// 	typeName, err := read_atom(rdr)
+	// 	if err != nil {
+	// 		return nil, err
+	// 	}
+
 	default:
 		if len(tokenStruct.Value) > 0 && tokenStruct.Value[0] == '$' {
 			return read_placeholder(rdr, placeholderValues)

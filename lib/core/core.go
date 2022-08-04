@@ -117,6 +117,7 @@ func Load(env EnvType) {
 	call.Call(env, unwrap_error) // at least one parameter
 
 	call.CallOverrideFN(env, "type?", istype)
+	call.CallOverrideFN(env, "error", NewLispError)
 }
 
 func LoadInput(env types.EnvType) {

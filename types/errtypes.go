@@ -6,23 +6,30 @@ import (
 )
 
 // Errors/Exceptions
-type malError struct {
+type LispError struct {
 	err    MalType
 	cursor *Position
 }
 
-func (e malError) Unwrap() error {
+func NewLispError(value MalType) LispError {
+	return LispError{
+		err:    value,
+		cursor: nil,
+	}
+}
+
+func (e LispError) Unwrap() error {
 	if ee, ok := e.err.(error); ok {
 		return errors.Unwrap(ee)
 	}
 	return nil
 }
 
-func (e malError) ErrorValue() MalType {
+func (e LispError) ErrorValue() MalType {
 	return e.err
 }
 
-func (e malError) Is(target error) bool {
+func (e LispError) Is(target error) bool {
 	if target == nil {
 		return e.ErrorValue() == nil
 	}
@@ -31,14 +38,14 @@ func (e malError) Is(target error) bool {
 		return true
 	}
 
-	err2, ok := target.(malError)
+	err2, ok := target.(LispError)
 	if ok {
 		return e.ErrorValue() == err2.ErrorValue()
 	}
 	return false
 }
 
-func (e malError) Error() string {
+func (e LispError) Error() string {
 	switch e.err.(type) {
 	case error:
 		if e.cursor != nil {
@@ -55,7 +62,7 @@ func (e malError) Error() string {
 	}
 }
 
-func (e malError) Position() *Position {
+func (e LispError) Position() *Position {
 	return e.cursor
 }
 
@@ -71,11 +78,11 @@ func (e malError) Position() *Position {
 func NewGoError(fFullName string, err interface{}) error {
 	switch err := err.(type) {
 	case error:
-		return malError{
+		return LispError{
 			err: fmt.Errorf("%s: %w", fFullName, err),
 		}
 	default:
-		return malError{
+		return LispError{
 			err: fmt.Errorf("%s: %w", fFullName, fmt.Errorf("%v", err)),
 		}
 	}
@@ -107,13 +114,17 @@ func GetPosition(ast MalType) *Position {
 
 func NewMalError(err MalType, ast MalType) error {
 	switch err := err.(type) {
-	case malError:
+	case LispError:
 		err.cursor = GetPosition(ast)
 		return err
 	default:
-		return malError{
+		return LispError{
 			err:    err,
 			cursor: GetPosition(ast),
 		}
 	}
+}
+
+func (e LispError) LispPrint(pr_str func(obj MalType, print_readably bool) string) string {
+	return "(error " + pr_str(e.err, true) + ")"
 }
