@@ -109,7 +109,7 @@ func GetPosition(ast MalType) *Position {
 	}
 }
 
-func NewMalError(err MalType, ast MalType) error {
+func NewLispError(err MalType, ast MalType) error {
 	switch err := err.(type) {
 	case LispError:
 		err.cursor = GetPosition(ast)

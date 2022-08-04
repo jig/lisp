@@ -131,7 +131,7 @@ func throw(a MalType) (MalType, error) {
 	case error:
 		return nil, a
 	default:
-		return nil, lisperror.NewMalError(a, nil)
+		return nil, lisperror.NewLispError(a, nil)
 	}
 }
 
@@ -897,7 +897,7 @@ func assert(a ...MalType) (MalType, error) {
 	case string:
 		return nil, errors.New(a1)
 	default:
-		return nil, lisperror.NewMalError(a1, nil)
+		return nil, lisperror.NewLispError(a1, nil)
 	}
 }
 
