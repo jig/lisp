@@ -39,7 +39,7 @@ func (tr *TokenReader) peek() *Token {
 }
 
 var (
-	tokenizerRE  = regexp.MustCompile(`(?:\n|[ \r\t,]*)(~@|¡|#{|\$[0-9A-Z]+|[\[\]{}()'` + "`" + `~^@]|"(?:\\.|[^\\"])*"?|¬[^¬]*(?:(?:¬¬)[^¬]*)*¬?|;.*|[^\s\[\]{}('"` + "`" + `,;)]*)`)
+	tokenizerRE  = regexp.MustCompile(`(?:\n|[ \r\t,]*)(~@|«|»|#{|\$[0-9A-Z]+|[\[\]{}()'` + "`" + `~^@]|"(?:\\.|[^\\"])*"?|¬[^¬]*(?:(?:¬¬)[^¬]*)*¬?|;.*|[^\s\[\]{}('"` + "`" + `,;)]*)`)
 	integerRE    = regexp.MustCompile(`^-?[0-9]+$`)
 	stringRE     = regexp.MustCompile(`^"(?:\\.|[^\\"])*"$`)
 	jsonStringRE = regexp.MustCompile(`^¬[^¬]*(?:(?:¬¬)[^¬]*)*¬$`)
@@ -160,7 +160,7 @@ func read_list(rdr Reader, start string, end string, placeholderValues *HashMap,
 }
 
 func read_external(rdr Reader, placeholderValues *HashMap, ns EnvType) (MalType, error) {
-	lst, e := read_list(rdr, "¡", "!", placeholderValues, ns)
+	lst, e := read_list(rdr, "«", "»", placeholderValues, ns)
 	if e != nil {
 		return nil, e
 	}
@@ -289,7 +289,7 @@ func read_form(rdr Reader, placeholderValues *HashMap, ns EnvType) (MalType, err
 		return read_hash_map(rdr, placeholderValues, ns)
 	case "#{":
 		return read_set(rdr, placeholderValues, ns)
-	case "¡":
+	case "«":
 		return read_external(rdr, placeholderValues, ns)
 	default:
 		if len(tokenStruct.Value) > 0 && tokenStruct.Value[0] == '$' {

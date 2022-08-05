@@ -32,21 +32,22 @@ func new_example(n int, s string) (Example, error) {
 
 func new_error(err types.MalType, cursor ...*types.Position) (lisperror.LispError, error) {
 	if len(cursor) == 0 {
-		return lisperror.NewLispError(err.(string), nil), nil
+		return lisperror.NewLispError(err, nil), nil
 	}
-	return lisperror.NewLispError(err.(string), cursor[0]), nil
+	return lisperror.NewLispError(err, cursor[0]), nil
 }
 
 func (ex Example) LispPrint(_Pr_str func(obj types.MalType, print_readably bool) string) string {
-	return "¡example " + _Pr_str(ex.N, true) + " " + _Pr_str(ex.S, true) + "!"
+	return "example " + _Pr_str(ex.N, true) + " " + _Pr_str(ex.S, true) + "»"
 }
 
 func TestAdHocReaders(t *testing.T) {
 	for _, test := range []tests{
-		{input: `(hello! "world!")`},
-		{input: `¡example 33 "hello"!`},
-		{input: `¡error "poum"!`},
-		// {input: `¡new-error "poum" nil!`},
+		// {input: `(hello! "world!")`},
+		// {input: `«example 33 "hello"»`},
+		{input: `«error "poum"»`},
+		{input: `«error «error "poum"»»`},
+		// {input: `«new-error "poum" nil»`},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			ns := env.NewEnv()
