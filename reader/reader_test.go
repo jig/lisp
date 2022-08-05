@@ -23,7 +23,7 @@ func new_example(n int, s string) (Example, error) {
 	}, nil
 }
 
-func (ex Example) LispPrint(_Pr_str func(obj types.MalType, print_readably bool) string) string {
+func (ex Example) LispPrint(_Pr_str func(types.MalType, bool) string) string {
 	return "«example " + _Pr_str(ex.N, true) + " " + _Pr_str(ex.S, true) + "»"
 }
 

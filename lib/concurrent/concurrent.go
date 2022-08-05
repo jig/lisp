@@ -85,7 +85,7 @@ func (a *Atom) Deref(_ context.Context) (MalType, error) {
 	return a.Val, nil
 }
 
-func (a *Atom) LispPrint(pr_str func(obj MalType, print_readably bool) string) string {
+func (a *Atom) LispPrint(pr_str func(MalType, bool) string) string {
 	return "«atom " + pr_str(a.Val, true) + "»"
 }
 
@@ -149,7 +149,7 @@ func (f *Future) Deref(ctx context.Context) (MalType, error) {
 	}
 }
 
-func (fut *Future) LispPrint(_Pr_str func(obj MalType, print_readably bool) string) string {
+func (fut *Future) LispPrint(_Pr_str func(MalType, bool) string) string {
 	return "«futur-call " + _Pr_str(fut.Fn.Exp, true) + "»"
 }
 
