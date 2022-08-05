@@ -33,7 +33,7 @@ func ExampleEVAL() {
 	}
 
 	// parse (READ) lisp code
-	ast, err := lisp.READ(`(+ 2 2)`, nil)
+	ast, err := lisp.READ(`(+ 2 2)`, nil, newEnv)
 	if err != nil {
 		log.Fatalf("READ error: %v", err)
 	}

@@ -553,13 +553,14 @@ func BenchmarkCompleteSendingWithPreambleSolved(b *testing.B) {
 
 		// protocol here
 
-		ast, err := READ(sentCode, nil)
+		repl_env := env.NewEnv()
+		core.Load(repl_env)
+
+		ast, err := READ(sentCode, nil, repl_env)
 		if err != nil {
 			b.Fatal(err)
 		}
 
-		repl_env := env.NewEnv()
-		core.Load(repl_env)
 		ctx := context.Background()
 		res, err := EVAL(ctx, ast, repl_env)
 		if err != nil {

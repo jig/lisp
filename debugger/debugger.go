@@ -219,7 +219,7 @@ func (deb *Debugger) printTrace(expr types.MalType, ns types.EnvType, pos *types
 		}
 		sort.Strings(exprsSorted)
 		for _, exprString := range exprsSorted {
-			ast, err := lisp.READ(exprString, types.NewCursorFile("REPL"))
+			ast, err := lisp.READ(exprString, types.NewCursorFile("REPL"), ns)
 			if err != nil {
 				colorAlert.Println(err)
 				continue

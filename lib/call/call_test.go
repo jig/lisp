@@ -184,7 +184,7 @@ func TestLispNil(t *testing.T) {
 	ns := env.NewEnv()
 	Call(ns, sum_Example)
 
-	ast, err := lisp.READ(`(sum-example nil)`, types.NewCursorFile(t.Name()))
+	ast, err := lisp.READ(`(sum-example nil)`, types.NewCursorFile(t.Name()), ns)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -221,7 +221,7 @@ func TestEmpty(t *testing.T) {
 	ns := env.NewEnv()
 	CallOverrideFN(ns, "empty?", empty_Q)
 
-	ast, err := lisp.READ(`(empty? "hello")`, types.NewCursorFile(t.Name()))
+	ast, err := lisp.READ(`(empty? "hello")`, types.NewCursorFile(t.Name()), ns)
 	if err != nil {
 		t.Fatal(err)
 	}
