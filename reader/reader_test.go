@@ -30,8 +30,11 @@ func new_example(n int, s string) (Example, error) {
 	}, nil
 }
 
-func new_error(err types.MalType, cursor *types.Position) (lisperror.LispError, error) {
-	return lisperror.NewLispError(err, nil), nil
+func new_error(err types.MalType, cursor ...*types.Position) (lisperror.LispError, error) {
+	if len(cursor) == 0 {
+		return lisperror.NewLispError(err.(string), nil), nil
+	}
+	return lisperror.NewLispError(err.(string), cursor[0]), nil
 }
 
 func (ex Example) LispPrint(_Pr_str func(obj types.MalType, print_readably bool) string) string {
@@ -40,11 +43,10 @@ func (ex Example) LispPrint(_Pr_str func(obj types.MalType, print_readably bool)
 
 func TestAdHocReaders(t *testing.T) {
 	for _, test := range []tests{
-		{input: `(hello "world!")`},
+		{input: `(hello! "world!")`},
 		{input: `¡example 33 "hello"!`},
-		{input: `¡example 33 "hello"!`},
-		{input: `¡example 33 "hello"!`},
-		// {input: `«new-ec-json ""!`},
+		{input: `¡error "poum"!`},
+		// {input: `¡new-error "poum" nil!`},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			ns := env.NewEnv()
@@ -52,6 +54,7 @@ func TestAdHocReaders(t *testing.T) {
 				t.Fatal()
 			}
 			call.Call(ns, new_example)
+			call.Call(ns, new_error, 1, 2)
 
 			ast, err := reader.Read_str(test.input, types.NewCursorFile(t.Name()), nil, ns)
 			if err != nil {
