@@ -1,13 +1,12 @@
 package reader_test
 
 import (
-	"fmt"
 	"testing"
 
-	"github.com/jig/lisp"
 	"github.com/jig/lisp/env"
 	"github.com/jig/lisp/lib/call"
 	"github.com/jig/lisp/lib/core/nscore"
+	"github.com/jig/lisp/lisperror"
 	"github.com/jig/lisp/reader"
 	"github.com/jig/lisp/types"
 )
@@ -34,29 +33,50 @@ func (ex Example) LispPrint(_Pr_str func(obj types.MalType, print_readably bool)
 }
 
 func TestAdHocReaders(t *testing.T) {
-	for _, test := range []tests{
-		{input: `(hello! "world!")`},
-		{input: `«example 33 "hello"»`},
-		{input: `«error "poum"»`},
-		{input: `«error «error "poum"»»`},
-		// {input: `«error "poum" nil»`},
-	} {
-		t.Run(test.name, func(t *testing.T) {
-			ns := env.NewEnv()
-			if err := nscore.Load(ns); err != nil {
+	ns := env.NewEnv()
+	if err := nscore.Load(ns); err != nil {
+		t.Fatal()
+	}
+	call.Call(ns, new_example)
+
+	t.Run("example", func(t *testing.T) {
+		ast, err := reader.Read_str(`«example 33 "hello"»`, types.NewCursorFile(t.Name()), nil, ns)
+		if err != nil {
+			t.Error(err)
+		}
+		switch ast := ast.(type) {
+		case Example:
+			if ast.N != 33 || ast.S != "hello" {
 				t.Fatal()
 			}
-			call.Call(ns, new_example)
-
-			ast, err := reader.Read_str(test.input, types.NewCursorFile(t.Name()), nil, ns)
-			if err != nil {
-				t.Error(err)
+		default:
+			t.Fatal()
+		}
+	})
+	t.Run("error", func(t *testing.T) {
+		ast, err := reader.Read_str(`«error "poum"»`, types.NewCursorFile(t.Name()), nil, ns)
+		if err != nil {
+			t.Error(err)
+		}
+		switch ast := ast.(type) {
+		case lisperror.LispError:
+			if ast.ErrorValue() != "poum" {
+				t.Fatal()
 			}
-			str, err := lisp.PRINT(ast)
-			if err != nil {
-				t.Error(err)
-			}
-			fmt.Println(str)
-		})
-	}
+		default:
+			t.Fatal()
+		}
+	})
+	t.Run("error in error", func(t *testing.T) {
+		ast, err := reader.Read_str(`«error «error "poum"»»`, types.NewCursorFile(t.Name()), nil, ns)
+		if err != nil {
+			t.Error(err)
+		}
+		switch ast.(type) {
+		case lisperror.LispError:
+			// currently internal LispError is not wrapped in another LispError so this is not tested
+		default:
+			t.Fatal()
+		}
+	})
 }
