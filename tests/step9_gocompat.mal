@@ -83,7 +83,7 @@
 (type? (atom 3))
 ;=>"atom"
 (type? (future 3))
-;=>"future"
+;=>"future-call"
 (type? (try (throw 3) (catch e e)))
 ;=>"integer"
 (type? '(1 2 3))

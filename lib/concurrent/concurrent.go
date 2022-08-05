@@ -12,7 +12,7 @@ import (
 
 func Load(env types.EnvType) {
 	call.CallOverrideFN(env, "atom", func(a MalType) (MalType, error) { return &Atom{Val: a}, nil })
-	call.CallOverrideFN(env, "new-atom", func(a MalType) (MalType, error) { return &Atom{Val: a}, nil })
+	call.CallOverrideFN(env, "new-atom", func(a *Atom) (MalType, error) { return nil, errors.New("atom cannot be deserialized") })
 	call.CallOverrideFN(env, "atom?", func(a MalType) (MalType, error) { return Q[*Atom](a), nil })
 	call.CallOverrideFN(env, "swap!", swap_BANG)
 	call.CallOverrideFN(env, "reset!", reset_BANG)
@@ -21,6 +21,7 @@ func Load(env types.EnvType) {
 	call.CallOverrideFN(env, "future-cancelled?", func(f *Future) (bool, error) { return f.Cancelled, nil })
 	call.CallOverrideFN(env, "future-done?", func(f *Future) (bool, error) { return f.Done, nil })
 	call.CallOverrideFN(env, "future?", func(f MalType) (bool, error) { return Q[*Future](f), nil })
+	call.Call(env, new_future_call)
 }
 
 func future_call(ctx context.Context, f MalFunc) (*Future, error) {
@@ -101,6 +102,10 @@ type Future struct {
 	Cursor *Position
 }
 
+func new_future_call(fn MalFunc) (*Future, error) {
+	return nil, errors.New("atom cannot be deserialized")
+}
+
 func NewFuture(ctx context.Context, fn MalFunc) *Future {
 	ctx, cancel := context.WithCancel(ctx)
 	f := &Future{
@@ -145,9 +150,9 @@ func (f *Future) Deref(ctx context.Context) (MalType, error) {
 }
 
 func (fut *Future) LispPrint(_Pr_str func(obj MalType, print_readably bool) string) string {
-	return "(future " + _Pr_str(fut.Fn.Exp, true) + ")"
+	return "«futur-call " + _Pr_str(fut.Fn.Exp, true) + "»"
 }
 
 func (a *Future) Type() string {
-	return "future"
+	return "future-call"
 }
