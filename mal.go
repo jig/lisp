@@ -20,8 +20,8 @@ var placeholderRE = regexp.MustCompile(`^(;; \$[\-\d\w]+)+\s(.+)`)
 const preamblePrefix = ";; $"
 
 // READ reads an expression
-func READ(str string, cursor *Position) (MalType, error) {
-	return reader.Read_str(str, cursor, nil)
+func READ(str string, cursor *Position, ns ...EnvType) (MalType, error) {
+	return reader.Read_str(str, cursor, nil, ns...)
 }
 
 // READ reads an expression with preamble placeholders
