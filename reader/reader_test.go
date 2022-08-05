@@ -11,11 +11,6 @@ import (
 	"github.com/jig/lisp/types"
 )
 
-type tests struct {
-	name  string
-	input string
-}
-
 type Example struct {
 	N int
 	S string
