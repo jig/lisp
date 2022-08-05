@@ -12,6 +12,7 @@ import (
 
 func Load(env types.EnvType) {
 	call.CallOverrideFN(env, "atom", func(a MalType) (MalType, error) { return &Atom{Val: a}, nil })
+	call.CallOverrideFN(env, "new-atom", func(a MalType) (MalType, error) { return &Atom{Val: a}, nil })
 	call.CallOverrideFN(env, "atom?", func(a MalType) (MalType, error) { return Q[*Atom](a), nil })
 	call.CallOverrideFN(env, "swap!", swap_BANG)
 	call.CallOverrideFN(env, "reset!", reset_BANG)
@@ -84,7 +85,7 @@ func (a *Atom) Deref(_ context.Context) (MalType, error) {
 }
 
 func (a *Atom) LispPrint(pr_str func(obj MalType, print_readably bool) string) string {
-	return "(atom " + pr_str(a.Val, true) + ")"
+	return "«atom " + pr_str(a.Val, true) + "»"
 }
 
 // Future
