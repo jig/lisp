@@ -118,11 +118,19 @@ func Load(env EnvType) {
 	call.Call(env, unwrap_error) // at least one parameter
 
 	call.CallOverrideFN(env, "type?", istype)
+	call.Call(env, new_error, 1, 2)
 }
 
 func LoadInput(env types.EnvType) {
 	call.Call(env, slurp)
 	call.Call(env, readLine)
+}
+
+func new_error(err types.MalType, cursor ...*types.Position) (lisperror.LispError, error) {
+	if len(cursor) == 0 {
+		return lisperror.NewLispError(err, nil), nil
+	}
+	return lisperror.NewLispError(err, cursor[0]), nil
 }
 
 // Errors/Exceptions

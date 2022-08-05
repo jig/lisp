@@ -8,7 +8,6 @@ import (
 	"github.com/jig/lisp/env"
 	"github.com/jig/lisp/lib/call"
 	"github.com/jig/lisp/lib/core/nscore"
-	"github.com/jig/lisp/lisperror"
 	"github.com/jig/lisp/reader"
 	"github.com/jig/lisp/types"
 )
@@ -30,24 +29,17 @@ func new_example(n int, s string) (Example, error) {
 	}, nil
 }
 
-func new_error(err types.MalType, cursor ...*types.Position) (lisperror.LispError, error) {
-	if len(cursor) == 0 {
-		return lisperror.NewLispError(err, nil), nil
-	}
-	return lisperror.NewLispError(err, cursor[0]), nil
-}
-
 func (ex Example) LispPrint(_Pr_str func(obj types.MalType, print_readably bool) string) string {
-	return "example " + _Pr_str(ex.N, true) + " " + _Pr_str(ex.S, true) + "»"
+	return "«example " + _Pr_str(ex.N, true) + " " + _Pr_str(ex.S, true) + "»"
 }
 
 func TestAdHocReaders(t *testing.T) {
 	for _, test := range []tests{
-		// {input: `(hello! "world!")`},
-		// {input: `«example 33 "hello"»`},
+		{input: `(hello! "world!")`},
+		{input: `«example 33 "hello"»`},
 		{input: `«error "poum"»`},
 		{input: `«error «error "poum"»»`},
-		// {input: `«new-error "poum" nil»`},
+		// {input: `«error "poum" nil»`},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			ns := env.NewEnv()
@@ -55,7 +47,6 @@ func TestAdHocReaders(t *testing.T) {
 				t.Fatal()
 			}
 			call.Call(ns, new_example)
-			call.Call(ns, new_error, 1, 2)
 
 			ast, err := reader.Read_str(test.input, types.NewCursorFile(t.Name()), nil, ns)
 			if err != nil {
