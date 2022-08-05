@@ -35,15 +35,16 @@ func new_error(err types.MalType, cursor *types.Position) (lisperror.LispError, 
 }
 
 func (ex Example) LispPrint(_Pr_str func(obj types.MalType, print_readably bool) string) string {
-	return "¡new-example " + _Pr_str(ex.N, true) + " " + _Pr_str(ex.S, true) + "!"
+	return "¡example " + _Pr_str(ex.N, true) + " " + _Pr_str(ex.S, true) + "!"
 }
 
 func TestAdHocReaders(t *testing.T) {
 	for _, test := range []tests{
-		{input: `(hello! "world!")`},
-		{input: `¡new-example 33 "hello"!`},
-		{input: `¡new-example 33 "hello"!`},
-		// {input: `¡new-ec-json ""!`},
+		{input: `(hello "world!")`},
+		{input: `¡example 33 "hello"!`},
+		{input: `¡example 33 "hello"!`},
+		{input: `¡example 33 "hello"!`},
+		// {input: `«new-ec-json ""!`},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			ns := env.NewEnv()

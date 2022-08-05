@@ -166,7 +166,8 @@ func read_external(rdr Reader, placeholderValues *HashMap, ns EnvType) (MalType,
 	}
 	args := lst.(List).Val
 	// cursor := lst.(List).Cursor
-	constructor, err := ns.Get(args[0].(Symbol))
+	symbol := Symbol{Val: "new-" + args[0].(Symbol).Val}
+	constructor, err := ns.Get(symbol)
 	if err != nil {
 		return nil, err
 	}
