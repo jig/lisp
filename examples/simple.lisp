@@ -1,3 +1,5 @@
 (def a 1)
 (def b (fn [x] x))
-(prn a (b 2))
+(if (= a 1)
+    (prn a (b 2))
+    (prn "hello"))

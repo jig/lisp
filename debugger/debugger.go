@@ -61,14 +61,29 @@ func (deb *Debugger) Shutdown() {
 	saveState(deb)
 }
 
-func (deb *Debugger) Stepper(ast types.MalType, ns types.EnvType, isMacro bool) {
+func (deb *Debugger) DumpState(ast types.MalType, ns types.EnvType, result types.MalType, err error) {
+	deb.printTrace(ast, ns, nil)
+	if err != nil {
+		colorAlert.Print("Error")
+		colorSeparator.Print(": ")
+		colorDump.Println(err)
+		return
+	}
+	str, _ := lisp.PRINT(result)
+	colorExpr.Print("Result")
+	colorSeparator.Print(": ")
+	colorDump.Println(str)
+	fmt.Println()
+}
+
+func (deb *Debugger) Stepper(ast types.MalType, ns types.EnvType) {
 	expr, ok := ast.(types.List)
 	if !ok {
 		return
 	}
 	pos := lisperror.GetPosition(expr)
 	if pos != nil && pos.Module != nil && strings.Contains(*pos.Module, deb.name) {
-		deb.printTrace(expr, ns, pos, isMacro)
+		deb.printTrace(expr, ns, pos)
 		if deb.stop {
 			for {
 				rune, key, err := keyboard.GetKey()
@@ -113,7 +128,7 @@ func (deb *Debugger) Stepper(ast types.MalType, ns types.EnvType, isMacro bool) 
 					default:
 						colorAlert.Printf("key '%c' not bound\n", rune)
 					}
-					deb.printTrace(expr, ns, pos, isMacro)
+					deb.printTrace(expr, ns, pos)
 				} else {
 					switch key {
 					case keyboard.KeyF10:
@@ -124,7 +139,7 @@ func (deb *Debugger) Stepper(ast types.MalType, ns types.EnvType, isMacro bool) 
 						// passing ns without a new Env allows debugger to modify it
 						repl.Execute(context.Background(), ns)
 						keyboard.Open()
-						deb.printTrace(expr, ns, pos, isMacro)
+						deb.printTrace(expr, ns, pos)
 						continue
 					case keyboard.KeyF5:
 						colorAlert.Println("running to the end (F5)")
@@ -207,14 +222,14 @@ func saveState(deb *Debugger) {
 	}
 }
 
-func (deb *Debugger) printTrace(expr types.MalType, ns types.EnvType, pos *types.Position, isMacro bool) {
+func (deb *Debugger) printTrace(expr types.MalType, ns types.EnvType, pos *types.Position) {
 	if deb.trace {
 		// dump expressions
 		ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
 		defer cancel()
 
 		exprsSorted := []string{}
-		for exprString, _ := range deb.config.Exprs {
+		for exprString := range deb.config.Exprs {
 			exprsSorted = append(exprsSorted, exprString)
 		}
 		sort.Strings(exprsSorted)
@@ -241,17 +256,13 @@ func (deb *Debugger) printTrace(expr types.MalType, ns types.EnvType, pos *types
 
 		// actual code trace
 		str, _ := lisp.PRINT(expr)
-		if isMacro {
-			colorSeparator.Print("M")
-			colorCode.Println(str)
-		} else {
-			colorCode.Println(str)
-		}
+		colorCode.Println(str)
 
-		colorFileName.Print(pos.StringModule())
-		colorSeparator.Print("§")
-		colorPosition.Println(pos.StringPosition())
-		fmt.Println()
+		if pos != nil {
+			colorFileName.Print(pos.StringModule())
+			colorSeparator.Print("§")
+			colorPosition.Println(pos.StringPosition())
+		}
 	}
 }
 

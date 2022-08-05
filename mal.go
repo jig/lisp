@@ -134,7 +134,7 @@ func is_macro_call(ast MalType, env EnvType) bool {
 	return false
 }
 
-var Stepper func(ast types.MalType, ns types.EnvType, isMacro bool)
+var Stepper func(ast types.MalType, ns types.EnvType)
 
 func macroexpand(ctx context.Context, ast MalType, env EnvType) (MalType, error) {
 	var mac MalType
@@ -209,6 +209,10 @@ const (
 
 func EVAL(ctx context.Context, ast MalType, env EnvType) (__res MalType, __err error) {
 	var e error
+	if Stepper != nil {
+		Stepper(ast, env)
+	}
+
 	for {
 		if ctx != nil {
 			select {
@@ -226,9 +230,6 @@ func EVAL(ctx context.Context, ast MalType, env EnvType) (__res MalType, __err e
 			// aStr, _ := PRINT(ast)
 			// fmt.Printf("%T○ %s\n", ast, aStr)
 			return eval_ast(ctx, ast, env)
-		}
-		if Stepper != nil {
-			Stepper(ast, env, false)
 		}
 
 		// apply list
@@ -464,6 +465,9 @@ func EVAL(ctx context.Context, ast MalType, env EnvType) (__res MalType, __err e
 				}
 				return result, nil
 			}
+		}
+		if Stepper != nil {
+			return EVAL(ctx, ast, env)
 		}
 	} // TCO loop
 }
