@@ -201,6 +201,300 @@ var Stepper func(ast types.MalType, ns types.EnvType) debuggertypes.Command
 var skip bool
 var outing1, outing2 bool
 
+func EVALNove(ctx context.Context, ast MalType, env EnvType) (__res MalType, __err error) {
+	var e error
+
+	// debugger section
+	if Stepper != nil {
+		if !skip {
+			cmd := Stepper(ast, env)
+
+			switch cmd {
+			case debuggertypes.Next:
+				skip = true
+				defer func() {
+					skip = false
+				}()
+			case debuggertypes.In:
+				skip = false
+				outing1 = false
+			case debuggertypes.Out:
+				skip = true
+				outing1 = true
+			case debuggertypes.NoOp:
+			default:
+				panic(fmt.Errorf("debugger command not handled %d", cmd))
+			}
+		} else if outing1 {
+			outing1 = false
+			outing2 = true
+			defer func() { // actually no need to defer
+				skip = true
+			}()
+		} else if outing2 {
+			outing2 = false
+			defer func() {
+				skip = false
+			}()
+		}
+	}
+
+	if ctx != nil {
+		select {
+		case <-ctx.Done():
+			return nil, errors.New("timeout while evaluating expression")
+		default:
+		}
+	}
+
+	switch ast := ast.(type) {
+	case List: // continue
+		// aStr, _ := PRINT(ast)
+		// fmt.Printf("%s◉ %s\n", ast.Cursor, aStr)
+	default:
+		// aStr, _ := PRINT(ast)
+		// fmt.Printf("%T○ %s\n", ast, aStr)
+		return eval_ast(ctx, ast, env)
+	}
+
+	// apply list
+	ast, e = macroexpand(ctx, ast, env)
+	if e != nil {
+		return nil, e
+	}
+	if !Q[List](ast) {
+		return eval_ast(ctx, ast, env)
+	}
+	if len(ast.(List).Val) == 0 {
+		return ast, nil
+	}
+
+	a0 := ast.(List).Val[0]
+	var a1 MalType
+	var a2 MalType
+	switch len(ast.(List).Val) {
+	case 1:
+		a1 = nil
+		a2 = nil
+	case 2:
+		a1 = ast.(List).Val[1]
+		a2 = nil
+	case 3:
+		a1 = ast.(List).Val[1]
+		a2 = ast.(List).Val[2]
+	default:
+		a1 = ast.(List).Val[1]
+		a2 = ast.(List).Val[2]
+	}
+	a0sym := "__<*fn>__"
+	if Q[Symbol](a0) {
+		a0sym = a0.(Symbol).Val
+	}
+	switch a0sym {
+	case "def":
+		res, e := EVAL(ctx, a2, env)
+		if e != nil {
+			return nil, e
+		}
+		switch a1 := a1.(type) {
+		case Symbol:
+			return env.Set(a1, res), nil
+		default:
+			return nil, lisperror.NewLispError(fmt.Errorf("cannot use '%T' as identifier", a1), ast)
+		}
+	case "let":
+		let_env := NewSubordinateEnv(env)
+		arr1, e := GetSlice(a1)
+		if e != nil {
+			return nil, e
+		}
+		if len(arr1)%2 != 0 {
+			return nil, lisperror.NewLispError(errors.New("let: odd elements on binding vector"), a1)
+		}
+		for i := 0; i < len(arr1); i += 2 {
+			if !Q[Symbol](arr1[i]) {
+				return nil, lisperror.NewLispError(errors.New("non-symbol bind value"), a1)
+			}
+			exp, e := EVAL(ctx, arr1[i+1], let_env)
+			if e != nil {
+				return nil, e
+			}
+			let_env.Set(arr1[i].(Symbol), exp)
+		}
+		astRef := ast.(List)
+		ast, e = do(ctx, astRef, 2, 0, let_env)
+		if e != nil {
+			return nil, e
+		}
+		return ast, nil
+	case "quote": // '
+		return a1, nil
+	case "quasiquoteexpand":
+		return quasiquote(a1), nil
+	case "quasiquote": // `
+		return EVAL(ctx, quasiquote(a1), env)
+	case "defmacro":
+		fn, e := EVAL(ctx, a2, env)
+		fn = fn.(MalFunc).SetMacro()
+		if e != nil {
+			return nil, e
+		}
+		return env.Set(a1.(Symbol), fn), nil
+	case "macroexpand":
+		return macroexpand(ctx, a1, env)
+	case "try":
+		lst := ast.(List).Val
+		var last MalType
+		var prelast MalType
+		switch len(lst) {
+		case 1:
+			return nil, nil
+		case 2:
+			last = lst[1]
+			prelast = nil
+		case 3:
+			last = lst[2]
+			prelast = lst[1]
+		default:
+			last = lst[len(lst)-1]
+			prelast = lst[len(lst)-2]
+		}
+		var tryDo, catchDo, finallyDo MalType // Lists
+		var catchBind MalType                 // Symbol
+
+		switch first(last) {
+		case "catch":
+			finallyDo = nil
+			catchBind = last.(List).Val[1]
+			catchDo = List{Val: last.(List).Val[2:]}
+			tryDo = List{Val: lst[1 : len(lst)-1]}
+			if len(catchDo.(List).Val) == 0 {
+				return nil, lisperror.NewLispError(errors.New("catch must have 2 arguments at least"), ast)
+			}
+		case "finally":
+			finallyDo = List{Val: last.(List).Val[1:]}
+			switch first(prelast) {
+			case "catch":
+				catchBind = prelast.(List).Val[1]
+				catchDo = List{Val: prelast.(List).Val[2:]}
+				tryDo = List{Val: lst[1 : len(lst)-2]}
+			default:
+				catchBind = nil
+				catchDo = nil
+				tryDo = List{Val: lst[1 : len(lst)-1]}
+			}
+		default:
+			finallyDo = nil
+			catchBind = nil
+			catchDo = nil
+			tryDo = List{Val: lst[1:]}
+		}
+		exp, e := func() (res MalType, err error) {
+			defer malRecover(&err)
+			return do(ctx, tryDo, 0, 0, env)
+		}()
+
+		defer func() { _, _ = do(ctx, finallyDo, 0, 0, env) }()
+
+		if e == nil {
+			return exp, nil
+		} else {
+			if catchDo != nil {
+				caughtError := e.(interface{ ErrorValue() MalType }).ErrorValue()
+				binds := NewList(catchBind)
+				new_env, err := NewSubordinateEnvWithBinds(env, binds, NewList(caughtError))
+				if err != nil {
+					return nil, err
+				}
+				ast, err = do(ctx, catchDo, 0, 0, new_env)
+				if err != nil {
+					return nil, err
+				}
+				return ast, nil
+			}
+			return nil, e
+		}
+	case "context":
+		if a2 != nil {
+			return nil, lisperror.NewLispError(fmt.Errorf("context does not allow more than one argument"), a2)
+		}
+		childCtx, cancel := context.WithCancel(ctx)
+		exp, e := func() (res MalType, err error) {
+			defer cancel()
+			defer malRecover(&err)
+			return EVAL(childCtx, a1, env)
+		}()
+		if e != nil {
+			return nil, e
+		}
+		return exp, nil
+	case "do":
+		var err error
+		ast, err = do(ctx, ast, 1, 0, env)
+		if err != nil {
+			return nil, err
+		}
+		return ast, nil
+	case "if":
+		cond, e := EVAL(ctx, a1, env)
+		if e != nil {
+			return nil, e
+		}
+		if cond == nil || cond == false {
+			if len(ast.(List).Val) >= 4 {
+				ast = ast.(List).Val[3]
+				return EVAL(ctx, ast, env)
+			} else {
+				return nil, nil
+			}
+		} else {
+			return EVAL(ctx, a2, env)
+		}
+	case "fn":
+		fn := MalFunc{
+			Eval:    EVAL,
+			Exp:     a2,
+			Env:     env,
+			Params:  a1,
+			IsMacro: false,
+			GenEnv:  NewSubordinateEnvWithBinds,
+			Meta:    nil,
+			Cursor:  ast.(List).Cursor,
+		}
+		return fn, nil
+	default:
+		el, e := eval_ast(ctx, ast, env)
+		if e != nil {
+			return nil, e
+		}
+		f := el.(List).Val[0]
+		if Q[MalFunc](f) {
+			fn := f.(MalFunc)
+			ast = fn.Exp
+			env, e = NewSubordinateEnvWithBinds(fn.Env, fn.Params, List{Val: el.(List).Val[1:]})
+			if e != nil {
+				switch v := ast.(List).Val[0].(type) {
+				case Symbol:
+					return nil, lisperror.NewLispError(fmt.Errorf("%s (around %s)", e, v.Val), ast)
+				default:
+					return nil, lisperror.NewLispError(e, ast)
+				}
+			}
+			return EVAL(ctx, ast, env)
+		} else {
+			fn, ok := f.(Func)
+			if !ok {
+				return nil, lisperror.NewLispError(fmt.Errorf("attempt to call non-function (was of type %T)", f), el)
+			}
+			result, err := fn.Fn(ctx, el.(List).Val[1:])
+			if err != nil {
+				return nil, lisperror.NewLispError(err, ast)
+			}
+			return result, nil
+		}
+	}
+}
+
 func EVAL(ctx context.Context, ast MalType, env EnvType) (__res MalType, __err error) {
 	var e error
 

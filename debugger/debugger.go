@@ -133,10 +133,13 @@ func (deb *Debugger) Stepper(ast types.MalType, ns types.EnvType) Command {
 				} else {
 					switch key {
 					case keyboard.KeyF10:
+						colorAlert.Println("next (F10)")
 						return Next
 					case keyboard.KeyF11:
+						colorAlert.Println("in (F11)")
 						return In
 					case keyboard.KeyF12: // had to be Shitft-F11
+						colorAlert.Println("out (F12)")
 						return Out
 					case keyboard.KeyEnter:
 						colorAlert.Println("entering REPL (Enter); use Ctrl+D to exit")
@@ -267,7 +270,7 @@ func (deb *Debugger) printTrace(expr types.MalType, ns types.EnvType, pos *types
 			colorPosition.Print(pos.StringPositionRow())
 		}
 		str, _ := lisp.PRINT(expr)
-		colorSeparator.Print("› ")
+		colorSeparator.Print("⟩ ")
 		colorCode.Println(str)
 	}
 }
