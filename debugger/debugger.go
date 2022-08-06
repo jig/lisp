@@ -16,6 +16,7 @@ import (
 	"github.com/eiannone/keyboard"
 	"github.com/fatih/color"
 	"github.com/jig/lisp"
+	. "github.com/jig/lisp/debuggertypes"
 	"github.com/jig/lisp/lisperror"
 	"github.com/jig/lisp/repl"
 	"github.com/jig/lisp/types"
@@ -76,10 +77,10 @@ func (deb *Debugger) DumpState(ast types.MalType, ns types.EnvType, result types
 	fmt.Println()
 }
 
-func (deb *Debugger) Stepper(ast types.MalType, ns types.EnvType) {
+func (deb *Debugger) Stepper(ast types.MalType, ns types.EnvType) Command {
 	expr, ok := ast.(types.List)
 	if !ok {
-		return
+		return NoOp
 	}
 	pos := lisperror.GetPosition(expr)
 	if pos != nil && pos.Module != nil && strings.Contains(*pos.Module, deb.name) {
@@ -88,7 +89,7 @@ func (deb *Debugger) Stepper(ast types.MalType, ns types.EnvType) {
 			for {
 				rune, key, err := keyboard.GetKey()
 				if err != nil {
-					return
+					return NoOp
 				}
 				if rune != 0 {
 					switch rune {
@@ -132,7 +133,11 @@ func (deb *Debugger) Stepper(ast types.MalType, ns types.EnvType) {
 				} else {
 					switch key {
 					case keyboard.KeyF10:
-						return
+						return Next
+					case keyboard.KeyF11:
+						return In
+					case keyboard.KeyF12: // had to be Shitft-F11
+						return Out
 					case keyboard.KeyEnter:
 						colorAlert.Println("entering REPL (Enter); use Ctrl+D to exit")
 						keyboard.Close()
@@ -147,21 +152,21 @@ func (deb *Debugger) Stepper(ast types.MalType, ns types.EnvType) {
 						deb.stop = false
 						deb.trace = false
 						deb.replOnEnd = false
-						return
+						return NoOp
 					case keyboard.KeyF6:
 						colorAlert.Println("running to the end and spawn REPL (F6)")
 						keyboard.Close()
 						deb.stop = false
 						deb.trace = false
 						deb.replOnEnd = true
-						return
+						return NoOp
 					case keyboard.KeyF7:
 						colorAlert.Println("running to the end, trace and spawn REPL (F7)")
 						keyboard.Close()
 						deb.stop = false
 						deb.trace = true
 						deb.replOnEnd = true
-						return
+						return NoOp
 					case keyboard.KeyCtrlC:
 						colorAlert.Println("aborting debug session (Ctrl+C)")
 						keyboard.Close()
@@ -181,6 +186,7 @@ func (deb *Debugger) Stepper(ast types.MalType, ns types.EnvType) {
 			}
 		}
 	}
+	return NoOp
 }
 
 func readConfig(deb *Debugger) {

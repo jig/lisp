@@ -7,6 +7,7 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/jig/lisp/debuggertypes"
 	. "github.com/jig/lisp/env"
 	"github.com/jig/lisp/lisperror"
 	"github.com/jig/lisp/printer"
@@ -134,7 +135,7 @@ func is_macro_call(ast MalType, env EnvType) bool {
 	return false
 }
 
-var Stepper func(ast types.MalType, ns types.EnvType)
+var Stepper func(ast types.MalType, ns types.EnvType) debuggertypes.Command
 
 func macroexpand(ctx context.Context, ast MalType, env EnvType) (MalType, error) {
 	var mac MalType
@@ -198,19 +199,22 @@ func eval_ast(ctx context.Context, ast MalType, env EnvType) (MalType, error) {
 	}
 }
 
-type Command int
-
-const (
-	NoOp Command = iota
-	Next
-	Out
-	In
-)
-
 func EVAL(ctx context.Context, ast MalType, env EnvType) (__res MalType, __err error) {
 	var e error
 	if Stepper != nil {
-		Stepper(ast, env)
+		keep := Stepper
+		cmd := Stepper(ast, env)
+		switch cmd {
+		case debuggertypes.Next:
+			Stepper = nil
+			defer func() {
+				Stepper = keep
+			}()
+		case debuggertypes.In:
+			// do nothing
+		case debuggertypes.Out:
+		default:
+		}
 	}
 
 	for {
