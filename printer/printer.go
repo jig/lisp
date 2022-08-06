@@ -73,7 +73,7 @@ func Pr_str(obj types.MalType, print_readably bool) string {
 	// 	return "(atom " +
 	// 		Pr_str(tobj.Val, true) + ")"
 	default:
-		return fmt.Sprintf("%#v", obj)
+		return fmt.Sprintf("%v", obj)
 	}
 }
 
