@@ -277,7 +277,9 @@ func (deb *Debugger) printTrace(expr types.MalType, ns types.EnvType, pos *types
 
 func printHelp() {
 	help := `Debugging session started
-  F10:    to execute till next expr
+  F10:    to execute till next expr (not entering expression)
+  F11:    to execute till next expr (entering expression)
+  F12:    to skip debugging current expression
   Enter:  to spawn a REPL on current expr (use Tab to autocomplete)
   F5:     to execute till the end
   F6:     to execute till the end and spawn a REPL
