@@ -2,6 +2,8 @@ package printer
 
 import (
 	"fmt"
+	"reflect"
+	"runtime"
 	"strings"
 
 	"github.com/jig/lisp/marshaler"
@@ -65,15 +67,15 @@ func Pr_str(obj types.MalType, print_readably bool) string {
 		return "(fn " +
 			Pr_str(tobj.Params, true) + " " +
 			Pr_str(tobj.Exp, true) + ")"
-	case func([]types.MalType) (types.MalType, error):
-		return fmt.Sprintf("<function %v>", obj)
+	case types.Func:
+		return fmt.Sprintf("«function %v»", strings.ToLower(runtime.FuncForPC(reflect.ValueOf(tobj.Fn).Pointer()).Name()))
 	// case error:
 	// 	return "(go-error " + Pr_str(tobj.Error(), true) + ")"
 	// case *types.Atom:
 	// 	return "(atom " +
 	// 		Pr_str(tobj.Val, true) + ")"
 	default:
-		return fmt.Sprintf("%v", obj)
+		return fmt.Sprintf("%#v", obj)
 	}
 }
 
