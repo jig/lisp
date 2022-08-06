@@ -135,8 +135,6 @@ func is_macro_call(ast MalType, env EnvType) bool {
 	return false
 }
 
-var Stepper func(ast types.MalType, ns types.EnvType) debuggertypes.Command
-
 func macroexpand(ctx context.Context, ast MalType, env EnvType) (MalType, error) {
 	var mac MalType
 	var e error
@@ -199,21 +197,45 @@ func eval_ast(ctx context.Context, ast MalType, env EnvType) (MalType, error) {
 	}
 }
 
+var Stepper func(ast types.MalType, ns types.EnvType) debuggertypes.Command
+var skip bool
+var outing1, outing2 bool
+
 func EVAL(ctx context.Context, ast MalType, env EnvType) (__res MalType, __err error) {
 	var e error
+
+	// debugger section
 	if Stepper != nil {
-		keep := Stepper
-		cmd := Stepper(ast, env)
-		switch cmd {
-		case debuggertypes.Next:
-			Stepper = nil
-			defer func() {
-				Stepper = keep
+		if !skip {
+			cmd := Stepper(ast, env)
+
+			switch cmd {
+			case debuggertypes.Next:
+				skip = true
+				defer func() {
+					skip = false
+				}()
+			case debuggertypes.In:
+				skip = false
+				outing1 = false
+			case debuggertypes.Out:
+				skip = true
+				outing1 = true
+			case debuggertypes.NoOp:
+			default:
+				panic(fmt.Errorf("debugger command not handled %d", cmd))
+			}
+		} else if outing1 {
+			outing1 = false
+			outing2 = true
+			defer func() { // actually no need to defer
+				skip = true
 			}()
-		case debuggertypes.In:
-			// do nothing
-		case debuggertypes.Out:
-		default:
+		} else if outing2 {
+			outing2 = false
+			defer func() {
+				skip = false
+			}()
 		}
 	}
 

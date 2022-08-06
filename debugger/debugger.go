@@ -261,14 +261,14 @@ func (deb *Debugger) printTrace(expr types.MalType, ns types.EnvType, pos *types
 		}
 
 		// actual code trace
-		str, _ := lisp.PRINT(expr)
-		colorCode.Println(str)
-
 		if pos != nil {
 			colorFileName.Print(pos.StringModule())
 			colorSeparator.Print("§")
-			colorPosition.Println(pos.StringPosition())
+			colorPosition.Print(pos.StringPositionRow())
 		}
+		str, _ := lisp.PRINT(expr)
+		colorSeparator.Print("› ")
+		colorCode.Println(str)
 	}
 }
 
