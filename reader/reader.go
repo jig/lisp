@@ -2,6 +2,7 @@ package reader
 
 import (
 	"context"
+	_ "embed"
 	"errors"
 	"fmt"
 	"regexp"
@@ -38,8 +39,11 @@ func (tr *TokenReader) peek() *Token {
 	return &tr.tokens[tr.position]
 }
 
+//go:embed tokenizer.regex
+var tokenizerRegex string
+
 var (
-	tokenizerRE  = regexp.MustCompile(`(?:\n|[ \r\t,]*)(~@|«|»|#{|\$[0-9A-Z]+|[\[\]{}()'` + "`" + `~^@]|"(?:\\.|[^\\"])*"?|¬[^¬]*(?:(?:¬¬)[^¬]*)*¬?|;.*|[^\s\[\]{}('"` + "`" + `,;)]*)`)
+	tokenizerRE  = regexp.MustCompile(tokenizerRegex)
 	integerRE    = regexp.MustCompile(`^-?[0-9]+$`)
 	stringRE     = regexp.MustCompile(`^"(?:\\.|[^\\"])*"$`)
 	jsonStringRE = regexp.MustCompile(`^¬[^¬]*(?:(?:¬¬)[^¬]*)*¬$`)
