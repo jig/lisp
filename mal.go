@@ -240,6 +240,13 @@ func EVAL(ctx context.Context, ast MalType, env EnvType) (__res MalType, __err e
 				skip = true
 				defer func() {
 					skip = false
+					if __err != nil {
+						str, _ := PRINT(__err)
+						fmt.Println("ERROR: ", str)
+					} else {
+						str, _ := PRINT(__res)
+						fmt.Println("ANSWER: ", str)
+					}
 				}()
 			case debuggertypes.In:
 				skip = false
