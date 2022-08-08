@@ -136,7 +136,13 @@ func call(overrideFN *string, namespace types.EnvType, fIn types.MalType, args .
 func _recover(fFullName string, err *error) {
 	rerr := recover()
 	if rerr != nil {
-		*err = lisperror.NewGoError(fFullName, rerr)
+		switch rerr := rerr.(type) {
+		case error:
+			*err = lisperror.NewGoError(fFullName, rerr)
+		default:
+			*err = lisperror.NewLispError(rerr, nil)
+		}
+
 	}
 }
 

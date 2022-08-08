@@ -71,8 +71,10 @@ func Pr_str(obj types.MalType, print_readably bool) string {
 		return fmt.Sprintf("«function %v»", strings.ToLower(runtime.FuncForPC(reflect.ValueOf(tobj.Fn).Pointer()).Name()))
 	case func([]types.MalType) (types.MalType, error):
 		return fmt.Sprintf("«function %v»", obj)
+	case error:
+		return "«go-error " + Pr_str(tobj.Error(), true) + "»"
 	// case error:
-	// 	return "(go-error " + Pr_str(tobj.Error(), true) + ")"
+	// 	return Pr_str(tobj.Error(), true)
 	// case *types.Atom:
 	// 	return "(atom " +
 	// 		Pr_str(tobj.Val, true) + ")"

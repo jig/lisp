@@ -50,7 +50,7 @@
 ;=>true
 
 @(future (/ 1 0))
-;/.*integer divide by zero$
+;/.*integer divide by zero"»$
 ;=>nil
 
 (def async-bad (future (/ 1 0)))
@@ -60,7 +60,7 @@
 (future-done? async-bad)
 ;=>true
 @async-bad
-;/.*integer divide by zero$
+;/.*integer divide by zero"»$
 ;=>nil
 (future-cancelled? async-bad)
 ;=>false

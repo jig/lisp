@@ -29,7 +29,7 @@ func TestTryCatchError2(t *testing.T) {
 	}
 
 	//if !strings.HasSuffix(res.(string), `'abc' not found`) {
-	if res != `symbol 'abc' not found` {
+	if res != `«go-error "symbol 'abc' not found"»` {
 		t.Fatalf("%s", res)
 	}
 }
@@ -42,7 +42,7 @@ func TestTryCatchError3(t *testing.T) {
 	}
 
 	// if !strings.HasSuffix(res.(string), `'abc' not found`) {
-	if res != `symbol 'abc' not found` {
+	if res != `«go-error "symbol 'abc' not found"»` {
 		t.Fatalf("%s", res)
 	}
 }
