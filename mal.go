@@ -7,9 +7,12 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/jig/lisp/debuggertypes"
 	. "github.com/jig/lisp/env"
+	"github.com/jig/lisp/lisperror"
 	"github.com/jig/lisp/printer"
 	"github.com/jig/lisp/reader"
+	"github.com/jig/lisp/types"
 	. "github.com/jig/lisp/types"
 )
 
@@ -18,12 +21,12 @@ var placeholderRE = regexp.MustCompile(`^(;; \$[\-\d\w]+)+\s(.+)`)
 const preamblePrefix = ";; $"
 
 // READ reads an expression
-func READ(str string, cursor *Position) (MalType, error) {
-	return reader.Read_str(str, cursor, nil)
+func READ(str string, cursor *Position, ns EnvType) (MalType, error) {
+	return reader.Read_str(str, cursor, nil, ns)
 }
 
 // READ reads an expression with preamble placeholders
-func READWithPreamble(str string, cursor *Position) (MalType, error) {
+func READWithPreamble(str string, cursor *Position, ns EnvType) (MalType, error) {
 	placeholderMap := &HashMap{Val: map[string]MalType{}}
 	i := 0
 	for ; ; i++ {
@@ -32,14 +35,14 @@ func READWithPreamble(str string, cursor *Position) (MalType, error) {
 		line, str, _ = strings.Cut(str, "\n")
 		line = strings.Trim(line, " \t\r\n")
 		if len(line) == 0 {
-			return reader.Read_str(str, cursor, placeholderMap)
+			return reader.Read_str(str, cursor, placeholderMap, ns)
 		}
 		if !strings.HasPrefix(line, preamblePrefix) {
-			return reader.Read_str(line+"\n"+str, cursor, placeholderMap)
+			return reader.Read_str(line+"\n"+str, cursor, placeholderMap, ns)
 		}
 		lineItems := placeholderRE.FindAllStringSubmatch(line, -1)
 		if len(lineItems) != 1 || len(lineItems[0]) != 3 {
-			return nil, NewMalError(errors.New("invalid preamble format"), &Position{
+			return nil, lisperror.NewLispError(errors.New("invalid preamble format"), &Position{
 				Row: i + 1,
 				Col: 1,
 			})
@@ -48,7 +51,7 @@ func READWithPreamble(str string, cursor *Position) (MalType, error) {
 		item, _ := reader.Read_str(placeholderValue, &Position{
 			Row: i + 1,
 			Col: 1,
-		}, nil)
+		}, nil, ns)
 		placeholderKey := lineItems[0][1][3:]
 		placeholderMap.Val[placeholderKey] = item
 	}
@@ -132,14 +135,10 @@ func is_macro_call(ast MalType, env EnvType) bool {
 	return false
 }
 
-var Stepper func(ast MalType, ns EnvType, isMacro bool)
-
 func macroexpand(ctx context.Context, ast MalType, env EnvType) (MalType, error) {
 	var mac MalType
 	var e error
-	var isMacro bool
 	for is_macro_call(ast, env) {
-		isMacro = true
 		slc, _ := GetSlice(ast)
 		a0 := slc[0]
 		mac, e = env.Get(a0.(Symbol))
@@ -152,9 +151,6 @@ func macroexpand(ctx context.Context, ast MalType, env EnvType) (MalType, error)
 			return nil, e
 		}
 	}
-	if Stepper != nil {
-		Stepper(ast, env, isMacro)
-	}
 	return ast, nil
 }
 
@@ -162,7 +158,7 @@ func eval_ast(ctx context.Context, ast MalType, env EnvType) (MalType, error) {
 	if Q[Symbol](ast) {
 		value, err := env.Get(ast.(Symbol))
 		if err != nil {
-			return nil, NewMalError(err, ast)
+			return nil, lisperror.NewLispError(err, ast)
 		}
 		return value, nil
 	} else if Q[List](ast) {
@@ -201,17 +197,88 @@ func eval_ast(ctx context.Context, ast MalType, env EnvType) (MalType, error) {
 	}
 }
 
-type Command int
+var Stepper func(ast types.MalType, ns types.EnvType) debuggertypes.Command
+var skip bool
+var outing1, outing2 bool
 
-const (
-	NoOp Command = iota
-	Next
-	Out
-	In
-)
+func do(ctx context.Context, ast MalType, from, to int, env EnvType) (MalType, error) {
+	if outing1 {
+		defer func() {
+			skip = true
+			outing1 = false
+			outing2 = true
+		}()
+	}
+	if ast == nil {
+		return nil, nil
+	}
+	lst := ast.(List).Val
+	if len(lst) == from {
+		return nil, nil
+	}
+	evaledAST, e := eval_ast(ctx, List{Val: lst[from : len(lst)+to]}, env)
+	if e != nil {
+		return nil, e
+	}
+	evaledLst := evaledAST.(List).Val
+	if to == 0 {
+		return evaledLst[len(evaledLst)-1], nil
+	}
+	return lst[len(lst)-1], nil
+}
 
-func EVAL(ctx context.Context, ast MalType, env EnvType) (MalType, error) {
+func EVAL(ctx context.Context, ast MalType, env EnvType) (__res MalType, __err error) {
 	var e error
+
+	// debugger section
+	if Stepper != nil {
+		if !skip {
+			cmd := Stepper(ast, env)
+
+			switch cmd {
+			case debuggertypes.Next:
+				skip = true
+				defer func() {
+					skip = false
+					if __err != nil {
+						str, _ := PRINT(__err)
+						fmt.Println("ERROR: ", str)
+					} else {
+						str, _ := PRINT(__res)
+						fmt.Println("ANSWER: ", str)
+					}
+				}()
+			case debuggertypes.In:
+				skip = false
+				outing1 = false
+			case debuggertypes.Out:
+				skip = true
+				outing1 = true
+			case debuggertypes.NoOp:
+			default:
+				panic(fmt.Errorf("debugger command not handled %d", cmd))
+			}
+		}
+		if outing2 {
+			defer func() {
+				skip = false
+				outing2 = false
+			}()
+		}
+		// else if outing1 {
+		// 	outing1 = false
+		// 	outing2 = true
+		// 	defer func() { // actually no need to defer
+		// 		skip = true
+		// 	}()
+		// } else if outing2 {
+		// 	outing2 = false
+		// 	defer func() {
+		// 		skip = false
+		// 	}()
+		// }
+	}
+
 	for {
 		if ctx != nil {
 			select {
@@ -274,7 +341,7 @@ func EVAL(ctx context.Context, ast MalType, env EnvType) (MalType, error) {
 			case Symbol:
 				return env.Set(a1, res), nil
 			default:
-				return nil, NewMalError(fmt.Errorf("cannot use '%T' as identifier", a1), ast)
+				return nil, lisperror.NewLispError(fmt.Errorf("cannot use '%T' as identifier", a1), ast)
 			}
 		case "let":
 			let_env := NewSubordinateEnv(env)
@@ -283,11 +350,11 @@ func EVAL(ctx context.Context, ast MalType, env EnvType) (MalType, error) {
 				return nil, e
 			}
 			if len(arr1)%2 != 0 {
-				return nil, NewMalError(errors.New("let: odd elements on binding vector"), a1)
+				return nil, lisperror.NewLispError(errors.New("let: odd elements on binding vector"), a1)
 			}
 			for i := 0; i < len(arr1); i += 2 {
 				if !Q[Symbol](arr1[i]) {
-					return nil, NewMalError(errors.New("non-symbol bind value"), a1)
+					return nil, lisperror.NewLispError(errors.New("non-symbol bind value"), a1)
 				}
 				exp, e := EVAL(ctx, arr1[i+1], let_env)
 				if e != nil {
@@ -317,7 +384,6 @@ func EVAL(ctx context.Context, ast MalType, env EnvType) (MalType, error) {
 		case "macroexpand":
 			return macroexpand(ctx, a1, env)
 		case "try":
-			var exc MalType
 			lst := ast.(List).Val
 			var last MalType
 			var prelast MalType
@@ -344,7 +410,7 @@ func EVAL(ctx context.Context, ast MalType, env EnvType) (MalType, error) {
 				catchDo = List{Val: last.(List).Val[2:]}
 				tryDo = List{Val: lst[1 : len(lst)-1]}
 				if len(catchDo.(List).Val) == 0 {
-					return nil, NewMalError(errors.New("catch must have 2 arguments at least"), ast)
+					return nil, lisperror.NewLispError(errors.New("catch must have 2 arguments at least"), ast)
 				}
 			case "finally":
 				finallyDo = List{Val: last.(List).Val[1:]}
@@ -375,21 +441,15 @@ func EVAL(ctx context.Context, ast MalType, env EnvType) (MalType, error) {
 				return exp, nil
 			} else {
 				if catchDo != nil {
-					switch e := e.(type) {
-					case interface{ ErrorEncapsuled() MalType }:
-						exc = e.ErrorEncapsuled()
-					default:
-						// branch not used
-						exc = e
-					}
+					caughtError := e.(interface{ ErrorValue() MalType }).ErrorValue()
 					binds := NewList(catchBind)
-					new_env, e := NewSubordinateEnvWithBinds(env, binds, NewList(exc))
-					if e != nil {
-						return nil, e
+					new_env, err := NewSubordinateEnvWithBinds(env, binds, NewList(caughtError))
+					if err != nil {
+						return nil, err
 					}
-					ast, e = do(ctx, catchDo, 0, 0, new_env)
-					if e != nil {
-						return nil, e
+					ast, err = do(ctx, catchDo, 0, 0, new_env)
+					if err != nil {
+						return nil, err
 					}
 					env = new_env
 					continue
@@ -398,7 +458,7 @@ func EVAL(ctx context.Context, ast MalType, env EnvType) (MalType, error) {
 			}
 		case "context":
 			if a2 != nil {
-				return nil, NewMalError(fmt.Errorf("context does not allow more than one argument"), a2)
+				return nil, lisperror.NewLispError(fmt.Errorf("context does not allow more than one argument"), a2)
 			}
 			childCtx, cancel := context.WithCancel(ctx)
 			exp, e := func() (res MalType, err error) {
@@ -455,22 +515,25 @@ func EVAL(ctx context.Context, ast MalType, env EnvType) (MalType, error) {
 				if e != nil {
 					switch v := ast.(List).Val[0].(type) {
 					case Symbol:
-						return nil, NewMalError(fmt.Errorf("%s (around %s)", e, v.Val), ast)
+						return nil, lisperror.NewLispError(fmt.Errorf("%s (around %s)", e, v.Val), ast)
 					default:
-						return nil, NewMalError(e, ast)
+						return nil, lisperror.NewLispError(e, ast)
 					}
 				}
 			} else {
 				fn, ok := f.(Func)
 				if !ok {
-					return nil, NewMalError(fmt.Errorf("attempt to call non-function (was of type %T)", f), el)
+					return nil, lisperror.NewLispError(fmt.Errorf("attempt to call non-function (was of type %T)", f), el)
 				}
 				result, err := fn.Fn(ctx, el.(List).Val[1:])
 				if err != nil {
-					return nil, NewMalError(err, ast)
+					return nil, lisperror.NewLispError(err, ast)
 				}
 				return result, nil
 			}
+		}
+		if Stepper != nil {
+			return EVAL(ctx, ast, env)
 		}
 	} // TCO loop
 }
@@ -480,25 +543,6 @@ func first(list MalType) string {
 		return list.(List).Val[0].(Symbol).Val
 	}
 	return ""
-}
-
-func do(ctx context.Context, ast MalType, from, to int, env EnvType) (MalType, error) {
-	if ast == nil {
-		return nil, nil
-	}
-	lst := ast.(List).Val
-	if len(lst) == from {
-		return nil, nil
-	}
-	evaledAST, e := eval_ast(ctx, List{Val: lst[from : len(lst)+to]}, env)
-	if e != nil {
-		return nil, e
-	}
-	evaledLst := evaledAST.(List).Val
-	if to == 0 {
-		return evaledLst[len(evaledLst)-1], nil
-	}
-	return lst[len(lst)-1], nil
 }
 
 func malRecover(err *error) {
@@ -515,7 +559,7 @@ func PRINT(exp MalType) (string, error) {
 
 // REPL
 func REPL(ctx context.Context, repl_env EnvType, str string, cursor *Position) (MalType, error) {
-	ast, err := READ(str, cursor)
+	ast, err := READ(str, cursor, repl_env)
 	if err != nil {
 		return nil, err
 	}
@@ -528,7 +572,7 @@ func REPL(ctx context.Context, repl_env EnvType, str string, cursor *Position) (
 
 // REPLWithPreamble
 func REPLWithPreamble(ctx context.Context, repl_env EnvType, str string, cursor *Position) (MalType, error) {
-	ast, err := READWithPreamble(str, cursor)
+	ast, err := READWithPreamble(str, cursor, repl_env)
 	if err != nil {
 		return nil, err
 	}
@@ -537,4 +581,13 @@ func REPLWithPreamble(ctx context.Context, repl_env EnvType, str string, cursor 
 		return nil, err
 	}
 	return PRINT(exp)
+}
+
+// ReadEvalWithPreamble
+func ReadEvalWithPreamble(ctx context.Context, repl_env EnvType, str string, cursor *Position) (MalType, error) {
+	ast, err := READWithPreamble(str, cursor, repl_env)
+	if err != nil {
+		return nil, err
+	}
+	return EVAL(ctx, ast, repl_env)
 }

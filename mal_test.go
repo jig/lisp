@@ -72,7 +72,7 @@ func BenchmarkParallelREAD(b *testing.B) {
 			str := `(def not (fn (a) (if a false true)))`
 
 			var e error
-			if _, e = READ(str, nil); e != nil {
+			if _, e = READ(str, nil, repl_env); e != nil {
 				b.Fatal(e)
 			}
 

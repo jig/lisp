@@ -7,6 +7,7 @@ import (
 	"runtime"
 	"strings"
 
+	"github.com/jig/lisp/lisperror"
 	"github.com/jig/lisp/types"
 )
 
@@ -135,7 +136,7 @@ func call(overrideFN *string, namespace types.EnvType, fIn types.MalType, args .
 func _recover(fFullName string, err *error) {
 	rerr := recover()
 	if rerr != nil {
-		*err = types.NewGoError(fFullName, rerr)
+		*err = lisperror.NewGoError(fFullName, rerr)
 	}
 }
 

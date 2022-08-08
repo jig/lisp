@@ -16,6 +16,8 @@ import (
 	"github.com/eiannone/keyboard"
 	"github.com/fatih/color"
 	"github.com/jig/lisp"
+	. "github.com/jig/lisp/debuggertypes"
+	"github.com/jig/lisp/lisperror"
 	"github.com/jig/lisp/repl"
 	"github.com/jig/lisp/types"
 )
@@ -60,30 +62,34 @@ func (deb *Debugger) Shutdown() {
 	saveState(deb)
 }
 
-var (
-	colorFileName  = color.New(color.FgCyan)
-	colorSeparator = color.New(color.FgWhite)
-	colorExpr      = color.New(color.FgYellow, color.Bold)
-	colorPosition  = color.New(color.FgGreen)
-	colorAlert     = color.New(color.FgRed)
-	colorCode      = color.New(color.FgHiWhite, color.Bold)
-	colorKey       = color.New(color.FgHiRed, color.Bold)
-	colorDump      = color.New(color.FgYellow)
-)
-
-func (deb *Debugger) Stepper(ast types.MalType, ns types.EnvType, isMacro bool) {
-	expr, ok := ast.(types.List)
-	if !ok {
+func (deb *Debugger) DumpState(ast types.MalType, ns types.EnvType, result types.MalType, err error) {
+	deb.printTrace(ast, ns, nil)
+	if err != nil {
+		colorAlert.Print("Error")
+		colorSeparator.Print(": ")
+		colorDump.Println(err)
 		return
 	}
-	pos := types.GetPosition(expr)
+	str, _ := lisp.PRINT(result)
+	colorExpr.Print("Result")
+	colorSeparator.Print(": ")
+	colorDump.Println(str)
+	fmt.Println()
+}
+
+func (deb *Debugger) Stepper(ast types.MalType, ns types.EnvType) Command {
+	expr, ok := ast.(types.List)
+	if !ok {
+		return NoOp
+	}
+	pos := lisperror.GetPosition(expr)
 	if pos != nil && pos.Module != nil && strings.Contains(*pos.Module, deb.name) {
-		deb.printTrace(expr, ns, pos, isMacro)
+		deb.printTrace(expr, ns, pos)
 		if deb.stop {
 			for {
 				rune, key, err := keyboard.GetKey()
 				if err != nil {
-					return
+					return NoOp
 				}
 				if rune != 0 {
 					switch rune {
@@ -123,18 +129,25 @@ func (deb *Debugger) Stepper(ast types.MalType, ns types.EnvType, isMacro bool) 
 					default:
 						colorAlert.Printf("key '%c' not bound\n", rune)
 					}
-					deb.printTrace(expr, ns, pos, isMacro)
+					deb.printTrace(expr, ns, pos)
 				} else {
 					switch key {
 					case keyboard.KeyF10:
-						return
+						colorAlert.Println("next (F10)")
+						return Next
+					case keyboard.KeyF11:
+						colorAlert.Println("in (F11)")
+						return In
+					case keyboard.KeyF12: // had to be Shitft-F11
+						colorAlert.Println("out (F12)")
+						return Out
 					case keyboard.KeyEnter:
 						colorAlert.Println("entering REPL (Enter); use Ctrl+D to exit")
 						keyboard.Close()
 						// passing ns without a new Env allows debugger to modify it
 						repl.Execute(context.Background(), ns)
 						keyboard.Open()
-						deb.printTrace(expr, ns, pos, isMacro)
+						deb.printTrace(expr, ns, pos)
 						continue
 					case keyboard.KeyF5:
 						colorAlert.Println("running to the end (F5)")
@@ -142,21 +155,21 @@ func (deb *Debugger) Stepper(ast types.MalType, ns types.EnvType, isMacro bool) 
 						deb.stop = false
 						deb.trace = false
 						deb.replOnEnd = false
-						return
+						return NoOp
 					case keyboard.KeyF6:
 						colorAlert.Println("running to the end and spawn REPL (F6)")
 						keyboard.Close()
 						deb.stop = false
 						deb.trace = false
 						deb.replOnEnd = true
-						return
+						return NoOp
 					case keyboard.KeyF7:
 						colorAlert.Println("running to the end, trace and spawn REPL (F7)")
 						keyboard.Close()
 						deb.stop = false
 						deb.trace = true
 						deb.replOnEnd = true
-						return
+						return NoOp
 					case keyboard.KeyCtrlC:
 						colorAlert.Println("aborting debug session (Ctrl+C)")
 						keyboard.Close()
@@ -176,6 +189,7 @@ func (deb *Debugger) Stepper(ast types.MalType, ns types.EnvType, isMacro bool) 
 			}
 		}
 	}
+	return NoOp
 }
 
 func readConfig(deb *Debugger) {
@@ -217,19 +231,19 @@ func saveState(deb *Debugger) {
 	}
 }
 
-func (deb *Debugger) printTrace(expr types.MalType, ns types.EnvType, pos *types.Position, isMacro bool) {
+func (deb *Debugger) printTrace(expr types.MalType, ns types.EnvType, pos *types.Position) {
 	if deb.trace {
 		// dump expressions
 		ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
 		defer cancel()
 
 		exprsSorted := []string{}
-		for exprString, _ := range deb.config.Exprs {
+		for exprString := range deb.config.Exprs {
 			exprsSorted = append(exprsSorted, exprString)
 		}
 		sort.Strings(exprsSorted)
 		for _, exprString := range exprsSorted {
-			ast, err := lisp.READ(exprString, types.NewCursorFile("REPL"))
+			ast, err := lisp.READ(exprString, types.NewCursorFile("REPL"), ns)
 			if err != nil {
 				colorAlert.Println(err)
 				continue
@@ -250,24 +264,22 @@ func (deb *Debugger) printTrace(expr types.MalType, ns types.EnvType, pos *types
 		}
 
 		// actual code trace
-		str, _ := lisp.PRINT(expr)
-		if isMacro {
-			colorSeparator.Print("M")
-			colorCode.Println(str)
-		} else {
-			colorCode.Println(str)
+		if pos != nil {
+			colorFileName.Print(pos.StringModule())
+			colorSeparator.Print("§")
+			colorPosition.Print(pos.StringPositionRow())
 		}
-
-		colorFileName.Print(pos.StringModule())
-		colorSeparator.Print("§")
-		colorPosition.Println(pos.StringPosition())
-		fmt.Println()
+		str, _ := lisp.PRINT(expr)
+		colorSeparator.Print("⟩ ")
+		colorCode.Println(str)
 	}
 }
 
 func printHelp() {
 	help := `Debugging session started
-  F10:    to execute till next expr
+  F10:    to execute till next expr (not entering expression)
+  F11:    to execute till next expr (entering expression)
+  F12:    to skip debugging current expression
   Enter:  to spawn a REPL on current expr (use Tab to autocomplete)
   F5:     to execute till the end
   F6:     to execute till the end and spawn a REPL
@@ -311,3 +323,15 @@ func filterInput(r rune) (rune, bool) {
 	}
 	return r, true
 }
+
+var (
+	colorFileName  = color.New(color.FgCyan)
+	colorSeparator = color.New(color.FgWhite)
+	colorExpr      = color.New(color.FgYellow, color.Bold)
+	colorPosition  = color.New(color.FgGreen)
+	colorAlert     = color.New(color.FgRed)
+	colorCode      = color.New(color.FgHiWhite, color.Bold)
+	colorResult    = color.New(color.FgCyan)
+	colorKey       = color.New(color.FgHiRed, color.Bold)
+	colorDump      = color.New(color.FgYellow)
+)

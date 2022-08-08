@@ -15,6 +15,7 @@ import (
 	spew "github.com/davecgh/go-spew/spew"
 	"github.com/google/uuid"
 	"github.com/jig/lisp/lib/call"
+	"github.com/jig/lisp/lisperror"
 	"github.com/jig/lisp/marshaler"
 	"github.com/jig/lisp/printer"
 	"github.com/jig/lisp/reader"
@@ -111,6 +112,13 @@ func Load(env EnvType) {
 	call.Call(env, apply, 2)     // at least two parameters
 	call.Call(env, conj, 2)      // at least two parameters
 	call.Call(env, assert, 1, 2) // at least one parameter, at most two
+
+	call.Call(env, go_error, 1)  // at least one parameter
+	call.Call(env, pAnic)        // at least one parameter
+	call.Call(env, unwrap_error) // at least one parameter
+
+	call.CallOverrideFN(env, "type?", istype)
+	call.Call(env, new_error, 1, 2)
 }
 
 func LoadInput(env types.EnvType) {
@@ -118,9 +126,78 @@ func LoadInput(env types.EnvType) {
 	call.Call(env, readLine)
 }
 
+func new_error(err types.MalType, cursor ...*types.Position) (lisperror.LispError, error) {
+	if len(cursor) == 0 {
+		return lisperror.NewLispError(err, nil), nil
+	}
+	return lisperror.NewLispError(err, cursor[0]), nil
+}
+
 // Errors/Exceptions
 func throw(a MalType) (MalType, error) {
-	return nil, NewMalError(a, nil)
+	switch a := a.(type) {
+	case error:
+		return nil, a
+	default:
+		return nil, lisperror.NewLispError(a, nil)
+	}
+}
+
+func pAnic(arg MalType) {
+	panic(arg)
+}
+
+func unwrap_error(err error) (MalType, error) {
+	return errors.Unwrap(err), nil
+}
+
+func go_error(format string, args ...MalType) (MalType, error) {
+	if len(args) == 0 {
+		return errors.New(format), nil
+	}
+	var errorfArgs []any
+	for _, i := range args {
+		errorfArgs = append(errorfArgs, i)
+	}
+	return fmt.Errorf(format, errorfArgs...), nil
+}
+
+func istype(arg MalType) (string, error) {
+	switch arg := arg.(type) {
+	case nil:
+		return "nil", nil
+	case List:
+		return "list", nil
+	case HashMap:
+		return "hash-map", nil
+	case Vector:
+		return "vector", nil
+	case Set:
+		return "set", nil
+	case int:
+		return "integer", nil
+	case bool:
+		return "boolean", nil
+	case Symbol:
+		return "symbol", nil
+	case string:
+		if len(arg) != 0 && strings.HasPrefix(arg, "ʞ") {
+			return "keyword", nil
+		}
+		return "string", nil
+	case MalFunc:
+		return "function", nil
+	case interface{ ErrorValue() MalType }:
+		return "error", nil
+	case Typed:
+		return arg.Type(), nil
+	case error:
+		return "go-error", nil
+	case Func:
+		return "go-function", nil
+	default:
+		return fmt.Sprintf("unsupported(%T)", arg), nil
+	}
 }
 
 func fn_q(a MalType) (MalType, error) {
@@ -828,7 +905,7 @@ func assert(a ...MalType) (MalType, error) {
 	case string:
 		return nil, errors.New(a1)
 	default:
-		return nil, NewMalError(a1, nil)
+		return nil, lisperror.NewLispError(a1, nil)
 	}
 }
 

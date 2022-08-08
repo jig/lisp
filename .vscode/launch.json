@@ -44,6 +44,13 @@
             "args":[
                 "./examples/mal.lisp"
             ]
+        },
+        {
+            "name": "Reader",
+            "type": "go",
+            "request": "launch",
+            "mode": "test",
+            "program": "${workspaceFolder}/reader"
         }
     ]
 }

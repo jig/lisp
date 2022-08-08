@@ -2,6 +2,8 @@ package printer
 
 import (
 	"fmt"
+	"reflect"
+	"runtime"
 	"strings"
 
 	"github.com/jig/lisp/marshaler"
@@ -19,6 +21,10 @@ func Pr_list(lst []types.MalType, pr bool,
 
 func Pr_str(obj types.MalType, print_readably bool) string {
 	switch tobj := obj.(type) {
+	case types.LispPrintable:
+		return tobj.LispPrint(Pr_str)
+	// case lisperror.LispError:
+	// 	return tobj.LispPrint(Pr_str)
 	case types.List:
 		return Pr_list(tobj.Val, print_readably, "(", ")", " ")
 	case types.Vector:
@@ -61,10 +67,12 @@ func Pr_str(obj types.MalType, print_readably bool) string {
 		return "(fn " +
 			Pr_str(tobj.Params, true) + " " +
 			Pr_str(tobj.Exp, true) + ")"
+	case types.Func:
+		return fmt.Sprintf("«function %v»", strings.ToLower(runtime.FuncForPC(reflect.ValueOf(tobj.Fn).Pointer()).Name()))
 	case func([]types.MalType) (types.MalType, error):
-		return fmt.Sprintf("<function %v>", obj)
-	case types.LispPrintable:
-		return tobj.LispPrint(Pr_str)
+		return fmt.Sprintf("«function %v»", obj)
+	// case error:
+	// 	return "(go-error " + Pr_str(tobj.Error(), true) + ")"
 	// case *types.Atom:
 	// 	return "(atom " +
 	// 		Pr_str(tobj.Val, true) + ")"

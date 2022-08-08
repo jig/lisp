@@ -72,6 +72,9 @@ go test -benchmem -benchtime 5s -bench '^.+$' github.com/jig/lisp
 - Added support for `finally` inside `try`. `finally` expression is evaluated for side effects only. `finally` is optional
 - Added `spew`
 - Added `future`, and `future-*` companion functions from Clojure
+- `type?` returns the type name string
+- `go-error`, `unwrap` and `panic` mapping to Go's `errors.New/fmt.Errorf`, `Unwrap` and `panic` respectively
+
 
 # Embed Lisp in Go code
 

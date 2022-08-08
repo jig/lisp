@@ -363,3 +363,7 @@ type Placeholder struct {
 	Index  int
 	Cursor *Position
 }
+
+type Typed interface {
+	Type() string
+}

@@ -18,7 +18,7 @@ func TestCastFunc(t *testing.T) {
 	repl_env := env.NewEnv()
 	core.Load(repl_env)
 	ctx := context.Background()
-	ast, err := READ(castfunc_test, types.NewCursorFile(castfunc_test))
+	ast, err := READ(castfunc_test, types.NewCursorFile(castfunc_test), repl_env)
 	if err != nil {
 		t.Fatal(err)
 	}

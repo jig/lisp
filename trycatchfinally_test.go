@@ -16,7 +16,7 @@ func TestTryCatchFinally(t *testing.T) {
 	repl_env := env.NewEnv()
 	core.Load(repl_env)
 	ctx := context.Background()
-	exp, err := READ(trycatchfinally_test, nil)
+	exp, err := READ(trycatchfinally_test, nil, repl_env)
 	if err != nil {
 		t.Fatal(err)
 	}

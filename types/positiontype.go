@@ -134,6 +134,19 @@ func (cursor *Position) StringPosition() string {
 	return fmt.Sprintf("%d…%d,%d…%d", cursor.BeginRow, cursor.Row, cursor.BeginCol, cursor.Col)
 }
 
+func (cursor *Position) StringPositionRow() string {
+	if cursor == nil {
+		return ""
+	}
+	if cursor.Row < 0 {
+		return ""
+	}
+	if cursor.BeginRow != cursor.Row {
+		return fmt.Sprintf("%d…%d", cursor.BeginRow, cursor.Row)
+	}
+	return fmt.Sprintf("%d", cursor.Row)
+}
+
 func (cursor *Position) Includes(inside Position) bool {
 	if cursor == nil {
 		return false

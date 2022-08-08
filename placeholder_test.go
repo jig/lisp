@@ -125,7 +125,7 @@ func TestREADWithPreamble(t *testing.T) {
 `
 
 	// exp, err := READ_WithPlaceholders(str, nil, []MalType{"hello", "{\"key\": \"value\"}", 44, List{Val: []MalType{Symbol{Val: "quote"}, List{Val: []MalType{23, 37}}}}})
-	exp, err := READWithPreamble(str, nil)
+	exp, err := READWithPreamble(str, nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -230,7 +230,7 @@ func TestAddPreamble(t *testing.T) {
 
 	// fmt.Println(source)
 
-	exp, err := READWithPreamble(source, nil)
+	exp, err := READWithPreamble(source, nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -322,7 +322,7 @@ func TestPlaceholdersEmbeddedWrong1(t *testing.T) {
 `
 
 	// exp, err := READ_WithPlaceholders(str, nil, []MalType{"hello", "{\"key\": \"value\"}", 44, List{Val: []MalType{Symbol{Val: "quote"}, List{Val: []MalType{23, 37}}}}})
-	_, err := READWithPreamble(str, nil)
+	_, err := READWithPreamble(str, nil, nil)
 	if err == nil {
 		t.Fatal("error expected but err was nil")
 	}
@@ -341,7 +341,7 @@ func TestPlaceholdersEmbeddedNoBlankLine(t *testing.T) {
 ;; $1 27
 (= (+ $0 $1) 100)
 `
-	exp, err := READWithPreamble(str, nil)
+	exp, err := READWithPreamble(str, nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -428,7 +428,7 @@ func BenchmarkREADWithPreamble(b *testing.B) {
 		b.Fatal(err)
 	}
 	for n := 0; n < b.N; n++ {
-		res, err := READWithPreamble(codePreamble, nil)
+		res, err := READWithPreamble(codePreamble, nil, nil)
 		if err != nil {
 			b.Fatal(err)
 		}
@@ -457,7 +457,7 @@ func BenchmarkNewEnv(b *testing.B) {
 		b.Fatal(err)
 	}
 
-	ast, err := READWithPreamble(codePreamble, nil)
+	ast, err := READWithPreamble(codePreamble, nil, nil)
 	if err != nil {
 		b.Fatal(err)
 	}
@@ -500,7 +500,7 @@ func BenchmarkCompleteSendingWithPreamble(b *testing.B) {
 
 		// protocol here
 
-		ast, err := READWithPreamble(sentCode, nil)
+		ast, err := READWithPreamble(sentCode, nil, nil)
 		if err != nil {
 			b.Fatal(err)
 		}
@@ -542,7 +542,7 @@ func BenchmarkCompleteSendingWithPreambleSolved(b *testing.B) {
 			b.Fatal(err)
 		}
 
-		sentAST, err := READWithPreamble(codePreamble, nil)
+		sentAST, err := READWithPreamble(codePreamble, nil, nil)
 		if err != nil {
 			b.Fatal(err)
 		}
@@ -553,13 +553,14 @@ func BenchmarkCompleteSendingWithPreambleSolved(b *testing.B) {
 
 		// protocol here
 
-		ast, err := READ(sentCode, nil)
+		repl_env := env.NewEnv()
+		core.Load(repl_env)
+
+		ast, err := READ(sentCode, nil, repl_env)
 		if err != nil {
 			b.Fatal(err)
 		}
 
-		repl_env := env.NewEnv()
-		core.Load(repl_env)
 		ctx := context.Background()
 		res, err := EVAL(ctx, ast, repl_env)
 		if err != nil {
@@ -588,7 +589,7 @@ func TestHashMapMarshalers(t *testing.T) {
 
 	// fmt.Println(source)
 
-	exp, err := READWithPreamble(source, nil)
+	exp, err := READWithPreamble(source, nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -650,7 +651,7 @@ func TestPassingLispDataFromGo(t *testing.T) {
 
 	// protocol here
 
-	ast, err := READWithPreamble(sentCode, types.NewCursorFile(t.Name()))
+	ast, err := READWithPreamble(sentCode, types.NewCursorFile(t.Name()), nil)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -559,7 +559,7 @@ func TestMacro(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	exp, err := READ(macro_test, nil)
+	exp, err := READ(macro_test, nil, repl_env)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -116,6 +116,7 @@ func DebugFile(fileName string, ns types.EnvType) (types.MalType, error) {
 	deb := debugger.Engine(fileName, ns)
 	defer deb.Shutdown()
 	lisp.Stepper = deb.Stepper
+	// lisp.Trace = deb.Trace
 
 	ctx := context.Background()
 	result, err := lisp.REPL(ctx, ns, `(load-file "`+fileName+`")`, types.NewCursorHere(fileName, -3, 1))
