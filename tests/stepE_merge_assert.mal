@@ -40,7 +40,7 @@
 
 ;; assert
 (assert)
-;/.*wrong number of arguments \(0 instead of 1…2\)$
+;/.*wrong number of arguments \(0 instead of 1…2\)"»$
 (assert true)
 ;=>nil
 ;/^$
@@ -60,9 +60,9 @@
 ;=>nil
 ;/^$
 (assert nil)
-;/assertion failed: nil$
+;/assertion failed: nil"»$
 (assert false)
-;/assertion failed: false$
+;/assertion failed: false"»$
 
 
 ;; with specific error
@@ -85,9 +85,9 @@
 ;=>nil
 ;/^$
 (assert nil "boom!")
-;/^.+boom!$
+;/^.+boom!"»$
 (assert false "boom!")
-;/^.+boom!$
+;/^.+boom!"»$
 
 (assert nil 3)
 ;/^.+3$
