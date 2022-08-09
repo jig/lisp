@@ -148,8 +148,5 @@ func (e LispError) MarshalHashMap() (MalType, error) {
 }
 
 func (e LispError) LispPrint(Pr_str func(MalType, bool) string) string {
-	if e.cursor == nil {
-		return "«error " + Pr_str(e.err, true) + "»"
-	}
-	return "«error " + Pr_str(e.err, true) + " " + Pr_str(e.cursor, true) + "»"
+	return "«error " + Pr_str(e.err, true) + "»"
 }

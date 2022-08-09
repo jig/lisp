@@ -73,8 +73,6 @@ func Pr_str(obj types.MalType, print_readably bool) string {
 		return fmt.Sprintf("«function %v»", obj)
 	case error:
 		return "«go-error " + Pr_str(tobj.Error(), true) + "»"
-	// case error:
-	// 	return Pr_str(tobj.Error(), true)
 	// case *types.Atom:
 	// 	return "(atom " +
 	// 		Pr_str(tobj.Val, true) + ")"

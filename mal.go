@@ -26,7 +26,7 @@ func READ(str string, cursor *Position, ns EnvType) (MalType, error) {
 }
 
 // READ reads an expression with preamble placeholders
-func READWithPreamble(str string, cursor *Position) (MalType, error) {
+func READWithPreamble(str string, cursor *Position, ns EnvType) (MalType, error) {
 	placeholderMap := &HashMap{Val: map[string]MalType{}}
 	i := 0
 	for ; ; i++ {
@@ -35,10 +35,10 @@ func READWithPreamble(str string, cursor *Position) (MalType, error) {
 		line, str, _ = strings.Cut(str, "\n")
 		line = strings.Trim(line, " \t\r\n")
 		if len(line) == 0 {
-			return reader.Read_str(str, cursor, placeholderMap)
+			return reader.Read_str(str, cursor, placeholderMap, ns)
 		}
 		if !strings.HasPrefix(line, preamblePrefix) {
-			return reader.Read_str(line+"\n"+str, cursor, placeholderMap)
+			return reader.Read_str(line+"\n"+str, cursor, placeholderMap, ns)
 		}
 		lineItems := placeholderRE.FindAllStringSubmatch(line, -1)
 		if len(lineItems) != 1 || len(lineItems[0]) != 3 {
@@ -51,7 +51,7 @@ func READWithPreamble(str string, cursor *Position) (MalType, error) {
 		item, _ := reader.Read_str(placeholderValue, &Position{
 			Row: i + 1,
 			Col: 1,
-		}, nil)
+		}, nil, ns)
 		placeholderKey := lineItems[0][1][3:]
 		placeholderMap.Val[placeholderKey] = item
 	}
@@ -572,7 +572,7 @@ func REPL(ctx context.Context, repl_env EnvType, str string, cursor *Position) (
 
 // REPLWithPreamble
 func REPLWithPreamble(ctx context.Context, repl_env EnvType, str string, cursor *Position) (MalType, error) {
-	ast, err := READWithPreamble(str, cursor)
+	ast, err := READWithPreamble(str, cursor, repl_env)
 	if err != nil {
 		return nil, err
 	}
@@ -581,4 +581,13 @@ func REPLWithPreamble(ctx context.Context, repl_env EnvType, str string, cursor 
 		return nil, err
 	}
 	return PRINT(exp)
+}
+
+// ReadEvalWithPreamble
+func ReadEvalWithPreamble(ctx context.Context, repl_env EnvType, str string, cursor *Position) (MalType, error) {
+	ast, err := READWithPreamble(str, cursor, repl_env)
+	if err != nil {
+		return nil, err
+	}
+	return EVAL(ctx, ast, repl_env)
 }
