@@ -34,3 +34,6 @@
 ;;
 ;; (trace)
 ;; ;=>nil
+
+«go-error "simple error"»
+;=>«go-error "simple error"»
