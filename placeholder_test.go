@@ -401,11 +401,7 @@ func BenchmarkAddPreambleAlternative(b *testing.B) {
 
 			LS("def", LS("not", LS("fn", V([]string{"a"})))),
 		)
-		str, err := PRINT(ast)
-		if err != nil {
-			b.Fatal(err)
-		}
-		notOptimiseBenchFunc2 = str
+		notOptimiseBenchFunc2 = PRINT(ast)
 	}
 }
 
@@ -546,10 +542,7 @@ func BenchmarkCompleteSendingWithPreambleSolved(b *testing.B) {
 		if err != nil {
 			b.Fatal(err)
 		}
-		sentCode, err := PRINT(sentAST)
-		if err != nil {
-			b.Fatal(err)
-		}
+		sentCode := PRINT(sentAST)
 
 		// protocol here
 

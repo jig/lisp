@@ -1,7 +1,6 @@
 package lisperror
 
 import (
-	"errors"
 	"fmt"
 
 	"github.com/jig/lisp/marshaler"
@@ -17,7 +16,7 @@ type LispError struct {
 
 func (e LispError) Unwrap() error {
 	if ee, ok := e.err.(error); ok {
-		return errors.Unwrap(ee)
+		return ee
 	}
 	return nil
 }

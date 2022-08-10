@@ -567,10 +567,8 @@ func TestMacro(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	res, err := PRINT(exp)
-	if err != nil {
-		t.Fatal(err)
-	}
+	res := PRINT(exp)
+
 	if res != "true" {
 		t.Fatal(res)
 	}

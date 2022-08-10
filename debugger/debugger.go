@@ -70,10 +70,9 @@ func (deb *Debugger) DumpState(ast types.MalType, ns types.EnvType, result types
 		colorDump.Println(err)
 		return
 	}
-	str, _ := lisp.PRINT(result)
 	colorExpr.Print("Result")
 	colorSeparator.Print(": ")
-	colorDump.Println(str)
+	colorDump.Println(lisp.PRINT(result))
 	fmt.Println()
 }
 
@@ -253,14 +252,9 @@ func (deb *Debugger) printTrace(expr types.MalType, ns types.EnvType, pos *types
 				colorAlert.Println(err)
 				continue
 			}
-			strRes, err := lisp.PRINT(res)
-			if err != nil {
-				colorAlert.Println(err)
-				continue
-			}
 			colorExpr.Print(exprString)
 			colorSeparator.Print(": ")
-			colorDump.Println(strRes)
+			colorDump.Println(lisp.PRINT(res))
 		}
 
 		// actual code trace
@@ -269,9 +263,8 @@ func (deb *Debugger) printTrace(expr types.MalType, ns types.EnvType, pos *types
 			colorSeparator.Print("§")
 			colorPosition.Print(pos.StringPositionRow())
 		}
-		str, _ := lisp.PRINT(expr)
 		colorSeparator.Print("⟩ ")
-		colorCode.Println(str)
+		colorCode.Println(lisp.PRINT(expr))
 	}
 }
 
