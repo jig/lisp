@@ -67,12 +67,7 @@ func Execute(ctx context.Context, repl_env types.EnvType) error {
 			l.SetPrompt("\033[32m»\033[0m ")
 			switch err := err.(type) {
 			case interface{ ErrorValue() types.MalType }:
-				errorString, err2 := lisp.PRINT(err.ErrorValue())
-				if err2 != nil {
-					fmt.Printf("\033[31mMalError:\033[0m %s\n", "UNPRINTABLE-ERROR")
-					continue
-				}
-				fmt.Printf("\033[31mMalError:\033[0m %s\n", errorString)
+				fmt.Printf("\033[31mMalError:\033[0m %s\n", lisp.PRINT(err.ErrorValue()))
 				continue
 			default:
 				fmt.Printf("Error: %s\n", err)

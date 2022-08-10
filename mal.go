@@ -61,11 +61,7 @@ func READWithPreamble(str string, cursor *Position, ns EnvType) (MalType, error)
 func AddPreamble(str string, placeholderMap map[string]MalType) (string, error) {
 	preamble := ""
 	for placeholderKey, placeholderValue := range placeholderMap {
-		s, err := PRINT(placeholderValue)
-		if err != nil {
-			return "", err
-		}
-		preamble = preamble + ";; " + placeholderKey + " " + s + "\n"
+		preamble = preamble + ";; " + placeholderKey + " " + PRINT(placeholderValue) + "\n"
 	}
 	return preamble + "\n" + str, nil
 }
@@ -241,11 +237,9 @@ func EVAL(ctx context.Context, ast MalType, env EnvType) (__res MalType, __err e
 				defer func() {
 					skip = false
 					if __err != nil {
-						str, _ := PRINT(__err)
-						fmt.Println("ERROR: ", str)
+						fmt.Println("ERROR: ", PRINT(__err))
 					} else {
-						str, _ := PRINT(__res)
-						fmt.Println("ANSWER: ", str)
+						fmt.Println("ANSWER: ", PRINT(__res))
 					}
 				}()
 			case debuggertypes.In:
@@ -553,8 +547,8 @@ func malRecover(err *error) {
 }
 
 // PRINT
-func PRINT(exp MalType) (string, error) {
-	return printer.Pr_str(exp, true), nil
+func PRINT(exp MalType) string {
+	return printer.Pr_str(exp, true)
 }
 
 // REPL
@@ -567,7 +561,7 @@ func REPL(ctx context.Context, repl_env EnvType, str string, cursor *Position) (
 	if err != nil {
 		return nil, err
 	}
-	return PRINT(exp)
+	return PRINT(exp), nil
 }
 
 // REPLWithPreamble
@@ -580,7 +574,7 @@ func REPLWithPreamble(ctx context.Context, repl_env EnvType, str string, cursor 
 	if err != nil {
 		return nil, err
 	}
-	return PRINT(exp)
+	return PRINT(exp), nil
 }
 
 // ReadEvalWithPreamble

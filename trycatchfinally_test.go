@@ -24,11 +24,8 @@ func TestTryCatchFinally(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	res, err := PRINT(exp)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if res != "true" {
+
+	if res := PRINT(exp); res != "true" {
 		t.Fatal(res)
 	}
 }

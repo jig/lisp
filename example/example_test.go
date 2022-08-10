@@ -50,10 +50,6 @@ func ExampleEVAL() {
 	}
 
 	// optionally print resulting AST
-	resultString, err := lisp.PRINT(result)
-	if err != nil {
-		log.Fatalf("PRINT error: %v", err)
-	}
-	fmt.Println(resultString)
+	fmt.Println(lisp.PRINT(result))
 	// Output: 4
 }
