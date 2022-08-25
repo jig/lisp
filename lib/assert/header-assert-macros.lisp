@@ -23,7 +23,7 @@
             (let [failureError {   :failed true
                                     :name (str name)
                                     :expr (str expr)}]
-            ` + "`" + `(try
+            (try
                 (do
                     ~expr
                     ~failureError)
