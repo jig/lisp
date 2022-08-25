@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	_ "embed"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
@@ -23,6 +24,15 @@ import (
 
 	. "github.com/jig/lisp/types"
 )
+
+//go:embed header-basic.lisp
+var headerBasic string
+
+//go:embed header-load-file.lisp
+var headerLoadFile string
+
+func HeaderBasic() string    { return headerBasic }
+func HeaderLoadFile() string { return headerLoadFile }
 
 func Load(env EnvType) {
 	call.Call(env, assoc_in)

@@ -2,6 +2,7 @@ package concurrent
 
 import (
 	"context"
+	_ "embed"
 	"errors"
 	"sync"
 
@@ -9,6 +10,11 @@ import (
 	"github.com/jig/lisp/types"
 	. "github.com/jig/lisp/types"
 )
+
+//go:embed header-concurrent.lisp
+var headerConcurrent string
+
+func HeaderConcurrent() string { return headerConcurrent }
 
 func Load(env types.EnvType) {
 	call.CallOverrideFN(env, "atom", func(a MalType) (MalType, error) { return &Atom{Val: a}, nil })

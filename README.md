@@ -93,7 +93,7 @@ func ExampleEVAL() {
 		{"core mal with input", nscore.LoadInput},
 		{"command line args", nscore.LoadCmdLineArgs},
 		{"core mal extended", nscoreextended.Load},
-		{"test", nstest.Load},
+		{"assert", nsassert.Load},
 	} {
 		if err := library.load(newEnv); err != nil {
 			log.Fatalf("Library Load Error: %v", err)

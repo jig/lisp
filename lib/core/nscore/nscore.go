@@ -11,26 +11,6 @@ import (
 	. "github.com/jig/lisp/types"
 )
 
-const (
-	malHostLanguage = `(def *host-language* "go")`
-	malNot          = `(def not (fn (a)
-							(if a
-								false
-								true)))`
-	malLoadFile = `(def load-file (fn (f)
-						(eval
-							(read-string
-								(str ";; $MODULE " f "\n(do " (slurp f) " nil)")))))`
-	malCond = `(defmacro cond (fn (& xs)
-					(if (> (count xs) 0)
-						(list
-							'if (first xs)
-								(if (> (count xs) 1)
-									(nth xs 1)
-									(throw "odd number of forms to cond"))
-								(cons 'cond (rest (rest xs)))))))`
-)
-
 type Here struct{}
 
 var _package_ = reflect.TypeOf(Here{}).PkgPath()
@@ -41,14 +21,7 @@ func Load(env EnvType) error {
 		return lisp.EVAL(ctx, a[0], env)
 	}})
 
-	ctx := context.Background()
-	if _, err := lisp.REPL(ctx, env, malHostLanguage, types.NewCursorFile(_package_)); err != nil {
-		return err
-	}
-	if _, err := lisp.REPL(ctx, env, malNot, types.NewCursorFile(_package_)); err != nil {
-		return err
-	}
-	if _, err := lisp.REPL(ctx, env, malCond, types.NewCursorFile(_package_)); err != nil {
+	if _, err := lisp.REPL(context.Background(), env, core.HeaderBasic(), types.NewCursorFile(_package_)); err != nil {
 		return err
 	}
 	return nil
@@ -60,8 +33,7 @@ func LoadInput(env EnvType) error {
 		return lisp.EVAL(ctx, a[0], env)
 	}})
 
-	ctx := context.Background()
-	if _, err := lisp.REPL(ctx, env, malLoadFile, types.NewCursorFile(_package_)); err != nil {
+	if _, err := lisp.REPL(context.Background(), env, core.HeaderLoadFile(), types.NewCursorFile(_package_)); err != nil {
 		return err
 	}
 	return nil
