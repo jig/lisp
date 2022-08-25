@@ -11,7 +11,8 @@ require (
 )
 
 require (
-	github.com/mattn/go-colorable v0.1.9 // indirect
-	github.com/mattn/go-isatty v0.0.14 // indirect
-	golang.org/x/sys v0.0.0-20220730100132-1609e554cd39 // indirect
+	github.com/jig/scanner v0.0.0-20220824191938-bbd7d6797026 // indirect
+	github.com/mattn/go-colorable v0.1.13 // indirect
+	github.com/mattn/go-isatty v0.0.16 // indirect
+	golang.org/x/sys v0.0.0-20220823224334-20c2bfdbfe24 // indirect
 )

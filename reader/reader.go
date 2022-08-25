@@ -9,6 +9,8 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/jig/scanner"
+
 	"github.com/jig/lisp/lisperror"
 	. "github.com/jig/lisp/types"
 )
@@ -43,49 +45,71 @@ func (tr *TokenReader) peek() *Token {
 var tokenizerRegex string
 
 var (
-	tokenizerRE  = regexp.MustCompile(tokenizerRegex)
+	// tokenizerRE  = regexp.MustCompile(tokenizerRegex)
 	integerRE    = regexp.MustCompile(`^-?[0-9]+$`)
 	stringRE     = regexp.MustCompile(`^"(?:\\.|[^\\"])*"$`)
 	jsonStringRE = regexp.MustCompile(`^¬[^¬]*(?:(?:¬¬)[^¬]*)*¬$`)
 )
 
-func tokenize(str string, cursor *Position) []Token {
-	results := make([]Token, 0, 1)
-	for _, group := range tokenizerRE.FindAllStringSubmatch(str, -1) {
-		groupConsumed := group[0]
-		if groupConsumed == "" {
-			continue
-		}
-		if groupConsumed[0] == '\n' {
-			cursor.Row++
-			cursor.Col = 1
-		}
-		groupTrimmed := group[1]
-		if (groupTrimmed == "") || (groupTrimmed[0] == ';') {
-			continue
-		}
-		var colDelta int
-		cursor.BeginCol = cursor.Col
-		cursor.BeginRow = cursor.Row
-		if strings.HasPrefix(groupTrimmed, "¬") {
-			for _, c := range groupConsumed {
-				colDelta++
-				if c == '\n' {
-					cursor.Row++
-					colDelta = 1
-				}
-			}
-		} else {
-			colDelta = len(groupTrimmed)
-		}
-		cursor.Col += colDelta
-		results = append(results, Token{
-			Value:  groupTrimmed,
-			Cursor: *cursor,
+// func tokenize(str string, cursor *Position) []Token {
+// 	results := make([]Token, 0, 1)
+// 	for _, group := range tokenizerRE.FindAllStringSubmatch(str, -1) {
+// 		groupConsumed := group[0]
+// 		if groupConsumed == "" {
+// 			continue
+// 		}
+// 		if groupConsumed[0] == '\n' {
+// 			cursor.Row++
+// 			cursor.Col = 1
+// 		}
+// 		groupTrimmed := group[1]
+// 		if (groupTrimmed == "") || (groupTrimmed[0] == ';') {
+// 			continue
+// 		}
+// 		var colDelta int
+// 		cursor.BeginCol = cursor.Col
+// 		cursor.BeginRow = cursor.Row
+// 		if strings.HasPrefix(groupTrimmed, "¬") {
+// 			for _, c := range groupConsumed {
+// 				colDelta++
+// 				if c == '\n' {
+// 					cursor.Row++
+// 					colDelta = 1
+// 				}
+// 			}
+// 		} else {
+// 			colDelta = len(groupTrimmed)
+// 		}
+// 		cursor.Col += colDelta
+// 		results = append(results, Token{
+// 			Value:  groupTrimmed,
+// 			Cursor: *cursor,
+// 		})
+// 		// fmt.Printf("%s⇒%s\n", cursor, groupTrimmed)
+// 	}
+// 	return results
+// }
+
+func tokenize(sourceCode string, cursor *Position) []Token {
+	result := make([]Token, 0, 1)
+
+	var s scanner.Scanner
+	s.Init(strings.NewReader(sourceCode))
+	s.Filename = "example"
+	for tok := s.Scan(); tok != scanner.EOF; tok = s.Scan() {
+		// fmt.Printf("%s: (%s) %s\n", s.Position, scanner.TokenString(tok), s.TokenText())
+		result = append(result, Token{
+			Value: s.TokenText(),
+			Cursor: Position{
+				Module:   cursor.Module,
+				BeginRow: s.Pos().Line,
+				BeginCol: s.Pos().Column,
+				Row:      s.Pos().Line,
+				Col:      s.Pos().Column + s.Pos().Offset,
+			},
 		})
-		// fmt.Printf("%s⇒%s\n", cursor, groupTrimmed)
 	}
-	return results
+	return result
 }
 
 func read_atom(rdr Reader) (MalType, error) {
