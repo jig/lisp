@@ -22,3 +22,28 @@ BenchmarkCompleteSendingWithPreamble-10          	  127327	     94265 ns/op
 BenchmarkCompleteSendingWithPreambleSolved-10    	   91657	    130333 ns/op
 PASS
 ```
+
+After removal of the main regexp:
+
+```bash
+❯ go test -bench=. ./... -benchtime=10s
+goos: darwin
+goarch: arm64
+pkg: github.com/jig/lisp
+BenchmarkLoadSymbols-10                               302422         38421 ns/op
+BenchmarkMAL1-10                                      359725         32829 ns/op
+BenchmarkMAL2-10                                     2706368          4423 ns/op
+BenchmarkParallelREAD-10                             4663735          2565 ns/op
+BenchmarkParallelREP-10                              3700264          3086 ns/op
+BenchmarkREP-10                                      2638774          4507 ns/op
+BenchmarkFibonacci-10                                  32196        373477 ns/op
+BenchmarkParallelFibonacci-10                          61792        213475 ns/op
+BenchmarkAtomParallel-10                             4321690          2785 ns/op
+BenchmarkAddPreamble-10                             12032408           991.9 ns/op
+BenchmarkAddPreambleAlternative-10                   3557404          3225 ns/op
+BenchmarkREADWithPreamble-10                          781752         14996 ns/op
+BenchmarkNewEnv-10                                   9081198          1321 ns/op
+BenchmarkCompleteSendingWithPreamble-10               155209         76409 ns/op
+BenchmarkCompleteSendingWithPreambleSolved-10         122361         97650 ns/op
+PASS
+```

@@ -35,19 +35,20 @@ func TestCursor(t *testing.T) {
 		{
 			Module: "nested",
 			Code:   nested,
-			Cursor: types.NewAnonymousCursorHere(1, 15),
-		}, {
+			Cursor: types.NewAnonymousCursorHere(1, 24),
+		},
+		{
 			Module: "singleline-string",
 			Code:   singleline,
-			Cursor: types.NewAnonymousCursorHere(1, 1),
+			Cursor: types.NewAnonymousCursorHere(1, 6),
 		}, {
 			Module: "multiline-string",
 			Code:   multiline,
-			Cursor: types.NewAnonymousCursorHere(6, 1),
+			Cursor: types.NewAnonymousCursorHere(6, 2),
 		}, {
 			Module: "codeThrow",
 			Code:   codeThrow,
-			Cursor: types.NewAnonymousCursorHere(4, 1),
+			Cursor: types.NewAnonymousCursorHere(4, 2),
 		},
 		{
 			Module: "codeTryAndThrowAndCatch",
@@ -57,12 +58,12 @@ func TestCursor(t *testing.T) {
 		{
 			Module: "codeUndefinedSymbol",
 			Code:   codeUndefinedSymbol,
-			Cursor: types.NewAnonymousCursorHere(3, 1),
+			Cursor: types.NewAnonymousCursorHere(3, 17),
 		},
 		{
 			Module: "codeLetIsBogus",
 			Code:   codeLetIsBogus,
-			Cursor: types.NewAnonymousCursorHere(3, 5),
+			Cursor: types.NewAnonymousCursorHere(3, 7),
 		},
 		{
 			Module: "codeCorrect",
@@ -72,16 +73,16 @@ func TestCursor(t *testing.T) {
 		{
 			Module: "codeMissingRightBracket",
 			Code:   codeMissingRightBracket,
-			Cursor: types.NewAnonymousCursorHere(8, 1),
+			Cursor: types.NewAnonymousCursorHere(8, 2),
 		},
 		{
 			Module: "codeTooManyRightBrackets",
 			Code:   codeTooManyRightBrackets,
-			Cursor: types.NewAnonymousCursorHere(25, 2),
+			Cursor: types.NewAnonymousCursorHere(8, 28),
 		},
 	} {
 		subEnv := env.NewSubordinateEnv(bootEnv)
-		ast, err := REPL(ctx, subEnv, "(do\n"+testCase.Code+"\na)", &types.Position{
+		ast, err := REPL(ctx, subEnv, "(do "+testCase.Code+")", &types.Position{
 			Module: &testCase.Module,
 			Row:    0,
 		})
@@ -99,7 +100,7 @@ func TestCursor(t *testing.T) {
 				t.Fatal("error")
 			}
 			if !err.Position().Includes(*testCase.Cursor) {
-				t.Fatal(err.Error(), err.Position(), testCase.Cursor)
+				t.Errorf("%s != %s", err.Position(), testCase.Cursor)
 			}
 			continue
 		default:

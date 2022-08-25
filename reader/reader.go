@@ -51,45 +51,6 @@ var (
 	jsonStringRE = regexp.MustCompile(`^¬[^¬]*(?:(?:¬¬)[^¬]*)*¬$`)
 )
 
-// func tokenize(str string, cursor *Position) []Token {
-// 	results := make([]Token, 0, 1)
-// 	for _, group := range tokenizerRE.FindAllStringSubmatch(str, -1) {
-// 		groupConsumed := group[0]
-// 		if groupConsumed == "" {
-// 			continue
-// 		}
-// 		if groupConsumed[0] == '\n' {
-// 			cursor.Row++
-// 			cursor.Col = 1
-// 		}
-// 		groupTrimmed := group[1]
-// 		if (groupTrimmed == "") || (groupTrimmed[0] == ';') {
-// 			continue
-// 		}
-// 		var colDelta int
-// 		cursor.BeginCol = cursor.Col
-// 		cursor.BeginRow = cursor.Row
-// 		if strings.HasPrefix(groupTrimmed, "¬") {
-// 			for _, c := range groupConsumed {
-// 				colDelta++
-// 				if c == '\n' {
-// 					cursor.Row++
-// 					colDelta = 1
-// 				}
-// 			}
-// 		} else {
-// 			colDelta = len(groupTrimmed)
-// 		}
-// 		cursor.Col += colDelta
-// 		results = append(results, Token{
-// 			Value:  groupTrimmed,
-// 			Cursor: *cursor,
-// 		})
-// 		// fmt.Printf("%s⇒%s\n", cursor, groupTrimmed)
-// 	}
-// 	return results
-// }
-
 func tokenize(sourceCode string, cursor *Position) []Token {
 	result := make([]Token, 0, 1)
 
@@ -98,8 +59,9 @@ func tokenize(sourceCode string, cursor *Position) []Token {
 	s.Filename = "example"
 	for tok := s.Scan(); tok != scanner.EOF; tok = s.Scan() {
 		// fmt.Printf("%s: (%s) %s\n", s.Position, scanner.TokenString(tok), s.TokenText())
+		tokenString := s.TokenText()
 		result = append(result, Token{
-			Value: s.TokenText(),
+			Value: tokenString,
 			Cursor: Position{
 				Module:   cursor.Module,
 				BeginRow: s.Pos().Line,
@@ -361,7 +323,7 @@ func Read_str(str string, cursor *Position, placeholderValues *HashMap, ns ...En
 		return nil, err
 	}
 	if tokenReader.position != len(tokenReader.tokens) {
-		return nil, lisperror.NewLispError(errors.New("not all tokens where parsed"), cursor)
+		return nil, lisperror.NewLispError(errors.New("not all tokens where parsed"), tokenReader.tokens[tokenReader.position-1])
 	}
 	return res, nil
 }

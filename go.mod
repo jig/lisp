@@ -8,7 +8,7 @@ require (
 	github.com/eiannone/keyboard v0.0.0-20220611211555-0d226195f203
 	github.com/fatih/color v1.13.0
 	github.com/google/uuid v1.3.0
-	github.com/jig/scanner v0.0.0-20220825122911-b8aa4c632934
+	github.com/jig/scanner v1.0.0
 )
 
 require (
@@ -16,5 +16,3 @@ require (
 	github.com/mattn/go-isatty v0.0.16 // indirect
 	golang.org/x/sys v0.0.0-20220823224334-20c2bfdbfe24 // indirect
 )
-
-replace github.com/jig/scanner => ../scanner
