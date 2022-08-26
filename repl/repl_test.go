@@ -10,22 +10,26 @@ import (
 )
 
 func TestMultiline(t *testing.T) {
-	for _, partialLine := range []string{"(", "{", "["} {
+	// for _, partialLine := range []string{"(", "{", "[", "#{", "«", "¬"} {
+	for _, partialLine := range []string{"¬"} {
 		ns := env.NewEnv()
 		_, err := lisp.REPL(context.Background(), ns, partialLine, types.NewCursorFile("REPL TEST"))
 		if err == nil {
 			t.Fatal("test failed")
 		}
-		if err, ok := err.(interface {
-			Error() string
-			GetEncapsulated() types.MalType
-		}); ok && err.GetEncapsulated() != nil {
-			if err.Error() == "expected ')', got EOF" ||
-				err.Error() == "expected ']', got EOF" ||
-				err.Error() == "expected '}', got EOF" {
-				continue
-			}
-			t.Fatalf("test failed for %s", partialLine)
+		if multiLine(err) {
+			continue
+		}
+		t.Fatalf("test failed for %s", partialLine)
+	}
+}
+
+func TestMultilineFail(t *testing.T) {
+	for _, partialLine := range []string{`"Hello"`, ":a", "1", "-1"} {
+		ns := env.NewEnv()
+		_, err := lisp.REPL(context.Background(), ns, partialLine, types.NewCursorFile("REPL TEST"))
+		if err != nil {
+			t.Fatal("test failed")
 		}
 	}
 }

@@ -91,6 +91,9 @@ func read_atom(rdr Reader) (MalType, error) {
 				`\n`, "\n", -1),
 			"\u029e", "\\", -1), nil
 	case scanner.RawString:
+		if *token == "¬" {
+			return nil, lisperror.NewLispError(errors.New("expected '¬', got EOF"), tokenStruct.GetPosition())
+		}
 		str := (*token)[2 : len(*token)-2]
 		return strings.Replace(str, `¬¬`, `¬`, -1), nil
 	case scanner.Keyword:

@@ -11,6 +11,7 @@ import (
 
 	goreadline "github.com/chzyer/readline"
 	"github.com/jig/lisp"
+	"github.com/jig/lisp/lisperror"
 	"github.com/jig/lisp/types"
 )
 
@@ -55,19 +56,15 @@ func Execute(ctx context.Context, repl_env types.EnvType) error {
 			if err.Error() == "<empty line>" {
 				continue
 			}
-			if err, ok := err.(interface{ ErrorMessageString() string }); ok && err.(interface{ ErrorValue() types.MalType }).ErrorValue() != nil {
-				if err.ErrorMessageString() == "expected ')', got EOF" ||
-					err.ErrorMessageString() == "expected ']', got EOF" ||
-					err.ErrorMessageString() == "expected '}', got EOF" {
-					l.SetPrompt("\033[31m›\033[0m ")
-					continue
-				}
+			if multiLine(err) {
+				l.SetPrompt("\033[31m›\033[0m ")
+				continue
 			}
 			lines = []string{}
 			l.SetPrompt("\033[32m»\033[0m ")
 			switch err := err.(type) {
 			case interface{ ErrorValue() types.MalType }:
-				fmt.Printf("\033[31mMalError:\033[0m %s\n", lisp.PRINT(err.ErrorValue()))
+				fmt.Printf("\033[31mLisp Error:\033[0m %s\n", lisp.PRINT(err.ErrorValue()))
 				continue
 			default:
 				fmt.Printf("Error: %s\n", err)
@@ -79,6 +76,44 @@ func Execute(ctx context.Context, repl_env types.EnvType) error {
 		fmt.Printf("%v\n", out)
 	}
 }
+
+func multiLine(err error) bool {
+	if lerr, ok := err.(lisperror.LispError); ok {
+		switch typedLispError := lerr.ErrorValue().(type) {
+		case error:
+			switch typedLispError.Error() {
+			case "expected ')', got EOF":
+				return true
+			case "expected ']', got EOF":
+				return true
+			case "expected '}', got EOF":
+				return true
+			case "expected '»', got EOF":
+				return true
+			case "expected '¬', got EOF":
+				return true
+			default:
+				return false
+			}
+		default:
+			return false
+		}
+	}
+	return false
+}
+
+// func multiLine(err error) bool {
+// 	if err, ok := err.(interface{ ErrorMessageString() string }); ok {
+// 		if err.(interface{ ErrorValue() types.MalType }).ErrorValue() != nil {
+// 			if err.ErrorMessageString() == "expected ')', got EOF" ||
+// 				err.ErrorMessageString() == "expected ']', got EOF" ||
+// 				err.ErrorMessageString() == "expected '}', got EOF" {
+// 				return true
+// 			}
+// 		}
+// 	}
+// 	return false
+// }
 
 func filterInput(r rune) (rune, bool) {
 	switch r {
