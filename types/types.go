@@ -11,6 +11,7 @@ import (
 
 type Token struct {
 	Value  string
+	Type   rune
 	Cursor Position
 }
 

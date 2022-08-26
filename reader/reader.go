@@ -41,27 +41,20 @@ func (tr *TokenReader) peek() *Token {
 	return &tr.tokens[tr.position]
 }
 
-//go:embed tokenizer.regex
-var tokenizerRegex string
-
-var (
-	// tokenizerRE  = regexp.MustCompile(tokenizerRegex)
-	integerRE    = regexp.MustCompile(`^-?[0-9]+$`)
-	stringRE     = regexp.MustCompile(`^"(?:\\.|[^\\"])*"$`)
-	jsonStringRE = regexp.MustCompile(`^¬[^¬]*(?:(?:¬¬)[^¬]*)*¬$`)
-)
-
 func tokenize(sourceCode string, cursor *Position) []Token {
 	result := make([]Token, 0, 1)
 
 	var s scanner.Scanner
 	s.Init(strings.NewReader(sourceCode))
-	s.Filename = "example"
+	if cursor.Module != nil {
+		s.Filename = *cursor.Module
+	}
 	for tok := s.Scan(); tok != scanner.EOF; tok = s.Scan() {
 		// fmt.Printf("%s: (%s) %s\n", s.Position, scanner.TokenString(tok), s.TokenText())
 		tokenString := s.TokenText()
 		result = append(result, Token{
 			Value: tokenString,
+			Type:  tok,
 			Cursor: Position{
 				Module:   cursor.Module,
 				BeginRow: s.Pos().Line,
@@ -80,14 +73,15 @@ func read_atom(rdr Reader) (MalType, error) {
 		return nil, lisperror.NewLispError(errors.New("read_atom underflow"), &tokenStruct)
 	}
 	token := &tokenStruct.Value
-	if match := integerRE.MatchString(*token); match {
+	switch tokenStruct.Type {
+	case scanner.Int:
 		var i int
 		var e error
 		if i, e = strconv.Atoi(*token); e != nil {
 			return nil, lisperror.NewLispError(errors.New("number parse error"), &tokenStruct)
 		}
 		return i, nil
-	} else if match := stringRE.MatchString(*token); match {
+	case scanner.String:
 		str := (*token)[1 : len(*token)-1]
 		return strings.Replace(
 			strings.Replace(
@@ -96,23 +90,28 @@ func read_atom(rdr Reader) (MalType, error) {
 					`\"`, `"`, -1),
 				`\n`, "\n", -1),
 			"\u029e", "\\", -1), nil
-	} else if (*token)[0] == '"' {
-		return nil, lisperror.NewLispError(errors.New("expected '\"', got EOF"), &tokenStruct)
-	} else if match := jsonStringRE.MatchString(*token); match {
+	case scanner.RawString:
 		str := (*token)[2 : len(*token)-2]
 		return strings.Replace(str, `¬¬`, `¬`, -1), nil
-	} else if (*token)[0] == '¬' {
-		return nil, lisperror.NewLispError(errors.New("expected '¬', got EOF"), &tokenStruct)
-	} else if (*token)[0] == ':' {
+	case scanner.Keyword:
 		return NewKeyword((*token)[1:len(*token)])
-	} else if *token == "nil" {
-		return nil, nil
-	} else if *token == "true" {
-		return true, nil
-	} else if *token == "false" {
-		return false, nil
-	} else {
-		return Symbol{Val: *token, Cursor: &tokenStruct.Cursor}, nil
+	case scanner.Float:
+		panic(errors.New("float type is not supported"))
+	case scanner.Ident:
+		switch *token {
+		case "nil":
+			return nil, nil
+		case "true":
+			return true, nil
+		case "false":
+			return false, nil
+		}
+		fallthrough
+	default:
+		return Symbol{
+			Val:    *token,
+			Cursor: &tokenStruct.Cursor,
+		}, nil
 	}
 }
 
