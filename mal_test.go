@@ -167,7 +167,7 @@ func TestAtomParallel(t *testing.T) {
 	if _, err := REPL(ctx, repl_env, "(def not (fn (a) (if a false true)))", types.NewCursorFile(t.Name())); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := REPL(ctx, repl_env, "(def load-file (fn (f) (eval (read-string (str \"(do \" (slurp f) \"\nnil)\")))))", types.NewCursorFile(t.Name())); err != nil {
+	if _, err := REPL(ctx, repl_env, `(def load-file (fn (f) (eval (read-string (str "(do " (slurp f) "\nnil)")))))`, types.NewCursorFile(t.Name())); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := REPL(ctx, repl_env, "(defmacro cond (fn (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw \"odd number of forms to cond\")) (cons 'cond (rest (rest xs)))))))", types.NewCursorFile(t.Name())); err != nil {
@@ -217,7 +217,7 @@ func BenchmarkAtomParallel(b *testing.B) {
 	if _, err := REPL(ctx, repl_env, "(def not (fn (a) (if a false true)))", types.NewCursorFile(b.Name())); err != nil {
 		b.Fatal(err)
 	}
-	if _, err := REPL(ctx, repl_env, "(def load-file (fn (f) (eval (read-string (str \"(do \" (slurp f) \"\nnil)\")))))", types.NewCursorFile(b.Name())); err != nil {
+	if _, err := REPL(ctx, repl_env, `(def load-file (fn (f) (eval (read-string (str "(do " (slurp f) "\nnil)")))))`, types.NewCursorFile(b.Name())); err != nil {
 		b.Fatal(err)
 	}
 	if _, err := REPL(ctx, repl_env, "(defmacro cond (fn (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw \"odd number of forms to cond\")) (cons 'cond (rest (rest xs)))))))", types.NewCursorFile(b.Name())); err != nil {
