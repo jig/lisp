@@ -20,12 +20,12 @@ type Reader interface {
 	peek() *Token
 }
 
-type TokenReader struct {
+type tokenReader struct {
 	tokens   []Token
 	position int
 }
 
-func (tr *TokenReader) next() *Token {
+func (tr *tokenReader) next() *Token {
 	if tr.position >= len(tr.tokens) {
 		return nil
 	}
@@ -34,7 +34,7 @@ func (tr *TokenReader) next() *Token {
 	return &token
 }
 
-func (tr *TokenReader) peek() *Token {
+func (tr *tokenReader) peek() *Token {
 	if tr.position >= len(tr.tokens) {
 		return nil
 	}
@@ -294,6 +294,12 @@ func read_form(rdr Reader, placeholderValues *HashMap, ns EnvType) (MalType, err
 // ";; $MODULE ../../examples/fibonacci.lisp\n(do (do\n    (def fib\n
 var moduleNamePrefixRE = regexp.MustCompile(`^;; [$]MODULE (.+)`)
 
+// Read_str reads Lisp source code and generates
+// cursor and environment might be passed nil and READ will provide correct values for you.
+// It is recommended though that cursor is initialised with a source code file identifier to
+// provide better positioning information in case of encountering an execution error.
+//
+// EnvType is required in case you expect to parse Go constructors
 func Read_str(str string, cursor *Position, placeholderValues *HashMap, ns ...EnvType) (MalType, error) {
 	if cursor == nil {
 		cursor = NewAnonymousCursorHere(1, 1)
@@ -309,7 +315,7 @@ func Read_str(str string, cursor *Position, placeholderValues *HashMap, ns ...En
 		return nil, errors.New("<empty line>")
 	}
 
-	tokenReader := TokenReader{
+	tokenReader := tokenReader{
 		tokens:   tokens,
 		position: 0,
 	}
