@@ -67,7 +67,7 @@ func tokenize(sourceCode string, cursor *Position) []Token {
 	return result
 }
 
-func read_atom(rdr Reader) (MalType, error) {
+func read_atom(rdr *tokenReader) (MalType, error) {
 	tokenStruct := rdr.next()
 	if tokenStruct == nil {
 		return nil, lisperror.NewLispError(errors.New("read_atom underflow"), &tokenStruct)
@@ -118,7 +118,7 @@ func read_atom(rdr Reader) (MalType, error) {
 	}
 }
 
-func read_list(rdr Reader, start string, end string, placeholderValues *HashMap, ns EnvType) (MalType, error) {
+func read_list(rdr *tokenReader, start string, end string, placeholderValues *HashMap, ns EnvType) (MalType, error) {
 	tokenStruct := rdr.next()
 	if tokenStruct == nil {
 		return nil, lisperror.NewLispError(errors.New("read_list underflow"), &tokenStruct)
@@ -151,7 +151,7 @@ func read_list(rdr Reader, start string, end string, placeholderValues *HashMap,
 	return List{Val: ast_list, Cursor: cursor.Close(&tokenStruct.Cursor)}, nil
 }
 
-func read_external(rdr Reader, placeholderValues *HashMap, ns EnvType) (MalType, error) {
+func read_external(rdr *tokenReader, placeholderValues *HashMap, ns EnvType) (MalType, error) {
 	lst, e := read_list(rdr, "«", "»", placeholderValues, ns)
 	if e != nil {
 		return nil, e
@@ -175,7 +175,7 @@ func read_external(rdr Reader, placeholderValues *HashMap, ns EnvType) (MalType,
 	return typedValue, nil
 }
 
-func read_vector(rdr Reader, placeholderValues *HashMap, ns EnvType) (MalType, error) {
+func read_vector(rdr *tokenReader, placeholderValues *HashMap, ns EnvType) (MalType, error) {
 	lst, e := read_list(rdr, "[", "]", placeholderValues, ns)
 	if e != nil {
 		return nil, e
@@ -184,7 +184,7 @@ func read_vector(rdr Reader, placeholderValues *HashMap, ns EnvType) (MalType, e
 	return vec, nil
 }
 
-func read_hash_map(rdr Reader, placeholderValues *HashMap, ns EnvType) (MalType, error) {
+func read_hash_map(rdr *tokenReader, placeholderValues *HashMap, ns EnvType) (MalType, error) {
 	mal_lst, e := read_list(rdr, "{", "}", placeholderValues, ns)
 	if e != nil {
 		return nil, e
@@ -192,7 +192,7 @@ func read_hash_map(rdr Reader, placeholderValues *HashMap, ns EnvType) (MalType,
 	return NewHashMap(mal_lst)
 }
 
-func read_set(rdr Reader, placeholderValues *HashMap, ns EnvType) (MalType, error) {
+func read_set(rdr *tokenReader, placeholderValues *HashMap, ns EnvType) (MalType, error) {
 	mal_lst, e := read_list(rdr, "#{", "}", placeholderValues, ns)
 	if e != nil {
 		return nil, e
@@ -200,7 +200,7 @@ func read_set(rdr Reader, placeholderValues *HashMap, ns EnvType) (MalType, erro
 	return NewSet(mal_lst)
 }
 
-func read_placeholder(rdr Reader, placeholderValues *HashMap, ns EnvType) (MalType, error) {
+func read_placeholder(rdr *tokenReader, placeholderValues *HashMap, ns EnvType) (MalType, error) {
 	tokenStruct := rdr.next()
 	if tokenStruct == nil {
 		return nil, lisperror.NewLispError(errors.New("read_placeholder underflow"), &tokenStruct)
@@ -208,7 +208,7 @@ func read_placeholder(rdr Reader, placeholderValues *HashMap, ns EnvType) (MalTy
 	return placeholderValues.Val[tokenStruct.Value], nil
 }
 
-func read_form(rdr Reader, placeholderValues *HashMap, ns EnvType) (MalType, error) {
+func read_form(rdr *tokenReader, placeholderValues *HashMap, ns EnvType) (MalType, error) {
 	tokenStruct := rdr.peek()
 	if tokenStruct == nil {
 		return nil, lisperror.NewLispError(errors.New("read_form underflow"), &tokenStruct)
