@@ -10,8 +10,7 @@ import (
 )
 
 func TestMultiline(t *testing.T) {
-	// for _, partialLine := range []string{"(", "{", "[", "#{", "«", "¬"} {
-	for _, partialLine := range []string{"¬"} {
+	for _, partialLine := range []string{"(", "{", "[", "#{", "«", "¬"} {
 		ns := env.NewEnv()
 		_, err := lisp.REPL(context.Background(), ns, partialLine, types.NewCursorFile("REPL TEST"))
 		if err == nil {

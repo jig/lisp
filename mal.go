@@ -6,16 +6,27 @@
 
 // Package lisp provides a minimal Lisp interpreter focused on embedded work in
 // Go code, as config or as a transmission format.
-// Libraries are loaded from the Go code, and loading them from Lisp code is
+// Lisp external libraries are loaded from the Go code, and loading them from Lisp code is
 // not allowed (on purpose).
 //
-// This interpreter is baonsed  kanaka/mal implementation that is sligly inspired on Clojure
-// This implementation adds:
-//   - simpler embedded use with a simple package API
-//   - testing based on Go tooling
+// This interpreter is based on [kanaka/mal] implementation that is inspired on Clojure.
+// It is still mostly compatible with kanaka/mal except that def!, try*, etc. symbols
+// have been changed to def, try, etc. See ./examples/mal.lisp as a port of mal.mal
+//
+// Overview of this implementation addition to kanaka/mal:
+//   - simpler embedded use with a simple package API (mostly inherited, just code reorganisation)
+//   - testing based on Go tooling (all python tests scripts substituted by Go tests, see ./run_test.go)
 //   - support of Go constructors to simplify extendability
 //   - slightly faster parsing by swapping regex implementation for a text/scanner one
 //   - support of preamble (AKA "placeholders") to simplify parametrisation of Go functions implemented on Lisp
+//   - easier library development (using reflect)
+//   - simple debugger
+//   - line numbers
+//
+// Functions and file directories keep the same structure as original MAL, this is way
+// main functions [READ], [EVAL] and [PRINT] keep its all caps (non Go standard) names.
+//
+// [kanaka/mal]: https://github.com/kanaka/mal
 package lisp
 
 import (
@@ -37,7 +48,8 @@ var placeholderRE = regexp.MustCompile(`^(;; \$[\-\d\w]+)+\s(.+)`)
 
 const preamblePrefix = ";; $"
 
-// READ reads Lisp source code and generates
+// READ reads Lisp source code and generates an AST that might be evaled by [EVAL] or printed by [PRINT].
+//
 // cursor and environment might be passed nil and READ will provide correct values for you.
 // It is recommended though that cursor is initialised with a source code file identifier to
 // provide better positioning information in case of encountering an execution error.
@@ -47,7 +59,9 @@ func READ(sourceCode string, cursor *Position, ns EnvType) (MalType, error) {
 	return reader.Read_str(sourceCode, cursor, nil, ns)
 }
 
-// READWithPreamble reads Lisp source code with preamble placeholders and generates
+// READWithPreamble reads Lisp source code with preamble placeholders and generates an
+// AST that might be evaled by [EVAL] or printed by [PRINT].
+//
 // cursor and environment might be passed nil and READ will provide correct values for you.
 // It is recommended though that cursor is initialised with a source code file identifier to
 // provide better positioning information in case of encountering an execution error.
@@ -56,29 +70,29 @@ func READ(sourceCode string, cursor *Position, ns EnvType) (MalType, error) {
 //
 // Preamble placeholders are prefix the source code and have the following format:
 //
-// ;; <$-prefixed-var-name> <Lisp readable expression>
+//	;; <$-prefixed-var-name> <Lisp readable expression>
 //
 // For example:
 //
-// ;; $1 {:key "value"}
-// ;; $NUMBER 1984
-// ;; $EXPR1 (+ 1 1)
+//	;; $1 {:key "value"}
+//	;; $NUMBER 1984
+//	;; $EXPR1 (+ 1 1)
 //
 // will create three values that will fill the placeholders in the source code. Following the example
 // the source code might look like:
 //
-// ...some code...
-// (prn "$NUMBER is" $NUMBER)
+//	...some code...
+//	(prn "$NUMBER is" $NUMBER)
 //
 // note that the actual code to be parsed will be:
 //
-// (prn "$NUMBER is" 1984)
+//	(prn "$NUMBER is" 1984)
 //
 // this simplifies inserting Lisp code in Go packages and passing Go parameters to it.
 //
 // Look for the "L-notation" to simplify the pass of complex Lisp structures as placeholders.
 //
-// READWithPreamble is used to read code (actually decode) on transmission. Use AddPreamble(...)
+// READWithPreamble is used to read code (actually decode) on transmission. Use [AddPreamble]
 // when calling from Go code.
 func READWithPreamble(str string, cursor *Position, ns EnvType) (MalType, error) {
 	placeholderMap := &HashMap{Val: map[string]MalType{}}
@@ -113,10 +127,10 @@ func READWithPreamble(str string, cursor *Position, ns EnvType) (MalType, error)
 
 // AddPreamble combines prefix variables into a preamble to the provided source code.
 //
-// Source code encoded be readed with READWithPreamble(...).
+// Source code encoded be readed with [READWithPreamble].
 // placeholderMap must contain a map with keys being the variable names on the placeholder and the
-// values the AST assigned to each placeholder. Value ASTs might be generated with READ(...) or EVAL(...) or with the
-// L-notation package (most likely). Key names must contain the '$' prefix.
+// values the AST assigned to each placeholder. Value ASTs might be generated with [READ] or [EVAL] or with the
+// [lnotation] package (most likely). Key names must contain the '$' prefix.
 func AddPreamble(str string, placeholderMap map[string]MalType) (string, error) {
 	preamble := ""
 	for placeholderKey, placeholderValue := range placeholderMap {
@@ -254,7 +268,7 @@ func eval_ast(ctx context.Context, ast MalType, env EnvType) (MalType, error) {
 
 // Stepper is called (if not null) to stop at each step of the Lisp interpreter.
 //
-// It might be used as a debugger. Look at github.com/jig/lisp/debugger package for a simple implementation.
+// It might be used as a debugger. Look at [lisp/debugger] package for a simple implementation.
 var Stepper func(ast MalType, ns EnvType) debuggertypes.Command
 var skip bool
 var outing1, outing2 bool
@@ -288,10 +302,8 @@ func do(ctx context.Context, ast MalType, from, to int, env EnvType) (MalType, e
 // EVAL evaluates an Abstract Syntaxt Tree (AST) and returns a result (a reduced AST).
 // It requires a context that might cancel execution, and requires an environment that might
 // be modified.
-// AST usually is generated by READ(...) or READWithPreamble(...).
-func EVAL(ctx context.Context, ast MalType, env EnvType) (MalType, error) {
-	var e error
-
+// AST usually is generated by [READ] or [READWithPreamble].
+func EVAL(ctx context.Context, ast MalType, env EnvType) (res MalType, e error) {
 	// debugger section
 	if Stepper != nil {
 		if !skip {
@@ -305,7 +317,7 @@ func EVAL(ctx context.Context, ast MalType, env EnvType) (MalType, error) {
 					if e != nil {
 						fmt.Println("ERROR: ", PRINT(e))
 					} else {
-						fmt.Println("ANSWER: ", PRINT(e))
+						fmt.Println("ANSWER: ", PRINT(res))
 					}
 				}()
 			case debuggertypes.In:
@@ -613,12 +625,12 @@ func malRecover(err *error) {
 }
 
 // PRINT converts an AST to a string, suitable for printing
-// AST might be generated by EVAL(...) or by READ(...) or READWithPreamble(...).
+// AST might be generated by [EVAL] or by [READ] or [READWithPreamble].
 func PRINT(ast MalType) string {
 	return printer.Pr_str(ast, true)
 }
 
-// REPL or READ, EVAL and PRINT loop execute those three functions in sequence.
+// REPL or [READ], [EVAL] and [PRINT] loop execute those three functions in sequence.
 // (but the loop "L" actually must be executed by the caller)
 func REPL(ctx context.Context, env EnvType, sourceCode string, cursor *Position) (MalType, error) {
 	ast, err := READ(sourceCode, cursor, env)
@@ -632,10 +644,10 @@ func REPL(ctx context.Context, env EnvType, sourceCode string, cursor *Position)
 	return PRINT(exp), nil
 }
 
-// REPLWithPreamble or READ, EVAL and PRINT loop with preamble execute those three functions in sequence.
+// REPLWithPreamble or [READ], [EVAL] and [PRINT] loop with preamble execute those three functions in sequence.
 // (but the loop "L" actually must be executed by the caller)
 //
-// Source code might include a preamble with the values for the placeholders. See READWithPreamble(...)
+// Source code might include a preamble with the values for the placeholders. See [READWithPreamble]
 func REPLWithPreamble(ctx context.Context, env EnvType, sourceCode string, cursor *Position) (MalType, error) {
 	ast, err := READWithPreamble(sourceCode, cursor, env)
 	if err != nil {
@@ -648,10 +660,10 @@ func REPLWithPreamble(ctx context.Context, env EnvType, sourceCode string, curso
 	return PRINT(exp), nil
 }
 
-// ReadEvalWithPreamble or READ and EVAL with preamble execute those three functions in sequence.
+// ReadEvalWithPreamble or [READ] and [EVAL] with preamble execute those three functions in sequence.
 // (but the loop "L" actually must be executed by the caller)
 //
-// Source code might include a preamble with the values for the placeholders. See READWithPreamble(...)
+// Source code might include a preamble with the values for the placeholders. See [READWithPreamble]
 // ReadEvalWithPreamble returns the result in AST structure.
 func ReadEvalWithPreamble(ctx context.Context, env EnvType, sourceCode string, cursor *Position) (MalType, error) {
 	ast, err := READWithPreamble(sourceCode, cursor, env)

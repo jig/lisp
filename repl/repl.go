@@ -102,19 +102,6 @@ func multiLine(err error) bool {
 	return false
 }
 
-// func multiLine(err error) bool {
-// 	if err, ok := err.(interface{ ErrorMessageString() string }); ok {
-// 		if err.(interface{ ErrorValue() types.MalType }).ErrorValue() != nil {
-// 			if err.ErrorMessageString() == "expected ')', got EOF" ||
-// 				err.ErrorMessageString() == "expected ']', got EOF" ||
-// 				err.ErrorMessageString() == "expected '}', got EOF" {
-// 				return true
-// 			}
-// 		}
-// 	}
-// 	return false
-// }
-
 func filterInput(r rune) (rune, bool) {
 	switch r {
 	// block CtrlZ feature
