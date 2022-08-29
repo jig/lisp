@@ -7,7 +7,6 @@ import (
 
 	"github.com/jig/lisp"
 	"github.com/jig/lisp/lib/core"
-	"github.com/jig/lisp/types"
 	. "github.com/jig/lisp/types"
 )
 
@@ -21,7 +20,7 @@ func Load(env EnvType) error {
 		return lisp.EVAL(ctx, a[0], env)
 	}})
 
-	if _, err := lisp.REPL(context.Background(), env, core.HeaderBasic(), types.NewCursorFile(_package_)); err != nil {
+	if _, err := lisp.REPL(context.Background(), env, core.HeaderBasic(), NewCursorFile(_package_)); err != nil {
 		return err
 	}
 	return nil
@@ -33,7 +32,7 @@ func LoadInput(env EnvType) error {
 		return lisp.EVAL(ctx, a[0], env)
 	}})
 
-	if _, err := lisp.REPL(context.Background(), env, core.HeaderLoadFile(), types.NewCursorFile(_package_)); err != nil {
+	if _, err := lisp.REPL(context.Background(), env, core.HeaderLoadFile(), NewCursorFile(_package_)); err != nil {
 		return err
 	}
 	return nil
@@ -53,6 +52,6 @@ func LoadCmdLineArgs(env EnvType) error {
 }
 
 func LoadNullArgs(env EnvType) error {
-	env.Set(Symbol{Val: "*ARGV*"}, types.List{})
+	env.Set(Symbol{Val: "*ARGV*"}, List{})
 	return nil
 }

@@ -23,13 +23,13 @@
             (let [failureError {   :failed true
                                     :name (str name)
                                     :expr (str expr)}]
-            (try
+            `(try
                 (do
                     ~expr
                     ~failureError)
                 (catch err nil)))))
 
-    (def test.suite (fn [name & assert-cases]
+    (def test-suite (fn [name & assert-cases]
         (if
             (reduce and true
                 (map
