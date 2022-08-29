@@ -264,19 +264,19 @@ func read_form(rdr *tokenReader, placeholderValues *HashMap, ns EnvType) (MalTyp
 
 	// list
 	case ")":
-		return nil, lisperror.NewLispError(errors.New("unexpected ')'"), &tokenStruct)
+		return nil, lisperror.NewLispError(errors.New("unexpected ')'"), tokenStruct)
 	case "(":
 		return read_list(rdr, "(", ")", placeholderValues, ns)
 
 	// vector
 	case "]":
-		return nil, lisperror.NewLispError(errors.New("unexpected ']'"), &tokenStruct)
+		return nil, lisperror.NewLispError(errors.New("unexpected ']'"), tokenStruct)
 	case "[":
 		return read_vector(rdr, placeholderValues, ns)
 
 	// hash-map
 	case "}":
-		return nil, lisperror.NewLispError(errors.New("unexpected '}'"), &tokenStruct)
+		return nil, lisperror.NewLispError(errors.New("unexpected '}'"), tokenStruct)
 	case "{":
 		return read_hash_map(rdr, placeholderValues, ns)
 	case "#{":
