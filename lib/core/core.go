@@ -10,6 +10,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"runtime/debug"
 	"strings"
 	"time"
 
@@ -130,11 +131,43 @@ func Load(env EnvType) {
 	call.CallOverrideFN(env, "type?", istype)
 	call.Call(env, new_error, 1, 2)
 	call.Call(env, new_go_error)
+	call.Call(env, version)
 }
 
 func LoadInput(env types.EnvType) {
 	call.Call(env, slurp)
 	call.Call(env, readLine)
+}
+
+func version() (HashMap, error) {
+	bi, ok := debug.ReadBuildInfo()
+	if !ok {
+		return types.HashMap{}, nil
+	}
+	build := map[string]MalType{}
+	for _, s := range bi.Settings {
+		build[s.Key] = s.Value
+	}
+	deps := map[string]MalType{}
+	for _, d := range bi.Deps {
+		if d.Replace == nil {
+			deps[d.Path] = HashMap{Val: map[string]MalType{
+				"ʞversion": d.Version,
+				"ʞsum":     d.Sum,
+			}}
+		} else {
+			deps[d.Path] = HashMap{Val: map[string]MalType{
+				"ʞversion": d.Version,
+				"ʞsum":     d.Sum,
+				"ʞreplace": d.Replace,
+			}}
+		}
+	}
+	return HashMap{Val: map[string]MalType{
+		"ʞgo-version":   bi.GoVersion,
+		"ʞbuild":        HashMap{Val: build},
+		"ʞdependencies": HashMap{Val: deps},
+	}}, nil
 }
 
 func new_go_error(str string) (error, error) {
