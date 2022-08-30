@@ -5,10 +5,15 @@ import (
 	"testing"
 
 	"github.com/jig/lisp/env"
+	"github.com/jig/lisp/lisperror"
 )
 
 func TestRightBracketCrash(t *testing.T) {
-	if _, err := READ(")", nil, env.NewEnv()); err == nil || err.Error() != "unexpected ')'" {
-		t.Fatal(err)
+	_, err := READ(")", nil, env.NewEnv())
+	if err == nil {
+		t.Fatal("error must not be nill")
+	}
+	if errT, ok := err.(lisperror.LispError); ok && errT.ErrorValue().(error).Error() != `unexpected ')'` {
+		t.Fatalf("%q != %q", `unexpected ')'`, errT.ErrorValue())
 	}
 }

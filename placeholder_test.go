@@ -9,7 +9,6 @@ import (
 	"github.com/jig/lisp/env"
 	"github.com/jig/lisp/lib/core"
 	"github.com/jig/lisp/reader"
-	"github.com/jig/lisp/types"
 
 	. "github.com/jig/lisp/lnotation"
 	. "github.com/jig/lisp/types"
@@ -644,7 +643,7 @@ func TestPassingLispDataFromGo(t *testing.T) {
 
 	// protocol here
 
-	ast, err := READWithPreamble(sentCode, types.NewCursorFile(t.Name()), nil)
+	ast, err := READWithPreamble(sentCode, NewCursorFile(t.Name()), nil)
 	if err != nil {
 		t.Fatal(err)
 	}
