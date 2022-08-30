@@ -63,7 +63,7 @@ type Symbol struct {
 }
 
 // Keywords
-func NewKeyword(s string) (MalType, error) {
+func NewKeyword(s string) (string, error) {
 	return "\u029e" + s, nil
 }
 
@@ -189,21 +189,21 @@ type Set struct {
 	Cursor *Position
 }
 
-func NewSet(seq MalType) (MalType, error) {
+func NewSet(seq MalType) (Set, error) {
 	if seq == nil {
 		return Set{}, nil
 	}
 
 	lst, e := GetSlice(seq)
 	if e != nil {
-		return nil, e
+		return Set{}, e
 	}
 
 	m := map[string]struct{}{}
 	for _, item := range lst {
 		sItem, ok := item.(string)
 		if !ok {
-			return nil, errors.New("set items must be strings or keywords")
+			return Set{}, errors.New("set items must be strings or keywords")
 		}
 		m[sItem] = struct{}{}
 	}

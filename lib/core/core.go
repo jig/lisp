@@ -21,7 +21,6 @@ import (
 	"github.com/jig/lisp/marshaler"
 	"github.com/jig/lisp/printer"
 	"github.com/jig/lisp/reader"
-	"github.com/jig/lisp/types"
 
 	. "github.com/jig/lisp/types"
 )
@@ -49,7 +48,7 @@ func Load(env EnvType) {
 	call.CallOverrideFN(env, "/", func(a, b int) (int, error) { return a / b, nil })
 	call.Call(env, get)
 	call.Call(env, get_in)
-	call.CallOverrideFN(env, "contains?", func(seq MalType, key string) (MalType, error) { return contains_Q(seq, key) })
+	call.CallOverrideFN(env, "contains?", contains_Q)
 	call.Call(env, cons)
 	call.Call(env, nth)
 	call.Call(env, with_meta)
@@ -61,17 +60,17 @@ func Load(env EnvType) {
 	call.Call(env, split)
 	call.Call(env, mAp)
 	call.Call(env, throw)
-	call.CallOverrideFN(env, "symbol", func(a MalType) (MalType, error) { return Symbol{Val: a.(string)}, nil })
-	call.CallOverrideFN(env, "keyword", func(a MalType) (MalType, error) {
+	call.CallOverrideFN(env, "symbol", func(a string) (Symbol, error) { return Symbol{Val: a}, nil })
+	call.CallOverrideFN(env, "keyword", func(a string) (string, error) {
 		if Keyword_Q(a) {
 			return a, nil
 		} else {
-			return NewKeyword(a.(string))
+			return NewKeyword(a)
 		}
 	})
 	call.Call(env, sPew)
 	call.CallOverrideFN(env, "read-string", func(a MalType) (MalType, error) { return reader.Read_str(a.(string), nil, nil) })
-	call.CallOverrideFN(env, "set", func(a MalType) (MalType, error) { return NewSet(a) })
+	call.CallOverrideFN(env, "set", func(a MalType) (Set, error) { return NewSet(a) })
 	call.Call(env, keys)
 	call.Call(env, vals)
 	call.Call(env, vec)
@@ -94,31 +93,31 @@ func Load(env EnvType) {
 	call.Call(env, str)
 	call.Call(env, prn)
 	call.Call(env, println)
-	call.CallOverrideFN(env, "list", func(a ...MalType) (MalType, error) { return List{Val: a}, nil })
-	call.CallOverrideFN(env, "vector", func(a ...MalType) (MalType, error) { return Vector{Val: a}, nil })
+	call.CallOverrideFN(env, "list", func(a ...MalType) (List, error) { return List{Val: a}, nil })
+	call.CallOverrideFN(env, "vector", func(a ...MalType) (Vector, error) { return Vector{Val: a}, nil })
 	call.Call(env, hash_map)
-	call.CallOverrideFN(env, "hash-set", func(a ...MalType) (MalType, error) { return NewSet(List{Val: a}) })
+	call.CallOverrideFN(env, "hash-set", func(a ...MalType) (Set, error) { return NewSet(List{Val: a}) })
 	call.Call(env, assoc)
 	call.Call(env, dissoc)
 	call.Call(env, concat)
 
 	call.CallOverrideFN(env, "=", func(a, b MalType) (MalType, error) { return Equal_Q(a, b), nil })
 
-	call.CallOverrideFN(env, "nil?", func(a MalType) (MalType, error) { return Nil_Q(a), nil })
-	call.CallOverrideFN(env, "true?", func(a MalType) (MalType, error) { return True_Q(a), nil })
-	call.CallOverrideFN(env, "false?", func(a MalType) (MalType, error) { return False_Q(a), nil })
+	call.CallOverrideFN(env, "nil?", func(a MalType) (bool, error) { return Nil_Q(a), nil })
+	call.CallOverrideFN(env, "true?", func(a MalType) (bool, error) { return True_Q(a), nil })
+	call.CallOverrideFN(env, "false?", func(a MalType) (bool, error) { return False_Q(a), nil })
 	call.CallOverrideFN(env, "empty?", empty_Q)
-	call.CallOverrideFN(env, "symbol?", func(a MalType) (MalType, error) { return Q[Symbol](a), nil })
-	call.CallOverrideFN(env, "keyword?", func(a MalType) (MalType, error) { return Keyword_Q(a), nil })
-	call.CallOverrideFN(env, "string?", func(a MalType) (MalType, error) { return String_Q(a), nil })
-	call.CallOverrideFN(env, "number?", func(a MalType) (MalType, error) { return Q[int](a), nil })
+	call.CallOverrideFN(env, "symbol?", func(a MalType) (bool, error) { return Q[Symbol](a), nil })
+	call.CallOverrideFN(env, "keyword?", func(a MalType) (bool, error) { return Keyword_Q(a), nil })
+	call.CallOverrideFN(env, "string?", func(a MalType) (bool, error) { return String_Q(a), nil })
+	call.CallOverrideFN(env, "number?", func(a MalType) (bool, error) { return Q[int](a), nil })
 	call.CallOverrideFN(env, "fn?", fn_q)
-	call.CallOverrideFN(env, "macro?", func(a MalType) (MalType, error) { return Q[MalFunc](a) && a.(MalFunc).GetMacro(), nil })
-	call.CallOverrideFN(env, "list?", func(a MalType) (MalType, error) { return Q[List](a), nil })
-	call.CallOverrideFN(env, "vector?", func(a MalType) (MalType, error) { return Q[Vector](a), nil })
-	call.CallOverrideFN(env, "map?", func(a MalType) (MalType, error) { return Q[HashMap](a), nil })
-	call.CallOverrideFN(env, "set?", func(a MalType) (MalType, error) { return Q[Set](a), nil })
-	call.CallOverrideFN(env, "sequential?", func(a MalType) (MalType, error) { return Sequential_Q(a), nil })
+	call.CallOverrideFN(env, "macro?", func(a MalType) (bool, error) { return Q[MalFunc](a) && a.(MalFunc).GetMacro(), nil })
+	call.CallOverrideFN(env, "list?", func(a MalType) (bool, error) { return Q[List](a), nil })
+	call.CallOverrideFN(env, "vector?", func(a MalType) (bool, error) { return Q[Vector](a), nil })
+	call.CallOverrideFN(env, "map?", func(a MalType) (bool, error) { return Q[HashMap](a), nil })
+	call.CallOverrideFN(env, "set?", func(a MalType) (bool, error) { return Q[Set](a), nil })
+	call.CallOverrideFN(env, "sequential?", func(a MalType) (bool, error) { return Sequential_Q(a), nil })
 
 	call.Call(env, apply, 2)     // at least two parameters
 	call.Call(env, conj, 2)      // at least two parameters
@@ -134,7 +133,7 @@ func Load(env EnvType) {
 	call.Call(env, version)
 }
 
-func LoadInput(env types.EnvType) {
+func LoadInput(env EnvType) {
 	call.Call(env, slurp)
 	call.Call(env, readLine)
 }
@@ -142,7 +141,7 @@ func LoadInput(env types.EnvType) {
 func version() (HashMap, error) {
 	bi, ok := debug.ReadBuildInfo()
 	if !ok {
-		return types.HashMap{}, nil
+		return HashMap{}, nil
 	}
 	build := map[string]MalType{}
 	for _, s := range bi.Settings {
@@ -174,7 +173,7 @@ func new_go_error(str string) (error, error) {
 	return errors.New(str), nil
 }
 
-func new_error(err types.MalType, cursor ...*types.Position) (lisperror.LispError, error) {
+func new_error(err MalType, cursor ...*Position) (lisperror.LispError, error) {
 	if len(cursor) == 0 {
 		return lisperror.NewLispError(err, nil), nil
 	}
@@ -599,7 +598,7 @@ func contains_Q(hm MalType, key string) (bool, error) {
 	}
 }
 
-func keys(hm MalType) (MalType, error) {
+func keys(hm MalType) (List, error) {
 	switch hm := hm.(type) {
 	case HashMap:
 		slc := []MalType{}
@@ -608,13 +607,13 @@ func keys(hm MalType) (MalType, error) {
 		}
 		return List{Val: slc}, nil
 	default:
-		return nil, errors.New("keys called on non-hash map")
+		return List{}, errors.New("keys called on non-hash map")
 	}
 }
 
-func vals(hm MalType) (MalType, error) {
+func vals(hm MalType) (List, error) {
 	if !Q[HashMap](hm) {
-		return nil, errors.New("vals called on non-hash map")
+		return List{}, errors.New("vals called on non-hash map")
 	}
 	slc := []MalType{}
 	for _, v := range hm.(HashMap).Val {
@@ -625,10 +624,10 @@ func vals(hm MalType) (MalType, error) {
 
 // Sequence functions
 
-func cons(seq, app MalType) (MalType, error) {
+func cons(seq, app MalType) (List, error) {
 	lst, e := GetSlice(app)
 	if e != nil {
-		return nil, e
+		return List{}, e
 	}
 	return List{Val: append([]MalType{seq}, lst...)}, nil
 }
@@ -702,7 +701,7 @@ func rest(seq MalType) (MalType, error) {
 	return List{Val: slc[1:]}, nil
 }
 
-func empty_Q(seq MalType) (MalType, error) {
+func empty_Q(seq MalType) (bool, error) {
 	switch seq := seq.(type) {
 	case List:
 		return len(seq.Val) == 0, nil
@@ -715,11 +714,11 @@ func empty_Q(seq MalType) (MalType, error) {
 	case nil:
 		return true, nil
 	default:
-		return nil, errors.New("empty? called on non-sequence")
+		return false, errors.New("empty? called on non-sequence")
 	}
 }
 
-func count(seq MalType) (MalType, error) {
+func count(seq MalType) (int, error) {
 	switch seq := seq.(type) {
 	case List:
 		return len(seq.Val), nil
@@ -732,7 +731,7 @@ func count(seq MalType) (MalType, error) {
 	case nil:
 		return 0, nil
 	default:
-		return nil, fmt.Errorf("count called on non-sequence type %T", seq)
+		return 0, fmt.Errorf("count called on non-sequence type %T", seq)
 	}
 }
 
