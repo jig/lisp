@@ -528,20 +528,6 @@ func EVAL(ctx context.Context, ast MalType, env EnvType) (res MalType, e error) 
 				}
 				return nil, e
 			}
-		case "context":
-			if a2 != nil {
-				return nil, lisperror.NewLispError(fmt.Errorf("context does not allow more than one argument"), a2)
-			}
-			childCtx, cancel := context.WithCancel(ctx)
-			exp, e := func() (res MalType, err error) {
-				defer cancel()
-				defer malRecover(&err)
-				return EVAL(childCtx, a1, env)
-			}()
-			if e != nil {
-				return nil, e
-			}
-			return exp, nil
 		case "do":
 			var err error
 			ast, err = do(ctx, ast, 1, -1, env)

@@ -22,18 +22,5 @@
 ;=>«go-error "github.com/jig/lisp/lib/core[/]: runtime error: integer divide by zero"»
 ;/^$
 
-(context (/ 1 0))
-;=>nil
-;/^.*runtime error: integer divide by zero.*$
-
-;; TODO(jig): trace temporarily removed
-;; (trace (str (list 1)))
-;; ;/\(str \(list 1\)\)
-;; ;/\(list 1\)
-;; ;=>"(1)"
-;;
-;; (trace)
-;; ;=>nil
-
 «go-error "simple error"»
 ;=>«go-error "simple error"»
