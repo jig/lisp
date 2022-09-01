@@ -65,7 +65,7 @@ func Load(env EnvType) {
 		if Keyword_Q(a) {
 			return a, nil
 		} else {
-			return NewKeyword(a)
+			return NewKeyword(a), nil
 		}
 	})
 	call.Call(env, sPew)

@@ -97,7 +97,7 @@ func read_atom(rdr *tokenReader) (MalType, error) {
 		str := (*token)[2 : len(*token)-2]
 		return strings.Replace(str, `¬¬`, `¬`, -1), nil
 	case scanner.Keyword:
-		return NewKeyword((*token)[1:len(*token)])
+		return NewKeyword((*token)[1:len(*token)]), nil
 	case scanner.Float:
 		panic(errors.New("float type is not supported"))
 	case scanner.Ident:

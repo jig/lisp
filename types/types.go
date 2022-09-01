@@ -63,8 +63,8 @@ type Symbol struct {
 }
 
 // Keywords
-func NewKeyword(s string) (string, error) {
-	return "\u029e" + s, nil
+func NewKeyword(s string) string {
+	return "\u029e" + s
 }
 
 func Keyword_Q(obj MalType) bool {
