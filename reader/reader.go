@@ -70,7 +70,7 @@ func tokenize(sourceCode string, cursor *Position) []Token {
 func read_atom(rdr *tokenReader) (MalType, error) {
 	tokenStruct := rdr.next()
 	if tokenStruct == nil {
-		return nil, lisperror.NewLispError(errors.New("read_atom underflow"), &tokenStruct)
+		return nil, lisperror.NewLispError(errors.New("read_atom underflow"), tokenStruct.GetPosition())
 	}
 	token := &tokenStruct.Value
 	switch tokenStruct.Type {
@@ -78,7 +78,7 @@ func read_atom(rdr *tokenReader) (MalType, error) {
 		var i int
 		var e error
 		if i, e = strconv.Atoi(*token); e != nil {
-			return nil, lisperror.NewLispError(errors.New("number parse error"), &tokenStruct)
+			return nil, lisperror.NewLispError(errors.New("number parse error"), tokenStruct.GetPosition())
 		}
 		return i, nil
 	case scanner.String:
@@ -113,7 +113,7 @@ func read_atom(rdr *tokenReader) (MalType, error) {
 	default:
 		return Symbol{
 			Val:    *token,
-			Cursor: &tokenStruct.Cursor,
+			Cursor: tokenStruct.GetPosition(),
 		}, nil
 	}
 }
