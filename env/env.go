@@ -65,15 +65,14 @@ func _newSubordinateEnvWithBinds(outer *Env, binds_mt types.MalType, exprs_mt ty
 				break
 			} else {
 				if i == len(exprs) {
-					// return nil, fmt.Errorf("not enough arguments passed (%d binds, %d arguments passed)", len(binds), len(exprs))
-					return nil, lisperror.NewLispError(fmt.Errorf("too many arguments passed (%d binds, %d arguments passed)", len(binds), len(exprs)), exprs)
+					return nil, lisperror.NewLispError(fmt.Errorf("too few arguments passed (%d binds, %d arguments passed)", len(binds), len(exprs)), nil)
 				}
 				env.data[binds[i].(types.Symbol).Val] = exprs[i]
 			}
 		}
 		if !varargs && len(exprs) != i {
 			// return nil, fmt.Errorf("too many arguments passed (%d binds, %d arguments passed)", len(binds), len(exprs))
-			return nil, lisperror.NewLispError(fmt.Errorf("too many arguments passed (%d binds, %d arguments passed)", len(binds), len(exprs)), binds)
+			return nil, lisperror.NewLispError(fmt.Errorf("too many arguments passed (%d binds, %d arguments passed)", len(binds), len(exprs)), nil)
 		}
 	}
 	//return &et, nil
