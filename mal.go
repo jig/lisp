@@ -572,7 +572,7 @@ func EVAL(ctx context.Context, ast MalType, env EnvType) (res MalType, e error) 
 				env, e = NewSubordinateEnvWithBinds(fn.Env, fn.Params, List{Val: el.(List).Val[1:]})
 				if e != nil {
 					if ast == nil {
-						return nil, lisperror.NewLispError(e, ast)
+						return nil, lisperror.NewLispError(e, nil)
 					}
 					switch v := ast.(List).Val[0].(type) {
 					case Symbol:
