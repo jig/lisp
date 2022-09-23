@@ -75,12 +75,11 @@ func read_atom(rdr *tokenReader) (MalType, error) {
 	token := &tokenStruct.Value
 	switch tokenStruct.Type {
 	case scanner.Int:
-		var i int
-		var e error
-		if i, e = strconv.Atoi(*token); e != nil {
-			return nil, lisperror.NewLispError(errors.New("number parse error"), tokenStruct.GetPosition())
+		i, err := strconv.ParseInt(*token, 0, 0)
+		if err != nil {
+			return nil, lisperror.NewLispError(errors.New("integer parse error"), tokenStruct.GetPosition())
 		}
-		return i, nil
+		return int(i), nil
 	case scanner.String:
 		str := (*token)[1 : len(*token)-1]
 		return strings.Replace(
@@ -99,7 +98,11 @@ func read_atom(rdr *tokenReader) (MalType, error) {
 	case scanner.Keyword:
 		return NewKeyword((*token)[1:len(*token)]), nil
 	case scanner.Float:
-		panic(errors.New("float type is not supported"))
+		f, err := strconv.ParseFloat(*token, 32)
+		if err != nil {
+			return nil, lisperror.NewLispError(errors.New("float parse error"), tokenStruct.GetPosition())
+		}
+		return float32(f), nil
 	case scanner.Ident:
 		switch *token {
 		case "nil":

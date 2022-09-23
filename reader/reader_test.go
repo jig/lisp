@@ -69,11 +69,6 @@ func TestAdHocReaders(t *testing.T) {
 			t.Fatal()
 		}
 	})
-	t.Run("example parse int", func(t *testing.T) {
-		if _, err := reader.Read_str(`«example 0x33 "hello"»`, types.NewCursorFile(t.Name()), nil, ns); err == nil {
-			t.Error("should return number parse error")
-		}
-	})
 	t.Run("error", func(t *testing.T) {
 		ast, err := reader.Read_str(`«error "poum"»`, types.NewCursorFile(t.Name()), nil, ns)
 		if err != nil {
