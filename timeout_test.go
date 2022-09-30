@@ -67,16 +67,22 @@ func TestFutureContextNoTimeout(t *testing.T) {
 }
 
 func TestTimeoutOnTryCatch(t *testing.T) {
-	ctx, cancel := context.WithTimeout(context.Background(), 1000*time.Millisecond)
+	ns := newEnv(t.Name())
+	ast, err := READ(`(try (sleep 100) (catch e (str "ERR: " (error-string e))))`, types.NewCursorFile(t.Name()), ns)
+	if err != nil {
+		t.Fatal(err)
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 50*time.Millisecond)
 	defer cancel()
-
-	res, err := REPL(ctx, newEnv(t.Name()), `(try (sleep 2000) (catch e ("ERR:" e)))`, types.NewCursorFile(t.Name()))
+	res, err := EVAL(ctx, ast, ns)
 	if err != nil {
 		if err.Error() == "timeout while evaluating expression" {
 			t.Fatalf("timeout not catched: %s", err)
 		}
+		t.Fatalf("unexpected error caught %s", err)
 	}
+
 	if !strings.HasPrefix(res.(string), "ERR:") {
-		t.Fatalf("unexected error catched %s", res)
+		t.Fatalf("unexpected result %s", res)
 	}
 }
