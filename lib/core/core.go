@@ -123,9 +123,10 @@ func Load(env EnvType) {
 	call.Call(env, conj, 2)      // at least two parameters
 	call.Call(env, assert, 1, 2) // at least one parameter, at most two
 
-	call.Call(env, go_error, 1)  // at least one parameter
-	call.Call(env, pAnic)        // at least one parameter
-	call.Call(env, unwrap_error) // at least one parameter
+	call.Call(env, go_error, 1) // at least one parameter
+	call.Call(env, pAnic)
+	call.Call(env, unwrap_error)
+	call.Call(env, error_string)
 
 	call.CallOverrideFN(env, "type?", istype)
 	call.Call(env, new_error, 1, 2)
@@ -196,6 +197,10 @@ func pAnic(arg MalType) {
 
 func unwrap_error(err error) (MalType, error) {
 	return errors.Unwrap(err), nil
+}
+
+func error_string(err error) (string, error) {
+	return err.Error(), nil
 }
 
 func go_error(format string, args ...MalType) (MalType, error) {
