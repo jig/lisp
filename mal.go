@@ -35,6 +35,7 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
+	"time"
 
 	"github.com/jig/lisp/debuggertypes"
 	. "github.com/jig/lisp/env"
@@ -504,6 +505,11 @@ func EVAL(ctx context.Context, ast MalType, env EnvType) (res MalType, e error) 
 			}
 			exp, e := func() (res MalType, err error) {
 				defer malRecover(&err)
+				if dl, ok := ctx.Deadline(); ok {
+					// TODO: don't hardcode this, or maybe use a percentage instead
+					dl = dl.Add(-20 * time.Millisecond)
+					ctx, _ = context.WithDeadline(ctx, dl)
+				}
 				return do(ctx, tryDo, 0, 0, env)
 			}()
 
@@ -513,7 +519,12 @@ func EVAL(ctx context.Context, ast MalType, env EnvType) (res MalType, e error) 
 				return exp, nil
 			} else {
 				if catchDo != nil {
-					caughtError := e.(interface{ ErrorValue() MalType }).ErrorValue()
+					var caughtError MalType
+					if er, ok := e.(interface{ ErrorValue() MalType }); ok {
+						caughtError = er.ErrorValue()
+					} else {
+						caughtError = e.Error()
+					}
 					binds := NewList(catchBind)
 					new_env, err := NewSubordinateEnvWithBinds(env, binds, NewList(caughtError))
 					if err != nil {
