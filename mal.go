@@ -508,6 +508,9 @@ func EVAL(ctx context.Context, ast MalType, env EnvType) (res MalType, e error) 
 				if dl, ok := ctx.Deadline(); ok {
 					// TODO: don't hardcode this, or maybe use a percentage instead
 					dl = dl.Add(-20 * time.Millisecond)
+					if !dl.After(time.Now()) {
+						return nil, lisperror.NewLispError(errors.New("no time left for try"), ast)
+					}
 					ctx, _ := context.WithDeadline(ctx, dl)
 					return do(ctx, tryDo, 0, 0, env)
 				}
