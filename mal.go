@@ -560,6 +560,45 @@ func EVAL(ctx context.Context, ast MalType, env EnvType) (res MalType, e error) 
 				Cursor:  ast.(List).Cursor,
 			}
 			return fn, nil
+		case "loop":
+			loopEnv := NewSubordinateEnv(env)
+			arr1, e := GetSlice(a1)
+			if e != nil {
+				return nil, e
+			}
+			if len(arr1)%2 != 0 {
+				return nil, lisperror.NewLispError(errors.New("let: odd elements on binding vector"), a1)
+			}
+			var paramNames, paramValues []MalType
+			for i := 0; i < len(arr1); i += 2 {
+				if !Q[Symbol](arr1[i]) {
+					return nil, lisperror.NewLispError(errors.New("non-symbol bind value"), a1)
+				}
+				exp, e := EVAL(ctx, arr1[i+1], loopEnv)
+				if e != nil {
+					return nil, e
+				}
+				loopEnv.Set(arr1[i].(Symbol), exp)
+				paramNames = append(paramNames, arr1[i])
+				paramValues = append(paramValues, exp)
+			}
+			recur := MalFunc{
+				Eval:    EVAL,
+				Exp:     a2,
+				Env:     env,
+				Params:  paramNames,
+				IsMacro: false,
+				GenEnv:  NewSubordinateEnvWithBinds,
+				Meta:    nil,
+				Cursor:  ast.(List).Cursor,
+			}
+			loopEnv.Set(Symbol{Val: "recur"}, recur)
+			astRef := ast.(List)
+			ast, e = do(ctx, astRef, 2, -1, loopEnv)
+			if e != nil {
+				return nil, e
+			}
+			env = loopEnv
 		default:
 			el, e := eval_ast(ctx, ast, env)
 			if e != nil {
