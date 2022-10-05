@@ -511,7 +511,8 @@ func EVAL(ctx context.Context, ast MalType, env EnvType) (res MalType, e error) 
 					if !dl.After(time.Now()) {
 						return nil, lisperror.NewLispError(errors.New("no time left for try"), ast)
 					}
-					ctx, _ := context.WithDeadline(ctx, dl)
+					ctx, cancel := context.WithDeadline(ctx, dl)
+					defer cancel()
 					return do(ctx, tryDo, 0, 0, env)
 				}
 				return do(ctx, tryDo, 0, 0, env)
