@@ -41,7 +41,7 @@ func (tr *tokenReader) peek() *Token {
 	return &tr.tokens[tr.position]
 }
 
-func tokenize(sourceCode string, cursor *Position) []Token {
+func tokenize(sourceCode string, cursor *Position) ([]Token, error) {
 	result := make([]Token, 0, 1)
 
 	var s scanner.Scanner
@@ -51,6 +51,15 @@ func tokenize(sourceCode string, cursor *Position) []Token {
 	}
 	for tok := s.Scan(); tok != scanner.EOF; tok = s.Scan() {
 		// fmt.Printf("%s: (%s) %s\n", s.Position, scanner.TokenString(tok), s.TokenText())
+		if s.ErrorCount != 0 {
+			return nil, lisperror.NewLispError(fmt.Errorf("invalid token %s", s.TokenText()), &Position{
+				Module:   cursor.Module,
+				BeginRow: s.Pos().Line,
+				BeginCol: s.Pos().Column - 1,
+				Row:      s.Pos().Line,
+				Col:      s.Pos().Column - 1,
+			})
+		}
 		tokenString := s.TokenText()
 		result = append(result, Token{
 			Value: tokenString,
@@ -64,7 +73,7 @@ func tokenize(sourceCode string, cursor *Position) []Token {
 			},
 		})
 	}
-	return result
+	return result, nil
 }
 
 func read_atom(rdr *tokenReader) (MalType, error) {
@@ -313,7 +322,10 @@ func Read_str(str string, cursor *Position, placeholderValues *HashMap, ns ...En
 			cursor = NewCursorFile(matches[1])
 		}
 	}
-	var tokens = tokenize(str, cursor)
+	tokens, err := tokenize(str, cursor)
+	if err != nil {
+		return nil, err
+	}
 	if len(tokens) == 0 {
 		return nil, errors.New("<empty line>")
 	}
