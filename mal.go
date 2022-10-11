@@ -567,7 +567,7 @@ func EVAL(ctx context.Context, ast MalType, env EnvType) (res MalType, e error) 
 		case "fn":
 			fn := MalFunc{
 				Eval:    EVAL,
-				Exp:     a2,
+				Exp:     List{Val: append([]MalType{Symbol{Val: "do"}}, ast.(List).Val[2:]...)},
 				Env:     env,
 				Params:  a1,
 				IsMacro: false,
