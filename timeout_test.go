@@ -68,7 +68,7 @@ func TestFutureContextNoTimeout(t *testing.T) {
 
 func TestTimeoutOnTryCatch(t *testing.T) {
 	ns := newEnv(t.Name())
-	ast, err := READ(`(try (sleep 100) (catch e (str "ERR: " (error-string e))))`, types.NewCursorFile(t.Name()), ns)
+	ast, err := READ(`(try (sleep 1000) (catch e (str "ERR: " (error-string e))))`, types.NewCursorFile(t.Name()), ns)
 	if err != nil {
 		t.Fatal(err)
 	}
