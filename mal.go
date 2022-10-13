@@ -507,8 +507,8 @@ func EVAL(ctx context.Context, ast MalType, env EnvType) (res MalType, e error) 
 				defer malRecover(&err)
 				if dl, ok := ctx.Deadline(); ok {
 					// give 80% of the time to the try, and the remaining 20% to the catch + finally
-					timeout := (time.Until(dl).Nanoseconds() / 10) * 8
-					ctx, cancel := context.WithTimeout(ctx, time.Duration(timeout)*time.Nanosecond)
+					timeout := (time.Until(dl) / 10) * 8
+					ctx, cancel := context.WithTimeout(ctx, timeout)
 					defer cancel()
 					return do(ctx, tryDo, 0, 0, env)
 				}
