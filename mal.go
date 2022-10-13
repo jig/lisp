@@ -356,7 +356,7 @@ func EVAL(ctx context.Context, ast MalType, env EnvType) (res MalType, e error) 
 		if ctx != nil {
 			select {
 			case <-ctx.Done():
-				return nil, errors.New("timeout while evaluating expression")
+				return nil, lisperror.NewLispError(errors.New("timeout while evaluating expression"), ast)
 			default:
 			}
 		}
@@ -506,12 +506,9 @@ func EVAL(ctx context.Context, ast MalType, env EnvType) (res MalType, e error) 
 			exp, e := func() (res MalType, err error) {
 				defer malRecover(&err)
 				if dl, ok := ctx.Deadline(); ok {
-					// TODO: don't hardcode this, or maybe use a percentage instead
-					dl = dl.Add(-20 * time.Millisecond)
-					if !dl.After(time.Now()) {
-						return nil, lisperror.NewLispError(errors.New("no time left for try"), ast)
-					}
-					ctx, cancel := context.WithDeadline(ctx, dl)
+					// give 80% of the time to the try, and the remaining 20% to the catch + finally
+					timeout := (time.Until(dl) / 10) * 8
+					ctx, cancel := context.WithTimeout(ctx, timeout)
 					defer cancel()
 					return do(ctx, tryDo, 0, 0, env)
 				}
