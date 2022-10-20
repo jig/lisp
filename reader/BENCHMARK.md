@@ -1,4 +1,4 @@
-Pre removal of regexp:
+Pre removal of regexp, on a MacBook Pro M1:
 
 ```bash
 ❯ go test -bench=. ./... -benchtime=10s
@@ -23,7 +23,7 @@ BenchmarkCompleteSendingWithPreambleSolved-10    	   91657	    130333 ns/op
 PASS
 ```
 
-After removal of the main regexp:
+After removal of the main regexp, on a MacBook Pro M1:
 
 ```bash
 ❯ go test -bench=. ./... -benchtime=10s
@@ -48,7 +48,7 @@ BenchmarkCompleteSendingWithPreambleSolved-10         122361         97650 ns/op
 PASS
 ```
 
-After removal of all regexp:
+After removal of all regexp, on a MacBook Pro M1:
 
 ```bash
 ❯ go test -bench=. ./... -benchtime=10s
