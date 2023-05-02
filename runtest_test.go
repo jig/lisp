@@ -15,6 +15,7 @@ import (
 	"github.com/jig/lisp/env"
 	"github.com/jig/lisp/lib/concurrent"
 	"github.com/jig/lisp/lib/core"
+	"github.com/jig/lisp/lib/system"
 	"github.com/jig/lisp/types"
 )
 
@@ -110,6 +111,7 @@ func newEnv(fileName string) types.EnvType {
 	core.Load(newenv)
 	core.LoadInput(newenv)
 	concurrent.Load(newenv)
+	system.Load(newenv)
 	newenv.Set(types.Symbol{Val: "eval"}, types.Func{Fn: func(ctx context.Context, a []types.MalType) (types.MalType, error) {
 		return EVAL(ctx, a[0], newenv)
 	}})
