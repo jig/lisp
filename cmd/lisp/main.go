@@ -10,6 +10,7 @@ import (
 	"github.com/jig/lisp/lib/concurrent/nsconcurrent"
 	"github.com/jig/lisp/lib/core/nscore"
 	"github.com/jig/lisp/lib/coreextented/nscoreextended"
+	"github.com/jig/lisp/lib/system/nssystem"
 	"github.com/jig/lisp/types"
 )
 
@@ -26,6 +27,7 @@ func main() {
 		{"concurrent", nsconcurrent.Load},
 		{"core mal extended", nscoreextended.Load},
 		{"assert", nsassert.Load},
+		{"system", nssystem.Load},
 	} {
 		if err := library.load(ns); err != nil {
 			log.Fatalf("Library Load Error: %v\n", err)

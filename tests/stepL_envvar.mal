@@ -1,0 +1,20 @@
+(def PWD (getenv "PWD"))
+(let [a (split PWD "/")] (nth a (- (count a) 1)))
+;=>"lisp"
+
+(setenv "VAR1" "hello")
+;=>nil
+(setenv "VAR2" "")
+;=>nil
+
+(getenv "VAR1")
+;=>"hello"
+(getenv "VAR2")
+;=>""
+(getenv "VAR3")
+;=>nil
+
+(unsetenv "VAR1")
+;=>nil
+(getenv "VAR1")
+;=>nil

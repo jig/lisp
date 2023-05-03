@@ -74,6 +74,7 @@ go test -benchmem -benchtime 5s -bench '^.+$' github.com/jig/lisp
 - Added `future`, and `future-*` companion functions from Clojure
 - `type?` returns the type name string
 - `go-error`, `unwrap` and `panic` mapping to Go's `errors.New/fmt.Errorf`, `Unwrap` and `panic` respectively
+- `getenv`, `setenv` and `unsetenv` functions for environment variables
 
 
 # Embed Lisp in Go code
