@@ -96,15 +96,15 @@ func GetPosition(ast MalType) *Position {
 		return value.Cursor
 	case Set:
 		return value.Cursor
-	case interface{ GetPosition() *Position }:
-		return value.GetPosition()
+	case interface{ Position() *Position }:
+		return value.Position()
 	case *Position:
 		return value
 	case nil:
 		// throw or assert
 		return nil
 	default:
-		panic(fmt.Errorf("GetPosition(%T)", value))
+		panic(fmt.Errorf("Position(%T)", value))
 	}
 }
 

@@ -41,11 +41,13 @@ func TestCursor(t *testing.T) {
 			Module: "singleline-string",
 			Code:   singleline,
 			Cursor: types.NewAnonymousCursorHere(1, 6),
-		}, {
+		},
+		{
 			Module: "multiline-string",
 			Code:   multiline,
 			Cursor: types.NewAnonymousCursorHere(6, 2),
-		}, {
+		},
+		{
 			Module: "codeThrow",
 			Code:   codeThrow,
 			Cursor: types.NewAnonymousCursorHere(4, 2),
@@ -91,7 +93,14 @@ func TestCursor(t *testing.T) {
 			if testCase.Cursor != nil {
 				t.Fatalf("Expected error %q", testCase.Cursor)
 			}
-			continue
+			if ast == "" {
+				t.Error(testCase.Module, "(no error) AST is nil")
+				continue
+			}
+			if ast != "1234" {
+				t.Error(testCase.Module, "(no error) REPL didn't reach the end")
+				continue
+			}
 		case interface {
 			Position() *types.Position
 			Error() string
@@ -102,18 +111,8 @@ func TestCursor(t *testing.T) {
 			if !err.Position().Includes(*testCase.Cursor) {
 				t.Errorf("%s != %s", err.Position(), testCase.Cursor)
 			}
-			continue
 		default:
 			t.Fatal(err)
-			//			t.Fatal(err)
-		}
-		if ast == "" {
-			t.Error(testCase.Module, "(no error) AST is nil")
-			continue
-		}
-		if ast != "1234" {
-			t.Error(testCase.Module, "(no error) REPL didn't reach the end")
-			continue
 		}
 	}
 }
@@ -207,6 +206,7 @@ var codeTooManyRightBrackets = `;; prerequisites
 
 (def a 1234)
 `
+
 var codeThrow = `;; this will throw an error
 ;; in a trivial way
 

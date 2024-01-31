@@ -15,7 +15,7 @@ type Token struct {
 	Cursor Position
 }
 
-func (token Token) GetPosition() *Position {
+func (token Token) Position() *Position {
 	return &token.Cursor
 }
 
@@ -234,9 +234,9 @@ func Equal_Q(a, b MalType) bool {
 	if !((ota == otb) || (Sequential_Q(a) && Sequential_Q(b))) {
 		return false
 	}
-	//av := reflect.ValueOf(a); bv := reflect.ValueOf(b)
-	//fmt.Printf("here2: %#v\n", reflect.TypeOf(a).Name())
-	//switch reflect.TypeOf(a).Name() {
+	// av := reflect.ValueOf(a); bv := reflect.ValueOf(b)
+	// fmt.Printf("here2: %#v\n", reflect.TypeOf(a).Name())
+	// switch reflect.TypeOf(a).Name() {
 	switch a.(type) {
 	case Symbol:
 		return a.(Symbol).Val == b.(Symbol).Val

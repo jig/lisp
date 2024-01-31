@@ -79,14 +79,14 @@ func tokenize(sourceCode string, cursor *Position) ([]Token, error) {
 func read_atom(rdr *tokenReader) (MalType, error) {
 	tokenStruct := rdr.next()
 	if tokenStruct == nil {
-		return nil, lisperror.NewLispError(errors.New("read_atom underflow"), tokenStruct.GetPosition())
+		return nil, lisperror.NewLispError(errors.New("read_atom underflow"), tokenStruct.Position())
 	}
 	token := &tokenStruct.Value
 	switch tokenStruct.Type {
 	case scanner.Int:
 		i, err := strconv.ParseInt(*token, 0, 0)
 		if err != nil {
-			return nil, lisperror.NewLispError(errors.New("integer parse error"), tokenStruct.GetPosition())
+			return nil, lisperror.NewLispError(errors.New("integer parse error"), tokenStruct.Position())
 		}
 		return int(i), nil
 	case scanner.String:
@@ -100,7 +100,7 @@ func read_atom(rdr *tokenReader) (MalType, error) {
 			"\u029e", "\\", -1), nil
 	case scanner.RawString:
 		if *token == "¬" {
-			return nil, lisperror.NewLispError(errors.New("expected '¬', got EOF"), tokenStruct.GetPosition())
+			return nil, lisperror.NewLispError(errors.New("expected '¬', got EOF"), tokenStruct.Position())
 		}
 		str := (*token)[2 : len(*token)-2]
 		return strings.Replace(str, `¬¬`, `¬`, -1), nil
@@ -109,7 +109,7 @@ func read_atom(rdr *tokenReader) (MalType, error) {
 	case scanner.Float:
 		f, err := strconv.ParseFloat(*token, 32)
 		if err != nil {
-			return nil, lisperror.NewLispError(errors.New("float parse error"), tokenStruct.GetPosition())
+			return nil, lisperror.NewLispError(errors.New("float parse error"), tokenStruct.Position())
 		}
 		return float32(f), nil
 	case scanner.Ident:
@@ -125,7 +125,7 @@ func read_atom(rdr *tokenReader) (MalType, error) {
 	default:
 		return Symbol{
 			Val:    *token,
-			Cursor: tokenStruct.GetPosition(),
+			Cursor: tokenStruct.Position(),
 		}, nil
 	}
 }

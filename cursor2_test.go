@@ -29,11 +29,14 @@ func TestCursor2(t *testing.T) {
 	_, err = REPL(ctx, bootEnv, testCode, types.NewCursorFile(t.Name()))
 	switch err := err.(type) {
 	case nil:
-		t.Error("unexpected: no error returned")
-	case interface{ GetPosition() *types.Position }:
-		if err.GetPosition().Row != 11 {
-			t.Fatalf("%+v %s", err.GetPosition(), err)
+		t.Fatal("unexpected: no error returned")
+	case interface{ Position() *types.Position }:
+		if err.Position().Row != 12 {
+			t.Fatalf("%+v %s", err.Position(), err)
 		}
+		return
+	default:
+		t.Fatalf("unexpected: error of type %[1]T returned (%[1]s)", err)
 	}
 }
 
