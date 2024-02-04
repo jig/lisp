@@ -57,60 +57,11 @@ func (e LispError) Error() string {
 	default:
 		return fmt.Sprintf("\n%s %s: %s", e.cursor, printer.Pr_str(e.context, true), e.err)
 	}
-	// switch e.err.(type) {
-	// case error:
-	// 	if e.cursor != nil {
-	// 		return fmt.Sprintf("%s: %s", e.cursor, e.err)
-	// 	}
-	// 	return fmt.Sprint(e.err)
-	// default:
-	// 	// TODO: this should be prt_str
-	// 	// panic("internal error: LispError.Error() called on non-error")
-	// 	if e.cursor != nil {
-	// 		return fmt.Sprintf("%s: %s", e.cursor, e.err)
-	// 	}
-	// 	return fmt.Sprint(e.err)
-	// }
 }
-
-// func (e LispError) Stack() []LispError {
-// 	stack := []LispError{}
-// 	next := e
-// 	for {
-// 		stack = append(stack, next)
-
-// 		switch nextErr := next.err.(type) {
-// 		case LispError:
-// 			next = nextErr
-// 		default:
-// 			// stack = append(stack, LispError{err: nextErr})
-// 			return stack
-// 		}
-// 	}
-// }
-
-// func (e LispError) Trace() string {
-// 	if len(e.Stack()) < 2 {
-// 		return fmt.Sprintf("%s: %s", e.cursor, e.err)
-// 	}
-// 	res := ""
-// 	for _, row := range e.Stack() {
-// 		res += fmt.Sprintf("> %s: %s\n->\t%s\n", row.cursor, printer.Pr_str(row.context, true), row.err)
-// 	}
-// 	return res
-// }
 
 func (e LispError) Position() *Position {
 	return e.cursor
 }
-
-// func (e LispError) LispPrint(_Pr_str func(obj MalType, print_readably bool) string) string {
-// 	return "(error " + _Pr_str(e.err, true) + ")"
-// }
-
-// func (e LispError) Type() string {
-// 	return "error"
-// }
 
 // NewGoError is used to create a LispError on errors returned by go functions
 func NewGoError(fFullName string, err interface{}) error {
@@ -172,16 +123,6 @@ func NewLispError(inErr MalType, contextAST MalType) LispError {
 		context: contextAST,
 		cursor:  pos,
 	}
-	// switch err := err.(type) {
-	// case LispError:
-	// 	err.cursor = GetPosition(ast)
-	// 	return err
-	// default:
-	// 	return LispError{
-	// 		err:    err,
-	// 		cursor: GetPosition(ast),
-	// 	}
-	// }
 }
 
 func (e LispError) MarshalHashMap() (MalType, error) {
