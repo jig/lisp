@@ -10,8 +10,9 @@ import (
 
 // Errors/Exceptions
 type LispError struct {
-	err    MalType
-	cursor *Position
+	err     MalType
+	cursor  *Position
+	context MalType
 }
 
 func (e LispError) Unwrap() error {
@@ -22,7 +23,12 @@ func (e LispError) Unwrap() error {
 }
 
 func (e LispError) ErrorValue() MalType {
-	return e.err
+	switch e.err.(type) {
+	case LispError:
+		return e.err.(LispError).ErrorValue()
+	default:
+		return e.err
+	}
 }
 
 func (e LispError) Is(target error) bool {
@@ -43,20 +49,56 @@ func (e LispError) Is(target error) bool {
 
 func (e LispError) Error() string {
 	switch e.err.(type) {
+	case LispError:
+		// return fmt.Sprintf("\n%s %s: %s", e.cursor, printer.Pr_str(e.context, true), e.err)
+		return fmt.Sprintf("\n%s: %s %s", e.cursor, printer.Pr_str(e.context, true), e.err)
 	case error:
-		if e.cursor != nil {
-			return fmt.Sprintf("%s: %s", e.cursor, e.err)
-		}
-		return fmt.Sprint(e.err)
+		return fmt.Sprintf("%s", e.err)
 	default:
-		// TODO: this should be prt_str
-		// panic("internal error: LispError.Error() called on non-error")
-		if e.cursor != nil {
-			return fmt.Sprintf("%s: %s", e.cursor, e.err)
-		}
-		return fmt.Sprint(e.err)
+		return fmt.Sprintf("\n%s %s: %s", e.cursor, printer.Pr_str(e.context, true), e.err)
 	}
+	// switch e.err.(type) {
+	// case error:
+	// 	if e.cursor != nil {
+	// 		return fmt.Sprintf("%s: %s", e.cursor, e.err)
+	// 	}
+	// 	return fmt.Sprint(e.err)
+	// default:
+	// 	// TODO: this should be prt_str
+	// 	// panic("internal error: LispError.Error() called on non-error")
+	// 	if e.cursor != nil {
+	// 		return fmt.Sprintf("%s: %s", e.cursor, e.err)
+	// 	}
+	// 	return fmt.Sprint(e.err)
+	// }
 }
+
+// func (e LispError) Stack() []LispError {
+// 	stack := []LispError{}
+// 	next := e
+// 	for {
+// 		stack = append(stack, next)
+
+// 		switch nextErr := next.err.(type) {
+// 		case LispError:
+// 			next = nextErr
+// 		default:
+// 			// stack = append(stack, LispError{err: nextErr})
+// 			return stack
+// 		}
+// 	}
+// }
+
+// func (e LispError) Trace() string {
+// 	if len(e.Stack()) < 2 {
+// 		return fmt.Sprintf("%s: %s", e.cursor, e.err)
+// 	}
+// 	res := ""
+// 	for _, row := range e.Stack() {
+// 		res += fmt.Sprintf("> %s: %s\n->\t%s\n", row.cursor, printer.Pr_str(row.context, true), row.err)
+// 	}
+// 	return res
+// }
 
 func (e LispError) Position() *Position {
 	return e.cursor
@@ -85,40 +127,61 @@ func NewGoError(fFullName string, err interface{}) error {
 }
 
 func GetPosition(ast MalType) *Position {
+	pos, err := getPosition(ast)
+	if err != nil {
+		panic(err)
+	}
+	return pos
+}
+
+func getPosition(ast MalType) (*Position, error) {
 	switch value := ast.(type) {
 	case List:
-		return value.Cursor
+		return value.Cursor, nil
 	case Symbol:
-		return value.Cursor
+		return value.Cursor, nil
 	case Vector:
-		return value.Cursor
+		return value.Cursor, nil
 	case HashMap:
-		return value.Cursor
+		return value.Cursor, nil
 	case Set:
-		return value.Cursor
+		return value.Cursor, nil
 	case interface{ Position() *Position }:
-		return value.Position()
+		return value.Position(), nil
 	case *Position:
-		return value
+		return value, nil
 	case nil:
 		// throw or assert
-		return nil
+		return nil, nil
 	default:
-		panic(fmt.Errorf("Position(%T)", value))
+		return nil, fmt.Errorf("Position(%T)", value)
 	}
 }
 
-func NewLispError(err MalType, ast MalType) LispError {
-	switch err := err.(type) {
-	case LispError:
-		err.cursor = GetPosition(ast)
-		return err
-	default:
+func NewLispError(inErr MalType, contextAST MalType) LispError {
+	// log.Print(printer.Pr_str(contextAST, true))
+	pos, err := getPosition(contextAST)
+	if err != nil {
 		return LispError{
-			err:    err,
-			cursor: GetPosition(ast),
+			err:     inErr,
+			context: contextAST,
 		}
 	}
+	return LispError{
+		err:     inErr,
+		context: contextAST,
+		cursor:  pos,
+	}
+	// switch err := err.(type) {
+	// case LispError:
+	// 	err.cursor = GetPosition(ast)
+	// 	return err
+	// default:
+	// 	return LispError{
+	// 		err:    err,
+	// 		cursor: GetPosition(ast),
+	// 	}
+	// }
 }
 
 func (e LispError) MarshalHashMap() (MalType, error) {

@@ -49,29 +49,38 @@ func tokenize(sourceCode string, cursor *Position) ([]Token, error) {
 	if cursor.Module != nil {
 		s.Filename = *cursor.Module
 	}
+	line := s.Pos().Line
+	column := s.Pos().Column
+	// offset := s.Pos().Offset
 	for tok := s.Scan(); tok != scanner.EOF; tok = s.Scan() {
 		// fmt.Printf("%s: (%s) %s\n", s.Position, scanner.TokenString(tok), s.TokenText())
 		if s.ErrorCount != 0 {
 			return nil, lisperror.NewLispError(fmt.Errorf("invalid token %s", s.TokenText()), &Position{
 				Module:   cursor.Module,
-				BeginRow: s.Pos().Line,
-				BeginCol: s.Pos().Column - 1,
-				Row:      s.Pos().Line,
-				Col:      s.Pos().Column - 1,
+				BeginRow: line,
+				BeginCol: column - 1,
+				EndRow:   line,
+				EndCol:   column - 1,
 			})
 		}
 		tokenString := s.TokenText()
+		newLine := s.Pos().Line
+		newColumn := s.Pos().Column
 		result = append(result, Token{
 			Value: tokenString,
 			Type:  tok,
 			Cursor: Position{
 				Module:   cursor.Module,
-				BeginRow: s.Pos().Line,
-				BeginCol: s.Pos().Column,
-				Row:      s.Pos().Line,
-				Col:      s.Pos().Column + s.Pos().Offset,
+				BeginRow: line,
+				BeginCol: column,
+				EndRow:   newLine,
+				// EndCol:   column + offset,
+				EndCol: newColumn,
 			},
 		})
+		line = newLine
+		column = newColumn
+		// offset = s.Pos().Offset
 	}
 	return result, nil
 }
@@ -324,7 +333,7 @@ func Read_str(str string, cursor *Position, placeholderValues *HashMap, ns ...En
 	}
 	tokens, err := tokenize(str, cursor)
 	if err != nil {
-		return nil, err
+		return nil, lisperror.NewLispError(err, cursor)
 	}
 	if len(tokens) == 0 {
 		return nil, errors.New("<empty line>")

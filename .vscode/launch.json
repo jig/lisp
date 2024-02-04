@@ -5,11 +5,14 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "test root",
+            "name": "test all",
             "type": "go",
             "request": "launch",
             "mode": "test",
-            "program": "${workspaceFolder}"
+            "program": "${workspaceFolder}",
+            "args": [
+                "./..."
+            ],
         },
         {
             "name": "test calls",
@@ -31,7 +34,7 @@
             "request": "launch",
             "mode": "auto",
             "program": "${workspaceFolder}/cmd/debugger",
-            "args":[
+            "args": [
                 "../../examples/fibonacci.lisp"
             ]
         },
@@ -41,7 +44,7 @@
             "request": "launch",
             "mode": "auto",
             "program": "${workspaceFolder}/cmd/lisp",
-            "args":[
+            "args": [
                 "./examples/mal.lisp"
             ]
         },
@@ -51,6 +54,18 @@
             "request": "launch",
             "mode": "test",
             "program": "${workspaceFolder}/reader"
+        },
+        {
+            "name": "TestCursor",
+            "type": "go",
+            "request": "launch",
+            "mode": "test",
+            "program": "${workspaceFolder}",
+            "args": [
+                "-test.v",
+                "-test.run",
+                "^TestCursor$"
+            ],
         }
     ]
 }

@@ -21,9 +21,22 @@ func TestErrorParsingUnterminatedString(t *testing.T) {
 	if err == nil {
 		t.Fatalf("must throw error but returns %q", ast)
 	}
-	if err.Error() != `§1…1,6…6: invalid token "hello` {
-		t.Fatal(err)
+	// switch err := err.(type) {
+	// case lisperror.LispError:
+	// 	if fmt.Sprintf("%s", err.ErrorValue()) != `invalid token "hello` {
+	// 		t.Fatalf("%s-%s", `invalid token "hello`, err.ErrorValue())
+	// 	}
+	// case error:
+	expectedError := "\n§L1,C1: §L1,C1 invalid token \"hello"
+	if err.Error() != expectedError {
+		t.Fatalf("%q != %q", err.Error(), expectedError)
 	}
+	// default:
+	// 	t.Fatal(err)
+	// }
+	// if err.ErrorValue() != `invalid token "hello` {
+	// 	t.Fatal(err)
+	// }
 }
 
 func TestErrorParsingUnterminatedHexa(t *testing.T) {
@@ -31,7 +44,7 @@ func TestErrorParsingUnterminatedHexa(t *testing.T) {
 	if err == nil {
 		t.Fatalf("must throw error but returns %q", ast)
 	}
-	if err.Error() != `§1…1,2…2: invalid token 0x` {
-		t.Fatal(err)
+	if err.Error() != "\n§L1,C1: §L1,C1 invalid token 0x" {
+		t.Fatal(err.Error())
 	}
 }

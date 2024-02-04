@@ -27,6 +27,6 @@ func TestCastFunc(t *testing.T) {
 		t.Fatal(err)
 	}
 	if !strings.HasSuffix(err.Error(), "attempt to call non-function (was of type int)") {
-		t.Fatal("test failed")
+		t.Fatalf("test failed:\n%s", err)
 	}
 }

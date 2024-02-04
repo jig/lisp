@@ -137,12 +137,13 @@ func _recover(fFullName string, err *error) {
 	rerr := recover()
 	if rerr != nil {
 		switch rerr := rerr.(type) {
+		case lisperror.LispError:
+			*err = rerr
 		case error:
 			*err = lisperror.NewGoError(fFullName, rerr)
 		default:
 			*err = lisperror.NewLispError(rerr, nil)
 		}
-
 	}
 }
 

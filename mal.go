@@ -112,14 +112,14 @@ func READWithPreamble(str string, cursor *Position, ns EnvType) (MalType, error)
 		lineItems := placeholderRE.FindAllStringSubmatch(line, -1)
 		if len(lineItems) != 1 || len(lineItems[0]) != 3 {
 			return nil, lisperror.NewLispError(errors.New("invalid preamble format"), &Position{
-				Row: i + 1,
-				Col: 1,
+				EndRow: i + 1,
+				EndCol: 1,
 			})
 		}
 		placeholderValue := lineItems[0][2]
 		item, _ := reader.Read_str(placeholderValue, &Position{
-			Row: i + 1,
-			Col: 1,
+			EndRow: i + 1,
+			EndCol: 1,
 		}, nil, ns)
 		placeholderKey := lineItems[0][1][3:]
 		placeholderMap.Val[placeholderKey] = item
@@ -236,7 +236,7 @@ func eval_ast(ctx context.Context, ast MalType, env EnvType) (MalType, error) {
 		for _, a := range ast.(List).Val {
 			exp, e := EVAL(ctx, a, env)
 			if e != nil {
-				return nil, e
+				return nil, lisperror.NewLispError(e, a)
 			}
 			lst = append(lst, exp)
 		}
@@ -270,9 +270,11 @@ func eval_ast(ctx context.Context, ast MalType, env EnvType) (MalType, error) {
 // Stepper is called (if not null) to stop at each step of the Lisp interpreter.
 //
 // It might be used as a debugger. Look at [lisp/debugger] package for a simple implementation.
-var Stepper func(ast MalType, ns EnvType) debuggertypes.Command
-var skip bool
-var outing1, outing2 bool
+var (
+	Stepper          func(ast MalType, ns EnvType) debuggertypes.Command
+	skip             bool
+	outing1, outing2 bool
+)
 
 func do(ctx context.Context, ast MalType, from, to int, env EnvType) (MalType, error) {
 	if outing1 {

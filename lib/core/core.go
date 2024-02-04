@@ -183,12 +183,7 @@ func new_error(err MalType, cursor ...*Position) (lisperror.LispError, error) {
 
 // Errors/Exceptions
 func throw(a MalType) (MalType, error) {
-	switch a := a.(type) {
-	case error:
-		return nil, a
-	default:
-		return nil, lisperror.NewLispError(a, nil)
-	}
+	return nil, lisperror.NewLispError(a, a)
 }
 
 func pAnic(arg MalType) {
