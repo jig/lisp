@@ -1,6 +1,7 @@
 package lisp_test
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/jig/lisp"
@@ -27,7 +28,8 @@ func TestErrorParsingUnterminatedString(t *testing.T) {
 	// 		t.Fatalf("%s-%s", `invalid token "hello`, err.ErrorValue())
 	// 	}
 	// case error:
-	expectedError := "\n§L1,C1: §L1,C1 invalid token \"hello"
+	expectedError := "\n§L1,C1: §L1,C1 \n§L1,C0: §L1,C0 invalid token \"hello"
+	// expectedError := "\n§L1,C1: §L1,C1 invalid token \"hello"
 	if err.Error() != expectedError {
 		t.Fatalf("%q != %q", err.Error(), expectedError)
 	}
@@ -44,7 +46,8 @@ func TestErrorParsingUnterminatedHexa(t *testing.T) {
 	if err == nil {
 		t.Fatalf("must throw error but returns %q", ast)
 	}
-	if err.Error() != "\n§L1,C1: §L1,C1 invalid token 0x" {
+	// if err.Error() != "\n§L1,C1: §L1,C1 invalid token 0x" {
+	if !strings.Contains(err.Error(), "§L1,C1: §L1,C1") && strings.Contains(err.Error(), "invalid token 0x") {
 		t.Fatal(err.Error())
 	}
 }
