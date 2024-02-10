@@ -48,15 +48,7 @@ func (e LispError) Is(target error) bool {
 }
 
 func (e LispError) Error() string {
-	switch e.err.(type) {
-	case LispError:
-		// return fmt.Sprintf("\n%s %s: %s", e.cursor, printer.Pr_str(e.context, true), e.err)
-		return fmt.Sprintf("\n%s: %s %s", e.cursor, printer.Pr_str(e.context, true), e.err)
-	case error:
-		return fmt.Sprintf("%s", e.err)
-	default:
-		return fmt.Sprintf("\n%s %s: %s", e.cursor, printer.Pr_str(e.context, true), e.err)
-	}
+	return fmt.Sprintf("\n%s: %s %s", e.cursor, printer.Pr_str(e.context, true), e.err)
 }
 
 func (e LispError) Position() *Position {

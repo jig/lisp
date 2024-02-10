@@ -36,8 +36,6 @@ func TestCursor(t *testing.T) {
 		Code   string
 		Cursor *types.Position
 	}{
-		//(try (throw "sample") (catch err err))
-		// ;=>"sample"
 		{
 			Module: "throw sample",
 			Code:   `(try (throw 1234) (catch err err))`,
@@ -162,7 +160,8 @@ func TestCursor(t *testing.T) {
 			Position() *types.Position
 			Error() string
 		}:
-			// fmt.Printf("\nTEST ERR: %s", err)
+			// fmt.Printf("\nTEST ERR %s: %s", testCase.Module, err)
+			// fmt.Printf("\nTEST ERR %s: %s", testCase.Module, err)
 			if err.Position() == nil {
 				t.Error("error")
 			}
