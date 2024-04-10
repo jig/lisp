@@ -30,6 +30,7 @@ Changes respect to [kanaka/mal](https://github.com/kanaka/mal):
 - `(do)` returns nil as Clojure instead of panicking
 - `hash-map` creates maps or converts a Go object to a map if the marshaler is defined in Go for that object
 - `reduce-kv` added
+- `take`, `take-last`, `drop`, `drop-last`, `subvec` added
 
 To test the implementation use:
 
