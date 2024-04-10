@@ -132,6 +132,140 @@ func Load(env EnvType) {
 	call.Call(env, new_error, 1, 2)
 	call.Call(env, new_go_error)
 	call.Call(env, version)
+
+	call.Call(env, take)
+	call.Call(env, take_last)
+	call.Call(env, drop)
+	call.Call(env, drop_last)
+	call.Call(env, subvec, 2, 3)
+}
+
+func subvec(args ...MalType) (MalType, error) {
+	l := len(args)
+	if l != 2 && l != 3 {
+		return nil, fmt.Errorf("subvec wrong number of args (%d instead of 2 or 3)", l)
+	}
+	v, ok := args[0].(Vector)
+	if !ok {
+		return nil, fmt.Errorf("subvec requires a vector (it was %T)", args[0])
+	}
+	var from, to int
+	if l == 2 {
+		from = args[1].(int)
+		to = len(v.Val)
+	} else {
+		from = args[1].(int)
+		to = args[2].(int)
+	}
+	return Vector{
+		Val: v.Val[from:to],
+	}, nil
+}
+
+func take(elems int, arg MalType) (MalType, error) {
+	// note that Clojure returns a list, not another vector in this case
+	new_list := List{Val: []MalType{}}
+
+	switch arg := arg.(type) {
+	case List:
+		for i := 0; i < elems && i < len(arg.Val); i++ {
+			new_list.Val = append(new_list.Val, arg.Val[i])
+		}
+	case Vector:
+		for i := 0; i < elems && i < len(arg.Val); i++ {
+			new_list.Val = append(new_list.Val, arg.Val[i])
+		}
+	case nil:
+		// if nil return an empty list
+	default:
+		return nil, fmt.Errorf("take called on non-list and non-vector (it was %T)", arg)
+	}
+	return new_list, nil
+}
+
+func take_last(elems int, arg MalType) (MalType, error) {
+	// note that Clojure returns a list, not another vector in this case
+	new_list := List{}
+
+	if elems < 0 {
+		elems = 0
+	}
+
+	switch arg := arg.(type) {
+	case List:
+		start := len(arg.Val) - elems
+		if start < 0 {
+			start = 0
+		}
+		for i := start; i < len(arg.Val); i++ {
+			new_list.Val = append(new_list.Val, arg.Val[i])
+		}
+	case Vector:
+		start := len(arg.Val) - elems
+		if start < 0 {
+			start = 0
+		}
+		for i := start; i < len(arg.Val); i++ {
+			new_list.Val = append(new_list.Val, arg.Val[i])
+		}
+	case nil:
+		// if nil return an empty list
+	default:
+		return nil, fmt.Errorf("take called on non-list and non-vector (it was %T)", arg)
+	}
+
+	if len(new_list.Val) == 0 {
+		return nil, nil
+	}
+	return new_list, nil
+}
+
+func drop(n int, arg MalType) (MalType, error) {
+	// note that Clojure returns a list, not another vector in this case
+	new_list := List{Val: []MalType{}}
+	if n < 0 {
+		n = 0
+	}
+
+	switch arg := arg.(type) {
+	case List:
+		for i := n; i < len(arg.Val); i++ {
+			new_list.Val = append(new_list.Val, arg.Val[i])
+		}
+	case Vector:
+		for i := n; i < len(arg.Val); i++ {
+			new_list.Val = append(new_list.Val, arg.Val[i])
+		}
+	case nil:
+		// if nil return an empty list
+	default:
+		return nil, fmt.Errorf("drop called on non-list and non-vector (it was %T)", arg)
+	}
+	return new_list, nil
+}
+
+func drop_last(n int, arg MalType) (MalType, error) {
+	// note that Clojure returns a list, not another vector in this case
+	new_list := List{Val: []MalType{}}
+	if n < 0 {
+		n = 0
+	}
+
+	switch arg := arg.(type) {
+	case List:
+		for i := 0; i < len(arg.Val)-n; i++ {
+			new_list.Val = append(new_list.Val, arg.Val[i])
+		}
+	case Vector:
+		for i := 0; i < len(arg.Val)-n; i++ {
+			new_list.Val = append(new_list.Val, arg.Val[i])
+		}
+	case nil:
+		// if nil return an empty list
+	default:
+		return nil, fmt.Errorf("drop called on non-list and non-vector (it was %T)", arg)
+	}
+	return new_list, nil
 }
 
 func LoadInput(env EnvType) {
