@@ -26,12 +26,18 @@ func (m *Lisp) Build(source *dagger.Directory) *dagger.Container {
 
 // Execute all tests
 func (m *Lisp) Test(source *dagger.Directory) *dagger.Container {
-	return m.Build(source).
+	return m.Setup(source).
 		WithExec([]string{"go", "test", "./..."})
 }
 
 // Execute all benchmarks
 func (m *Lisp) Benchmark(source *dagger.Directory) *dagger.Container {
-	return m.Build(source).
+	return m.Setup(source).
 		WithExec([]string{"go", "test", "--bench=.", "./..."})
+}
+
+// Lint the source code
+func (m *Lisp) Lint(source *dagger.Directory) *dagger.Container {
+	return m.Setup(source).
+		WithExec([]string{"golangci-lint", "run", source.Name()})
 }
