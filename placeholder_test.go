@@ -336,6 +336,10 @@ func TestAddPreamblePointers(t *testing.T) {
 			expected: ";; $ARG nil",
 		},
 		{
+			preamble: map[string]types.MalType{"$ARG": &var3},
+			expected: ";; $ARG nil",
+		},
+		{
 			preamble: map[string]types.MalType{"$ARG": nil},
 			expected: ";; $ARG nil",
 		},
