@@ -308,45 +308,41 @@ func TestAddPreamblePointers(t *testing.T) {
 	var2 := &var1
 	var3 := (*int)(nil)
 	for _, tc := range []struct {
-		arg      any
+		preamble map[string]types.MalType
 		expected string
 	}{
 		{
-			arg:      123,
+			preamble: map[string]types.MalType{"$ARG": 123},
 			expected: ";; $ARG 123",
 		},
 		{
-			arg:      var1,
+			preamble: map[string]types.MalType{"$ARG": var1},
 			expected: ";; $ARG 123",
 		},
 		{
-			arg:      &var1,
+			preamble: map[string]types.MalType{"$ARG": &var1},
 			expected: ";; $ARG 123",
 		},
 		{
-			arg:      var2,
+			preamble: map[string]types.MalType{"$ARG": var2},
 			expected: ";; $ARG 123",
 		},
 		{
-			arg:      &var2,
+			preamble: map[string]types.MalType{"$ARG": &var2},
 			expected: ";; $ARG 123",
 		},
 		{
-			arg:      var3,
+			preamble: map[string]types.MalType{"$ARG": var3},
 			expected: ";; $ARG nil",
 		},
 		{
-			arg:      nil,
+			preamble: map[string]types.MalType{"$ARG": nil},
 			expected: ";; $ARG nil",
 		},
 	} {
 		expected := fmt.Sprintf("%s\n\n(+ 1 $ARG)", tc.expected)
 
-		preamble := map[string]types.MalType{
-			"$ARG": tc.arg,
-		}
-
-		sourceCode, err := AddPreamble(`(+ 1 $ARG)`, preamble)
+		sourceCode, err := AddPreamble(`(+ 1 $ARG)`, tc.preamble)
 		if err != nil {
 			t.Fatal(err)
 		}
