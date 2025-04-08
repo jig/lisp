@@ -50,9 +50,13 @@
 ;; Testing non-macro function
 (not (= 1 1))
 ;=>false
+(not (!= 1 1))
+;=>true
 ;;; This should fail if it is a macro
 (not (= 1 2))
 ;=>true
+(not (!= 1 2))
+;=>false
 
 ;; Testing nth, first and rest functions
 

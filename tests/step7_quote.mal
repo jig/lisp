@@ -29,6 +29,8 @@ a
 ;=>()
 (= () (concat))
 ;=>true
+(!= () (concat))
+;=>false
 
 (def a (list 1 2))
 (def b (list 3 4))
