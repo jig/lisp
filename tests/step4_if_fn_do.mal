@@ -45,7 +45,8 @@
 ;=>7
 (= (list) nil)
 ;=>false
-
+(not= (list) nil)
+;=>true
 
 ;; Testing 1-way if form
 (if false (+ 1 7))
@@ -73,6 +74,21 @@
 ;=>false
 (= nil nil)
 ;=>true
+
+(not= 2 1)
+;=>true
+(not= 1 1)
+;=>false
+(not= 1 2)
+;=>true
+(not= 1 (+ 1 1))
+;=>true
+(not= 2 (+ 1 1))
+;=>false
+(not= nil 1)
+;=>true
+(not= nil nil)
+;=>false
 
 (> 2 1)
 ;=>true
@@ -133,6 +149,37 @@
 ;=>false
 (= (list nil) (list))
 ;=>false
+
+;; Testing inequality
+(not= 1 1)
+;=>false
+(not= 0 0)
+;=>false
+(not= 1 0)
+;=>true
+(not= true true)
+;=>false
+(not= false false)
+;=>false
+(not= nil nil)
+;=>false
+
+(not= (list) (list))
+;=>false
+(not= (list) ())
+;=>false
+(not= (list 1 2) (list 1 2))
+;=>false
+(not= (list 1) (list))
+;=>true
+(not= (list) (list 1))
+;=>true
+(not= 0 (list))
+;=>true
+(not= (list) 0)
+;=>true
+(not= (list nil) (list))
+;=>true
 
 
 ;; Testing builtin and user defined functions
@@ -242,6 +289,25 @@ a
 ;=>false
 (= "" (list))
 ;=>false
+
+;; Testing string inequality
+
+(not= "" "")
+;=>false
+(not= "abc" "abc")
+;=>false
+(not= "abc" "")
+;=>true
+(not= "" "abc")
+;=>true
+(not= "abc" "def")
+;=>true
+(not= "abc" "ABC")
+;=>true
+(not= (list) "")
+;=>true
+(not= "" (list))
+;=>true
 
 ;; Testing variable length arguments
 
@@ -440,6 +506,15 @@ a
 (= (list :abc) (list :abc))
 ;=>true
 
+(not= :abc :abc)
+;=>false
+(not= :abc :def)
+;=>true
+(not= :abc ":abc")
+;=>true
+(not= (list :abc) (list :abc))
+;=>false
+
 ;; Testing vector truthiness
 (if [] 7 8)
 ;=>7
@@ -489,6 +564,28 @@ a
 ;=>false
 (= "" [])
 ;=>false
+
+;; Testing vector inequality
+(not= [] (list))
+;=>false
+(not= [7 8] [7 8])
+;=>false
+(not= [:abc] [:abc])
+;=>false
+(not= (list 1 2) [1 2])
+;=>false
+(not= (list 1) [])
+;=>true
+(not= [] [1])
+;=>true
+(not= 0 [])
+;=>true
+(not= [] 0)
+;=>true
+(not= [] "")
+;=>true
+(not= "" [])
+;=>true
 
 ;; Testing vector parameter lists
 ( (fn [] 4) )
