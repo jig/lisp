@@ -155,10 +155,14 @@ func (f *Future) Deref(ctx context.Context) (MalType, error) {
 	}
 }
 
-func (fut *Future) LispPrint(_Pr_str func(MalType, bool) string) string {
-	return "«futur-call " + _Pr_str(fut.Fn.Exp, true) + "»"
+func (f *Future) LispPrint(_Pr_str func(MalType, bool) string) string {
+	return "«futur-call " + _Pr_str(f.Fn.Exp, true) + "»"
 }
 
-func (a *Future) Type() string {
+func (f *Future) Type() string {
 	return "future-call"
+}
+
+func (f *Future) GetPosition() *Position {
+	return f.Cursor
 }

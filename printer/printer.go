@@ -82,6 +82,13 @@ func Pr_str(obj types.MalType, print_readably bool) string {
 	// 	return "(atom " +
 	// 		Pr_str(tobj.Val, true) + ")"
 	default:
+		if v := reflect.ValueOf(obj); v.Kind() == reflect.Ptr {
+			// if the value is a pointer, dereference it to print the value instead of the address
+			if v.IsNil() {
+				return "nil"
+			}
+			return Pr_str(reflect.Indirect(v).Interface(), print_readably)
+		}
 		return fmt.Sprintf("%v", obj)
 	}
 }

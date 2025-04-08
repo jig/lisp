@@ -100,11 +100,8 @@ func GetPosition(ast MalType) *Position {
 		return value.GetPosition()
 	case *Position:
 		return value
-	case nil:
-		// throw or assert
-		return nil
 	default:
-		panic(fmt.Errorf("GetPosition(%T)", value))
+		return nil
 	}
 }
 

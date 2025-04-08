@@ -3,12 +3,14 @@ package lisp
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"strings"
 	"testing"
 
 	"github.com/jig/lisp/env"
 	"github.com/jig/lisp/lib/core"
 	"github.com/jig/lisp/reader"
+	"github.com/jig/lisp/types"
 
 	. "github.com/jig/lisp/lnotation"
 	. "github.com/jig/lisp/types"
@@ -297,6 +299,60 @@ func TestAddPreamble(t *testing.T) {
 		}
 		if l.Val[2].(int) != 1 {
 			t.Fatal("pum6")
+		}
+	}
+}
+
+func TestAddPreamblePointers(t *testing.T) {
+	var1 := 123
+	var2 := &var1
+	var3 := (*int)(nil)
+	for _, tc := range []struct {
+		preamble map[string]types.MalType
+		expected string
+	}{
+		{
+			preamble: map[string]types.MalType{"$ARG": 123},
+			expected: ";; $ARG 123",
+		},
+		{
+			preamble: map[string]types.MalType{"$ARG": var1},
+			expected: ";; $ARG 123",
+		},
+		{
+			preamble: map[string]types.MalType{"$ARG": &var1},
+			expected: ";; $ARG 123",
+		},
+		{
+			preamble: map[string]types.MalType{"$ARG": var2},
+			expected: ";; $ARG 123",
+		},
+		{
+			preamble: map[string]types.MalType{"$ARG": &var2},
+			expected: ";; $ARG 123",
+		},
+		{
+			preamble: map[string]types.MalType{"$ARG": var3},
+			expected: ";; $ARG nil",
+		},
+		{
+			preamble: map[string]types.MalType{"$ARG": &var3},
+			expected: ";; $ARG nil",
+		},
+		{
+			preamble: map[string]types.MalType{"$ARG": nil},
+			expected: ";; $ARG nil",
+		},
+	} {
+		expected := fmt.Sprintf("%s\n\n(+ 1 $ARG)", tc.expected)
+
+		sourceCode, err := AddPreamble(`(+ 1 $ARG)`, tc.preamble)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		if sourceCode != expected {
+			t.Fatalf("expected %s, got %s", expected, sourceCode)
 		}
 	}
 }
