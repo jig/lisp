@@ -29,7 +29,7 @@ a
 ;=>()
 (= () (concat))
 ;=>true
-(!= () (concat))
+(not= () (concat))
 ;=>false
 
 (def a (list 1 2))

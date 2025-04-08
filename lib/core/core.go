@@ -47,7 +47,7 @@ func Load(env EnvType) {
 	call.CallOverrideFN(env, "*", func(a, b int) (int, error) { return a * b, nil })
 	call.CallOverrideFN(env, "/", func(a, b int) (int, error) { return a / b, nil })
 	call.CallOverrideFN(env, "=", func(a, b MalType) (MalType, error) { return Equal_Q(a, b), nil })
-	call.CallOverrideFN(env, "!=", func(a, b MalType) (MalType, error) { return !Equal_Q(a, b), nil })
+	call.CallOverrideFN(env, "not=", func(a, b MalType) (MalType, error) { return !Equal_Q(a, b), nil })
 	call.Call(env, get)
 	call.Call(env, get_in)
 	call.CallOverrideFN(env, "contains?", contains_Q)

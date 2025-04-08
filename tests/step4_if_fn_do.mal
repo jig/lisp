@@ -45,7 +45,7 @@
 ;=>7
 (= (list) nil)
 ;=>false
-(!= (list) nil)
+(not= (list) nil)
 ;=>true
 
 ;; Testing 1-way if form
@@ -75,19 +75,19 @@
 (= nil nil)
 ;=>true
 
-(!= 2 1)
+(not= 2 1)
 ;=>true
-(!= 1 1)
+(not= 1 1)
 ;=>false
-(!= 1 2)
+(not= 1 2)
 ;=>true
-(!= 1 (+ 1 1))
+(not= 1 (+ 1 1))
 ;=>true
-(!= 2 (+ 1 1))
+(not= 2 (+ 1 1))
 ;=>false
-(!= nil 1)
+(not= nil 1)
 ;=>true
-(!= nil nil)
+(not= nil nil)
 ;=>false
 
 (> 2 1)
@@ -151,34 +151,34 @@
 ;=>false
 
 ;; Testing inequality
-(!= 1 1)
+(not= 1 1)
 ;=>false
-(!= 0 0)
+(not= 0 0)
 ;=>false
-(!= 1 0)
+(not= 1 0)
 ;=>true
-(!= true true)
+(not= true true)
 ;=>false
-(!= false false)
+(not= false false)
 ;=>false
-(!= nil nil)
+(not= nil nil)
 ;=>false
 
-(!= (list) (list))
+(not= (list) (list))
 ;=>false
-(!= (list) ())
+(not= (list) ())
 ;=>false
-(!= (list 1 2) (list 1 2))
+(not= (list 1 2) (list 1 2))
 ;=>false
-(!= (list 1) (list))
+(not= (list 1) (list))
 ;=>true
-(!= (list) (list 1))
+(not= (list) (list 1))
 ;=>true
-(!= 0 (list))
+(not= 0 (list))
 ;=>true
-(!= (list) 0)
+(not= (list) 0)
 ;=>true
-(!= (list nil) (list))
+(not= (list nil) (list))
 ;=>true
 
 
@@ -292,21 +292,21 @@ a
 
 ;; Testing string inequality
 
-(!= "" "")
+(not= "" "")
 ;=>false
-(!= "abc" "abc")
+(not= "abc" "abc")
 ;=>false
-(!= "abc" "")
+(not= "abc" "")
 ;=>true
-(!= "" "abc")
+(not= "" "abc")
 ;=>true
-(!= "abc" "def")
+(not= "abc" "def")
 ;=>true
-(!= "abc" "ABC")
+(not= "abc" "ABC")
 ;=>true
-(!= (list) "")
+(not= (list) "")
 ;=>true
-(!= "" (list))
+(not= "" (list))
 ;=>true
 
 ;; Testing variable length arguments
@@ -506,13 +506,13 @@ a
 (= (list :abc) (list :abc))
 ;=>true
 
-(!= :abc :abc)
+(not= :abc :abc)
 ;=>false
-(!= :abc :def)
+(not= :abc :def)
 ;=>true
-(!= :abc ":abc")
+(not= :abc ":abc")
 ;=>true
-(!= (list :abc) (list :abc))
+(not= (list :abc) (list :abc))
 ;=>false
 
 ;; Testing vector truthiness
@@ -566,25 +566,25 @@ a
 ;=>false
 
 ;; Testing vector inequality
-(!= [] (list))
+(not= [] (list))
 ;=>false
-(!= [7 8] [7 8])
+(not= [7 8] [7 8])
 ;=>false
-(!= [:abc] [:abc])
+(not= [:abc] [:abc])
 ;=>false
-(!= (list 1 2) [1 2])
+(not= (list 1 2) [1 2])
 ;=>false
-(!= (list 1) [])
+(not= (list 1) [])
 ;=>true
-(!= [] [1])
+(not= [] [1])
 ;=>true
-(!= 0 [])
+(not= 0 [])
 ;=>true
-(!= [] 0)
+(not= [] 0)
 ;=>true
-(!= [] "")
+(not= [] "")
 ;=>true
-(!= "" [])
+(not= "" [])
 ;=>true
 
 ;; Testing vector parameter lists

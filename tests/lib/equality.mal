@@ -42,7 +42,7 @@
 (def = (fn [a b] (bool-and (orig= a b) (cond (list? a) (list? b) (vector? a) (vector? b) true true))))
 (= [] ())
 ;=>false
-(!= [] ())
+(not= [] ())
 ;=>true
 
 ;; Testing that equality.mal detects the problem.
