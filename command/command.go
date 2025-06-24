@@ -10,7 +10,6 @@ import (
 	"strings"
 
 	"github.com/jig/lisp"
-	"github.com/jig/lisp/debugger"
 	"github.com/jig/lisp/repl"
 	"github.com/jig/lisp/types"
 )
@@ -77,18 +76,18 @@ func Execute(args []string, repl_env types.EnvType) error {
 				return err
 			}
 			return nil
-		case "--debug", "-d":
-			if len(os.Args) != 3 {
-				printHelp()
-				return fmt.Errorf("too many args")
-			}
+			// case "--debug", "-d":
+			// 	if len(os.Args) != 3 {
+			// 		printHelp()
+			// 		return fmt.Errorf("too many args")
+			// 	}
 
-			result, err := DebugFile(os.Args[2], repl_env)
-			if err != nil {
-				return err
-			}
-			fmt.Println(result)
-			return nil
+			// 	result, err := DebugFile(os.Args[2], repl_env)
+			// 	if err != nil {
+			// 		return err
+			// 	}
+			// 	fmt.Println(result)
+			// 	return nil
 		}
 
 		// called with mal script to load and eval
@@ -103,21 +102,6 @@ func Execute(args []string, repl_env types.EnvType) error {
 
 // ExecuteFile executes a file on the given path
 func ExecuteFile(fileName string, ns types.EnvType) (types.MalType, error) {
-	ctx := context.Background()
-	result, err := lisp.REPL(ctx, ns, `(load-file "`+fileName+`")`, types.NewCursorHere(fileName, -3, 1))
-	if err != nil {
-		return nil, err
-	}
-	return result, nil
-}
-
-// ExecuteFile executes a file on the given path
-func DebugFile(fileName string, ns types.EnvType) (types.MalType, error) {
-	deb := debugger.Engine(fileName, ns)
-	defer deb.Shutdown()
-	lisp.Stepper = deb.Stepper
-	// lisp.Trace = deb.Trace
-
 	ctx := context.Background()
 	result, err := lisp.REPL(ctx, ns, `(load-file "`+fileName+`")`, types.NewCursorHere(fileName, -3, 1))
 	if err != nil {
