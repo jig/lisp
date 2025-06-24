@@ -204,7 +204,7 @@ func is_macro_call(ast MalType, env EnvType) bool {
 	return false
 }
 
-func macroexpand(ctx context.Context, ast MalType, env EnvType) (MalType, error) {
+func macroexpand(ctx context.Context, ast MalType, env EnvType, debug Debug) (MalType, error) {
 	var mac MalType
 	var e error
 	for is_macro_call(ast, env) {
@@ -215,7 +215,7 @@ func macroexpand(ctx context.Context, ast MalType, env EnvType) (MalType, error)
 			return nil, e
 		}
 		fn := mac.(MalFunc)
-		ast, e = Apply(ctx, fn, slc[1:])
+		ast, e = Apply(ctx, fn, slc[1:], debug)
 		if e != nil {
 			return nil, e
 		}
@@ -310,7 +310,7 @@ func EVAL(ctx context.Context, ast MalType, env EnvType, debug Debug) (res MalTy
 		}
 
 		// apply list
-		ast, e = macroexpand(ctx, ast, env)
+		ast, e = macroexpand(ctx, ast, env, debug)
 		if e != nil {
 			return nil, e
 		}
@@ -393,7 +393,7 @@ func EVAL(ctx context.Context, ast MalType, env EnvType, debug Debug) (res MalTy
 			}
 			return env.Set(a1.(Symbol), fn), nil
 		case "macroexpand":
-			return macroexpand(ctx, a1, env)
+			return macroexpand(ctx, a1, env, debug)
 		case "try":
 			lst := ast.(List).Val
 			var last MalType
@@ -501,7 +501,10 @@ func EVAL(ctx context.Context, ast MalType, env EnvType, debug Debug) (res MalTy
 			}
 		case "fn":
 			fn := MalFunc{
-				Eval: func(ctx context.Context, ast MalType, env EnvType) (res MalType, e error) {
+				Eval: func(ctx context.Context, ast MalType, env EnvType, debug any) (res MalType, e error) {
+					if debug != nil {
+						return EVAL(ctx, ast, env, debug.(Debug))
+					}
 					return EVAL(ctx, ast, env, nil)
 				},
 				Exp:     List{Val: append([]MalType{Symbol{Val: "do"}}, ast.(List).Val[2:]...)},

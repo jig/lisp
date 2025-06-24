@@ -86,7 +86,7 @@ type Func struct {
 }
 
 type MalFunc struct {
-	Eval    func(context.Context, MalType, EnvType) (MalType, error)
+	Eval    func(context.Context, MalType, EnvType, any /*debug*/) (MalType, error)
 	Exp     MalType
 	Env     EnvType
 	Params  MalType

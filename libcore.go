@@ -625,13 +625,13 @@ func update(ctx context.Context, hm, pos, f MalType) (MalType, error) {
 func _update(ctx context.Context, argMapOrVector, index, f MalType) (MalType, error) {
 	switch argMapOrVector := argMapOrVector.(type) {
 	case HashMap:
-		res, err := Apply(ctx, f, []MalType{argMapOrVector.Val[index.(string)]})
+		res, err := Apply(ctx, f, []MalType{argMapOrVector.Val[index.(string)]}, nil)
 		if err != nil {
 			return nil, err
 		}
 		return assoc(argMapOrVector, index, res)
 	case Vector:
-		res, err := Apply(ctx, f, []MalType{argMapOrVector.Val[index.(int)]})
+		res, err := Apply(ctx, f, []MalType{argMapOrVector.Val[index.(int)]}, nil)
 		if err != nil {
 			return nil, err
 		}
@@ -888,7 +888,7 @@ func apply(ctx context.Context, a ...MalType) (MalType, error) {
 		return nil, e
 	}
 	args = append(args, last...)
-	return Apply(ctx, f, args)
+	return Apply(ctx, f, args, nil)
 }
 
 func mAp(ctx context.Context, f, seq MalType) (MalType, error) {
@@ -898,7 +898,7 @@ func mAp(ctx context.Context, f, seq MalType) (MalType, error) {
 		return nil, e
 	}
 	for _, arg := range args {
-		res, e := Apply(ctx, f, []MalType{arg})
+		res, e := Apply(ctx, f, []MalType{arg}, nil)
 		if e != nil {
 			return nil, e
 		}

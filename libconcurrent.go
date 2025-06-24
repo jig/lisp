@@ -59,7 +59,7 @@ func swap_BANG(ctx context.Context, a ...MalType) (MalType, error) {
 	args := []MalType{atm.Val}
 	f := a[1]
 	args = append(args, a[2:]...)
-	res, e := Apply(ctx, f, args)
+	res, e := Apply(ctx, f, args, nil)
 	if e != nil {
 		return nil, e
 	}
@@ -121,7 +121,7 @@ func NewFuture(ctx context.Context, fn MalFunc) *Future {
 	}
 	go func() {
 		defer func() { f.Done = true }()
-		res, err := Apply(ctx, fn, nil)
+		res, err := Apply(ctx, fn, nil, nil)
 		if err != nil {
 			f.ErrChan <- err
 			return

@@ -9,7 +9,7 @@ import (
 
 // Take either a MalFunc or regular function and apply it to the
 // arguments
-func Apply(ctx context.Context, f_mt MalType, a []MalType) (MalType, error) {
+func Apply(ctx context.Context, f_mt MalType, a []MalType, debug Debug) (MalType, error) {
 	switch f := f_mt.(type) {
 	case MalFunc:
 		env, e := f.GenEnv(f.Env, f.Params, List{
@@ -19,7 +19,7 @@ func Apply(ctx context.Context, f_mt MalType, a []MalType) (MalType, error) {
 		if e != nil {
 			return nil, e
 		}
-		return f.Eval(ctx, f.Exp, env)
+		return f.Eval(ctx, f.Exp, env, debug)
 	case Func:
 		return f.Fn(ctx, a)
 	case func([]MalType) (MalType, error):
