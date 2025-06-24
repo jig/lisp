@@ -6,14 +6,13 @@ import (
 
 	"github.com/jig/lisp"
 	"github.com/jig/lisp/env"
-	"github.com/jig/lisp/lib/core/nscore"
 	"github.com/jig/lisp/lnotation"
 	"github.com/jig/lisp/types"
 )
 
 func Example_functionInLisp() {
 	ns := env.NewEnv()
-	nscore.Load(ns)
+	lisp.LoadNSCore(ns)
 	ast, _ := lisp.READ(
 		`(fn [a] (* 10 a))`,
 		types.NewCursorFile("ExampleFunctionInLisp"),

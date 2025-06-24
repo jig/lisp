@@ -91,7 +91,7 @@ func ExampleEVAL() {
 		name string
 		load func(newEnv types.EnvType) error
 	}{
-		{"core mal", nscore.Load},
+		{"core mal", lisp.LoadNSCore},
 		{"core mal with input", nscore.LoadInput},
 		{"command line args", nscore.LoadCmdLineArgs},
 		{"core mal extended", nscoreextended.Load},

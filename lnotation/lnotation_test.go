@@ -8,8 +8,6 @@ import (
 	"github.com/jig/lisp"
 	. "github.com/jig/lisp/env"
 	"github.com/jig/lisp/lib/assert/nsassert"
-	"github.com/jig/lisp/lib/concurrent/nsconcurrent"
-	"github.com/jig/lisp/lib/core/nscore"
 	"github.com/jig/lisp/lib/coreextented/nscoreextended"
 	. "github.com/jig/lisp/types"
 )
@@ -98,10 +96,10 @@ func NewTestEnv() EnvType {
 		name string
 		load func(repl_env EnvType) error
 	}{
-		{"core mal", nscore.Load},
-		{"core mal with input", nscore.LoadInput},
-		{"command line args", nscore.LoadCmdLineArgs},
-		{"concurrent", nsconcurrent.Load},
+		{"core mal", lisp.LoadNSCore},
+		{"core mal with input", lisp.LoadNSCoreInput},
+		{"command line args", lisp.LoadNSCoreCmdLineArgs},
+		{"concurrent", lisp.LoadNSConcurrent},
 		{"core mal extended", nscoreextended.Load},
 		{"assert", nsassert.Load},
 	} {

@@ -5,13 +5,12 @@ import (
 
 	"github.com/jig/lisp"
 	"github.com/jig/lisp/env"
-	"github.com/jig/lisp/lib/core/nscore"
 	"github.com/jig/lisp/types"
 )
 
 func Example_configInLisp() {
 	ns := env.NewEnv()
-	nscore.Load(ns)
+	lisp.LoadNSCore(ns)
 	config, _ := lisp.READ(
 		`{
 			:sessions 10

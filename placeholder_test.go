@@ -8,9 +8,7 @@ import (
 	"testing"
 
 	"github.com/jig/lisp/env"
-	"github.com/jig/lisp/lib/core"
 	"github.com/jig/lisp/reader"
-	"github.com/jig/lisp/types"
 
 	. "github.com/jig/lisp/lnotation"
 	. "github.com/jig/lisp/types"
@@ -23,7 +21,7 @@ type Example struct {
 
 func TestPlaceholders(t *testing.T) {
 	repl_env := env.NewEnv()
-	core.Load(repl_env)
+	LoadCore(repl_env)
 
 	str := `(do
 				(def v0 $0)
@@ -108,7 +106,7 @@ func TestPlaceholders(t *testing.T) {
 
 func TestREADWithPreamble(t *testing.T) {
 	repl_env := env.NewEnv()
-	core.Load(repl_env)
+	LoadCore(repl_env)
 
 	str :=
 		`;; $0 "hello"
@@ -202,7 +200,7 @@ func TestREADWithPreamble(t *testing.T) {
 
 func TestAddPreamble(t *testing.T) {
 	repl_env := env.NewEnv()
-	core.Load(repl_env)
+	LoadCore(repl_env)
 
 	str := `(do
 	(def v0 $EXAMPLESTRING)
@@ -308,39 +306,39 @@ func TestAddPreamblePointers(t *testing.T) {
 	var2 := &var1
 	var3 := (*int)(nil)
 	for _, tc := range []struct {
-		preamble map[string]types.MalType
+		preamble map[string]MalType
 		expected string
 	}{
 		{
-			preamble: map[string]types.MalType{"$ARG": 123},
+			preamble: map[string]MalType{"$ARG": 123},
 			expected: ";; $ARG 123",
 		},
 		{
-			preamble: map[string]types.MalType{"$ARG": var1},
+			preamble: map[string]MalType{"$ARG": var1},
 			expected: ";; $ARG 123",
 		},
 		{
-			preamble: map[string]types.MalType{"$ARG": &var1},
+			preamble: map[string]MalType{"$ARG": &var1},
 			expected: ";; $ARG 123",
 		},
 		{
-			preamble: map[string]types.MalType{"$ARG": var2},
+			preamble: map[string]MalType{"$ARG": var2},
 			expected: ";; $ARG 123",
 		},
 		{
-			preamble: map[string]types.MalType{"$ARG": &var2},
+			preamble: map[string]MalType{"$ARG": &var2},
 			expected: ";; $ARG 123",
 		},
 		{
-			preamble: map[string]types.MalType{"$ARG": var3},
+			preamble: map[string]MalType{"$ARG": var3},
 			expected: ";; $ARG nil",
 		},
 		{
-			preamble: map[string]types.MalType{"$ARG": &var3},
+			preamble: map[string]MalType{"$ARG": &var3},
 			expected: ";; $ARG nil",
 		},
 		{
-			preamble: map[string]types.MalType{"$ARG": nil},
+			preamble: map[string]MalType{"$ARG": nil},
 			expected: ";; $ARG nil",
 		},
 	} {
@@ -359,7 +357,7 @@ func TestAddPreamblePointers(t *testing.T) {
 
 func TestPlaceholdersEmbeddedWrong1(t *testing.T) {
 	repl_env := env.NewEnv()
-	core.Load(repl_env)
+	LoadCore(repl_env)
 
 	str :=
 		`$0 "hello"
@@ -388,7 +386,7 @@ func TestPlaceholdersEmbeddedWrong1(t *testing.T) {
 
 func TestPlaceholdersEmbeddedNoBlankLine(t *testing.T) {
 	repl_env := env.NewEnv()
-	core.Load(repl_env)
+	LoadCore(repl_env)
 
 	// missing blank line must fail
 	str :=
@@ -440,7 +438,7 @@ var notOptimiseBenchFunc2 MalType
 
 func BenchmarkAddPreambleAlternative(b *testing.B) {
 	repl_env := env.NewEnv()
-	core.Load(repl_env)
+	LoadCore(repl_env)
 
 	for n := 0; n < b.N; n++ {
 		EXAMPLESTRING := "hello"
@@ -489,7 +487,7 @@ func BenchmarkREADWithPreamble(b *testing.B) {
 
 func BenchmarkNewEnv(b *testing.B) {
 	repl_env := env.NewEnv()
-	core.Load(repl_env)
+	LoadCore(repl_env)
 	sourceWithPreamble := `(do
 		(def v0 $EXAMPLESTRING)
 		(def v2 $EXAMPLEINTEGER)
@@ -557,7 +555,7 @@ func BenchmarkCompleteSendingWithPreamble(b *testing.B) {
 		}
 
 		repl_env := env.NewEnv()
-		core.Load(repl_env)
+		LoadCore(repl_env)
 		ctx := context.Background()
 		res, err := EVAL(ctx, ast, repl_env)
 		if err != nil {
@@ -602,7 +600,7 @@ func BenchmarkCompleteSendingWithPreambleSolved(b *testing.B) {
 		// protocol here
 
 		repl_env := env.NewEnv()
-		core.Load(repl_env)
+		LoadCore(repl_env)
 
 		ast, err := READ(sentCode, nil, repl_env)
 		if err != nil {
@@ -622,7 +620,7 @@ func BenchmarkCompleteSendingWithPreambleSolved(b *testing.B) {
 
 func TestHashMapMarshalers(t *testing.T) {
 	repl_env := env.NewEnv()
-	core.Load(repl_env)
+	LoadCore(repl_env)
 
 	str := `(do
 				(def go-struct $GOSTRUCT)
@@ -705,7 +703,7 @@ func TestPassingLispDataFromGo(t *testing.T) {
 	}
 
 	ns := env.NewEnv()
-	core.Load(ns)
+	LoadCore(ns)
 	ctx := context.Background()
 	res, err := EVAL(ctx, ast, ns)
 	if err != nil {

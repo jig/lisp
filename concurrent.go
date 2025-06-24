@@ -1,4 +1,4 @@
-package concurrent
+package lisp
 
 import (
 	"context"
@@ -7,16 +7,15 @@ import (
 	"sync"
 
 	"github.com/jig/lisp/lib/call"
-	"github.com/jig/lisp/types"
 	. "github.com/jig/lisp/types"
 )
 
-//go:embed header-concurrent.lisp
+//go:embed lib/concurrent/header-concurrent.lisp
 var headerConcurrent string
 
 func HeaderConcurrent() string { return headerConcurrent }
 
-func Load(env types.EnvType) {
+func LoadConcurrent(env EnvType) {
 	call.CallOverrideFN(env, "atom", func(a MalType) (MalType, error) { return &Atom{Val: a}, nil })
 	call.CallOverrideFN(env, "new-atom", func(a *Atom) (MalType, error) { return nil, errors.New("atom cannot be deserialized") })
 	call.CallOverrideFN(env, "atom?", func(a MalType) (MalType, error) { return Q[*Atom](a), nil })

@@ -19,7 +19,7 @@
 ;/.*runtime error: integer divide by zero"»
 
 (try (/ 1 0) (catch e e))
-;=>«go-error "github.com/jig/lisp/lib/core[/]: runtime error: integer divide by zero"»
+;=>«go-error "github.com/jig/lisp[/]: runtime error: integer divide by zero"»
 ;/^$
 
 «go-error "simple error"»

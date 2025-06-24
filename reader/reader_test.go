@@ -3,9 +3,9 @@ package reader_test
 import (
 	"testing"
 
+	"github.com/jig/lisp"
 	"github.com/jig/lisp/env"
 	"github.com/jig/lisp/lib/call"
-	"github.com/jig/lisp/lib/core/nscore"
 	"github.com/jig/lisp/lisperror"
 	"github.com/jig/lisp/reader"
 	"github.com/jig/lisp/types"
@@ -49,7 +49,7 @@ func (em Embeddable) LispPrint(_Pr_str func(types.MalType, bool) string) string 
 
 func TestAdHocReaders(t *testing.T) {
 	ns := env.NewEnv()
-	if err := nscore.Load(ns); err != nil {
+	if err := lisp.LoadNSCore(ns); err != nil {
 		t.Fatal()
 	}
 	call.Call(ns, new_example)

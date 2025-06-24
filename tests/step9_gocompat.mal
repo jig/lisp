@@ -16,7 +16,7 @@
 (try (a) (catch err (str err)))
 ;=>"«go-error \"wrapped sample\"»"
 (try (/ 0 0) (catch err err))
-;=>«go-error "github.com/jig/lisp/lib/core[/]: runtime error: integer divide by zero"»
+;=>«go-error "github.com/jig/lisp[/]: runtime error: integer divide by zero"»
 (type? (try (a) (catch err err)))
 ;=>"go-error"
 (def b (fn [] (a)))
@@ -62,7 +62,7 @@
 (unwrap-error (try (panic "simple") (catch e e)))
 ;=>nil
 (try (panic (go-error "simple")) (catch e e))
-;=>«go-error "github.com/jig/lisp/lib/core[panic]: simple"»
+;=>«go-error "github.com/jig/lisp[panic]: simple"»
 (unwrap-error (try (panic (go-error "simple")) (catch e e)))
 ;=>«go-error "simple"»
 

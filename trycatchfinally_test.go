@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	"github.com/jig/lisp/env"
-	"github.com/jig/lisp/lib/core"
 )
 
 //go:embed trycatchfinally_test.lisp
@@ -14,7 +13,7 @@ var trycatchfinally_test string
 
 func TestTryCatchFinally(t *testing.T) {
 	repl_env := env.NewEnv()
-	core.Load(repl_env)
+	LoadCore(repl_env)
 	ctx := context.Background()
 	exp, err := READ(trycatchfinally_test, nil, repl_env)
 	if err != nil {

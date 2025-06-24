@@ -7,13 +7,12 @@ import (
 
 	"github.com/jig/lisp"
 	"github.com/jig/lisp/env"
-	"github.com/jig/lisp/lib/core/nscore"
 	. "github.com/jig/lisp/lnotation"
 )
 
 func ExampleEVAL() {
 	ns := env.NewEnv()
-	nscore.Load(ns) // to load '+' function
+	lisp.LoadNSCore(ns) // to load '+' function
 
 	ast := LS("+", 1, 1)
 	result, err := lisp.EVAL(

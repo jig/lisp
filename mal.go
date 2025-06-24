@@ -414,7 +414,7 @@ func EVAL(ctx context.Context, ast MalType, env EnvType) (res MalType, e error) 
 			var tryDo, catchDo, finallyDo MalType // Lists
 			var catchBind MalType                 // Symbol
 
-			switch first(last) {
+			switch _first(last) {
 			case "catch":
 				finallyDo = nil
 				catchBind = last.(List).Val[1]
@@ -425,7 +425,7 @@ func EVAL(ctx context.Context, ast MalType, env EnvType) (res MalType, e error) 
 				}
 			case "finally":
 				finallyDo = List{Val: last.(List).Val[1:]}
-				switch first(prelast) {
+				switch _first(prelast) {
 				case "catch":
 					catchBind = prelast.(List).Val[1]
 					catchDo = List{Val: prelast.(List).Val[2:]}
@@ -550,7 +550,7 @@ func EVAL(ctx context.Context, ast MalType, env EnvType) (res MalType, e error) 
 	} // TCO loop
 }
 
-func first(list MalType) string {
+func _first(list MalType) string {
 	if list != nil && Q[List](list) && Q[Symbol](list.(List).Val[0]) {
 		return list.(List).Val[0].(Symbol).Val
 	}

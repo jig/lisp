@@ -8,7 +8,6 @@ import (
 
 	"github.com/jig/lisp"
 	"github.com/jig/lisp/env"
-	"github.com/jig/lisp/lib/core/nscore"
 	"github.com/jig/lisp/types"
 )
 
@@ -21,7 +20,7 @@ func TestDoLessFunction(t *testing.T) {
 		name string
 		load func(ns types.EnvType) error
 	}{
-		{"core mal", nscore.Load},
+		{"core mal", lisp.LoadNSCore},
 		// {"core mal with input", nscore.LoadInput},
 		// {"command line args", nscore.LoadCmdLineArgs},
 		// {"concurrent", nsconcurrent.Load},

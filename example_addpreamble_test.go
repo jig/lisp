@@ -7,7 +7,6 @@ import (
 
 	"github.com/jig/lisp"
 	"github.com/jig/lisp/env"
-	"github.com/jig/lisp/lib/core/nscore"
 	"github.com/jig/lisp/types"
 )
 
@@ -27,7 +26,7 @@ const incrementInLispSourceCode = "(+ 1 $ARG)"
 
 func incrementInLisp(arg int) (int, error) {
 	ns := env.NewEnv()
-	nscore.Load(ns) // to load '+' function
+	lisp.LoadNSCore(ns) // to load '+' function
 
 	preamble := map[string]types.MalType{
 		"$ARG": arg,

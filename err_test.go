@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	"github.com/jig/lisp/env"
-	"github.com/jig/lisp/lib/core"
 	"github.com/jig/lisp/types"
 )
 
@@ -49,7 +48,7 @@ func TestTryCatchError3(t *testing.T) {
 
 func TestTryCatchThrowsMalType(t *testing.T) {
 	ns := env.NewEnv()
-	core.Load(ns)
+	LoadCore(ns)
 	res, err := REPL(context.Background(), ns, `(try (throw {:a 1}) (catch exc exc))`, types.NewCursorFile(t.Name()))
 	if err != nil {
 		t.Fatal(err)

@@ -5,16 +5,14 @@ import (
 	"testing"
 
 	"github.com/jig/lisp/env"
-	"github.com/jig/lisp/lib/concurrent"
-	"github.com/jig/lisp/lib/core"
 	"github.com/jig/lisp/types"
 )
 
 func TestCursor2(t *testing.T) {
 	bootEnv := env.NewEnv()
-	core.Load(bootEnv)
-	core.LoadInput(bootEnv)
-	concurrent.Load(bootEnv)
+	LoadCore(bootEnv)
+	LoadCoreInput(bootEnv)
+	LoadConcurrent(bootEnv)
 
 	bootEnv.Set(types.Symbol{Val: "eval"}, types.Func{Fn: func(ctx context.Context, a []types.MalType) (types.MalType, error) {
 		return EVAL(ctx, a[0], bootEnv)

@@ -1,4 +1,4 @@
-package core
+package lisp
 
 import (
 	"bufio"
@@ -25,16 +25,16 @@ import (
 	. "github.com/jig/lisp/types"
 )
 
-//go:embed header-basic.lisp
+//go:embed lib/core/header-basic.lisp
 var headerBasic string
 
-//go:embed header-load-file.lisp
+//go:embed lib/core/header-load-file.lisp
 var headerLoadFile string
 
 func HeaderBasic() string    { return headerBasic }
 func HeaderLoadFile() string { return headerLoadFile }
 
-func Load(env EnvType) {
+func LoadCore(env EnvType) {
 	call.Call(env, assoc_in)
 	call.Call(env, update)
 	call.Call(env, update_in)
@@ -268,7 +268,7 @@ func drop_last(n int, arg MalType) (MalType, error) {
 	return new_list, nil
 }
 
-func LoadInput(env EnvType) {
+func LoadCoreInput(env EnvType) {
 	call.Call(env, slurp)
 	call.Call(env, readLine)
 }

@@ -11,7 +11,6 @@ import (
 
 	"github.com/jig/lisp"
 	"github.com/jig/lisp/env"
-	"github.com/jig/lisp/lib/core/nscore"
 )
 
 var largefile = make([]byte, 4_000_000)
@@ -62,7 +61,7 @@ func BenchmarkLargeFileLispBase64EVAL(b *testing.B) {
 	lispToken := fmt.Sprintf("(unbase64 %q)", b64)
 
 	ns := env.NewEnv()
-	err := nscore.Load(ns)
+	err := lisp.LoadNSCore(ns)
 	if err != nil {
 		b.Fatal()
 	}
@@ -85,7 +84,7 @@ func BenchmarkLargeFileLispBase64RUN(b *testing.B) {
 
 	for i := 0; i < b.N; i++ {
 		ns := env.NewEnv()
-		err := nscore.Load(ns)
+		err := lisp.LoadNSCore(ns)
 		if err != nil {
 			b.Fatal()
 		}

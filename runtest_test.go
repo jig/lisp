@@ -13,8 +13,6 @@ import (
 	"testing"
 
 	"github.com/jig/lisp/env"
-	"github.com/jig/lisp/lib/concurrent"
-	"github.com/jig/lisp/lib/core"
 	"github.com/jig/lisp/lib/system"
 	"github.com/jig/lisp/types"
 )
@@ -108,9 +106,9 @@ func parseFile(ctx context.Context, fileName string, code string) error {
 
 func newEnv(fileName string) types.EnvType {
 	newenv := env.NewEnv()
-	core.Load(newenv)
-	core.LoadInput(newenv)
-	concurrent.Load(newenv)
+	LoadCore(newenv)
+	LoadCoreInput(newenv)
+	LoadConcurrent(newenv)
 	system.Load(newenv)
 	newenv.Set(types.Symbol{Val: "eval"}, types.Func{Fn: func(ctx context.Context, a []types.MalType) (types.MalType, error) {
 		return EVAL(ctx, a[0], newenv)

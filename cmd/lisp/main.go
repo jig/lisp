@@ -4,11 +4,10 @@ import (
 	"log"
 	"os"
 
+	"github.com/jig/lisp"
 	"github.com/jig/lisp/command"
 	"github.com/jig/lisp/env"
 	"github.com/jig/lisp/lib/assert/nsassert"
-	"github.com/jig/lisp/lib/concurrent/nsconcurrent"
-	"github.com/jig/lisp/lib/core/nscore"
 	"github.com/jig/lisp/lib/coreextented/nscoreextended"
 	"github.com/jig/lisp/lib/system/nssystem"
 	"github.com/jig/lisp/types"
@@ -21,10 +20,10 @@ func main() {
 		name string
 		load func(ns types.EnvType) error
 	}{
-		{"core mal", nscore.Load},
-		{"core mal with input", nscore.LoadInput},
-		{"command line args", nscore.LoadCmdLineArgs},
-		{"concurrent", nsconcurrent.Load},
+		{"core mal", lisp.LoadNSCore},
+		{"core mal with input", lisp.LoadNSCoreInput},
+		{"command line args", lisp.LoadNSCoreCmdLineArgs},
+		{"concurrent", lisp.LoadNSConcurrent},
 		{"core mal extended", nscoreextended.Load},
 		{"assert", nsassert.Load},
 		{"system", nssystem.Load},

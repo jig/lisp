@@ -6,7 +6,6 @@ import (
 	"log"
 
 	"github.com/jig/lisp/env"
-	"github.com/jig/lisp/lib/core"
 	. "github.com/jig/lisp/lnotation"
 	"github.com/jig/lisp/types"
 )
@@ -29,6 +28,6 @@ func ExampleL() {
 
 func newTestEnv() types.EnvType {
 	newEnv := env.NewEnv()
-	core.Load(newEnv)
+	LoadCore(newEnv)
 	return newEnv
 }

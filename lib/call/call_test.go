@@ -1,4 +1,4 @@
-package call
+package call_test
 
 import (
 	"context"
@@ -10,12 +10,13 @@ import (
 
 	"github.com/jig/lisp"
 	"github.com/jig/lisp/env"
+	"github.com/jig/lisp/lib/call"
 	"github.com/jig/lisp/types"
 )
 
 func TestOK(t *testing.T) {
 	ns := env.NewEnv()
-	Call(ns, divExample)
+	call.Call(ns, divExample)
 
 	f, err := ns.Get(types.Symbol{Val: "divexample"})
 	if err != nil {
@@ -33,7 +34,7 @@ func TestOK(t *testing.T) {
 
 func TestNoOKResult(t *testing.T) {
 	ns := env.NewEnv()
-	Call(ns, divExample)
+	call.Call(ns, divExample)
 
 	f, err := ns.Get(types.Symbol{Val: "divexample"})
 	if err != nil {
@@ -46,7 +47,7 @@ func TestNoOKResult(t *testing.T) {
 
 func TestNoOKArguments(t *testing.T) {
 	ns := env.NewEnv()
-	Call(ns, divExample)
+	call.Call(ns, divExample)
 
 	f, _ := ns.Get(types.Symbol{Val: "divexample"})
 	_, err := f.(types.Func).Fn(context.Background(), []types.MalType{2, 3, 4})
@@ -57,7 +58,7 @@ func TestNoOKArguments(t *testing.T) {
 
 func TestOKWithContext(t *testing.T) {
 	ns := env.NewEnv()
-	Call(ns, sleepExample)
+	call.Call(ns, sleepExample)
 
 	f, err := ns.Get(types.Symbol{Val: "sleepexample"})
 	if err != nil {
@@ -73,7 +74,7 @@ func TestOKWithContextTimeout(t *testing.T) {
 	defer cancel()
 
 	ns := env.NewEnv()
-	Call(ns, sleepExample)
+	call.Call(ns, sleepExample)
 
 	f, err := ns.Get(types.Symbol{Val: "sleepexample"})
 	if err != nil {
@@ -86,16 +87,16 @@ func TestOKWithContextTimeout(t *testing.T) {
 
 func TestPackageRegister(t *testing.T) {
 	ns := env.NewEnv()
-	Call(ns, sleepExample)
-	Call(ns, divExample)
-	Call(ns, name_with_hyphens)
-	Call(ns, name_With_Caps)
+	call.Call(ns, sleepExample)
+	call.Call(ns, divExample)
+	call.Call(ns, name_with_hyphens)
+	call.Call(ns, name_With_Caps)
 
 	hm, err := ns.Get(types.Symbol{Val: "_PACKAGES_"})
 	if err != nil {
 		t.Fatal(err)
 	}
-	set := hm.(types.HashMap).Val["github.com/jig/lisp/lib/call"].(types.Set).Val
+	set := hm.(types.HashMap).Val["github.com/jig/lisp/lib/call_test"].(types.Set).Val
 	if len(set) != 4 {
 		t.Fatal("test failed")
 	}
@@ -115,7 +116,7 @@ func TestPackageRegister(t *testing.T) {
 
 func TestNoArgsNoResult(t *testing.T) {
 	ns := env.NewEnv()
-	Call(ns, no_args_no_res)
+	call.Call(ns, no_args_no_res)
 
 	f, err := ns.Get(types.Symbol{Val: "no-args-no-res"})
 	if err != nil {
@@ -133,7 +134,7 @@ func TestNoArgsNoResult(t *testing.T) {
 
 func TestVariadic(t *testing.T) {
 	ns := env.NewEnv()
-	Call(ns, sum_Example)
+	call.Call(ns, sum_Example)
 
 	f, err := ns.Get(types.Symbol{Val: "sum-example"})
 	if err != nil {
@@ -151,7 +152,7 @@ func TestVariadic(t *testing.T) {
 
 func TestVariadicNoArgs(t *testing.T) {
 	ns := env.NewEnv()
-	Call(ns, sum_Example)
+	call.Call(ns, sum_Example)
 
 	f, err := ns.Get(types.Symbol{Val: "sum-example"})
 	if err != nil {
@@ -169,7 +170,7 @@ func TestVariadicNoArgs(t *testing.T) {
 
 func TestLisp(t *testing.T) {
 	ns := env.NewEnv()
-	Call(ns, sum_Example)
+	call.Call(ns, sum_Example)
 
 	res, err := lisp.REPL(context.Background(), ns, `(sum-example 33)`, types.NewCursorFile(t.Name()))
 	if err != nil {
@@ -182,7 +183,7 @@ func TestLisp(t *testing.T) {
 
 func TestLispNil(t *testing.T) {
 	ns := env.NewEnv()
-	Call(ns, sum_Example)
+	call.Call(ns, sum_Example)
 
 	ast, err := lisp.READ(`(sum-example nil)`, types.NewCursorFile(t.Name()), ns)
 	if err != nil {
@@ -196,7 +197,7 @@ func TestLispNil(t *testing.T) {
 
 func TestWrongTypePassed(t *testing.T) {
 	ns := env.NewEnv()
-	Call(ns, divExample)
+	call.Call(ns, divExample)
 
 	_, err := lisp.REPL(context.Background(), ns, `(divexample "hello" "world")`, types.NewCursorFile(t.Name()))
 	if !strings.HasSuffix(err.Error(), "reflect: Call using string as type int") {
@@ -206,7 +207,7 @@ func TestWrongTypePassed(t *testing.T) {
 
 func TestCount(t *testing.T) {
 	ns := env.NewEnv()
-	Call(ns, count)
+	call.Call(ns, count)
 
 	res, err := lisp.REPL(context.Background(), ns, `(count nil)`, types.NewCursorFile(t.Name()))
 	if err != nil {
@@ -219,7 +220,7 @@ func TestCount(t *testing.T) {
 
 func TestEmpty(t *testing.T) {
 	ns := env.NewEnv()
-	CallOverrideFN(ns, "empty?", empty_Q)
+	call.CallOverrideFN(ns, "empty?", empty_Q)
 
 	ast, err := lisp.READ(`(empty? "hello")`, types.NewCursorFile(t.Name()), ns)
 	if err != nil {
@@ -236,7 +237,7 @@ func TestEmpty(t *testing.T) {
 
 func TestNilResponse(t *testing.T) {
 	ns := env.NewEnv()
-	CallOverrideFN(ns, "nilly", func() (types.MalType, error) { return nil, nil })
+	call.CallOverrideFN(ns, "nilly", func() (types.MalType, error) { return nil, nil })
 
 	res, err := lisp.REPL(context.Background(), ns, `(nilly)`, types.NewCursorFile(t.Name()))
 	if err != nil {

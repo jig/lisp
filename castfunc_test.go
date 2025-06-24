@@ -7,7 +7,6 @@ import (
 	"testing"
 
 	"github.com/jig/lisp/env"
-	"github.com/jig/lisp/lib/core"
 	"github.com/jig/lisp/types"
 )
 
@@ -16,7 +15,7 @@ var castfunc_test string
 
 func TestCastFunc(t *testing.T) {
 	repl_env := env.NewEnv()
-	core.Load(repl_env)
+	LoadCore(repl_env)
 	ctx := context.Background()
 	ast, err := READ(castfunc_test, types.NewCursorFile(castfunc_test), repl_env)
 	if err != nil {
