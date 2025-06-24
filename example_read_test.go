@@ -26,6 +26,7 @@ func ExampleREAD() {
 		context.Background(),
 		ast,
 		ns,
+		nil,
 	)
 	if err != nil {
 		log.Fatalf("eval error: %s", err)

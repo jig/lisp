@@ -32,7 +32,7 @@ func Execute(args []string, repl_env types.EnvType) error {
 	case 1:
 		// repl loop
 		ctx := context.Background()
-		if _, err := lisp.REPL(ctx, repl_env, `(println (str "Lisp Mal [" *host-language* "]"))`, types.NewCursorFile("REPL")); err != nil {
+		if _, err := lisp.REPL(ctx, repl_env, `(println (str "Lisp Mal [" *host-language* "]"))`, types.NewCursorFile("REPL"), nil); err != nil {
 			return fmt.Errorf("internal error: %s", err)
 		}
 		if err := repl.Execute(ctx, repl_env); err != nil {
@@ -63,10 +63,10 @@ func Execute(args []string, repl_env types.EnvType) error {
 						testParams := fmt.Sprintf(`(def *test-params* {:test-file %q :test-absolute-path %q})`, info.Name(), path)
 
 						ctx := context.Background()
-						if _, err := lisp.REPL(ctx, repl_env, testParams, types.NewCursorFile(info.Name())); err != nil {
+						if _, err := lisp.REPL(ctx, repl_env, testParams, types.NewCursorFile(info.Name()), nil); err != nil {
 							return err
 						}
-						if _, err := lisp.REPL(ctx, repl_env, `(load-file "`+path+`")`, types.NewCursorHere(path, -3, 1)); err != nil {
+						if _, err := lisp.REPL(ctx, repl_env, `(load-file "`+path+`")`, types.NewCursorHere(path, -3, 1), nil); err != nil {
 							return err
 						}
 					}
@@ -103,7 +103,7 @@ func Execute(args []string, repl_env types.EnvType) error {
 // ExecuteFile executes a file on the given path
 func ExecuteFile(fileName string, ns types.EnvType) (types.MalType, error) {
 	ctx := context.Background()
-	result, err := lisp.REPL(ctx, ns, `(load-file "`+fileName+`")`, types.NewCursorHere(fileName, -3, 1))
+	result, err := lisp.REPL(ctx, ns, `(load-file "`+fileName+`")`, types.NewCursorHere(fileName, -3, 1), nil)
 	if err != nil {
 		return nil, err
 	}

@@ -36,7 +36,7 @@ func TestFloat(t *testing.T) {
 	if ast.(float32) != 3.1416 {
 		t.Fatal(`ast.(float32) != 3.1416`)
 	}
-	res, err := lisp.EVAL(context.Background(), ast, env.NewEnv())
+	res, err := lisp.EVAL(context.Background(), ast, env.NewEnv(), nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -53,7 +53,7 @@ func TestHexa(t *testing.T) {
 	if ast.(int) != 0xCAFE {
 		t.Fatal(`ast.(int) != 0XCAFE`)
 	}
-	res, err := lisp.EVAL(context.Background(), ast, env.NewEnv())
+	res, err := lisp.EVAL(context.Background(), ast, env.NewEnv(), nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -70,7 +70,7 @@ func TestOctal(t *testing.T) {
 	if ast.(int) != 0o7777 {
 		t.Fatal(`ast.(int) != 0o7777`)
 	}
-	res, err := lisp.EVAL(context.Background(), ast, env.NewEnv())
+	res, err := lisp.EVAL(context.Background(), ast, env.NewEnv(), nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -87,7 +87,7 @@ func TestBinary(t *testing.T) {
 	if ast.(int) != 0b1100 {
 		t.Fatal(`ast.(int) != 0b1100`)
 	}
-	res, err := lisp.EVAL(context.Background(), ast, env.NewEnv())
+	res, err := lisp.EVAL(context.Background(), ast, env.NewEnv(), nil)
 	if err != nil {
 		t.Fatal(err)
 	}

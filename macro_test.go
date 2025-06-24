@@ -28,7 +28,7 @@ func Load(repl_env types.EnvType) error {
 		test_cascade,
 		load_file_once,
 	} {
-		if _, err := REPL(ctx, repl_env, `(eval (read-string (str "(do "`+symbols+`" nil)")))`, types.NewCursorFile(reflect.TypeOf(_here_{}).PkgPath())); err != nil {
+		if _, err := REPL(ctx, repl_env, `(eval (read-string (str "(do "`+symbols+`" nil)")))`, types.NewCursorFile(reflect.TypeOf(_here_{}).PkgPath()), nil); err != nil {
 			return err
 		}
 	}
@@ -535,19 +535,19 @@ func TestMacro(t *testing.T) {
 	LoadConcurrent(repl_env)
 
 	repl_env.Set(types.Symbol{Val: "eval"}, types.Func{Fn: func(ctx context.Context, a []types.MalType) (types.MalType, error) {
-		return EVAL(ctx, a[0], repl_env)
+		return EVAL(ctx, a[0], repl_env, nil)
 	}})
 
-	if _, err := REPL(ctx, repl_env, `(def *host-language* "go")`, types.NewCursorFile(reflect.TypeOf(_here_{}).PkgPath())); err != nil {
+	if _, err := REPL(ctx, repl_env, `(def *host-language* "go")`, types.NewCursorFile(reflect.TypeOf(_here_{}).PkgPath()), nil); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := REPL(ctx, repl_env, "(def not (fn (a) (if a false true)))", types.NewCursorFile(reflect.TypeOf(_here_{}).PkgPath())); err != nil {
+	if _, err := REPL(ctx, repl_env, "(def not (fn (a) (if a false true)))", types.NewCursorFile(reflect.TypeOf(_here_{}).PkgPath()), nil); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := REPL(ctx, repl_env, `(def load-file (fn (f) (eval (read-string (str "(do " (slurp f) "\nnil)")))))`, types.NewCursorFile(reflect.TypeOf(_here_{}).PkgPath())); err != nil {
+	if _, err := REPL(ctx, repl_env, `(def load-file (fn (f) (eval (read-string (str "(do " (slurp f) "\nnil)")))))`, types.NewCursorFile(reflect.TypeOf(_here_{}).PkgPath()), nil); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := REPL(ctx, repl_env, "(defmacro cond (fn (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw \"odd number of forms to cond\")) (cons 'cond (rest (rest xs)))))))", types.NewCursorFile(reflect.TypeOf(_here_{}).PkgPath())); err != nil {
+	if _, err := REPL(ctx, repl_env, "(defmacro cond (fn (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw \"odd number of forms to cond\")) (cons 'cond (rest (rest xs)))))))", types.NewCursorFile(reflect.TypeOf(_here_{}).PkgPath()), nil); err != nil {
 		t.Fatal(err)
 	}
 	if err := Load(repl_env); err != nil {
@@ -558,7 +558,7 @@ func TestMacro(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	exp, err = EVAL(ctx, exp, repl_env)
+	exp, err = EVAL(ctx, exp, repl_env, nil)
 	if err != nil {
 		t.Fatal(err)
 	}

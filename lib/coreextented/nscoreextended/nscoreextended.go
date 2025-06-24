@@ -15,7 +15,7 @@ type Here struct{}
 var _package_ = reflect.TypeOf(Here{}).PkgPath()
 
 func Load(env types.EnvType) error {
-	if _, err := lisp.REPL(context.Background(), env, coreextented.HeaderCoreExtended(), types.NewCursorFile(_package_)); err != nil {
+	if _, err := lisp.REPL(context.Background(), env, coreextented.HeaderCoreExtended(), types.NewCursorFile(_package_), nil); err != nil {
 		return err
 	}
 	return nil

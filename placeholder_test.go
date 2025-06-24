@@ -52,7 +52,7 @@ func TestPlaceholders(t *testing.T) {
 	// fmt.Println(PRINT(exp))
 
 	ctx := context.Background()
-	res, err := EVAL(ctx, exp, repl_env)
+	res, err := EVAL(ctx, exp, repl_env, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -131,7 +131,7 @@ func TestREADWithPreamble(t *testing.T) {
 
 	// fmt.Println(PRINT(exp))
 	ctx := context.Background()
-	res, err := EVAL(ctx, exp, repl_env)
+	res, err := EVAL(ctx, exp, repl_env, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -237,7 +237,7 @@ func TestAddPreamble(t *testing.T) {
 	// fmt.Println(PRINT(exp))
 
 	ctx := context.Background()
-	res, err := EVAL(ctx, exp, repl_env)
+	res, err := EVAL(ctx, exp, repl_env, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -400,7 +400,7 @@ func TestPlaceholdersEmbeddedNoBlankLine(t *testing.T) {
 	}
 
 	ctx := context.Background()
-	res, err := EVAL(ctx, exp, repl_env)
+	res, err := EVAL(ctx, exp, repl_env, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -513,7 +513,7 @@ func BenchmarkNewEnv(b *testing.B) {
 
 	ctx := context.Background()
 	for n := 0; n < b.N; n++ {
-		res, err := EVAL(ctx, ast, repl_env)
+		res, err := EVAL(ctx, ast, repl_env, nil)
 		if err != nil {
 			b.Fatal(err)
 		}
@@ -557,7 +557,7 @@ func BenchmarkCompleteSendingWithPreamble(b *testing.B) {
 		repl_env := env.NewEnv()
 		LoadCore(repl_env)
 		ctx := context.Background()
-		res, err := EVAL(ctx, ast, repl_env)
+		res, err := EVAL(ctx, ast, repl_env, nil)
 		if err != nil {
 			b.Fatal(err)
 		}
@@ -608,7 +608,7 @@ func BenchmarkCompleteSendingWithPreambleSolved(b *testing.B) {
 		}
 
 		ctx := context.Background()
-		res, err := EVAL(ctx, ast, repl_env)
+		res, err := EVAL(ctx, ast, repl_env, nil)
 		if err != nil {
 			b.Fatal(err)
 		}
@@ -642,7 +642,7 @@ func TestHashMapMarshalers(t *testing.T) {
 
 	// fmt.Println(PRINT(exp))
 	ctx := context.Background()
-	res, err := EVAL(ctx, exp, repl_env)
+	res, err := EVAL(ctx, exp, repl_env, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -705,7 +705,7 @@ func TestPassingLispDataFromGo(t *testing.T) {
 	ns := env.NewEnv()
 	LoadCore(ns)
 	ctx := context.Background()
-	res, err := EVAL(ctx, ast, ns)
+	res, err := EVAL(ctx, ast, ns, nil)
 	if err != nil {
 		t.Fatal(err)
 	}

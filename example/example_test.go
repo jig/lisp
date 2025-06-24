@@ -37,7 +37,7 @@ func ExampleEVAL() {
 	}
 
 	// eval AST
-	result, err := lisp.EVAL(context.TODO(), ast, newEnv)
+	result, err := lisp.EVAL(context.TODO(), ast, newEnv, nil)
 	if err != nil {
 		log.Fatalf("EVAL error: %v", err)
 	}

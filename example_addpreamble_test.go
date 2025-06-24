@@ -50,6 +50,7 @@ func incrementInLisp(arg int) (int, error) {
 		context.Background(),
 		ast,
 		ns,
+		nil,
 	)
 	if err != nil {
 		return 0, err

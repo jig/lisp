@@ -15,13 +15,13 @@ func TestCursor(t *testing.T) {
 	LoadConcurrent(bootEnv)
 
 	bootEnv.Set(types.Symbol{Val: "eval"}, types.Func{Fn: func(ctx context.Context, a []types.MalType) (types.MalType, error) {
-		return EVAL(ctx, a[0], bootEnv)
+		return EVAL(ctx, a[0], bootEnv, nil)
 	}})
 	bootEnv.Set(types.Symbol{Val: "*ARGV*"}, types.List{})
 
 	ctx := context.Background()
 	// core.mal: defined using the language itself
-	_, err := REPL(ctx, bootEnv, `(def *host-language* "go")`, types.NewCursorFile(t.Name()))
+	_, err := REPL(ctx, bootEnv, `(def *host-language* "go")`, types.NewCursorFile(t.Name()), nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -83,7 +83,7 @@ func TestCursor(t *testing.T) {
 		ast, err := REPL(ctx, subEnv, "(do "+testCase.Code+")", &types.Position{
 			Module: &testCase.Module,
 			Row:    0,
-		})
+		}, nil)
 		switch err := err.(type) {
 		case nil:
 			if testCase.Cursor != nil {

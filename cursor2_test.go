@@ -15,16 +15,16 @@ func TestCursor2(t *testing.T) {
 	LoadConcurrent(bootEnv)
 
 	bootEnv.Set(types.Symbol{Val: "eval"}, types.Func{Fn: func(ctx context.Context, a []types.MalType) (types.MalType, error) {
-		return EVAL(ctx, a[0], bootEnv)
+		return EVAL(ctx, a[0], bootEnv, nil)
 	}})
 	bootEnv.Set(types.Symbol{Val: "*ARGV*"}, types.List{})
 
 	ctx := context.Background()
-	_, err := REPL(ctx, bootEnv, codeMacro, types.NewCursorFile(t.Name()))
+	_, err := REPL(ctx, bootEnv, codeMacro, types.NewCursorFile(t.Name()), nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	_, err = REPL(ctx, bootEnv, testCode, types.NewCursorFile(t.Name()))
+	_, err = REPL(ctx, bootEnv, testCode, types.NewCursorFile(t.Name()), nil)
 	switch err := err.(type) {
 	case nil:
 		t.Error("unexpected: no error returned")

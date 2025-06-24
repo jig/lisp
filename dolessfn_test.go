@@ -36,7 +36,7 @@ func TestDoLessFunction(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	res, err := lisp.EVAL(context.Background(), ast, ns)
+	res, err := lisp.EVAL(context.Background(), ast, ns, nil)
 	if err != nil {
 		t.Fatal(err)
 	}

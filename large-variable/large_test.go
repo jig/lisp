@@ -71,7 +71,7 @@ func BenchmarkLargeFileLispBase64EVAL(b *testing.B) {
 	}
 
 	for i := 0; i < b.N; i++ {
-		_, err := lisp.EVAL(context.Background(), ast, ns)
+		_, err := lisp.EVAL(context.Background(), ast, ns, nil)
 		if err != nil {
 			b.Fatal()
 		}
@@ -92,7 +92,7 @@ func BenchmarkLargeFileLispBase64RUN(b *testing.B) {
 		if err != nil {
 			b.Fatal()
 		}
-		res, err := lisp.EVAL(context.Background(), ast, ns)
+		res, err := lisp.EVAL(context.Background(), ast, ns, nil)
 		if err != nil {
 			b.Fatal()
 		}

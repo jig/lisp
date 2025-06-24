@@ -17,7 +17,7 @@ func ExampleL() {
 	)
 	sampleCode := L(prn, L(str, "hello", " ", "world!"))
 
-	result, err := EVAL(context.TODO(), sampleCode, newTestEnv())
+	result, err := EVAL(context.TODO(), sampleCode, newTestEnv(), nil)
 	if err != nil {
 		log.Fatal(err)
 	}

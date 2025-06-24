@@ -15,10 +15,10 @@ var _packageNSCore_ = reflect.TypeOf(HereNSCore{}).PkgPath()
 func LoadNSCore(env EnvType) error {
 	LoadCore(env)
 	env.Set(Symbol{Val: "eval"}, Func{Fn: func(ctx context.Context, a []MalType) (MalType, error) {
-		return EVAL(ctx, a[0], env)
+		return EVAL(ctx, a[0], env, nil)
 	}})
 
-	if _, err := REPL(context.Background(), env, HeaderBasic(), NewCursorFile(_package_)); err != nil {
+	if _, err := REPL(context.Background(), env, HeaderBasic(), NewCursorFile(_package_), nil); err != nil {
 		return err
 	}
 	return nil
@@ -27,10 +27,10 @@ func LoadNSCore(env EnvType) error {
 func LoadNSCoreInput(env EnvType) error {
 	LoadCoreInput(env)
 	env.Set(Symbol{Val: "eval"}, Func{Fn: func(ctx context.Context, a []MalType) (MalType, error) {
-		return EVAL(ctx, a[0], env)
+		return EVAL(ctx, a[0], env, nil)
 	}})
 
-	if _, err := REPL(context.Background(), env, HeaderLoadFile(), NewCursorFile(_package_)); err != nil {
+	if _, err := REPL(context.Background(), env, HeaderLoadFile(), NewCursorFile(_package_), nil); err != nil {
 		return err
 	}
 	return nil

@@ -19,6 +19,7 @@ func ExampleEVAL() {
 		context.Background(),
 		ast,
 		ns,
+		nil,
 	)
 	if err != nil {
 		log.Fatalf("error: %s", err)

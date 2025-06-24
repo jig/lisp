@@ -11,7 +11,7 @@ import (
 
 func TestBasicError(t *testing.T) {
 	ns := env.NewEnv()
-	_, err := REPL(context.Background(), ns, `(abc 1 2 3)`, types.NewCursorFile(t.Name()))
+	_, err := REPL(context.Background(), ns, `(abc 1 2 3)`, types.NewCursorFile(t.Name()), nil)
 	if err == nil {
 		t.Fatal("fatal error")
 	}
@@ -22,7 +22,7 @@ func TestBasicError(t *testing.T) {
 
 func TestTryCatchError2(t *testing.T) {
 	ns := env.NewEnv()
-	res, err := REPL(context.Background(), ns, `(try abc (catch exc exc))`, types.NewCursorFile(t.Name()))
+	res, err := REPL(context.Background(), ns, `(try abc (catch exc exc))`, types.NewCursorFile(t.Name()), nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -35,7 +35,7 @@ func TestTryCatchError2(t *testing.T) {
 
 func TestTryCatchError3(t *testing.T) {
 	ns := env.NewEnv()
-	res, err := REPL(context.Background(), ns, `(try (abc 1 2) (catch exc exc))`, types.NewCursorFile(t.Name()))
+	res, err := REPL(context.Background(), ns, `(try (abc 1 2) (catch exc exc))`, types.NewCursorFile(t.Name()), nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -49,7 +49,7 @@ func TestTryCatchError3(t *testing.T) {
 func TestTryCatchThrowsMalType(t *testing.T) {
 	ns := env.NewEnv()
 	LoadCore(ns)
-	res, err := REPL(context.Background(), ns, `(try (throw {:a 1}) (catch exc exc))`, types.NewCursorFile(t.Name()))
+	res, err := REPL(context.Background(), ns, `(try (throw {:a 1}) (catch exc exc))`, types.NewCursorFile(t.Name()), nil)
 	if err != nil {
 		t.Fatal(err)
 	}

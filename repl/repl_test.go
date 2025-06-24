@@ -12,7 +12,7 @@ import (
 func TestMultiline(t *testing.T) {
 	for _, partialLine := range []string{"(", "{", "[", "#{", "«"} {
 		ns := env.NewEnv()
-		_, err := lisp.REPL(context.Background(), ns, partialLine, types.NewCursorFile("REPL TEST"))
+		_, err := lisp.REPL(context.Background(), ns, partialLine, types.NewCursorFile("REPL TEST"), nil)
 		if err == nil {
 			t.Fatal("test failed")
 		}
@@ -26,7 +26,7 @@ func TestMultiline(t *testing.T) {
 func TestMultilineFail(t *testing.T) {
 	for _, partialLine := range []string{`"Hello"`, ":a", "1", "-1"} {
 		ns := env.NewEnv()
-		_, err := lisp.REPL(context.Background(), ns, partialLine, types.NewCursorFile("REPL TEST"))
+		_, err := lisp.REPL(context.Background(), ns, partialLine, types.NewCursorFile("REPL TEST"), nil)
 		if err != nil {
 			t.Fatal("test failed")
 		}

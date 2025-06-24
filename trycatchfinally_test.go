@@ -19,7 +19,7 @@ func TestTryCatchFinally(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	exp, err = EVAL(ctx, exp, repl_env)
+	exp, err = EVAL(ctx, exp, repl_env, nil)
 	if err != nil {
 		t.Fatal(err)
 	}

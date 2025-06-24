@@ -21,7 +21,7 @@ func TestCastFunc(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	_, err = EVAL(ctx, ast, repl_env)
+	_, err = EVAL(ctx, ast, repl_env, nil)
 	if err == nil {
 		t.Fatal(err)
 	}

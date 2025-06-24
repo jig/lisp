@@ -172,7 +172,7 @@ func TestLisp(t *testing.T) {
 	ns := env.NewEnv()
 	call.Call(ns, sum_Example)
 
-	res, err := lisp.REPL(context.Background(), ns, `(sum-example 33)`, types.NewCursorFile(t.Name()))
+	res, err := lisp.REPL(context.Background(), ns, `(sum-example 33)`, types.NewCursorFile(t.Name()), nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -189,7 +189,7 @@ func TestLispNil(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	_, err = lisp.EVAL(context.Background(), ast, ns)
+	_, err = lisp.EVAL(context.Background(), ast, ns, nil)
 	if !strings.HasSuffix(err.Error(), "reflect: cannot use types.MalType as type int in Call") {
 		t.Fatal(err)
 	}
@@ -199,7 +199,7 @@ func TestWrongTypePassed(t *testing.T) {
 	ns := env.NewEnv()
 	call.Call(ns, divExample)
 
-	_, err := lisp.REPL(context.Background(), ns, `(divexample "hello" "world")`, types.NewCursorFile(t.Name()))
+	_, err := lisp.REPL(context.Background(), ns, `(divexample "hello" "world")`, types.NewCursorFile(t.Name()), nil)
 	if !strings.HasSuffix(err.Error(), "reflect: Call using string as type int") {
 		t.Fatal(err)
 	}
@@ -209,7 +209,7 @@ func TestCount(t *testing.T) {
 	ns := env.NewEnv()
 	call.Call(ns, count)
 
-	res, err := lisp.REPL(context.Background(), ns, `(count nil)`, types.NewCursorFile(t.Name()))
+	res, err := lisp.REPL(context.Background(), ns, `(count nil)`, types.NewCursorFile(t.Name()), nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -226,7 +226,7 @@ func TestEmpty(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	res, err := lisp.EVAL(context.Background(), ast, ns)
+	res, err := lisp.EVAL(context.Background(), ast, ns, nil)
 	if !strings.HasSuffix(err.Error(), "empty? called on non-sequence") {
 		t.Fatal(err)
 	}
@@ -239,7 +239,7 @@ func TestNilResponse(t *testing.T) {
 	ns := env.NewEnv()
 	call.CallOverrideFN(ns, "nilly", func() (types.MalType, error) { return nil, nil })
 
-	res, err := lisp.REPL(context.Background(), ns, `(nilly)`, types.NewCursorFile(t.Name()))
+	res, err := lisp.REPL(context.Background(), ns, `(nilly)`, types.NewCursorFile(t.Name()), nil)
 	if err != nil {
 		t.Fatal(err)
 	}

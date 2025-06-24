@@ -21,6 +21,7 @@ func ExampleReadEvalWithPreamble() {
 		ns,
 		sourceCode,
 		types.NewCursorFile("ExampleReadEvalWithPreamble"),
+		nil,
 	)
 	if err != nil {
 		log.Fatalf("error: %s", err)

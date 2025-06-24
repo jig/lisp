@@ -19,9 +19,9 @@ func Example_functionInLisp() {
 		ns,
 	)
 
-	res, _ := lisp.EVAL(context.Background(), ast, ns)
+	res, _ := lisp.EVAL(context.Background(), ast, ns, nil)
 	functionInLisp := func(a int) (int, error) {
-		res, err := lisp.EVAL(context.Background(), lnotation.L(res, a), ns)
+		res, err := lisp.EVAL(context.Background(), lnotation.L(res, a), ns, nil)
 		if err != nil {
 			return 0, err
 		}

@@ -14,7 +14,7 @@ var _package_ = reflect.TypeOf(Here{}).PkgPath()
 func LoadNSConcurrent(env types.EnvType) error {
 	LoadConcurrent(env)
 
-	if _, err := REPL(context.Background(), env, HeaderConcurrent(), types.NewCursorFile(_package_)); err != nil {
+	if _, err := REPL(context.Background(), env, HeaderConcurrent(), types.NewCursorFile(_package_), nil); err != nil {
 		return err
 	}
 
