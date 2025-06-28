@@ -26,7 +26,7 @@ func TestOK(t *testing.T) {
 	if !ok {
 		t.Fatal("test failed")
 	}
-	result, err := fcall.Fn(context.Background(), []types.MalType{2, 6}, nil)
+	result, err := fcall.Fn(context.Background(), nil, []types.MalType{2, 6})
 	if result.(int) != 8 || err != nil {
 		t.Fatal("test failed")
 	}
@@ -40,7 +40,7 @@ func TestNoOKResult(t *testing.T) {
 	if err != nil {
 		t.Fatal("test failed")
 	}
-	if _, err = f.(types.Func).Fn(context.Background(), []types.MalType{2, 0}, nil); err.Error() != "divide by zero" {
+	if _, err = f.(types.Func).Fn(context.Background(), nil, []types.MalType{2, 0}); err.Error() != "divide by zero" {
 		t.Fatal("test failed")
 	}
 }
@@ -50,7 +50,7 @@ func TestNoOKArguments(t *testing.T) {
 	call.Call(ns, divExample)
 
 	f, _ := ns.Get(types.Symbol{Val: "divexample"})
-	_, err := f.(types.Func).Fn(context.Background(), []types.MalType{2, 3, 4}, nil)
+	_, err := f.(types.Func).Fn(context.Background(), nil, []types.MalType{2, 3, 4})
 	if !strings.HasSuffix(err.Error(), "wrong number of arguments (3 instead of 2)") {
 		t.Fatal(err)
 	}
@@ -64,7 +64,7 @@ func TestOKWithContext(t *testing.T) {
 	if err != nil {
 		t.Fatal("test failed")
 	}
-	if _, err = f.(types.Func).Fn(context.Background(), []types.MalType{10}, nil); err != nil {
+	if _, err = f.(types.Func).Fn(context.Background(), nil, []types.MalType{10}); err != nil {
 		t.Fatal("test failed")
 	}
 }
@@ -80,7 +80,7 @@ func TestOKWithContextTimeout(t *testing.T) {
 	if err != nil {
 		t.Fatal("test failed")
 	}
-	if _, err := f.(types.Func).Fn(ctx, []types.MalType{10}, nil); err != nil {
+	if _, err := f.(types.Func).Fn(ctx, nil, []types.MalType{10}); err != nil {
 		t.Fatal("test failed")
 	}
 }
@@ -126,7 +126,7 @@ func TestNoArgsNoResult(t *testing.T) {
 	if !ok {
 		t.Fatal("test failed")
 	}
-	result, err := fcall.Fn(context.Background(), []types.MalType{}, nil)
+	result, err := fcall.Fn(context.Background(), nil, []types.MalType{})
 	if result != nil || err != nil {
 		t.Fatal("test failed")
 	}
@@ -144,7 +144,7 @@ func TestVariadic(t *testing.T) {
 	if !ok {
 		t.Fatal("test failed")
 	}
-	result, err := fcall.Fn(context.Background(), []types.MalType{1, 2, 3, 4, 5, 6}, nil)
+	result, err := fcall.Fn(context.Background(), nil, []types.MalType{1, 2, 3, 4, 5, 6})
 	if result.(int) != 21 || err != nil {
 		t.Fatal("test failed")
 	}
@@ -162,7 +162,7 @@ func TestVariadicNoArgs(t *testing.T) {
 	if !ok {
 		t.Fatal("test failed")
 	}
-	result, err := fcall.Fn(context.Background(), []types.MalType{}, nil)
+	result, err := fcall.Fn(context.Background(), nil, []types.MalType{})
 	if result.(int) != 0 || err != nil {
 		t.Fatal("test failed")
 	}
@@ -304,9 +304,7 @@ func name_with_hyphens(ctx context.Context, ms int) error {
 	return nil
 }
 
-func no_args_no_res() {
-	return
-}
+func no_args_no_res() {}
 
 func name_With_Caps(ctx context.Context, ms int) error {
 	return nil
