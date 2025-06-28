@@ -2,6 +2,7 @@ package lisp
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"testing"
 
@@ -49,11 +50,12 @@ func TestDebug(t *testing.T) {
 		// },
 	}
 
-	for _, test := range tests {
-		debugStack = []string{}
+	for i, test := range tests {
 		dbg := &DebugTestType{}
 
-		result, err := REPL(context.Background(), ns, test.input, types.NewCursorHere(t.Name(), 1, 1), dbg)
+		filename := fmt.Sprintf("%s:%d", t.Name(), i)
+		dbg.PushFile(filename, test.input)
+		result, err := REPL(context.Background(), ns, test.input, types.NewCursorHere(filename, 1, 1), dbg)
 		if err != nil {
 			t.Errorf("Eval(%v) error: %v", test.input, err)
 			continue
@@ -62,9 +64,9 @@ func TestDebug(t *testing.T) {
 		if test.expected != result {
 			t.Fatalf("Eval(%v) = %#v; expected %#v", test.input, result, test.expected)
 		}
-		// if fmt.Sprint(debugStack) != test.stack {
-		// 	t.Fatalf("Failed %s", fmt.Sprint(debugStack))
-		// }
+		if fmt.Sprint(debugStack) != test.stack {
+			t.Fatalf("Failed %s != %s", fmt.Sprint(debugStack), test.stack)
+		}
 		dbg.Reset()
 	}
 }
@@ -77,9 +79,11 @@ func (d *DebugTestType) CancelStatus() bool {
 }
 
 // Reset implements DebugEval.
-func (d *DebugTestType) Reset() {}
+func (d *DebugTestType) Reset() {
+	debugStack = []string{}
+}
 
-func (*DebugTestType) Wait(msg debug.DebugMessage) debug.DebugControl {
+func (dbg *DebugTestType) Wait(msg debug.DebugMessage) debug.DebugControl {
 	if msg.Result != nil {
 		debugStack = append(debugStack, printer.Pr_str(msg.Result, true), "🚩")
 	} else if msg.Input != nil {
