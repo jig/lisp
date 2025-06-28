@@ -1,6 +1,59 @@
 package types
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/jig/scanner"
+)
+
+func Pos(v MalType) *Position {
+	if v == nil {
+		return nil
+	}
+	switch v := v.(type) {
+	case Symbol:
+		return v.Cursor
+	case List:
+		return v.Cursor
+	case Vector:
+		return v.Cursor
+	case HashMap:
+		return v.Cursor
+	case Set:
+		return v.Cursor
+	default:
+		return nil
+	}
+}
+
+func (v *Position) Start() scanner.Position {
+	if v == nil || v.Module == nil {
+		return scanner.Position{}
+	}
+	return scanner.Position{
+		Line:     v.BeginRow,
+		Column:   v.BeginCol,
+		Filename: *v.Module,
+	}
+}
+
+func (v *Position) End() scanner.Position {
+	if v == nil || v.Module == nil {
+		return scanner.Position{}
+	}
+	return scanner.Position{
+		Line:     v.Row,
+		Column:   v.Col,
+		Filename: *v.Module,
+	}
+}
+
+func (v *Position) File() string {
+	if v != nil && v.Module != nil {
+		return *v.Module
+	}
+	return ""
+}
 
 type Position struct {
 	Module   *string
