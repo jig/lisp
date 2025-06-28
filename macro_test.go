@@ -534,7 +534,7 @@ func TestMacro(t *testing.T) {
 	LoadCoreInput(repl_env)
 	LoadConcurrent(repl_env)
 
-	repl_env.Set(types.Symbol{Val: "eval"}, types.Func{Fn: func(ctx context.Context, a []types.MalType) (types.MalType, error) {
+	repl_env.Set(types.Symbol{Val: "eval"}, types.Func{Fn: func(ctx context.Context, debug any, a []types.MalType) (types.MalType, error) {
 		return EVAL(ctx, a[0], repl_env, nil)
 	}})
 

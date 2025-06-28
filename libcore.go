@@ -10,12 +10,13 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"runtime/debug"
+	godebug "runtime/debug"
 	"strings"
 	"time"
 
 	spew "github.com/davecgh/go-spew/spew"
 	"github.com/google/uuid"
+	"github.com/jig/lisp/debug"
 	"github.com/jig/lisp/lib/call"
 	"github.com/jig/lisp/lisperror"
 	"github.com/jig/lisp/marshaler"
@@ -274,7 +275,7 @@ func LoadCoreInput(env EnvType) {
 }
 
 func version() (HashMap, error) {
-	bi, ok := debug.ReadBuildInfo()
+	bi, ok := godebug.ReadBuildInfo()
 	if !ok {
 		return HashMap{}, nil
 	}
@@ -615,23 +616,23 @@ func _getIn(argMapOrVector MalType, posVector Vector) (MalType, error) {
 	}
 }
 
-func update(ctx context.Context, hm, pos, f MalType) (MalType, error) {
+func update(ctx context.Context, dbg debug.Debug, hm, pos, f MalType) (MalType, error) {
 	if Nil_Q(hm) {
 		return nil, nil
 	}
-	return _update(ctx, hm, pos, f)
+	return _update(ctx, dbg, hm, pos, f)
 }
 
-func _update(ctx context.Context, argMapOrVector, index, f MalType) (MalType, error) {
+func _update(ctx context.Context, dbg debug.Debug, argMapOrVector, index, f MalType) (MalType, error) {
 	switch argMapOrVector := argMapOrVector.(type) {
 	case HashMap:
-		res, err := Apply(ctx, f, []MalType{argMapOrVector.Val[index.(string)]}, nil)
+		res, err := Apply(ctx, f, []MalType{argMapOrVector.Val[index.(string)]}, dbg)
 		if err != nil {
 			return nil, err
 		}
 		return assoc(argMapOrVector, index, res)
 	case Vector:
-		res, err := Apply(ctx, f, []MalType{argMapOrVector.Val[index.(int)]}, nil)
+		res, err := Apply(ctx, f, []MalType{argMapOrVector.Val[index.(int)]}, dbg)
 		if err != nil {
 			return nil, err
 		}
@@ -641,20 +642,20 @@ func _update(ctx context.Context, argMapOrVector, index, f MalType) (MalType, er
 	}
 }
 
-func update_in(ctx context.Context, seq MalType, posVector Vector, f MalType) (MalType, error) {
+func update_in(ctx context.Context, dbg debug.Debug, seq MalType, posVector Vector, f MalType) (MalType, error) {
 	if Nil_Q(seq) {
 		return nil, nil
 	}
-	return _updateIn(ctx, seq, posVector, f)
+	return _updateIn(ctx, dbg, seq, posVector, f)
 }
 
-func _updateIn(ctx context.Context, seq MalType, posVector Vector, f MalType) (MalType, error) {
+func _updateIn(ctx context.Context, dbg debug.Debug, seq MalType, posVector Vector, f MalType) (MalType, error) {
 	switch len(posVector.Val) {
 	case 0:
 		return seq, nil
 	case 1:
 		index := posVector.Val[0]
-		return _update(ctx, seq, index, f)
+		return _update(ctx, dbg, seq, index, f)
 	default:
 		index := posVector.Val[0]
 		rest := Vector{Val: posVector.Val[1:]}
@@ -665,7 +666,7 @@ func _updateIn(ctx context.Context, seq MalType, posVector Vector, f MalType) (M
 			if branch == nil {
 				branch = HashMap{}
 			}
-			inner, err := _updateIn(ctx, branch.(HashMap), rest, f)
+			inner, err := _updateIn(ctx, dbg, branch.(HashMap), rest, f)
 			if err != nil {
 				return nil, err
 			}
@@ -675,7 +676,7 @@ func _updateIn(ctx context.Context, seq MalType, posVector Vector, f MalType) (M
 			if branch == nil {
 				branch = Vector{}
 			}
-			inner, err := _updateIn(ctx, branch.(Vector), rest, f)
+			inner, err := _updateIn(ctx, dbg, branch.(Vector), rest, f)
 			if err != nil {
 				return nil, err
 			}
@@ -874,7 +875,7 @@ func count(seq MalType) (int, error) {
 	}
 }
 
-func apply(ctx context.Context, a ...MalType) (MalType, error) {
+func apply(ctx context.Context, dbg debug.Debug, a ...MalType) (MalType, error) {
 	if len(a) < 2 {
 		return nil, errors.New("apply requires at least 2 args")
 	}
@@ -888,17 +889,17 @@ func apply(ctx context.Context, a ...MalType) (MalType, error) {
 		return nil, e
 	}
 	args = append(args, last...)
-	return Apply(ctx, f, args, nil)
+	return Apply(ctx, f, args, dbg)
 }
 
-func mAp(ctx context.Context, f, seq MalType) (MalType, error) {
+func mAp(ctx context.Context, dbg debug.Debug, f, seq MalType) (MalType, error) {
 	results := []MalType{}
 	args, e := GetSlice(seq)
 	if e != nil {
 		return nil, e
 	}
 	for _, arg := range args {
-		res, e := Apply(ctx, f, []MalType{arg}, nil)
+		res, e := Apply(ctx, f, []MalType{arg}, dbg)
 		if e != nil {
 			return nil, e
 		}

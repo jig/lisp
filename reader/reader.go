@@ -180,7 +180,7 @@ func read_external(rdr *tokenReader, placeholderValues *HashMap, ns EnvType) (Ma
 	if !ok {
 		return nil, fmt.Errorf("attempt to call non-function (was of type %T)", constructor)
 	}
-	typedValue, err := fnConstructor.Fn(context.Background(), args[1:])
+	typedValue, err := fnConstructor.Fn(context.Background(), nil, args[1:])
 	if err != nil {
 		return nil, err
 	}

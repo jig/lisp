@@ -1,0 +1,1 @@
+ «go-error "simple error"»

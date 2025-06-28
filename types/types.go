@@ -75,7 +75,7 @@ func String_Q(obj MalType) bool {
 	return Q[string](obj) && !strings.HasPrefix(obj.(string), "\u029e")
 }
 
-type ExternalCall func(context.Context, []MalType) (MalType, error)
+type ExternalCall func(context.Context, any, []MalType) (MalType, error)
 
 // Functions
 type Func struct {

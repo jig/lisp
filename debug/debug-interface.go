@@ -1,4 +1,4 @@
-package lisp
+package debug
 
 import (
 	"github.com/jig/lisp/types"

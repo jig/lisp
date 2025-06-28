@@ -4,12 +4,13 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/jig/lisp/debug"
 	. "github.com/jig/lisp/types"
 )
 
 // Take either a MalFunc or regular function and apply it to the
 // arguments
-func Apply(ctx context.Context, f_mt MalType, a []MalType, debug Debug) (MalType, error) {
+func Apply(ctx context.Context, f_mt MalType, a []MalType, dbg debug.Debug) (MalType, error) {
 	switch f := f_mt.(type) {
 	case MalFunc:
 		env, e := f.GenEnv(f.Env, f.Params, List{
@@ -19,9 +20,9 @@ func Apply(ctx context.Context, f_mt MalType, a []MalType, debug Debug) (MalType
 		if e != nil {
 			return nil, e
 		}
-		return f.Eval(ctx, f.Exp, env, debug)
+		return f.Eval(ctx, f.Exp, env, dbg)
 	case Func:
-		return f.Fn(ctx, a)
+		return f.Fn(ctx, dbg, a)
 	case func([]MalType) (MalType, error):
 		return f(a)
 	default:

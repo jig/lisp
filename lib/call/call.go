@@ -7,6 +7,7 @@ import (
 	"runtime"
 	"strings"
 
+	"github.com/jig/lisp/debug"
 	"github.com/jig/lisp/lisperror"
 	"github.com/jig/lisp/types"
 )
@@ -41,8 +42,12 @@ func call(overrideFN *string, namespace types.EnvType, fIn types.MalType, args .
 	outParams := finType.NumOut()
 
 	contextRequired := false
+	debugRequired := false
 	if finType.NumIn() >= 1 && finType.In(0).Implements(reflect.TypeOf((*context.Context)(nil)).Elem()) {
 		contextRequired = true
+		if finType.NumIn() >= 2 && finType.In(1).Implements(reflect.TypeOf((*debug.Debug)(nil)).Elem()) {
+			debugRequired = true
+		}
 	}
 
 	var minArgs, maxArgs int
@@ -71,40 +76,70 @@ func call(overrideFN *string, namespace types.EnvType, fIn types.MalType, args .
 		panic(fmt.Errorf("%s: argument count bounds cannot be negative", functionFullName))
 	}
 
-	var extCall func(context.Context, []types.MalType) (types.MalType, error)
+	var extCall func(context.Context, any, []types.MalType) (types.MalType, error)
 	switch finType.NumOut() {
 	case 0:
 		if contextRequired {
-			extCall = func(ctx context.Context, args []types.MalType) (result types.MalType, err error) {
-				defer _recover(functionFullName, &err)
-				return _nil_nil(finValue.Call(_args_ctx(ctx, minArgs, maxArgs, args)))
+			if debugRequired {
+				extCall = func(ctx context.Context, dbg any, args []types.MalType) (result types.MalType, err error) {
+					defer _recover(functionFullName, &err)
+					if dbg == nil {
+						return _nil_nil(finValue.Call(_args_ctx_debug(ctx, nil, minArgs, maxArgs, args)))
+					}
+					return _nil_nil(finValue.Call(_args_ctx_debug(ctx, dbg.(debug.Debug), minArgs, maxArgs, args)))
+				}
+			} else {
+				extCall = func(ctx context.Context, _ any, args []types.MalType) (result types.MalType, err error) {
+					defer _recover(functionFullName, &err)
+					return _nil_nil(finValue.Call(_args_ctx(ctx, minArgs, maxArgs, args)))
+				}
 			}
 		} else {
-			extCall = func(_ context.Context, args []types.MalType) (result types.MalType, err error) {
+			extCall = func(_ context.Context, _ any, args []types.MalType) (result types.MalType, err error) {
 				defer _recover(functionFullName, &err)
 				return _nil_nil(finValue.Call(_args(minArgs, maxArgs, args)))
 			}
 		}
 	case 1:
 		if contextRequired {
-			extCall = func(ctx context.Context, args []types.MalType) (result types.MalType, err error) {
-				defer _recover(functionFullName, &err)
-				return _nil_error(finValue.Call(_args_ctx(ctx, minArgs, maxArgs, args)))
+			if debugRequired {
+				extCall = func(ctx context.Context, dbg any, args []types.MalType) (result types.MalType, err error) {
+					defer _recover(functionFullName, &err)
+					if dbg == nil {
+						return _nil_error(finValue.Call(_args_ctx_debug(ctx, nil, minArgs, maxArgs, args)))
+					}
+					return _nil_error(finValue.Call(_args_ctx_debug(ctx, dbg.(debug.Debug), minArgs, maxArgs, args)))
+				}
+			} else {
+				extCall = func(ctx context.Context, _ any, args []types.MalType) (result types.MalType, err error) {
+					defer _recover(functionFullName, &err)
+					return _nil_error(finValue.Call(_args_ctx(ctx, minArgs, maxArgs, args)))
+				}
 			}
 		} else {
-			extCall = func(_ context.Context, args []types.MalType) (result types.MalType, err error) {
+			extCall = func(_ context.Context, _ any, args []types.MalType) (result types.MalType, err error) {
 				defer _recover(functionFullName, &err)
 				return _nil_error(finValue.Call(_args(minArgs, maxArgs, args)))
 			}
 		}
 	case 2:
 		if contextRequired {
-			extCall = func(ctx context.Context, args []types.MalType) (result types.MalType, err error) {
-				defer _recover(functionFullName, &err)
-				return _result_error(finValue.Call(_args_ctx(ctx, minArgs, maxArgs, args)))
+			if debugRequired {
+				extCall = func(ctx context.Context, dbg any, args []types.MalType) (result types.MalType, err error) {
+					defer _recover(functionFullName, &err)
+					if dbg == nil {
+						return _result_error(finValue.Call(_args_ctx_debug(ctx, nil, minArgs, maxArgs, args)))
+					}
+					return _result_error(finValue.Call(_args_ctx_debug(ctx, dbg.(debug.Debug), minArgs, maxArgs, args)))
+				}
+			} else {
+				extCall = func(ctx context.Context, _ any, args []types.MalType) (result types.MalType, err error) {
+					defer _recover(functionFullName, &err)
+					return _result_error(finValue.Call(_args_ctx(ctx, minArgs, maxArgs, args)))
+				}
 			}
 		} else {
-			extCall = func(_ context.Context, args []types.MalType) (result types.MalType, err error) {
+			extCall = func(_ context.Context, _ any, args []types.MalType) (result types.MalType, err error) {
 				defer _recover(functionFullName, &err)
 				return _result_error(finValue.Call(_args(minArgs, maxArgs, args)))
 			}
@@ -147,6 +182,36 @@ func _recover(fFullName string, err *error) {
 }
 
 const unlimitedArgments = 1000
+
+func _args_ctx_debug(ctx context.Context, dbg debug.Debug, minParams, maxParams int, args []types.MalType) []reflect.Value {
+	if len(args) < minParams-2 || len(args) > maxParams-2 {
+		if maxParams == unlimitedArgments {
+			panic(fmt.Errorf("wrong number of arguments (%d instead of a minimum of %d)", len(args), minParams-2))
+		} else {
+			if minParams == maxParams {
+				panic(fmt.Errorf("wrong number of arguments (%d instead of %d)", len(args), minParams-2))
+			} else {
+				panic(fmt.Errorf("wrong number of arguments (%d instead of %d…%d)", len(args), minParams-2, maxParams-2))
+			}
+		}
+	}
+
+	in := make([]reflect.Value, 2+len(args))
+	in[0] = reflect.ValueOf(ctx)
+	if dbg == nil {
+		in[1] = reflect.Zero(reflect.TypeOf((*debug.Debug)(nil)).Elem())
+	} else {
+		in[1] = reflect.ValueOf(dbg)
+	}
+	for k, param := range args {
+		if param != nil {
+			in[k+2] = reflect.ValueOf(param)
+		} else {
+			in[k+2] = reflect.Zero(reflect.TypeOf([]types.MalType{}).Elem())
+		}
+	}
+	return in
+}
 
 func _args_ctx(ctx context.Context, minParams, maxParams int, args []types.MalType) []reflect.Value {
 	if len(args) < minParams-1 || len(args) > maxParams-1 {

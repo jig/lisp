@@ -12,6 +12,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/jig/lisp/debug"
 	"github.com/jig/lisp/env"
 	"github.com/jig/lisp/lib/system"
 	"github.com/jig/lisp/types"
@@ -38,7 +39,7 @@ func TestFileTests(t *testing.T) {
 		if dirEntry.Name() == "step1_read_print.mal" {
 			continue
 		}
-		// fmt.Println(dirEntry.Name())
+		t.Log(dirEntry.Name())
 		code, err := os.ReadFile("./tests/" + dirEntry.Name())
 		if err != nil {
 			log.Fatal(err)
@@ -110,8 +111,11 @@ func newEnv(fileName string) types.EnvType {
 	LoadCoreInput(newenv)
 	LoadConcurrent(newenv)
 	system.Load(newenv)
-	newenv.Set(types.Symbol{Val: "eval"}, types.Func{Fn: func(ctx context.Context, a []types.MalType) (types.MalType, error) {
-		return EVAL(ctx, a[0], newenv, nil)
+	newenv.Set(types.Symbol{Val: "eval"}, types.Func{Fn: func(ctx context.Context, dbg any, a []types.MalType) (types.MalType, error) {
+		if dbg == nil {
+			return EVAL(ctx, a[0], newenv, nil)
+		}
+		return EVAL(ctx, a[0], newenv, dbg.(debug.Debug))
 	}})
 	newenv.Set(types.Symbol{Val: "*ARGV*"}, types.List{})
 
