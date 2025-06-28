@@ -110,7 +110,7 @@ func newEnv(fileName string) types.EnvType {
 	LoadCore(newenv)
 	LoadCoreInput(newenv)
 	LoadConcurrent(newenv)
-	system.Load(newenv)
+	system.Load(newenv, nil)
 	newenv.Set(types.Symbol{Val: "eval"}, types.Func{Fn: func(ctx context.Context, dbg any, a []types.MalType) (types.MalType, error) {
 		if dbg == nil {
 			return EVAL(ctx, a[0], newenv, nil)

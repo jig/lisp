@@ -23,7 +23,7 @@ func ExampleEVAL() {
 		{"core mal with input", lisp.LoadNSCoreInput},
 		{"command line args", lisp.LoadNSCoreCmdLineArgs},
 		{"concurrent", lisp.LoadNSConcurrent},
-		{"core mal extended", nscoreextended.Load},
+		{"core mal extended", func(ns types.EnvType) error { return nscoreextended.Load(ns, nil) }},
 	} {
 		if err := library.load(newEnv); err != nil {
 			log.Fatalf("Library Load Error %q: %v", library.name, err)

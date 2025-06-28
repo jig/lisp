@@ -272,23 +272,25 @@ func (m model) View() string {
 }
 
 func showEnv(env types.EnvType, width, level int) string {
-	// if env == nil {
-	// 	return ""
-	// }
-	// sEnv := fmt.Sprintf("%d\n", level)
-	// symbols := env.Symbols()
+	if env == nil {
+		return ""
+	}
+	sEnv := fmt.Sprintf("%d\n", level)
+	var newLine [][]rune
+	newLine = env.Symbols(newLine, "")
 	// sort.Strings(symbols)
-	// for _, k := range symbols {
-	// 	v, err := env.Get(lisp.NewSymbol(k, lisp.Position{}))
-	// 	if err != nil {
-	// 		sEnv += fmt.Sprintf(" %s: %s", k, err)
-	// 	} else {
-	// 		sEnv += "  " + style.Symbol.Render(k) + ": " + style.SyntaxHighlighting(0, -1, scanner.Position{}, scanner.Position{}, printer.Pr_str(v, true)[:min(width, len(printer.Pr_str(v, true)))], -2)
-	// 	}
-	// 	sEnv += "\n"
-	// }
+	for _, k := range newLine {
+		v, err := env.Get(types.Symbol{Val: string(k)})
+		if err != nil {
+			sEnv += fmt.Sprintf(" %s: %s", string(k), err)
+		} else {
+			sEnv += "  " + style.Symbol.Render(string(k)) + ": " + style.SyntaxHighlighting(0, -1, scanner.Position{}, scanner.Position{}, printer.Pr_str(v, true)[:min(width, len(printer.Pr_str(v, true)))], -2)
+		}
+		sEnv += "\n"
+	}
 	// return sEnv + showEnv(env.Outer(), width, level+1)
-	return "unimplemented env view"
+	// return "unimplemented env view"
+	return sEnv
 }
 
 func main() {
@@ -327,9 +329,9 @@ func main() {
 				{"core mal with input", lisp.LoadNSCoreInput},
 				{"command line args", lisp.LoadNSCoreCmdLineArgs},
 				{"concurrent", lisp.LoadNSConcurrent},
-				{"core mal extended", nscoreextended.Load},
-				{"assert", nsassert.Load},
-				{"system", nssystem.Load},
+				{"core mal extended", func(ns types.EnvType) error { return nscoreextended.Load(ns, dbg) }},
+				{"assert", func(ns types.EnvType) error { return nsassert.Load(ns, dbg) }},
+				{"system", func(ns types.EnvType) error { return nssystem.Load(ns, dbg) }},
 			} {
 				if err := library.load(ns); err != nil {
 					// log.Fatalf("Library Load Error: %v\n", err)
@@ -338,6 +340,7 @@ func main() {
 				}
 			}
 
+			dbg.PushFile(filename, string(file))
 			result, err := lisp.REPL(context.Background(), ns, string(file), types.NewCursorHere(filename, 1, 1), dbg)
 			if err != nil {
 				p.Send(endMessage{Err: fmt.Errorf("Eval(%v) error: %v", filename, err)})

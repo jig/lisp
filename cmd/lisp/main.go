@@ -24,9 +24,9 @@ func main() {
 		{"core mal with input", lisp.LoadNSCoreInput},
 		{"command line args", lisp.LoadNSCoreCmdLineArgs},
 		{"concurrent", lisp.LoadNSConcurrent},
-		{"core mal extended", nscoreextended.Load},
-		{"assert", nsassert.Load},
-		{"system", nssystem.Load},
+		{"core mal extended", func(ns types.EnvType) error { return nscoreextended.Load(ns, nil) }},
+		{"assert", func(ns types.EnvType) error { return nsassert.Load(ns, nil) }},
+		{"system", func(ns types.EnvType) error { return nssystem.Load(ns, nil) }},
 	} {
 		if err := library.load(ns); err != nil {
 			log.Fatalf("Library Load Error: %v\n", err)
