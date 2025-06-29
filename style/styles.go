@@ -23,7 +23,7 @@ var (
 	Bool              = lipgloss.NewStyle().Foreground(lipgloss.Color("#FFDD00"))
 	Int               = lipgloss.NewStyle().Foreground(lipgloss.Color("#AAEEFF"))
 	Float             = lipgloss.NewStyle().Foreground(lipgloss.Color("#44CCEE"))
-	String            = lipgloss.NewStyle().Foreground(lipgloss.Color("#CCFFAAq"))
+	String            = lipgloss.NewStyle().Foreground(lipgloss.Color("#CCFFAA"))
 	Function          = lipgloss.NewStyle()
 	List              = lipgloss.NewStyle().Foreground(lipgloss.Color("#FF8800"))
 	Vector            = lipgloss.NewStyle().Foreground(lipgloss.Color("#FFBB22"))
