@@ -1,3 +1,3 @@
-(def a 1)
-
-b
+(do
+    (def a 1)
+    b)

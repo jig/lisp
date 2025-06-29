@@ -5,7 +5,6 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/jig/lisp/debug"
 	. "github.com/jig/lisp/env"
 	. "github.com/jig/lisp/types"
 )
@@ -22,8 +21,8 @@ func BenchmarkMAL1(b *testing.B) {
 	LoadCore(repl_env)
 	ctx := context.Background()
 	for i := 0; i < b.N; i++ {
-		repl_env.Set(Symbol{Val: "eval"}, Func{Fn: func(ctx context.Context, dbg any, a []MalType) (MalType, error) {
-			return EVAL(ctx, a[0], repl_env, dbg.(debug.Debug))
+		repl_env.Set(Symbol{Val: "eval"}, Func{Fn: func(ctx context.Context, _ any, a []MalType) (MalType, error) {
+			return EVAL(ctx, a[0], repl_env, nil)
 		}})
 		repl_env.Set(Symbol{Val: "*ARGV*"}, List{})
 
@@ -46,8 +45,8 @@ func BenchmarkMAL1(b *testing.B) {
 func BenchmarkMAL2(b *testing.B) {
 	repl_env := NewEnv()
 	LoadCore(repl_env)
-	repl_env.Set(Symbol{Val: "eval"}, Func{Fn: func(ctx context.Context, dbg any, a []MalType) (MalType, error) {
-		return EVAL(ctx, a[0], repl_env, dbg.(debug.Debug))
+	repl_env.Set(Symbol{Val: "eval"}, Func{Fn: func(ctx context.Context, _ any, a []MalType) (MalType, error) {
+		return EVAL(ctx, a[0], repl_env, nil)
 	}})
 	repl_env.Set(Symbol{Val: "*ARGV*"}, List{})
 	ctx := context.Background()
@@ -61,8 +60,8 @@ func BenchmarkMAL2(b *testing.B) {
 func BenchmarkParallelREAD(b *testing.B) {
 	repl_env := NewEnv()
 	LoadCore(repl_env)
-	repl_env.Set(Symbol{Val: "eval"}, Func{Fn: func(ctx context.Context, dbg any, a []MalType) (MalType, error) {
-		return EVAL(ctx, a[0], repl_env, dbg.(debug.Debug))
+	repl_env.Set(Symbol{Val: "eval"}, Func{Fn: func(ctx context.Context, _ any, a []MalType) (MalType, error) {
+		return EVAL(ctx, a[0], repl_env, nil)
 	}})
 	repl_env.Set(Symbol{Val: "*ARGV*"}, List{})
 	b.RunParallel(func(pb *testing.PB) {
@@ -81,8 +80,8 @@ func BenchmarkParallelREAD(b *testing.B) {
 func BenchmarkParallelREP(b *testing.B) {
 	repl_env := NewEnv()
 	LoadCore(repl_env)
-	repl_env.Set(Symbol{Val: "eval"}, Func{Fn: func(ctx context.Context, dbg any, a []MalType) (MalType, error) {
-		return EVAL(ctx, a[0], repl_env, dbg.(debug.Debug))
+	repl_env.Set(Symbol{Val: "eval"}, Func{Fn: func(ctx context.Context, _ any, a []MalType) (MalType, error) {
+		return EVAL(ctx, a[0], repl_env, nil)
 	}})
 	repl_env.Set(Symbol{Val: "*ARGV*"}, List{})
 	ctx := context.Background()
@@ -98,8 +97,8 @@ func BenchmarkParallelREP(b *testing.B) {
 func BenchmarkREP(b *testing.B) {
 	repl_env := NewEnv()
 	LoadCore(repl_env)
-	repl_env.Set(Symbol{Val: "eval"}, Func{Fn: func(ctx context.Context, dbg any, a []MalType) (MalType, error) {
-		return EVAL(ctx, a[0], repl_env, dbg.(debug.Debug))
+	repl_env.Set(Symbol{Val: "eval"}, Func{Fn: func(ctx context.Context, _ any, a []MalType) (MalType, error) {
+		return EVAL(ctx, a[0], repl_env, nil)
 	}})
 	repl_env.Set(Symbol{Val: "*ARGV*"}, List{})
 	ctx := context.Background()
@@ -153,8 +152,8 @@ func TestAtomParallel(t *testing.T) {
 
 	LoadCore(repl_env)
 	LoadConcurrent(repl_env)
-	repl_env.Set(Symbol{Val: "eval"}, Func{Fn: func(ctx context.Context, dbg any, a []MalType) (MalType, error) {
-		return EVAL(ctx, a[0], repl_env, dbg.(debug.Debug))
+	repl_env.Set(Symbol{Val: "eval"}, Func{Fn: func(ctx context.Context, _ any, a []MalType) (MalType, error) {
+		return EVAL(ctx, a[0], repl_env, nil)
 	}})
 	repl_env.Set(Symbol{Val: "*ARGV*"}, List{})
 	ctx := context.Background()
@@ -202,8 +201,8 @@ func BenchmarkAtomParallel(b *testing.B) {
 
 	LoadCore(repl_env)
 	LoadConcurrent(repl_env)
-	repl_env.Set(Symbol{Val: "eval"}, Func{Fn: func(ctx context.Context, dbg any, a []MalType) (MalType, error) {
-		return EVAL(ctx, a[0], repl_env, dbg.(debug.Debug))
+	repl_env.Set(Symbol{Val: "eval"}, Func{Fn: func(ctx context.Context, _ any, a []MalType) (MalType, error) {
+		return EVAL(ctx, a[0], repl_env, nil)
 	}})
 	repl_env.Set(Symbol{Val: "*ARGV*"}, List{})
 	ctx := context.Background()

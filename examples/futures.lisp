@@ -1,2 +1,3 @@
-(def calc (future (+ 1 1)))
-(prn @calc)
+(do
+    (def calc (future (+ 1 1)))
+    (prn @calc))

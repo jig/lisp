@@ -36,6 +36,7 @@ func HeaderBasic() string    { return headerBasic }
 func HeaderLoadFile() string { return headerLoadFile }
 
 func LoadCore(env EnvType) {
+	call.Call(env, push_file_to_debug)
 	call.Call(env, assoc_in)
 	call.Call(env, update)
 	call.Call(env, update_in)
@@ -614,6 +615,13 @@ func _getIn(argMapOrVector MalType, posVector Vector) (MalType, error) {
 		}
 		return _getIn(branch, rest)
 	}
+}
+
+func push_file_to_debug(ctx context.Context, dbg debug.Debug, filename, contents string) (MalType, error) {
+	if dbg != nil {
+		dbg.PushFile(filename, contents)
+	}
+	return contents, nil
 }
 
 func update(ctx context.Context, dbg debug.Debug, hm, pos, f MalType) (MalType, error) {

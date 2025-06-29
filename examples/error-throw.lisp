@@ -1,3 +1,3 @@
-(def a 1)
-
-(throw 3)
+(do
+    (def a 1)
+    (throw 3))

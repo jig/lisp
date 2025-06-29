@@ -33,7 +33,10 @@
             "type": "go",
             "request": "launch",
             "mode": "auto",
-            "program": "${workspaceFolder}/cmd/lisp"
+            "program": "${workspaceFolder}/cmd/lisp",
+            "args": [
+                "${workspaceFolder}/examples/fibonacci.lisp"
+            ]
         },
         {
             "name": "fibonacci",

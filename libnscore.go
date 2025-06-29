@@ -16,7 +16,10 @@ var _packageNSCore_ = reflect.TypeOf(HereNSCore{}).PkgPath()
 func LoadNSCore(env EnvType) error {
 	LoadCore(env)
 	env.Set(Symbol{Val: "eval"}, Func{Fn: func(ctx context.Context, dbg any, a []MalType) (MalType, error) {
-		return EVAL(ctx, a[0], env, dbg.(debug.Debug))
+		if dbg != nil {
+			return EVAL(ctx, a[0], env, dbg.(debug.Debug))
+		}
+		return EVAL(ctx, a[0], env, nil)
 	}})
 
 	if _, err := REPL(context.Background(), env, HeaderBasic(), NewCursorFile(_package_), nil); err != nil {
@@ -28,7 +31,10 @@ func LoadNSCore(env EnvType) error {
 func LoadNSCoreInput(env EnvType) error {
 	LoadCoreInput(env)
 	env.Set(Symbol{Val: "eval"}, Func{Fn: func(ctx context.Context, dbg any, a []MalType) (MalType, error) {
-		return EVAL(ctx, a[0], env, dbg.(debug.Debug))
+		if dbg != nil {
+			return EVAL(ctx, a[0], env, dbg.(debug.Debug))
+		}
+		return EVAL(ctx, a[0], env, nil)
 	}})
 
 	if _, err := REPL(context.Background(), env, HeaderLoadFile(), NewCursorFile(_package_), nil); err != nil {
@@ -45,9 +51,8 @@ func LoadNSCoreCmdLineArgs(env EnvType) error {
 		}
 		env.Set(Symbol{Val: "*ARGV*"}, List{Val: args})
 		return nil
-	} else {
-		return LoadNSCoreNullArgs(env)
 	}
+	return LoadNSCoreNullArgs(env)
 }
 
 func LoadNSCoreNullArgs(env EnvType) error {
