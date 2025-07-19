@@ -8,20 +8,28 @@ import (
 
 func Pos(v MalType) *Position {
 	if v == nil {
+		fmt.Println("Pos called with nil value")
 		return nil
 	}
-	switch v := v.(type) {
+
+	if _, ok := v.(*MalType); !ok {
+		fmt.Println("Pos called with non-MalType value:", v)
+		return nil
+	}
+
+	switch value := (*(v.(*MalType))).(type) {
 	case Symbol:
-		return v.Cursor
+		return value.Cursor
 	case List:
-		return v.Cursor
+		return value.Cursor
 	case Vector:
-		return v.Cursor
+		return value.Cursor
 	case HashMap:
-		return v.Cursor
+		return value.Cursor
 	case Set:
-		return v.Cursor
+		return value.Cursor
 	default:
+		fmt.Println("Pos called with unsupported type:", fmt.Sprintf("%T", value))
 		return nil
 	}
 }

@@ -15,7 +15,7 @@ var _package_ = reflect.TypeOf(Here{}).PkgPath()
 
 func Load(env types.EnvType, dbg debug.Debug) error {
 	if dbg != nil {
-		dbg.PushFile("internal$nssystem", coreextented.HeaderCoreExtended())
+		dbg.PushFile(_package_, coreextented.HeaderCoreExtended())
 	}
 	system.Load(env, dbg)
 	return nil

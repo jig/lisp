@@ -17,7 +17,7 @@ var _package_ = reflect.TypeOf(Here{}).PkgPath()
 
 func Load(env types.EnvType, dbg debug.Debug) error {
 	if dbg != nil {
-		dbg.PushFile("internal$nsassert", coreextented.HeaderCoreExtended())
+		dbg.PushFile(_package_, coreextented.HeaderCoreExtended())
 	}
 	if _, err := lisp.REPL(context.Background(), env, assert.HeaderAssertMacros(), types.NewCursorFile(_package_), dbg); err != nil {
 		return err

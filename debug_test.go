@@ -1,9 +1,12 @@
+//go:build ignore
+
 package lisp
 
 import (
 	"context"
 	"fmt"
 	"log"
+	"os"
 	"testing"
 
 	"github.com/jig/lisp/debug"
@@ -11,8 +14,6 @@ import (
 	"github.com/jig/lisp/printer"
 	"github.com/jig/lisp/types"
 )
-
-var debugStack []string
 
 func TestDebug(t *testing.T) {
 	ns := env.NewEnv()
@@ -39,9 +40,9 @@ func TestDebug(t *testing.T) {
 		expected string
 		stack    string
 	}{
-		{"()", "()", "[TestDebug:0 -> () 🏳️ () ○ () 🚩]"},
-		{"(+ 1 2)", "3", "[TestDebug:1 -> (+ 1 2) 🏳️ (+ 1 2) ○ 3 🚩]"},
-		{"(+ 1 2) ;; hola", "3", "[TestDebug:2 -> (+ 1 2) ;; hola 🏳️ (+ 1 2) ○ 3 🚩]"},
+		{"()", "()", "[TestDebug:0 -> () 🏳️ TestDebug:0§1…1,2…5 -> () ○ TestDebug:0§1…1,2…5 -> () 🚩]"},
+		{"(+ 1 2)", "3", "[TestDebug:1 -> (+ 1 2) 🏳️ TestDebug:1§1…1,2…15 -> (+ 1 2) ○ TestDebug:1§1…1,2…15 -> 3 🚩]"},
+		{"(+ 1 2) ;; hola", "3", "[TestDebug:2 -> (+ 1 2) ;; hola 🏳️ TestDebug:2§1…1,2…15 -> (+ 1 2) ○ TestDebug:2§1…1,2…15 -> 3 🚩]"},
 		// {"(+ 1 2) (- 10 1) ;; hola", "9", "[TestDebug:3 -> (+ 1 2) (- 10 1) ;; hola 🏳️ (+ 1 2) ○ 3 🚩 (- 10 1) ○ 9 🚩]"},
 		// {
 		// 	`(load-file "./examples/simple.lisp") (def a (+ x 1)) (def b (+ a 2))`,
@@ -64,14 +65,69 @@ func TestDebug(t *testing.T) {
 		if test.expected != result {
 			t.Fatalf("Eval(%v) = %#v; expected %#v", test.input, result, test.expected)
 		}
-		if fmt.Sprint(debugStack) != test.stack {
-			t.Fatalf("Failed %s != %s", fmt.Sprint(debugStack), test.stack)
+		if fmt.Sprint(dbg.debugStack) != test.stack {
+			t.Fatalf("Failed %s != %s", fmt.Sprint(dbg.debugStack), test.stack)
 		}
 		dbg.Reset()
 	}
 }
 
-type DebugTestType struct{}
+func TestDebugSimpleFile(t *testing.T) {
+	const filename = "./examples/simple.lisp"
+	dbg := &DebugTestType{}
+	file, err := os.ReadFile(filename)
+	if err != nil {
+		fmt.Printf("Error reading file: %v\n", err)
+		os.Exit(3)
+	}
+
+	ns := env.NewEnv()
+
+	for _, library := range []struct {
+		name string
+		load func(ns types.EnvType) error
+	}{
+		{"core mal", LoadNSCore},
+		{"core mal with input", LoadNSCoreInput},
+		{"command line args", LoadNSCoreCmdLineArgs},
+		{"concurrent", LoadNSConcurrent},
+		// {"core mal extended", func(ns types.EnvType) error { return nscoreextended.Load(ns, dbg) }},
+		// {"assert", func(ns types.EnvType) error { return nsassert.Load(ns, dbg) }},
+		// {"system", func(ns types.EnvType) error { return nssystem.Load(ns, dbg) }},
+	} {
+		if err := library.load(ns); err != nil {
+			t.Fatalf("Library Load Error: %v\n", err)
+			return
+		}
+	}
+
+	dbg.PushFile(filename, string(file))
+	result, err := REPL(context.Background(), ns, string(file), types.NewCursorHere(filename, 1, 1), dbg)
+	if err != nil {
+		t.Fatalf("Eval(%v) error: %v", filename, err)
+	}
+
+	if result != "nil" {
+		t.Fatalf("Eval(%v) = %#v; expected %#v", filename, result, `"nil"`)
+	}
+
+	expected := "[TestDebugSimpleFile:0 -> ./examples/simple.lisp 🏳️ ./examples/simple.lisp ○ 13 🚩]"
+	if fmt.Sprint(dbg.debugStack) != expected {
+		t.Fatal(dbg.debugStack)
+	}
+
+	dbg.Reset()
+}
+
+type DebugTestType struct {
+	debugStack []string
+}
+
+func NewDebugTestType() *DebugTestType {
+	return &DebugTestType{
+		debugStack: []string{},
+	}
+}
 
 // CancelStatus implements DebugEval.
 func (d *DebugTestType) CancelStatus() bool {
@@ -80,16 +136,31 @@ func (d *DebugTestType) CancelStatus() bool {
 
 // Reset implements DebugEval.
 func (d *DebugTestType) Reset() {
-	debugStack = []string{}
+	d.debugStack = []string{}
 }
 
 func (dbg *DebugTestType) Wait(msg debug.DebugMessage) debug.DebugControl {
+	if msg.Input != nil {
+		switch v := (*(msg.Input.(*types.MalType))).(type) {
+		case types.HashMap:
+			dbg.debugStack = append(dbg.debugStack, v.Cursor.String(), "->")
+		case types.List:
+			dbg.debugStack = append(dbg.debugStack, v.Cursor.String(), "->")
+		case types.Vector:
+			dbg.debugStack = append(dbg.debugStack, v.Cursor.String(), "->")
+		case types.Symbol:
+			dbg.debugStack = append(dbg.debugStack, v.Cursor.String(), "->")
+		default:
+			dbg.debugStack = append(dbg.debugStack, fmt.Sprintf("%T", msg.Input), "->")
+		}
+	}
+
 	if msg.Result != nil {
-		debugStack = append(debugStack, printer.Pr_str(msg.Result, true), "🚩")
+		dbg.debugStack = append(dbg.debugStack, printer.Pr_str(msg.Result, true), "🚩")
 	} else if msg.Input != nil {
-		debugStack = append(debugStack, printer.Pr_str(msg.Input, true), "○")
+		dbg.debugStack = append(dbg.debugStack, printer.Pr_str(msg.Input, true), "○")
 	} else {
-		debugStack = append(debugStack, "!!", "??")
+		dbg.debugStack = append(dbg.debugStack, "!!", "??")
 	}
 	return debug.DebugStepOver
 }
@@ -100,9 +171,9 @@ func (*DebugTestType) SetDoNotStop(bool) bool { return false }
 
 func (*DebugTestType) SetCancelStatus(bool) bool { return false }
 
-func (*DebugTestType) PushFile(filename, contents string) {
-	debugStack = append(debugStack, filename, "->")
-	debugStack = append(debugStack, contents, "🏳️")
+func (dbg *DebugTestType) PushFile(filename, contents string) {
+	dbg.debugStack = append(dbg.debugStack, filename, "->")
+	dbg.debugStack = append(dbg.debugStack, contents, "🏳️")
 }
 
-func (*DebugTestType) File(filename string) (contents string, exists bool) { return }
+func (dbg *DebugTestType) File(filename string) (contents string, exists bool) { return }

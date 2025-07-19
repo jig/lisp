@@ -38,9 +38,10 @@ type model struct {
 	posStart       scanner.Position
 	posEnd         scanner.Position
 
-	inputString  string
-	resultString string
-	errString    string
+	positionString string
+	inputString    string
+	resultString   string
+	errString      string
 }
 
 func initialModel(ctrl chan debug.DebugControl) model {
@@ -63,6 +64,24 @@ type setCode struct {
 type endMessage struct {
 	Success string
 	Err     error
+}
+
+// summary returns a summary of the given string, truncated to at most the given width and height.
+// If the string is longer than the width, it will be truncated and an ellipsis will
+// be added at the end. If the string is longer than the height, it will be truncated
+// and the last line will be replaced with an ellipsis.
+func summary(s string, width, height int) string {
+	lines := strings.Split(s, "\n")
+	if len(lines) > height {
+		lines = lines[:height-1]
+		lines = append(lines, "...")
+	}
+	for i, line := range lines {
+		if len(line) > width {
+			lines[i] = line[:width-3] + "..."
+		}
+	}
+	return strings.Join(lines, "\n")
 }
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -101,16 +120,17 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.viewFirstLine = m.posEnd.Line - (m.totalViewLines - 4)
 			}
 			m.env = msg.Env
+			m.positionString = fmt.Sprintf(":position %s \"%d:%d-%d:%d\"", m.posStart.Filename, m.posStart.Line, m.posStart.Column, m.posEnd.Line, m.posEnd.Column)
 			if msg.Err != nil {
-				m.inputString = ":input " + printer.Pr_str(msg.Input, true)
+				m.inputString = ":input " + summary(printer.Pr_str(msg.Input, true), 80, 3)
 				m.resultString = ""
-				m.errString = ":error " + msg.Err.Error()
+				m.errString = ":error " + summary(msg.Err.Error(), 80, 3)
 			} else if msg.Result != nil {
-				m.inputString = ":input " + printer.Pr_str(msg.Input, true)
-				m.resultString = ":result " + printer.Pr_str(msg.Result, true)
+				m.inputString = ":input " + summary(printer.Pr_str(msg.Input, true), 80, 3)
+				m.resultString = ":result " + summary(printer.Pr_str(msg.Result, true), 80, 3)
 				m.errString = ""
 			} else if msg.Input != nil {
-				m.inputString = ":input " + printer.Pr_str(msg.Input, true)
+				m.inputString = ":input " + summary(printer.Pr_str(msg.Input, true), 80, 3)
 				m.resultString = ""
 				m.errString = ""
 			} else {
@@ -235,7 +255,7 @@ func (m model) View() string {
 	sEnv := showEnv(m.env, auxWidth-20, 0)
 
 	sStdout := m.message
-	sResult := m.inputString + "\n" + m.resultString + "\n" + m.errString
+	sResult := m.positionString + "\n" + m.inputString + "\n" + m.resultString + "\n" + m.errString
 	return lipgloss.JoinVertical(lipgloss.Left,
 		lipgloss.JoinHorizontal(lipgloss.Top,
 			lipgloss.NewStyle().
@@ -335,7 +355,7 @@ func main() {
 			} {
 				if err := library.load(ns); err != nil {
 					// log.Fatalf("Library Load Error: %v\n", err)
-					p.Send(endMessage{Err: fmt.Errorf("Library load(%v) error: %v", filename, err)})
+					p.Send(endMessage{Err: fmt.Errorf("library load(%v) error: %v", filename, err)})
 					return
 				}
 			}

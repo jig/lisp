@@ -46,6 +46,7 @@ func (d *Instance) Wait(msg debug.DebugMessage) debug.DebugControl {
 					fileKeys = append(fileKeys, key)
 				}
 				panic("Using a file never loaded is impossible: " + setFilename + " available files: " + strings.Join(fileKeys, ", "))
+				// log.Printf("Using a file never loaded is impossible: " + setFilename + " available files: " + strings.Join(fileKeys, ", "))
 			}
 			d.sendMessage(debug.DebugMessage{
 				Filename: &setFilename,

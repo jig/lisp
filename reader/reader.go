@@ -49,29 +49,34 @@ func tokenize(sourceCode string, cursor *Position) ([]Token, error) {
 	if cursor.Module != nil {
 		s.Filename = *cursor.Module
 	}
+	lastPos := s.Pos()
+	var pos scanner.Position
 	for tok := s.Scan(); tok != scanner.EOF; tok = s.Scan() {
+		pos = s.Pos()
 		// fmt.Printf("%s: (%s) %s\n", s.Position, scanner.TokenString(tok), s.TokenText())
 		if s.ErrorCount != 0 {
 			return nil, lisperror.NewLispError(fmt.Errorf("invalid token %s", s.TokenText()), &Position{
 				Module:   cursor.Module,
-				BeginRow: s.Pos().Line,
-				BeginCol: s.Pos().Column - 1,
-				Row:      s.Pos().Line,
-				Col:      s.Pos().Column - 1,
+				BeginRow: lastPos.Line,
+				BeginCol: lastPos.Column,
+				Row:      pos.Line,
+				Col:      pos.Column,
 			})
 		}
+
 		tokenString := s.TokenText()
 		result = append(result, Token{
 			Value: tokenString,
 			Type:  tok,
 			Cursor: Position{
 				Module:   cursor.Module,
-				BeginRow: s.Pos().Line,
-				BeginCol: s.Pos().Column,
-				Row:      s.Pos().Line,
-				Col:      s.Pos().Column + s.Pos().Offset,
+				BeginRow: lastPos.Line,
+				BeginCol: lastPos.Column,
+				Row:      pos.Line,
+				Col:      pos.Column,
 			},
 		})
+		lastPos = pos
 	}
 	return result, nil
 }

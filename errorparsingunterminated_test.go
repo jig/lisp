@@ -21,7 +21,7 @@ func TestErrorParsingUnterminatedString(t *testing.T) {
 	if err == nil {
 		t.Fatalf("must throw error but returns %q", ast)
 	}
-	if err.Error() != `§1…1,6…6: invalid token "hello` {
+	if err.Error() != `§1…1,1…7: invalid token "hello` {
 		t.Fatal(err)
 	}
 }
@@ -31,7 +31,7 @@ func TestErrorParsingUnterminatedHexa(t *testing.T) {
 	if err == nil {
 		t.Fatalf("must throw error but returns %q", ast)
 	}
-	if err.Error() != `§1…1,2…2: invalid token 0x` {
+	if err.Error() != `§1…1,1…3: invalid token 0x` {
 		t.Fatal(err)
 	}
 }
