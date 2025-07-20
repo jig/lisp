@@ -333,12 +333,6 @@ func main() {
 
 	go func() {
 		for {
-			file, err := os.ReadFile(filename)
-			if err != nil {
-				fmt.Printf("Error reading file: %v\n", err)
-				os.Exit(3)
-			}
-
 			ns := env.NewEnv()
 
 			for _, library := range []struct {
@@ -360,7 +354,13 @@ func main() {
 				}
 			}
 
+			file, err := os.ReadFile(filename)
+			if err != nil {
+				fmt.Printf("Error reading file: %v\n", err)
+				os.Exit(3)
+			}
 			dbg.PushFile(filename, string(file))
+
 			result, err := lisp.REPL(context.Background(), ns, string(file), types.NewCursorHere(filename, 1, 1), dbg)
 			if err != nil {
 				p.Send(endMessage{Err: fmt.Errorf("Eval(%v) error: %v", filename, err)})

@@ -8,12 +8,12 @@ import (
 
 func Pos(v MalType) *Position {
 	if v == nil {
-		fmt.Println("Pos called with nil value")
+		// panic(fmt.Sprintf("Pos called with nil value"))
 		return nil
 	}
 
 	if _, ok := v.(*MalType); !ok {
-		fmt.Println("Pos called with non-MalType value:", v)
+		// panic(fmt.Sprintf("Pos called with non-MalType value: %T", v))
 		return nil
 	}
 
@@ -29,7 +29,7 @@ func Pos(v MalType) *Position {
 	case Set:
 		return value.Cursor
 	default:
-		fmt.Println("Pos called with unsupported type:", fmt.Sprintf("%T", value))
+		// panic(fmt.Sprintf("Pos called with unsupported type: %T", value))
 		return nil
 	}
 }

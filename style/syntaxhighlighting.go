@@ -139,5 +139,14 @@ func trimBlanks(text string) (string, string) {
 
 // in checks if the cursor is within the given range.
 func in(cursor, start, end scanner.Position) bool {
-	return cursor.Offset > start.Offset && cursor.Offset <= end.Offset
+	if cursor.Line < start.Line || cursor.Line > end.Line {
+		return false
+	}
+	if cursor.Line == start.Line && cursor.Column <= start.Column {
+		return false
+	}
+	if cursor.Line == end.Line && cursor.Column > end.Column {
+		return false
+	}
+	return true
 }

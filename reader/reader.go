@@ -53,7 +53,6 @@ func tokenize(sourceCode string, cursor *Position) ([]Token, error) {
 	var pos scanner.Position
 	for tok := s.Scan(); tok != scanner.EOF; tok = s.Scan() {
 		pos = s.Pos()
-		// fmt.Printf("%s: (%s) %s\n", s.Position, scanner.TokenString(tok), s.TokenText())
 		if s.ErrorCount != 0 {
 			return nil, lisperror.NewLispError(fmt.Errorf("invalid token %s", s.TokenText()), &Position{
 				Module:   cursor.Module,
