@@ -291,16 +291,22 @@ func (m model) View() string {
 	)
 }
 
-func showEnv(env types.EnvType, width, level int) string {
-	if env == nil {
+func showEnv(e types.EnvType, width, level int) string {
+	if e == nil {
+		return ""
+	}
+	if _, ok := e.(*env.Env); !ok {
+		return ""
+	}
+	// TODO(jig): to be reviewed, this is needed probably due to a bad implementation above
+	if e.(*env.Env) == nil {
 		return ""
 	}
 	sEnv := fmt.Sprintf("%d\n", level)
 	var newLine [][]rune
-	newLine = env.Symbols(newLine, "")
-	// sort.Strings(symbols)
+	newLine = e.SymbolsOnThisLevel(newLine, "")
 	for _, k := range newLine {
-		v, err := env.Get(types.Symbol{Val: string(k)})
+		v, err := e.Get(types.Symbol{Val: string(k)})
 		if err != nil {
 			sEnv += fmt.Sprintf(" %s: %s", string(k), err)
 		} else {
@@ -308,8 +314,10 @@ func showEnv(env types.EnvType, width, level int) string {
 		}
 		sEnv += "\n"
 	}
-	// return sEnv + showEnv(env.Outer(), width, level+1)
-	// return "unimplemented env view"
+	outer := e.Outer()
+	if outer != nil {
+		return sEnv + showEnv(outer, width, level+1)
+	}
 	return sEnv
 }
 
@@ -352,6 +360,7 @@ func main() {
 					p.Send(endMessage{Err: fmt.Errorf("library load(%v) error: %v", filename, err)})
 					return
 				}
+				ns = env.NewSubordinateEnv(ns)
 			}
 
 			file, err := os.ReadFile(filename)

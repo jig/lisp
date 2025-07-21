@@ -12,8 +12,8 @@ import (
 )
 
 type Env struct {
-	mu    *sync.RWMutex
-	data  map[string]interface{}
+	mu    sync.RWMutex
+	data  map[string]any
 	outer *Env
 }
 
@@ -31,8 +31,7 @@ func NewSubordinateEnvWithBinds(outer types.EnvType, binds_mt types.MalType, exp
 
 func _newEnv() *Env {
 	return &Env{
-		data: map[string]interface{}{},
-		mu:   &sync.RWMutex{},
+		data: map[string]any{},
 	}
 }
 
@@ -120,6 +119,22 @@ func (e *Env) Update(key types.Symbol, f func(types.MalType) (types.MalType, err
 }
 
 func (e *Env) Symbols(newLine [][]rune, lastPartial string) [][]rune {
+	newLine = e.SymbolsOnThisLevel(newLine, lastPartial)
+
+	if e.outer != nil {
+		return e.outer.Symbols(newLine, lastPartial)
+	}
+	return newLine
+}
+
+func (e *Env) Outer() types.EnvType {
+	e.mu.RLock()
+	defer e.mu.RUnlock()
+
+	return e.outer
+}
+
+func (e *Env) SymbolsOnThisLevel(newLine [][]rune, lastPartial string) [][]rune {
 	e.mu.RLock()
 	defer e.mu.RUnlock()
 
@@ -135,10 +150,6 @@ func (e *Env) Symbols(newLine [][]rune, lastPartial string) [][]rune {
 	// append localNewLine to newLine
 	for _, s := range localNewLine {
 		newLine = append(newLine, []rune(s))
-	}
-
-	if e.outer != nil {
-		return e.outer.Symbols(newLine, lastPartial)
 	}
 	return newLine
 }

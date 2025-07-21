@@ -30,6 +30,8 @@ type EnvType interface {
 	RemoveNT(key Symbol) error
 	Update(key Symbol, f func(MalType) (MalType, error)) (MalType, error)
 	Symbols(newLine [][]rune, lastPartial string) [][]rune
+	SymbolsOnThisLevel(newLine [][]rune, lastPartial string) [][]rune
+	Outer() EnvType
 
 	FindNT(key Symbol) EnvType
 	SetNT(key Symbol, value MalType) MalType
