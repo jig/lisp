@@ -30,7 +30,8 @@
             ],
             "metadata": {
                 "category": "arithmetic",
-                "complexity": "O(1)"
+                "complexity": "O(1)",
+                "symbol-type": "function-pure"
             }
         },
         "-": {
@@ -60,7 +61,8 @@
             ],
             "metadata": {
                 "category": "arithmetic",
-                "complexity": "O(1)"
+                "complexity": "O(1)",
+                "symbol-type": "function-pure"
             }
         },
         "*": {
@@ -90,7 +92,8 @@
             ],
             "metadata": {
                 "category": "arithmetic",
-                "complexity": "O(1)"
+                "complexity": "O(1)",
+                "symbol-type": "function-pure"
             }
         },
         "/": {
@@ -122,7 +125,8 @@
             ],
             "metadata": {
                 "category": "arithmetic",
-                "complexity": "O(1)"
+                "complexity": "O(1)",
+                "symbol-type": "function-pure"
             }
         },
         "<": {
@@ -156,7 +160,8 @@
             ],
             "metadata": {
                 "category": "comparison",
-                "complexity": "O(1)"
+                "complexity": "O(1)",
+                "symbol-type": "function-pure"
             }
         },
         "<=": {
@@ -190,7 +195,8 @@
             ],
             "metadata": {
                 "category": "comparison",
-                "complexity": "O(1)"
+                "complexity": "O(1)",
+                "symbol-type": "function-pure"
             }
         },
         ">": {
@@ -224,7 +230,8 @@
             ],
             "metadata": {
                 "category": "comparison",
-                "complexity": "O(1)"
+                "complexity": "O(1)",
+                "symbol-type": "function-pure"
             }
         },
         ">=": {
@@ -258,7 +265,8 @@
             ],
             "metadata": {
                 "category": "comparison",
-                "complexity": "O(1)"
+                "complexity": "O(1)",
+                "symbol-type": "function-pure"
             }
         },
         "=": {
@@ -296,7 +304,8 @@
             ],
             "metadata": {
                 "category": "comparison",
-                "complexity": "O(1)"
+                "complexity": "O(1)",
+                "symbol-type": "function-pure"
             }
         },
         "not=": {
@@ -330,7 +339,8 @@
             ],
             "metadata": {
                 "category": "comparison",
-                "complexity": "O(1)"
+                "complexity": "O(1)",
+                "symbol-type": "function-pure"
             }
         },
         "nil?": {
@@ -359,7 +369,8 @@
             ],
             "metadata": {
                 "category": "predicate",
-                "complexity": "O(1)"
+                "complexity": "O(1)",
+                "symbol-type": "function-pure"
             }
         },
         "true?": {
@@ -388,7 +399,8 @@
             ],
             "metadata": {
                 "category": "predicate",
-                "complexity": "O(1)"
+                "complexity": "O(1)",
+                "symbol-type": "function-pure"
             }
         },
         "false?": {
@@ -417,7 +429,8 @@
             ],
             "metadata": {
                 "category": "predicate",
-                "complexity": "O(1)"
+                "complexity": "O(1)",
+                "symbol-type": "function-pure"
             }
         },
         "empty?": {
@@ -450,7 +463,8 @@
             ],
             "metadata": {
                 "category": "predicate",
-                "complexity": "O(1)"
+                "complexity": "O(1)",
+                "symbol-type": "function-pure"
             }
         },
         "symbol?": {
@@ -479,7 +493,8 @@
             ],
             "metadata": {
                 "category": "predicate",
-                "complexity": "O(1)"
+                "complexity": "O(1)",
+                "symbol-type": "function-pure"
             }
         },
         "keyword?": {
@@ -508,7 +523,8 @@
             ],
             "metadata": {
                 "category": "predicate",
-                "complexity": "O(1)"
+                "complexity": "O(1)",
+                "symbol-type": "function-pure"
             }
         },
         "string?": {
@@ -537,7 +553,8 @@
             ],
             "metadata": {
                 "category": "predicate",
-                "complexity": "O(1)"
+                "complexity": "O(1)",
+                "symbol-type": "function-pure"
             }
         },
         "number?": {
@@ -566,7 +583,8 @@
             ],
             "metadata": {
                 "category": "predicate",
-                "complexity": "O(1)"
+                "complexity": "O(1)",
+                "symbol-type": "function-pure"
             }
         },
         "fn?": {
@@ -595,7 +613,8 @@
             ],
             "metadata": {
                 "category": "predicate",
-                "complexity": "O(1)"
+                "complexity": "O(1)",
+                "symbol-type": "function-pure"
             }
         },
         "macro?": {
@@ -624,7 +643,8 @@
             ],
             "metadata": {
                 "category": "predicate",
-                "complexity": "O(1)"
+                "complexity": "O(1)",
+                "symbol-type": "function-pure"
             }
         },
         "list?": {
@@ -653,7 +673,8 @@
             ],
             "metadata": {
                 "category": "predicate",
-                "complexity": "O(1)"
+                "complexity": "O(1)",
+                "symbol-type": "function-pure"
             }
         },
         "vector?": {
@@ -682,7 +703,8 @@
             ],
             "metadata": {
                 "category": "predicate",
-                "complexity": "O(1)"
+                "complexity": "O(1)",
+                "symbol-type": "function-pure"
             }
         },
         "map?": {
@@ -711,7 +733,8 @@
             ],
             "metadata": {
                 "category": "predicate",
-                "complexity": "O(1)"
+                "complexity": "O(1)",
+                "symbol-type": "function-pure"
             }
         },
         "set?": {
@@ -740,7 +763,8 @@
             ],
             "metadata": {
                 "category": "predicate",
-                "complexity": "O(1)"
+                "complexity": "O(1)",
+                "symbol-type": "function-pure"
             }
         },
         "sequential?": {
@@ -773,7 +797,8 @@
             ],
             "metadata": {
                 "category": "predicate",
-                "complexity": "O(1)"
+                "complexity": "O(1)",
+                "symbol-type": "function-pure"
             }
         },
         "symbol": {
@@ -798,7 +823,8 @@
             ],
             "metadata": {
                 "category": "constructor",
-                "complexity": "O(1)"
+                "complexity": "O(1)",
+                "symbol-type": "function-pure"
             }
         },
         "keyword": {
@@ -823,7 +849,8 @@
             ],
             "metadata": {
                 "category": "constructor",
-                "complexity": "O(1)"
+                "complexity": "O(1)",
+                "symbol-type": "function-pure"
             }
         },
         "list": {
@@ -853,7 +880,8 @@
             ],
             "metadata": {
                 "category": "constructor",
-                "complexity": "O(n)"
+                "complexity": "O(n)",
+                "symbol-type": "function-pure"
             }
         },
         "vector": {
@@ -883,7 +911,8 @@
             ],
             "metadata": {
                 "category": "constructor",
-                "complexity": "O(n)"
+                "complexity": "O(n)",
+                "symbol-type": "function-pure"
             }
         },
         "hash-map": {
@@ -915,7 +944,8 @@
             ],
             "metadata": {
                 "category": "constructor",
-                "complexity": "O(n)"
+                "complexity": "O(n)",
+                "symbol-type": "function-pure"
             }
         },
         "hash-set": {
@@ -945,7 +975,8 @@
             ],
             "metadata": {
                 "category": "constructor",
-                "complexity": "O(n)"
+                "complexity": "O(n)",
+                "symbol-type": "function-pure"
             }
         },
         "set": {
@@ -974,7 +1005,8 @@
             ],
             "metadata": {
                 "category": "constructor",
-                "complexity": "O(n)"
+                "complexity": "O(n)",
+                "symbol-type": "function-pure"
             }
         },
         "get": {
@@ -1012,7 +1044,8 @@
             ],
             "metadata": {
                 "category": "collection",
-                "complexity": "O(1)"
+                "complexity": "O(1)",
+                "symbol-type": "function-pure"
             }
         },
         "get-in": {
@@ -1046,7 +1079,8 @@
             ],
             "metadata": {
                 "category": "collection",
-                "complexity": "O(d)"
+                "complexity": "O(d)",
+                "symbol-type": "function-pure"
             }
         },
         "contains?": {
@@ -1084,7 +1118,8 @@
             ],
             "metadata": {
                 "category": "collection",
-                "complexity": "O(1)"
+                "complexity": "O(1)",
+                "symbol-type": "function-pure"
             }
         },
         "keys": {
@@ -1113,7 +1148,8 @@
             ],
             "metadata": {
                 "category": "collection",
-                "complexity": "O(n)"
+                "complexity": "O(n)",
+                "symbol-type": "function-pure"
             }
         },
         "vals": {
@@ -1142,7 +1178,8 @@
             ],
             "metadata": {
                 "category": "collection",
-                "complexity": "O(n)"
+                "complexity": "O(n)",
+                "symbol-type": "function-pure"
             }
         },
         "assoc": {
@@ -1179,7 +1216,8 @@
             ],
             "metadata": {
                 "category": "collection",
-                "complexity": "O(1)"
+                "complexity": "O(1)",
+                "symbol-type": "function-pure"
             }
         },
         "dissoc": {
@@ -1214,7 +1252,8 @@
             ],
             "metadata": {
                 "category": "collection",
-                "complexity": "O(k)"
+                "complexity": "O(k)",
+                "symbol-type": "function-pure"
             }
         },
         "cons": {
@@ -1250,7 +1289,8 @@
             ],
             "metadata": {
                 "category": "sequence",
-                "complexity": "O(n)"
+                "complexity": "O(n)",
+                "symbol-type": "function-pure"
             }
         },
         "concat": {
@@ -1282,7 +1322,8 @@
             ],
             "metadata": {
                 "category": "sequence",
-                "complexity": "O(n)"
+                "complexity": "O(n)",
+                "symbol-type": "function-pure"
             }
         },
         "nth": {
@@ -1319,7 +1360,8 @@
             ],
             "metadata": {
                 "category": "sequence",
-                "complexity": "O(1)"
+                "complexity": "O(1)",
+                "symbol-type": "function-pure"
             }
         },
         "first": {
@@ -1354,7 +1396,8 @@
             ],
             "metadata": {
                 "category": "sequence",
-                "complexity": "O(1)"
+                "complexity": "O(1)",
+                "symbol-type": "function-pure"
             }
         },
         "rest": {
@@ -1389,7 +1432,8 @@
             ],
             "metadata": {
                 "category": "sequence",
-                "complexity": "O(n)"
+                "complexity": "O(n)",
+                "symbol-type": "function-pure"
             }
         },
         "count": {
@@ -1424,7 +1468,8 @@
             ],
             "metadata": {
                 "category": "sequence",
-                "complexity": "O(1)"
+                "complexity": "O(1)",
+                "symbol-type": "function-pure"
             }
         },
         "vec": {
@@ -1455,7 +1500,8 @@
             ],
             "metadata": {
                 "category": "sequence",
-                "complexity": "O(n)"
+                "complexity": "O(n)",
+                "symbol-type": "function-pure"
             }
         },
         "seq": {
@@ -1490,7 +1536,8 @@
             ],
             "metadata": {
                 "category": "sequence",
-                "complexity": "O(n)"
+                "complexity": "O(n)",
+                "symbol-type": "function-pure"
             }
         },
         "conj": {
@@ -1533,7 +1580,8 @@
             ],
             "metadata": {
                 "category": "sequence",
-                "complexity": "O(k)"
+                "complexity": "O(k)",
+                "symbol-type": "function-pure"
             }
         },
         "pr-str": {
@@ -1563,7 +1611,8 @@
             ],
             "metadata": {
                 "category": "string",
-                "complexity": "O(n)"
+                "complexity": "O(n)",
+                "symbol-type": "function-pure"
             }
         },
         "str": {
@@ -1593,7 +1642,8 @@
             ],
             "metadata": {
                 "category": "string",
-                "complexity": "O(n)"
+                "complexity": "O(n)",
+                "symbol-type": "function-pure"
             }
         },
         "prn": {
@@ -1620,7 +1670,8 @@
             ],
             "metadata": {
                 "category": "string",
-                "complexity": "O(n)"
+                "complexity": "O(n)",
+                "symbol-type": "function-impure"
             }
         },
         "println": {
@@ -1647,7 +1698,8 @@
             ],
             "metadata": {
                 "category": "string",
-                "complexity": "O(n)"
+                "complexity": "O(n)",
+                "symbol-type": "function-impure"
             }
         },
         "read-string": {
@@ -1678,7 +1730,8 @@
             ],
             "metadata": {
                 "category": "string",
-                "complexity": "O(n)"
+                "complexity": "O(n)",
+                "symbol-type": "function-pure"
             }
         },
         "apply": {
@@ -1722,7 +1775,8 @@
             ],
             "metadata": {
                 "category": "higher-order",
-                "complexity": "O(f(n))"
+                "complexity": "O(f(n))",
+                "symbol-type": "function-pure"
             }
         },
         "map": {
@@ -1759,7 +1813,8 @@
             ],
             "metadata": {
                 "category": "higher-order",
-                "complexity": "O(n*f(x))"
+                "complexity": "O(n*f(x))",
+                "symbol-type": "function-pure"
             }
         },
         "with-meta": {
@@ -1795,7 +1850,8 @@
             ],
             "metadata": {
                 "category": "meta",
-                "complexity": "O(1)"
+                "complexity": "O(1)",
+                "symbol-type": "function-pure"
             }
         },
         "meta": {
@@ -1826,7 +1882,8 @@
             ],
             "metadata": {
                 "category": "meta",
-                "complexity": "O(1)"
+                "complexity": "O(1)",
+                "symbol-type": "function-pure"
             }
         },
         "take": {
@@ -1866,7 +1923,8 @@
             ],
             "metadata": {
                 "category": "sequence",
-                "complexity": "O(n)"
+                "complexity": "O(n)",
+                "symbol-type": "function-pure"
             }
         },
         "take-last": {
@@ -1902,7 +1960,8 @@
             ],
             "metadata": {
                 "category": "sequence",
-                "complexity": "O(n)"
+                "complexity": "O(n)",
+                "symbol-type": "function-pure"
             }
         },
         "drop": {
@@ -1938,7 +1997,8 @@
             ],
             "metadata": {
                 "category": "sequence",
-                "complexity": "O(n)"
+                "complexity": "O(n)",
+                "symbol-type": "function-pure"
             }
         },
         "drop-last": {
@@ -1974,7 +2034,8 @@
             ],
             "metadata": {
                 "category": "sequence",
-                "complexity": "O(n)"
+                "complexity": "O(n)",
+                "symbol-type": "function-pure"
             }
         },
         "subvec": {
@@ -2017,7 +2078,8 @@
             ],
             "metadata": {
                 "category": "sequence",
-                "complexity": "O(n)"
+                "complexity": "O(n)",
+                "symbol-type": "function-pure"
             }
         },
         "split": {
@@ -2051,7 +2113,8 @@
             ],
             "metadata": {
                 "category": "string",
-                "complexity": "O(n)"
+                "complexity": "O(n)",
+                "symbol-type": "function-pure"
             }
         },
         "throw": {
@@ -2078,7 +2141,8 @@
             ],
             "metadata": {
                 "category": "error",
-                "complexity": "O(1)"
+                "complexity": "O(1)",
+                "symbol-type": "function-pure"
             }
         },
         "type?": {
@@ -2111,7 +2175,8 @@
             ],
             "metadata": {
                 "category": "predicate",
-                "complexity": "O(1)"
+                "complexity": "O(1)",
+                "symbol-type": "function-pure"
             }
         },
         "time-ms": {
@@ -2130,7 +2195,8 @@
             ],
             "metadata": {
                 "category": "utility",
-                "complexity": "O(1)"
+                "complexity": "O(1)",
+                "symbol-type": "function-impure"
             }
         },
         "time-ns": {
@@ -2149,7 +2215,8 @@
             ],
             "metadata": {
                 "category": "utility",
-                "complexity": "O(1)"
+                "complexity": "O(1)",
+                "symbol-type": "function-impure"
             }
         },
         "uuid": {
@@ -2168,7 +2235,8 @@
             ],
             "metadata": {
                 "category": "utility",
-                "complexity": "O(1)"
+                "complexity": "O(1)",
+                "symbol-type": "function-impure"
             }
         },
         "assert": {
@@ -2210,7 +2278,8 @@
             ],
             "metadata": {
                 "category": "error",
-                "complexity": "O(1)"
+                "complexity": "O(1)",
+                "symbol-type": "function-pure"
             }
         }
     }
