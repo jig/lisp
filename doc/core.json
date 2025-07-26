@@ -1,0 +1,34 @@
+{
+    "name": "core",
+    "description": "Core functionalities for the application",
+    "version": "1.0.0",
+    "symbols": {
+        "+": {
+            "description": "Addition operation",
+            "arguments": [
+                {
+                    "name": "a",
+                    "type": "integer",
+                    "description": "First integer to add"
+                },
+                {
+                    "name": "b",
+                    "type": "integer",
+                    "description": "Second integer to add"
+                }
+            ],
+            "returns": {
+                "type": "integer",
+                "description": "The sum of the two integers"
+            },
+            "errors": [],
+            "examples": [
+                {
+                    "input": "(+ 2 3)",
+                    "output": "5"
+                }
+            ]
+        }
+    }
+}
+
