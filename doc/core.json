@@ -1,11 +1,11 @@
 {
     "name": "core",
     "description": "Core functionalities for the application",
-    "version": "1.0.0",
+    "version": "0.2.17",
     "symbols": {
         "+": {
             "description": "Addition operation",
-            "arguments": [
+            "args": [
                 {
                     "name": "a",
                     "type": "integer",
@@ -27,7 +27,2200 @@
                     "input": "(+ 2 3)",
                     "output": "5"
                 }
-            ]
+            ],
+            "metadata": {
+                "category": "arithmetic",
+                "complexity": "O(1)"
+            }
+        },
+        "-": {
+            "description": "Subtraction operation",
+            "args": [
+                {
+                    "name": "a",
+                    "type": "integer",
+                    "description": "Integer to subtract from"
+                },
+                {
+                    "name": "b",
+                    "type": "integer",
+                    "description": "Integer to subtract"
+                }
+            ],
+            "returns": {
+                "type": "integer",
+                "description": "The difference between the two integers"
+            },
+            "errors": [],
+            "examples": [
+                {
+                    "input": "(- 5 3)",
+                    "output": "2"
+                }
+            ],
+            "metadata": {
+                "category": "arithmetic",
+                "complexity": "O(1)"
+            }
+        },
+        "*": {
+            "description": "Multiplication operation",
+            "args": [
+                {
+                    "name": "a",
+                    "type": "integer",
+                    "description": "First integer to multiply"
+                },
+                {
+                    "name": "b",
+                    "type": "integer",
+                    "description": "Second integer to multiply"
+                }
+            ],
+            "returns": {
+                "type": "integer",
+                "description": "The product of the two integers"
+            },
+            "errors": [],
+            "examples": [
+                {
+                    "input": "(* 4 3)",
+                    "output": "12"
+                }
+            ],
+            "metadata": {
+                "category": "arithmetic",
+                "complexity": "O(1)"
+            }
+        },
+        "/": {
+            "description": "Division operation",
+            "args": [
+                {
+                    "name": "a",
+                    "type": "integer",
+                    "description": "Dividend (number to be divided)"
+                },
+                {
+                    "name": "b",
+                    "type": "integer",
+                    "description": "Divisor (number to divide by)"
+                }
+            ],
+            "returns": {
+                "type": "integer",
+                "description": "The quotient of the division"
+            },
+            "errors": [
+                {
+                    "type": "division_by_zero",
+                    "description": "Error when dividing by zero"
+                }
+            ],
+            "examples": [
+                {
+                    "input": "(/ 8 2)",
+                    "output": "4"
+                }
+            ],
+            "metadata": {
+                "category": "arithmetic",
+                "complexity": "O(1)"
+            }
+        },
+        "<": {
+            "description": "Less than comparison",
+            "args": [
+                {
+                    "name": "a",
+                    "type": "integer",
+                    "description": "First integer to compare"
+                },
+                {
+                    "name": "b",
+                    "type": "integer",
+                    "description": "Second integer to compare"
+                }
+            ],
+            "returns": {
+                "type": "boolean",
+                "description": "True if a is less than b, false otherwise"
+            },
+            "errors": [],
+            "examples": [
+                {
+                    "input": "(< 2 5)",
+                    "output": "true"
+                },
+                {
+                    "input": "(< 5 2)",
+                    "output": "false"
+                }
+            ],
+            "metadata": {
+                "category": "comparison",
+                "complexity": "O(1)"
+            }
+        },
+        "<=": {
+            "description": "Less than or equal comparison",
+            "args": [
+                {
+                    "name": "a",
+                    "type": "integer",
+                    "description": "First integer to compare"
+                },
+                {
+                    "name": "b",
+                    "type": "integer",
+                    "description": "Second integer to compare"
+                }
+            ],
+            "returns": {
+                "type": "boolean",
+                "description": "True if a is less than or equal to b, false otherwise"
+            },
+            "errors": [],
+            "examples": [
+                {
+                    "input": "(<= 2 5)",
+                    "output": "true"
+                },
+                {
+                    "input": "(<= 5 5)",
+                    "output": "true"
+                }
+            ],
+            "metadata": {
+                "category": "comparison",
+                "complexity": "O(1)"
+            }
+        },
+        ">": {
+            "description": "Greater than comparison",
+            "args": [
+                {
+                    "name": "a",
+                    "type": "integer",
+                    "description": "First integer to compare"
+                },
+                {
+                    "name": "b",
+                    "type": "integer",
+                    "description": "Second integer to compare"
+                }
+            ],
+            "returns": {
+                "type": "boolean",
+                "description": "True if a is greater than b, false otherwise"
+            },
+            "errors": [],
+            "examples": [
+                {
+                    "input": "(> 5 2)",
+                    "output": "true"
+                },
+                {
+                    "input": "(> 2 5)",
+                    "output": "false"
+                }
+            ],
+            "metadata": {
+                "category": "comparison",
+                "complexity": "O(1)"
+            }
+        },
+        ">=": {
+            "description": "Greater than or equal comparison",
+            "args": [
+                {
+                    "name": "a",
+                    "type": "integer",
+                    "description": "First integer to compare"
+                },
+                {
+                    "name": "b",
+                    "type": "integer",
+                    "description": "Second integer to compare"
+                }
+            ],
+            "returns": {
+                "type": "boolean",
+                "description": "True if a is greater than or equal to b, false otherwise"
+            },
+            "errors": [],
+            "examples": [
+                {
+                    "input": "(>= 5 2)",
+                    "output": "true"
+                },
+                {
+                    "input": "(>= 5 5)",
+                    "output": "true"
+                }
+            ],
+            "metadata": {
+                "category": "comparison",
+                "complexity": "O(1)"
+            }
+        },
+        "=": {
+            "description": "Equality comparison",
+            "args": [
+                {
+                    "name": "a",
+                    "type": "any",
+                    "description": "First value to compare"
+                },
+                {
+                    "name": "b",
+                    "type": "any",
+                    "description": "Second value to compare"
+                }
+            ],
+            "returns": {
+                "type": "boolean",
+                "description": "True if both values are equal, false otherwise"
+            },
+            "errors": [],
+            "examples": [
+                {
+                    "input": "(= 5 5)",
+                    "output": "true"
+                },
+                {
+                    "input": "(= \"hello\" \"hello\")",
+                    "output": "true"
+                },
+                {
+                    "input": "(= 1 2)",
+                    "output": "false"
+                }
+            ],
+            "metadata": {
+                "category": "comparison",
+                "complexity": "O(1)"
+            }
+        },
+        "not=": {
+            "description": "Inequality comparison",
+            "args": [
+                {
+                    "name": "a",
+                    "type": "any",
+                    "description": "First value to compare"
+                },
+                {
+                    "name": "b",
+                    "type": "any",
+                    "description": "Second value to compare"
+                }
+            ],
+            "returns": {
+                "type": "boolean",
+                "description": "True if values are not equal, false otherwise"
+            },
+            "errors": [],
+            "examples": [
+                {
+                    "input": "(not= 1 2)",
+                    "output": "true"
+                },
+                {
+                    "input": "(not= 5 5)",
+                    "output": "false"
+                }
+            ],
+            "metadata": {
+                "category": "comparison",
+                "complexity": "O(1)"
+            }
+        },
+        "nil?": {
+            "description": "Check if value is nil",
+            "args": [
+                {
+                    "name": "value",
+                    "type": "any",
+                    "description": "Value to check"
+                }
+            ],
+            "returns": {
+                "type": "boolean",
+                "description": "True if value is nil, false otherwise"
+            },
+            "errors": [],
+            "examples": [
+                {
+                    "input": "(nil? nil)",
+                    "output": "true"
+                },
+                {
+                    "input": "(nil? 42)",
+                    "output": "false"
+                }
+            ],
+            "metadata": {
+                "category": "predicate",
+                "complexity": "O(1)"
+            }
+        },
+        "true?": {
+            "description": "Check if value is true",
+            "args": [
+                {
+                    "name": "value",
+                    "type": "any",
+                    "description": "Value to check"
+                }
+            ],
+            "returns": {
+                "type": "boolean",
+                "description": "True if value is true, false otherwise"
+            },
+            "errors": [],
+            "examples": [
+                {
+                    "input": "(true? true)",
+                    "output": "true"
+                },
+                {
+                    "input": "(true? false)",
+                    "output": "false"
+                }
+            ],
+            "metadata": {
+                "category": "predicate",
+                "complexity": "O(1)"
+            }
+        },
+        "false?": {
+            "description": "Check if value is false",
+            "args": [
+                {
+                    "name": "value",
+                    "type": "any",
+                    "description": "Value to check"
+                }
+            ],
+            "returns": {
+                "type": "boolean",
+                "description": "True if value is false, false otherwise"
+            },
+            "errors": [],
+            "examples": [
+                {
+                    "input": "(false? false)",
+                    "output": "true"
+                },
+                {
+                    "input": "(false? true)",
+                    "output": "false"
+                }
+            ],
+            "metadata": {
+                "category": "predicate",
+                "complexity": "O(1)"
+            }
+        },
+        "empty?": {
+            "description": "Check if collection is empty",
+            "args": [
+                {
+                    "name": "collection",
+                    "type": "collection",
+                    "description": "Collection to check (list, vector, map, set, or nil)"
+                }
+            ],
+            "returns": {
+                "type": "boolean",
+                "description": "True if collection is empty or nil, false otherwise"
+            },
+            "errors": [],
+            "examples": [
+                {
+                    "input": "(empty? [])",
+                    "output": "true"
+                },
+                {
+                    "input": "(empty? [1 2 3])",
+                    "output": "false"
+                },
+                {
+                    "input": "(empty? nil)",
+                    "output": "true"
+                }
+            ],
+            "metadata": {
+                "category": "predicate",
+                "complexity": "O(1)"
+            }
+        },
+        "symbol?": {
+            "description": "Check if value is a symbol",
+            "args": [
+                {
+                    "name": "value",
+                    "type": "any",
+                    "description": "Value to check"
+                }
+            ],
+            "returns": {
+                "type": "boolean",
+                "description": "True if value is a symbol, false otherwise"
+            },
+            "errors": [],
+            "examples": [
+                {
+                    "input": "(symbol? 'x)",
+                    "output": "true"
+                },
+                {
+                    "input": "(symbol? \"x\")",
+                    "output": "false"
+                }
+            ],
+            "metadata": {
+                "category": "predicate",
+                "complexity": "O(1)"
+            }
+        },
+        "keyword?": {
+            "description": "Check if value is a keyword",
+            "args": [
+                {
+                    "name": "value",
+                    "type": "any",
+                    "description": "Value to check"
+                }
+            ],
+            "returns": {
+                "type": "boolean",
+                "description": "True if value is a keyword, false otherwise"
+            },
+            "errors": [],
+            "examples": [
+                {
+                    "input": "(keyword? :hello)",
+                    "output": "true"
+                },
+                {
+                    "input": "(keyword? \"hello\")",
+                    "output": "false"
+                }
+            ],
+            "metadata": {
+                "category": "predicate",
+                "complexity": "O(1)"
+            }
+        },
+        "string?": {
+            "description": "Check if value is a string",
+            "args": [
+                {
+                    "name": "value",
+                    "type": "any",
+                    "description": "Value to check"
+                }
+            ],
+            "returns": {
+                "type": "boolean",
+                "description": "True if value is a string, false otherwise"
+            },
+            "errors": [],
+            "examples": [
+                {
+                    "input": "(string? \"hello\")",
+                    "output": "true"
+                },
+                {
+                    "input": "(string? 42)",
+                    "output": "false"
+                }
+            ],
+            "metadata": {
+                "category": "predicate",
+                "complexity": "O(1)"
+            }
+        },
+        "number?": {
+            "description": "Check if value is a number",
+            "args": [
+                {
+                    "name": "value",
+                    "type": "any",
+                    "description": "Value to check"
+                }
+            ],
+            "returns": {
+                "type": "boolean",
+                "description": "True if value is a number, false otherwise"
+            },
+            "errors": [],
+            "examples": [
+                {
+                    "input": "(number? 42)",
+                    "output": "true"
+                },
+                {
+                    "input": "(number? \"42\")",
+                    "output": "false"
+                }
+            ],
+            "metadata": {
+                "category": "predicate",
+                "complexity": "O(1)"
+            }
+        },
+        "fn?": {
+            "description": "Check if value is a function",
+            "args": [
+                {
+                    "name": "value",
+                    "type": "any",
+                    "description": "Value to check"
+                }
+            ],
+            "returns": {
+                "type": "boolean",
+                "description": "True if value is a function (not a macro), false otherwise"
+            },
+            "errors": [],
+            "examples": [
+                {
+                    "input": "(fn? +)",
+                    "output": "true"
+                },
+                {
+                    "input": "(fn? 42)",
+                    "output": "false"
+                }
+            ],
+            "metadata": {
+                "category": "predicate",
+                "complexity": "O(1)"
+            }
+        },
+        "macro?": {
+            "description": "Check if value is a macro",
+            "args": [
+                {
+                    "name": "value",
+                    "type": "any",
+                    "description": "Value to check"
+                }
+            ],
+            "returns": {
+                "type": "boolean",
+                "description": "True if value is a macro, false otherwise"
+            },
+            "errors": [],
+            "examples": [
+                {
+                    "input": "(macro? some-macro)",
+                    "output": "true"
+                },
+                {
+                    "input": "(macro? +)",
+                    "output": "false"
+                }
+            ],
+            "metadata": {
+                "category": "predicate",
+                "complexity": "O(1)"
+            }
+        },
+        "list?": {
+            "description": "Check if value is a list",
+            "args": [
+                {
+                    "name": "value",
+                    "type": "any",
+                    "description": "Value to check"
+                }
+            ],
+            "returns": {
+                "type": "boolean",
+                "description": "True if value is a list, false otherwise"
+            },
+            "errors": [],
+            "examples": [
+                {
+                    "input": "(list? '(1 2 3))",
+                    "output": "true"
+                },
+                {
+                    "input": "(list? [1 2 3])",
+                    "output": "false"
+                }
+            ],
+            "metadata": {
+                "category": "predicate",
+                "complexity": "O(1)"
+            }
+        },
+        "vector?": {
+            "description": "Check if value is a vector",
+            "args": [
+                {
+                    "name": "value",
+                    "type": "any",
+                    "description": "Value to check"
+                }
+            ],
+            "returns": {
+                "type": "boolean",
+                "description": "True if value is a vector, false otherwise"
+            },
+            "errors": [],
+            "examples": [
+                {
+                    "input": "(vector? [1 2 3])",
+                    "output": "true"
+                },
+                {
+                    "input": "(vector? '(1 2 3))",
+                    "output": "false"
+                }
+            ],
+            "metadata": {
+                "category": "predicate",
+                "complexity": "O(1)"
+            }
+        },
+        "map?": {
+            "description": "Check if value is a hash map",
+            "args": [
+                {
+                    "name": "value",
+                    "type": "any",
+                    "description": "Value to check"
+                }
+            ],
+            "returns": {
+                "type": "boolean",
+                "description": "True if value is a hash map, false otherwise"
+            },
+            "errors": [],
+            "examples": [
+                {
+                    "input": "(map? {:a 1})",
+                    "output": "true"
+                },
+                {
+                    "input": "(map? [1 2 3])",
+                    "output": "false"
+                }
+            ],
+            "metadata": {
+                "category": "predicate",
+                "complexity": "O(1)"
+            }
+        },
+        "set?": {
+            "description": "Check if value is a set",
+            "args": [
+                {
+                    "name": "value",
+                    "type": "any",
+                    "description": "Value to check"
+                }
+            ],
+            "returns": {
+                "type": "boolean",
+                "description": "True if value is a set, false otherwise"
+            },
+            "errors": [],
+            "examples": [
+                {
+                    "input": "(set? #{1 2 3})",
+                    "output": "true"
+                },
+                {
+                    "input": "(set? [1 2 3])",
+                    "output": "false"
+                }
+            ],
+            "metadata": {
+                "category": "predicate",
+                "complexity": "O(1)"
+            }
+        },
+        "sequential?": {
+            "description": "Check if value is sequential (list or vector)",
+            "args": [
+                {
+                    "name": "value",
+                    "type": "any",
+                    "description": "Value to check"
+                }
+            ],
+            "returns": {
+                "type": "boolean",
+                "description": "True if value is sequential, false otherwise"
+            },
+            "errors": [],
+            "examples": [
+                {
+                    "input": "(sequential? [1 2 3])",
+                    "output": "true"
+                },
+                {
+                    "input": "(sequential? '(1 2 3))",
+                    "output": "true"
+                },
+                {
+                    "input": "(sequential? {:a 1})",
+                    "output": "false"
+                }
+            ],
+            "metadata": {
+                "category": "predicate",
+                "complexity": "O(1)"
+            }
+        },
+        "symbol": {
+            "description": "Create a symbol from a string",
+            "args": [
+                {
+                    "name": "name",
+                    "type": "string",
+                    "description": "String to convert to symbol"
+                }
+            ],
+            "returns": {
+                "type": "symbol",
+                "description": "A new symbol with the given name"
+            },
+            "errors": [],
+            "examples": [
+                {
+                    "input": "(symbol \"hello\")",
+                    "output": "hello"
+                }
+            ],
+            "metadata": {
+                "category": "constructor",
+                "complexity": "O(1)"
+            }
+        },
+        "keyword": {
+            "description": "Create a keyword from a string",
+            "args": [
+                {
+                    "name": "name",
+                    "type": "string",
+                    "description": "String to convert to keyword"
+                }
+            ],
+            "returns": {
+                "type": "keyword",
+                "description": "A new keyword with the given name"
+            },
+            "errors": [],
+            "examples": [
+                {
+                    "input": "(keyword \"hello\")",
+                    "output": ":hello"
+                }
+            ],
+            "metadata": {
+                "category": "constructor",
+                "complexity": "O(1)"
+            }
+        },
+        "list": {
+            "description": "Create a list from arguments",
+            "args": [
+                {
+                    "name": "elements",
+                    "type": "any",
+                    "description": "Variable number of elements to include in the list",
+                    "variadic": true
+                }
+            ],
+            "returns": {
+                "type": "list",
+                "description": "A new list containing the arguments"
+            },
+            "errors": [],
+            "examples": [
+                {
+                    "input": "(list 1 2 3)",
+                    "output": "(1 2 3)"
+                },
+                {
+                    "input": "(list)",
+                    "output": "()"
+                }
+            ],
+            "metadata": {
+                "category": "constructor",
+                "complexity": "O(n)"
+            }
+        },
+        "vector": {
+            "description": "Create a vector from arguments",
+            "args": [
+                {
+                    "name": "elements",
+                    "type": "any",
+                    "description": "Variable number of elements to include in the vector",
+                    "variadic": true
+                }
+            ],
+            "returns": {
+                "type": "vector",
+                "description": "A new vector containing the arguments"
+            },
+            "errors": [],
+            "examples": [
+                {
+                    "input": "(vector 1 2 3)",
+                    "output": "[1 2 3]"
+                },
+                {
+                    "input": "(vector)",
+                    "output": "[]"
+                }
+            ],
+            "metadata": {
+                "category": "constructor",
+                "complexity": "O(n)"
+            }
+        },
+        "hash-map": {
+            "description": "Create a hash map from key-value pairs",
+            "args": [
+                {
+                    "name": "pairs",
+                    "type": "any",
+                    "description": "Even number of arguments alternating keys and values",
+                    "variadic": true
+                }
+            ],
+            "returns": {
+                "type": "hash-map",
+                "description": "A new hash map with the given key-value pairs"
+            },
+            "errors": [
+                {
+                    "type": "odd_arguments",
+                    "description": "Error when odd number of arguments provided"
+                }
+            ],
+            "examples": [
+                {
+                    "input": "(hash-map :a 1 :b 2)",
+                    "output": "{:a 1 :b 2}"
+                },
+                {
+                    "input": "(hash-map)",
+                    "output": "{}"
+                }
+            ],
+            "metadata": {
+                "category": "constructor",
+                "complexity": "O(n)"
+            }
+        },
+        "hash-set": {
+            "description": "Create a hash set from arguments",
+            "args": [
+                {
+                    "name": "elements",
+                    "type": "any",
+                    "description": "Variable number of elements to include in the set",
+                    "variadic": true
+                }
+            ],
+            "returns": {
+                "type": "set",
+                "description": "A new set containing the unique arguments"
+            },
+            "errors": [],
+            "examples": [
+                {
+                    "input": "(hash-set 1 2 3 2)",
+                    "output": "#{1 2 3}"
+                },
+                {
+                    "input": "(hash-set)",
+                    "output": "#{}"
+                }
+            ],
+            "metadata": {
+                "category": "constructor",
+                "complexity": "O(n)"
+            }
+        },
+        "set": {
+            "description": "Create a set from a collection",
+            "args": [
+                {
+                    "name": "collection",
+                    "type": "collection",
+                    "description": "Collection to convert to set"
+                }
+            ],
+            "returns": {
+                "type": "set",
+                "description": "A new set containing unique elements from the collection"
+            },
+            "errors": [],
+            "examples": [
+                {
+                    "input": "(set [1 2 3 2])",
+                    "output": "#{1 2 3}"
+                },
+                {
+                    "input": "(set '(1 1 2))",
+                    "output": "#{1 2}"
+                }
+            ],
+            "metadata": {
+                "category": "constructor",
+                "complexity": "O(n)"
+            }
+        },
+        "get": {
+            "description": "Get value from a collection by key or index",
+            "args": [
+                {
+                    "name": "collection",
+                    "type": "collection",
+                    "description": "Map, vector, list, or set to get value from"
+                },
+                {
+                    "name": "key",
+                    "type": "any",
+                    "description": "Key (for maps/sets) or index (for vectors/lists)"
+                }
+            ],
+            "returns": {
+                "type": "any",
+                "description": "Value at the given key/index, or nil if not found"
+            },
+            "errors": [],
+            "examples": [
+                {
+                    "input": "(get {:a 1 :b 2} :a)",
+                    "output": "1"
+                },
+                {
+                    "input": "(get [10 20 30] 1)",
+                    "output": "20"
+                },
+                {
+                    "input": "(get {:a 1} :c)",
+                    "output": "nil"
+                }
+            ],
+            "metadata": {
+                "category": "collection",
+                "complexity": "O(1)"
+            }
+        },
+        "get-in": {
+            "description": "Get nested value from a collection using a path",
+            "args": [
+                {
+                    "name": "collection",
+                    "type": "collection",
+                    "description": "Nested collection structure"
+                },
+                {
+                    "name": "path",
+                    "type": "vector",
+                    "description": "Vector of keys/indices to navigate the nested structure"
+                }
+            ],
+            "returns": {
+                "type": "any",
+                "description": "Value at the nested path, or nil if path not found"
+            },
+            "errors": [],
+            "examples": [
+                {
+                    "input": "(get-in {:a {:b 42}} [:a :b])",
+                    "output": "42"
+                },
+                {
+                    "input": "(get-in [[1 2] [3 4]] [1 0])",
+                    "output": "3"
+                }
+            ],
+            "metadata": {
+                "category": "collection",
+                "complexity": "O(d)"
+            }
+        },
+        "contains?": {
+            "description": "Check if collection contains a key",
+            "args": [
+                {
+                    "name": "collection",
+                    "type": "collection",
+                    "description": "Map or set to check"
+                },
+                {
+                    "name": "key",
+                    "type": "string",
+                    "description": "Key to check for"
+                }
+            ],
+            "returns": {
+                "type": "boolean",
+                "description": "True if collection contains the key, false otherwise"
+            },
+            "errors": [],
+            "examples": [
+                {
+                    "input": "(contains? {:a 1} :a)",
+                    "output": "true"
+                },
+                {
+                    "input": "(contains? #{1 2 3} 2)",
+                    "output": "true"
+                },
+                {
+                    "input": "(contains? {:a 1} :b)",
+                    "output": "false"
+                }
+            ],
+            "metadata": {
+                "category": "collection",
+                "complexity": "O(1)"
+            }
+        },
+        "keys": {
+            "description": "Get all keys from a hash map",
+            "args": [
+                {
+                    "name": "map",
+                    "type": "hash-map",
+                    "description": "Hash map to get keys from"
+                }
+            ],
+            "returns": {
+                "type": "list",
+                "description": "List of all keys in the map"
+            },
+            "errors": [],
+            "examples": [
+                {
+                    "input": "(keys {:a 1 :b 2 :c 3})",
+                    "output": "(:a :b :c)"
+                },
+                {
+                    "input": "(keys {})",
+                    "output": "()"
+                }
+            ],
+            "metadata": {
+                "category": "collection",
+                "complexity": "O(n)"
+            }
+        },
+        "vals": {
+            "description": "Get all values from a hash map",
+            "args": [
+                {
+                    "name": "map",
+                    "type": "hash-map",
+                    "description": "Hash map to get values from"
+                }
+            ],
+            "returns": {
+                "type": "list",
+                "description": "List of all values in the map"
+            },
+            "errors": [],
+            "examples": [
+                {
+                    "input": "(vals {:a 1 :b 2 :c 3})",
+                    "output": "(1 2 3)"
+                },
+                {
+                    "input": "(vals {})",
+                    "output": "()"
+                }
+            ],
+            "metadata": {
+                "category": "collection",
+                "complexity": "O(n)"
+            }
+        },
+        "assoc": {
+            "description": "Associate key-value pairs in a collection",
+            "args": [
+                {
+                    "name": "collection",
+                    "type": "collection",
+                    "description": "Map, vector, or set to update"
+                },
+                {
+                    "name": "pairs",
+                    "type": "any",
+                    "description": "Key-value pairs to associate",
+                    "variadic": true
+                }
+            ],
+            "returns": {
+                "type": "collection",
+                "description": "New collection with the associations"
+            },
+            "errors": [
+                {
+                    "type": "odd_arguments",
+                    "description": "Error when odd number of key-value arguments"
+                }
+            ],
+            "examples": [
+                {
+                    "input": "(assoc {:a 1} :b 2 :c 3)",
+                    "output": "{:a 1 :b 2 :c 3}"
+                },
+                {
+                    "input": "(assoc [1 2 3] 1 42)",
+                    "output": "[1 42 3]"
+                }
+            ],
+            "metadata": {
+                "category": "collection",
+                "complexity": "O(1)"
+            }
+        },
+        "dissoc": {
+            "description": "Remove keys from a collection",
+            "args": [
+                {
+                    "name": "collection",
+                    "type": "collection",
+                    "description": "Map or set to remove keys from"
+                },
+                {
+                    "name": "keys",
+                    "type": "any",
+                    "description": "Keys to remove",
+                    "variadic": true
+                }
+            ],
+            "returns": {
+                "type": "collection",
+                "description": "New collection without the specified keys"
+            },
+            "errors": [],
+            "examples": [
+                {
+                    "input": "(dissoc {:a 1 :b 2 :c 3} :b)",
+                    "output": "{:a 1 :c 3}"
+                },
+                {
+                    "input": "(dissoc #{1 2 3} 2)",
+                    "output": "#{1 3}"
+                }
+            ],
+            "metadata": {
+                "category": "collection",
+                "complexity": "O(k)"
+            }
+        },
+        "cons": {
+            "description": "Prepends an element to the front of a sequence, returning a new list",
+            "args": [
+                {
+                    "name": "element",
+                    "type": "any",
+                    "description": "Element to prepend to the sequence"
+                },
+                {
+                    "name": "seq",
+                    "type": "sequence",
+                    "description": "List, vector, or other sequence to prepend to"
+                }
+            ],
+            "returns": {
+                "type": "list",
+                "description": "New list with element prepended"
+            },
+            "errors": [
+                "Returns error if second argument is not a valid sequence"
+            ],
+            "examples": [
+                {
+                    "input": "(cons 1 (list 2 3 4))",
+                    "output": "(1 2 3 4)"
+                },
+                {
+                    "input": "(cons :a [\"b\" \"c\"])",
+                    "output": "(:a \"b\" \"c\")"
+                }
+            ],
+            "metadata": {
+                "category": "sequence",
+                "complexity": "O(n)"
+            }
+        },
+        "concat": {
+            "description": "Concatenates multiple sequences into a single list",
+            "args": [
+                {
+                    "name": "sequences",
+                    "type": "sequence",
+                    "description": "Zero or more sequences to concatenate",
+                    "variadic": true
+                }
+            ],
+            "returns": {
+                "type": "list",
+                "description": "New list containing all elements from input sequences"
+            },
+            "errors": [
+                "Returns error if any argument is not a valid sequence"
+            ],
+            "examples": [
+                {
+                    "input": "(concat (list 1 2) [3 4] (list 5))",
+                    "output": "(1 2 3 4 5)"
+                },
+                {
+                    "input": "(concat)",
+                    "output": "()"
+                }
+            ],
+            "metadata": {
+                "category": "sequence",
+                "complexity": "O(n)"
+            }
+        },
+        "nth": {
+            "description": "Returns the element at the specified index in a sequence",
+            "args": [
+                {
+                    "name": "seq",
+                    "type": "sequence",
+                    "description": "Sequence to index into"
+                },
+                {
+                    "name": "index",
+                    "type": "integer",
+                    "description": "Zero-based index of element to retrieve"
+                }
+            ],
+            "returns": {
+                "type": "any",
+                "description": "Element at the specified index"
+            },
+            "errors": [
+                "Returns error if index is out of bounds",
+                "Returns error if first argument is not a sequence"
+            ],
+            "examples": [
+                {
+                    "input": "(nth [10 20 30] 1)",
+                    "output": "20"
+                },
+                {
+                    "input": "(nth (list :a :b :c) 0)",
+                    "output": ":a"
+                }
+            ],
+            "metadata": {
+                "category": "sequence",
+                "complexity": "O(1)"
+            }
+        },
+        "first": {
+            "description": "Returns the first element of a sequence, or nil if empty",
+            "args": [
+                {
+                    "name": "seq",
+                    "type": "sequence",
+                    "description": "Sequence to get first element from"
+                }
+            ],
+            "returns": {
+                "type": "any",
+                "description": "First element of sequence, or nil if empty or nil input"
+            },
+            "errors": [
+                "Returns error if argument is not a valid sequence"
+            ],
+            "examples": [
+                {
+                    "input": "(first [1 2 3])",
+                    "output": "1"
+                },
+                {
+                    "input": "(first ())",
+                    "output": "nil"
+                },
+                {
+                    "input": "(first nil)",
+                    "output": "nil"
+                }
+            ],
+            "metadata": {
+                "category": "sequence",
+                "complexity": "O(1)"
+            }
+        },
+        "rest": {
+            "description": "Returns a list of all elements except the first from a sequence",
+            "args": [
+                {
+                    "name": "seq",
+                    "type": "sequence",
+                    "description": "Sequence to get rest of elements from"
+                }
+            ],
+            "returns": {
+                "type": "list",
+                "description": "List containing all elements except the first, empty list if input is empty or nil"
+            },
+            "errors": [
+                "Returns error if argument is not a valid sequence"
+            ],
+            "examples": [
+                {
+                    "input": "(rest [1 2 3 4])",
+                    "output": "(2 3 4)"
+                },
+                {
+                    "input": "(rest (list :a))",
+                    "output": "()"
+                },
+                {
+                    "input": "(rest nil)",
+                    "output": "()"
+                }
+            ],
+            "metadata": {
+                "category": "sequence",
+                "complexity": "O(n)"
+            }
+        },
+        "count": {
+            "description": "Returns the number of elements in a collection",
+            "args": [
+                {
+                    "name": "coll",
+                    "type": "collection",
+                    "description": "Collection to count elements in (list, vector, map, set, or nil)"
+                }
+            ],
+            "returns": {
+                "type": "integer",
+                "description": "Number of elements in the collection, 0 for nil"
+            },
+            "errors": [
+                "Returns error if argument is not a countable collection type"
+            ],
+            "examples": [
+                {
+                    "input": "(count [1 2 3 4])",
+                    "output": "4"
+                },
+                {
+                    "input": "(count {:a 1 :b 2})",
+                    "output": "2"
+                },
+                {
+                    "input": "(count nil)",
+                    "output": "0"
+                }
+            ],
+            "metadata": {
+                "category": "sequence",
+                "complexity": "O(1)"
+            }
+        },
+        "vec": {
+            "description": "Converts a sequence to a vector",
+            "args": [
+                {
+                    "name": "seq",
+                    "type": "sequence",
+                    "description": "Sequence to convert to vector"
+                }
+            ],
+            "returns": {
+                "type": "vector",
+                "description": "Vector containing all elements from the input sequence"
+            },
+            "errors": [
+                "Returns error if argument cannot be converted to a sequence"
+            ],
+            "examples": [
+                {
+                    "input": "(vec (list 1 2 3))",
+                    "output": "[1 2 3]"
+                },
+                {
+                    "input": "(vec \"abc\")",
+                    "output": "[\"a\" \"b\" \"c\"]"
+                }
+            ],
+            "metadata": {
+                "category": "sequence",
+                "complexity": "O(n)"
+            }
+        },
+        "seq": {
+            "description": "Converts a collection to a sequence (list), returns nil for empty collections",
+            "args": [
+                {
+                    "name": "coll",
+                    "type": "collection",
+                    "description": "Collection to convert to sequence (list, vector, set, string, or nil)"
+                }
+            ],
+            "returns": {
+                "type": "list",
+                "description": "List representation of the collection, or nil if empty"
+            },
+            "errors": [
+                "Returns error if argument is not a valid collection type"
+            ],
+            "examples": [
+                {
+                    "input": "(seq [1 2 3])",
+                    "output": "(1 2 3)"
+                },
+                {
+                    "input": "(seq \"abc\")",
+                    "output": "(\"a\" \"b\" \"c\")"
+                },
+                {
+                    "input": "(seq [])",
+                    "output": "nil"
+                }
+            ],
+            "metadata": {
+                "category": "sequence",
+                "complexity": "O(n)"
+            }
+        },
+        "conj": {
+            "description": "Adds elements to a collection in the most efficient way for that collection type",
+            "args": [
+                {
+                    "name": "coll",
+                    "type": "collection",
+                    "description": "Collection to add elements to"
+                },
+                {
+                    "name": "elements",
+                    "type": "any",
+                    "description": "Elements to add to the collection",
+                    "variadic": true
+                }
+            ],
+            "returns": {
+                "type": "collection",
+                "description": "New collection with elements added (prepends to lists, appends to vectors)"
+            },
+            "errors": [
+                "Returns error if first argument is not a valid collection",
+                "Returns error for hash-map if odd number of arguments provided",
+                "Returns error for sets if non-string keys provided"
+            ],
+            "examples": [
+                {
+                    "input": "(conj [1 2] 3 4)",
+                    "output": "[1 2 3 4]"
+                },
+                {
+                    "input": "(conj (list 1 2) 3 4)",
+                    "output": "(4 3 1 2)"
+                },
+                {
+                    "input": "(conj {:a 1} :b 2)",
+                    "output": "{:a 1 :b 2}"
+                }
+            ],
+            "metadata": {
+                "category": "sequence",
+                "complexity": "O(k)"
+            }
+        },
+        "pr-str": {
+            "description": "Returns a string representation of values with readable formatting (strings are quoted)",
+            "args": [
+                {
+                    "name": "values",
+                    "type": "any",
+                    "description": "Values to convert to string representation",
+                    "variadic": true
+                }
+            ],
+            "returns": {
+                "type": "string",
+                "description": "String representation with readable formatting"
+            },
+            "errors": [],
+            "examples": [
+                {
+                    "input": "(pr-str \"hello\" :world 123)",
+                    "output": "\"\\\"hello\\\" :world 123\""
+                },
+                {
+                    "input": "(pr-str [1 2 3])",
+                    "output": "\"[1 2 3]\""
+                }
+            ],
+            "metadata": {
+                "category": "string",
+                "complexity": "O(n)"
+            }
+        },
+        "str": {
+            "description": "Concatenates string representations of values without readable formatting",
+            "args": [
+                {
+                    "name": "values",
+                    "type": "any",
+                    "description": "Values to convert and concatenate as strings",
+                    "variadic": true
+                }
+            ],
+            "returns": {
+                "type": "string",
+                "description": "Concatenated string representation"
+            },
+            "errors": [],
+            "examples": [
+                {
+                    "input": "(str \"hello\" \" \" \"world\")",
+                    "output": "\"hello world\""
+                },
+                {
+                    "input": "(str 123 :abc [1 2])",
+                    "output": "\"123:abc[1 2]\""
+                }
+            ],
+            "metadata": {
+                "category": "string",
+                "complexity": "O(n)"
+            }
+        },
+        "prn": {
+            "description": "Prints values with readable formatting to stdout, followed by newline",
+            "args": [
+                {
+                    "name": "values",
+                    "type": "any",
+                    "description": "Values to print",
+                    "variadic": true
+                }
+            ],
+            "returns": {
+                "type": "nil",
+                "description": "nil (side effect: prints to stdout)"
+            },
+            "errors": [],
+            "examples": [
+                {
+                    "input": "(prn \"hello\" :world)",
+                    "output": "nil",
+                    "sideEffect": "Prints: \"hello\" :world"
+                }
+            ],
+            "metadata": {
+                "category": "string",
+                "complexity": "O(n)"
+            }
+        },
+        "println": {
+            "description": "Prints values without readable formatting to stdout, followed by newline",
+            "args": [
+                {
+                    "name": "values",
+                    "type": "any",
+                    "description": "Values to print",
+                    "variadic": true
+                }
+            ],
+            "returns": {
+                "type": "nil",
+                "description": "nil (side effect: prints to stdout)"
+            },
+            "errors": [],
+            "examples": [
+                {
+                    "input": "(println \"hello\" \"world\")",
+                    "output": "nil",
+                    "sideEffect": "Prints: hello world"
+                }
+            ],
+            "metadata": {
+                "category": "string",
+                "complexity": "O(n)"
+            }
+        },
+        "read-string": {
+            "description": "Parses a string containing Lisp code and returns the corresponding data structure",
+            "args": [
+                {
+                    "name": "str",
+                    "type": "string",
+                    "description": "String containing Lisp code to parse"
+                }
+            ],
+            "returns": {
+                "type": "any",
+                "description": "Parsed data structure from the string"
+            },
+            "errors": [
+                "Returns error if string contains invalid Lisp syntax"
+            ],
+            "examples": [
+                {
+                    "input": "(read-string \"(+ 1 2)\")",
+                    "output": "(+ 1 2)"
+                },
+                {
+                    "input": "(read-string \"[1 2 3]\")",
+                    "output": "[1 2 3]"
+                }
+            ],
+            "metadata": {
+                "category": "string",
+                "complexity": "O(n)"
+            }
+        },
+        "apply": {
+            "description": "Applies a function to a list of arguments, with the last argument being a sequence of additional arguments",
+            "args": [
+                {
+                    "name": "function",
+                    "type": "function",
+                    "description": "Function to apply"
+                },
+                {
+                    "name": "args",
+                    "type": "any",
+                    "description": "Arguments to pass to the function (excluding the last)",
+                    "variadic": true
+                },
+                {
+                    "name": "arg-seq",
+                    "type": "sequence",
+                    "description": "Sequence of additional arguments (last argument)"
+                }
+            ],
+            "returns": {
+                "type": "any",
+                "description": "Result of applying the function to all arguments"
+            },
+            "errors": [
+                "Returns error if less than 2 arguments provided",
+                "Returns error if last argument is not a valid sequence",
+                "Returns error if function application fails"
+            ],
+            "examples": [
+                {
+                    "input": "(apply + [1 2 3 4])",
+                    "output": "10"
+                },
+                {
+                    "input": "(apply str \"a\" \"b\" [\"c\" \"d\"])",
+                    "output": "\"abcd\""
+                }
+            ],
+            "metadata": {
+                "category": "higher-order",
+                "complexity": "O(f(n))"
+            }
+        },
+        "map": {
+            "description": "Applies a function to each element of a sequence, returning a list of results",
+            "args": [
+                {
+                    "name": "function",
+                    "type": "function",
+                    "description": "Function to apply to each element"
+                },
+                {
+                    "name": "seq",
+                    "type": "sequence",
+                    "description": "Sequence to map over"
+                }
+            ],
+            "returns": {
+                "type": "list",
+                "description": "List containing results of applying function to each element"
+            },
+            "errors": [
+                "Returns error if second argument is not a valid sequence",
+                "Returns error if function application fails for any element"
+            ],
+            "examples": [
+                {
+                    "input": "(map (fn [x] (* x 2)) [1 2 3])",
+                    "output": "(2 4 6)"
+                },
+                {
+                    "input": "(map str [1 2 3])",
+                    "output": "(\"1\" \"2\" \"3\")"
+                }
+            ],
+            "metadata": {
+                "category": "higher-order",
+                "complexity": "O(n*f(x))"
+            }
+        },
+        "with-meta": {
+            "description": "Returns a new object with the same value but with the specified metadata attached",
+            "args": [
+                {
+                    "name": "obj",
+                    "type": "object",
+                    "description": "Object to attach metadata to (list, vector, map, set, or function)"
+                },
+                {
+                    "name": "metadata",
+                    "type": "any",
+                    "description": "Metadata to attach to the object"
+                }
+            ],
+            "returns": {
+                "type": "object",
+                "description": "New object with metadata attached"
+            },
+            "errors": [
+                "Returns error if first argument doesn't support metadata"
+            ],
+            "examples": [
+                {
+                    "input": "(with-meta [1 2 3] {:doc \"my vector\"})",
+                    "output": "[1 2 3]"
+                },
+                {
+                    "input": "(with-meta + {:name \"add\"})",
+                    "output": "<function>"
+                }
+            ],
+            "metadata": {
+                "category": "meta",
+                "complexity": "O(1)"
+            }
+        },
+        "meta": {
+            "description": "Returns the metadata of an object, or nil if no metadata",
+            "args": [
+                {
+                    "name": "obj",
+                    "type": "object",
+                    "description": "Object to get metadata from"
+                }
+            ],
+            "returns": {
+                "type": "any",
+                "description": "Metadata of the object, or nil if none"
+            },
+            "errors": [
+                "Returns error if argument doesn't support metadata"
+            ],
+            "examples": [
+                {
+                    "input": "(meta (with-meta [1 2] {:doc \"test\"}))",
+                    "output": "{:doc \"test\"}"
+                },
+                {
+                    "input": "(meta [1 2 3])",
+                    "output": "nil"
+                }
+            ],
+            "metadata": {
+                "category": "meta",
+                "complexity": "O(1)"
+            }
+        },
+        "take": {
+            "description": "Returns a list of the first n elements from a sequence",
+            "args": [
+                {
+                    "name": "n",
+                    "type": "integer",
+                    "description": "Number of elements to take"
+                },
+                {
+                    "name": "seq",
+                    "type": "sequence",
+                    "description": "Sequence to take elements from"
+                }
+            ],
+            "returns": {
+                "type": "list",
+                "description": "List containing the first n elements"
+            },
+            "errors": [
+                "Returns error if second argument is not a valid sequence"
+            ],
+            "examples": [
+                {
+                    "input": "(take 2 [1 2 3 4])",
+                    "output": "(1 2)"
+                },
+                {
+                    "input": "(take 5 [1 2])",
+                    "output": "(1 2)"
+                },
+                {
+                    "input": "(take 2 nil)",
+                    "output": "()"
+                }
+            ],
+            "metadata": {
+                "category": "sequence",
+                "complexity": "O(n)"
+            }
+        },
+        "take-last": {
+            "description": "Returns a list of the last n elements from a sequence",
+            "args": [
+                {
+                    "name": "n",
+                    "type": "integer",
+                    "description": "Number of elements to take from the end"
+                },
+                {
+                    "name": "seq",
+                    "type": "sequence",
+                    "description": "Sequence to take elements from"
+                }
+            ],
+            "returns": {
+                "type": "list",
+                "description": "List containing the last n elements"
+            },
+            "errors": [
+                "Returns error if second argument is not a valid sequence"
+            ],
+            "examples": [
+                {
+                    "input": "(take-last 2 [1 2 3 4])",
+                    "output": "(3 4)"
+                },
+                {
+                    "input": "(take-last 5 [1 2])",
+                    "output": "(1 2)"
+                }
+            ],
+            "metadata": {
+                "category": "sequence",
+                "complexity": "O(n)"
+            }
+        },
+        "drop": {
+            "description": "Returns a list with the first n elements removed from a sequence",
+            "args": [
+                {
+                    "name": "n",
+                    "type": "integer",
+                    "description": "Number of elements to drop from the beginning"
+                },
+                {
+                    "name": "seq",
+                    "type": "sequence",
+                    "description": "Sequence to drop elements from"
+                }
+            ],
+            "returns": {
+                "type": "list",
+                "description": "List containing remaining elements after dropping n"
+            },
+            "errors": [
+                "Returns error if second argument is not a valid sequence"
+            ],
+            "examples": [
+                {
+                    "input": "(drop 2 [1 2 3 4])",
+                    "output": "(3 4)"
+                },
+                {
+                    "input": "(drop 5 [1 2])",
+                    "output": "()"
+                }
+            ],
+            "metadata": {
+                "category": "sequence",
+                "complexity": "O(n)"
+            }
+        },
+        "drop-last": {
+            "description": "Returns a list with the last n elements removed from a sequence",
+            "args": [
+                {
+                    "name": "n",
+                    "type": "integer",
+                    "description": "Number of elements to drop from the end"
+                },
+                {
+                    "name": "seq",
+                    "type": "sequence",
+                    "description": "Sequence to drop elements from"
+                }
+            ],
+            "returns": {
+                "type": "list",
+                "description": "List containing remaining elements after dropping last n"
+            },
+            "errors": [
+                "Returns error if second argument is not a valid sequence"
+            ],
+            "examples": [
+                {
+                    "input": "(drop-last 2 [1 2 3 4])",
+                    "output": "(1 2)"
+                },
+                {
+                    "input": "(drop-last 5 [1 2])",
+                    "output": "()"
+                }
+            ],
+            "metadata": {
+                "category": "sequence",
+                "complexity": "O(n)"
+            }
+        },
+        "subvec": {
+            "description": "Returns a subvector of a vector from start index to end index (exclusive)",
+            "args": [
+                {
+                    "name": "vector",
+                    "type": "vector",
+                    "description": "Vector to extract subvector from"
+                },
+                {
+                    "name": "start",
+                    "type": "integer",
+                    "description": "Start index (inclusive)"
+                },
+                {
+                    "name": "end",
+                    "type": "integer",
+                    "description": "End index (exclusive), optional - defaults to vector length",
+                    "optional": true
+                }
+            ],
+            "returns": {
+                "type": "vector",
+                "description": "Subvector containing elements from start to end"
+            },
+            "errors": [
+                "Returns error if first argument is not a vector",
+                "Returns error if indices are out of bounds"
+            ],
+            "examples": [
+                {
+                    "input": "(subvec [1 2 3 4 5] 1 4)",
+                    "output": "[2 3 4]"
+                },
+                {
+                    "input": "(subvec [1 2 3 4] 2)",
+                    "output": "[3 4]"
+                }
+            ],
+            "metadata": {
+                "category": "sequence",
+                "complexity": "O(n)"
+            }
+        },
+        "split": {
+            "description": "Splits a string by a separator and returns a vector of parts",
+            "args": [
+                {
+                    "name": "string",
+                    "type": "string",
+                    "description": "String to split"
+                },
+                {
+                    "name": "separator",
+                    "type": "string",
+                    "description": "Separator string to split on"
+                }
+            ],
+            "returns": {
+                "type": "vector",
+                "description": "Vector containing the split parts"
+            },
+            "errors": [],
+            "examples": [
+                {
+                    "input": "(split \"a,b,c\" \",\")",
+                    "output": "[\"a\" \"b\" \"c\"]"
+                },
+                {
+                    "input": "(split \"hello world\" \" \")",
+                    "output": "[\"hello\" \"world\"]"
+                }
+            ],
+            "metadata": {
+                "category": "string",
+                "complexity": "O(n)"
+            }
+        },
+        "throw": {
+            "description": "Throws an error with the specified value",
+            "args": [
+                {
+                    "name": "value",
+                    "type": "any",
+                    "description": "Value to throw as an error"
+                }
+            ],
+            "returns": {
+                "type": "never",
+                "description": "Never returns normally - throws an error"
+            },
+            "errors": [
+                "Always throws an error with the provided value"
+            ],
+            "examples": [
+                {
+                    "input": "(throw \"Something went wrong\")",
+                    "output": "Error: Something went wrong"
+                }
+            ],
+            "metadata": {
+                "category": "error",
+                "complexity": "O(1)"
+            }
+        },
+        "type?": {
+            "description": "Returns a string representing the type of the given value",
+            "args": [
+                {
+                    "name": "value",
+                    "type": "any",
+                    "description": "Value to get the type of"
+                }
+            ],
+            "returns": {
+                "type": "string",
+                "description": "String representation of the value's type"
+            },
+            "errors": [],
+            "examples": [
+                {
+                    "input": "(type? 42)",
+                    "output": "\"integer\""
+                },
+                {
+                    "input": "(type? [1 2 3])",
+                    "output": "\"vector\""
+                },
+                {
+                    "input": "(type? {:a 1})",
+                    "output": "\"hash-map\""
+                }
+            ],
+            "metadata": {
+                "category": "predicate",
+                "complexity": "O(1)"
+            }
+        },
+        "time-ms": {
+            "description": "Returns the current time in milliseconds since Unix epoch",
+            "args": [],
+            "returns": {
+                "type": "integer",
+                "description": "Current time in milliseconds"
+            },
+            "errors": [],
+            "examples": [
+                {
+                    "input": "(time-ms)",
+                    "output": "1640995200000"
+                }
+            ],
+            "metadata": {
+                "category": "utility",
+                "complexity": "O(1)"
+            }
+        },
+        "time-ns": {
+            "description": "Returns the current time in nanoseconds since Unix epoch",
+            "args": [],
+            "returns": {
+                "type": "integer",
+                "description": "Current time in nanoseconds"
+            },
+            "errors": [],
+            "examples": [
+                {
+                    "input": "(time-ns)",
+                    "output": "1640995200000000000"
+                }
+            ],
+            "metadata": {
+                "category": "utility",
+                "complexity": "O(1)"
+            }
+        },
+        "uuid": {
+            "description": "Generates a new random UUID string",
+            "args": [],
+            "returns": {
+                "type": "string",
+                "description": "Random UUID string"
+            },
+            "errors": [],
+            "examples": [
+                {
+                    "input": "(uuid)",
+                    "output": "\"123e4567-e89b-12d3-a456-426614174000\""
+                }
+            ],
+            "metadata": {
+                "category": "utility",
+                "complexity": "O(1)"
+            }
+        },
+        "assert": {
+            "description": "Asserts that a condition is true, throwing an error if false or nil",
+            "args": [
+                {
+                    "name": "condition",
+                    "type": "any",
+                    "description": "Condition to assert (must be truthy)"
+                },
+                {
+                    "name": "error-msg",
+                    "type": "any",
+                    "description": "Error message or value to throw if assertion fails",
+                    "optional": true
+                }
+            ],
+            "returns": {
+                "type": "nil",
+                "description": "nil if assertion passes"
+            },
+            "errors": [
+                "Throws error if condition is false or nil",
+                "Throws custom error if error message provided"
+            ],
+            "examples": [
+                {
+                    "input": "(assert true)",
+                    "output": "nil"
+                },
+                {
+                    "input": "(assert false \"Custom error\")",
+                    "output": "Error: Custom error"
+                },
+                {
+                    "input": "(assert (> 5 3))",
+                    "output": "nil"
+                }
+            ],
+            "metadata": {
+                "category": "error",
+                "complexity": "O(1)"
+            }
         }
     }
 }
