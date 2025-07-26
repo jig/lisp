@@ -112,10 +112,7 @@
                 "description": "The quotient of the division"
             },
             "errors": [
-                {
-                    "type": "division_by_zero",
-                    "description": "Error when dividing by zero"
-                }
+                "Error when dividing by zero"
             ],
             "examples": [
                 {
@@ -904,10 +901,7 @@
                 "description": "A new hash map with the given key-value pairs"
             },
             "errors": [
-                {
-                    "type": "odd_arguments",
-                    "description": "Error when odd number of arguments provided"
-                }
+                "Error when odd number of arguments provided"
             ],
             "examples": [
                 {
@@ -1171,10 +1165,7 @@
                 "description": "New collection with the associations"
             },
             "errors": [
-                {
-                    "type": "odd_arguments",
-                    "description": "Error when odd number of key-value arguments"
-                }
+                "Error when odd number of key-value arguments"
             ],
             "examples": [
                 {
