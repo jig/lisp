@@ -1,0 +1,156 @@
+{
+    "name": "assert",
+    "description": "Testing and assertion functionalities for unit testing and validation",
+    "version": "0.2.17",
+    "symbols": {
+        "assert-true": {
+            "description": "A macro that asserts an expression evaluates to true. Returns nil on success, or a failure object on failure",
+            "args": [
+                {
+                    "name": "name",
+                    "type": "string",
+                    "description": "Name or description of the test case"
+                },
+                {
+                    "name": "expr",
+                    "type": "expression",
+                    "description": "Expression that should evaluate to true"
+                }
+            ],
+            "returns": {
+                "type": "any",
+                "description": "nil if assertion passes, or a map with failure details if it fails"
+            },
+            "errors": [
+                "Catches and treats exceptions as assertion failures"
+            ],
+            "examples": [
+                {
+                    "input": "(assert-true \"basic math\" (= (+ 2 2) 4))",
+                    "output": "nil"
+                },
+                {
+                    "input": "(assert-true \"failing test\" (= 1 2))",
+                    "output": "{:failed true :name \"failing test\" :expr \"(= 1 2)\"}"
+                }
+            ],
+            "metadata": {
+                "category": "testing",
+                "complexity": "O(1)",
+                "symbol-type": "macro"
+            }
+        },
+        "assert-false": {
+            "description": "A macro that asserts an expression evaluates to false or nil. Returns nil on success, or a failure object on failure",
+            "args": [
+                {
+                    "name": "name",
+                    "type": "string",
+                    "description": "Name or description of the test case"
+                },
+                {
+                    "name": "expr",
+                    "type": "expression",
+                    "description": "Expression that should evaluate to false or nil"
+                }
+            ],
+            "returns": {
+                "type": "any",
+                "description": "nil if assertion passes, or a map with failure details if it fails"
+            },
+            "errors": [
+                "Catches and treats exceptions as assertion failures"
+            ],
+            "examples": [
+                {
+                    "input": "(assert-false \"inequality test\" (= 1 2))",
+                    "output": "nil"
+                },
+                {
+                    "input": "(assert-false \"failing test\" (= 2 2))",
+                    "output": "{:failed true :name \"failing test\" :expr \"(= 2 2)\"}"
+                }
+            ],
+            "metadata": {
+                "category": "testing",
+                "complexity": "O(1)",
+                "symbol-type": "macro"
+            }
+        },
+        "assert-throws": {
+            "description": "A macro that asserts an expression throws an exception. Returns nil if an exception is thrown, or a failure object if no exception occurs",
+            "args": [
+                {
+                    "name": "name",
+                    "type": "string",
+                    "description": "Name or description of the test case"
+                },
+                {
+                    "name": "expr",
+                    "type": "expression",
+                    "description": "Expression that should throw an exception"
+                }
+            ],
+            "returns": {
+                "type": "any",
+                "description": "nil if expression throws (assertion passes), or a map with failure details if no exception is thrown"
+            },
+            "errors": [
+                "Expected behavior: catches exceptions and treats them as successful assertions"
+            ],
+            "examples": [
+                {
+                    "input": "(assert-throws \"division by zero\" (/ 1 0))",
+                    "output": "nil"
+                },
+                {
+                    "input": "(assert-throws \"should throw\" (+ 1 2))",
+                    "output": "{:failed true :name \"should throw\" :expr \"(+ 1 2)\"}"
+                }
+            ],
+            "metadata": {
+                "category": "testing",
+                "complexity": "O(1)",
+                "symbol-type": "macro"
+            }
+        },
+        "test-suite": {
+            "description": "Runs a test suite with multiple assertion cases. Prints results and returns true if all tests pass, false otherwise",
+            "args": [
+                {
+                    "name": "name",
+                    "type": "string",
+                    "description": "Name of the test suite"
+                },
+                {
+                    "name": "assert-cases",
+                    "type": "any",
+                    "description": "Variable number of assertion results (typically from assert-true, assert-false, assert-throws)",
+                    "variadic": true
+                }
+            ],
+            "returns": {
+                "type": "boolean",
+                "description": "True if all assertions pass, false if any fail"
+            },
+            "errors": [],
+            "examples": [
+                {
+                    "input": "(test-suite \"Math Tests\" (assert-true \"addition\" (= (+ 2 2) 4)) (assert-false \"inequality\" (= 1 2)))",
+                    "output": "true",
+                    "sideEffect": "Prints: TEST SUITE PASS Math Tests PASS"
+                },
+                {
+                    "input": "(test-suite \"Failing Tests\" (assert-true \"bad test\" false))",
+                    "output": "false",
+                    "sideEffect": "Prints: TEST SUITE FAIL Failing Tests > bad test >> false"
+                }
+            ],
+            "metadata": {
+                "category": "testing",
+                "complexity": "O(n)",
+                "symbol-type": "function-impure"
+            }
+        }
+    }
+}
