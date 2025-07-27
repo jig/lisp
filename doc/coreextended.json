@@ -1,0 +1,775 @@
+{
+    "name": "coreextended",
+    "description": "Extended core functionalities including utilities, reducers, threading macros, benchmarking, memoization, protocols and more",
+    "version": "0.2.17",
+    "symbols": {
+        "inc": {
+            "description": "Returns the successor of a number (increment by 1)",
+            "args": [
+                {
+                    "name": "n",
+                    "type": "number",
+                    "description": "Number to increment"
+                }
+            ],
+            "returns": {
+                "type": "number",
+                "description": "The input number plus 1"
+            },
+            "errors": [],
+            "examples": [
+                {
+                    "input": "(inc 5)",
+                    "output": "6"
+                },
+                {
+                    "input": "(inc -1)",
+                    "output": "0"
+                }
+            ],
+            "metadata": {
+                "category": "arithmetic",
+                "complexity": "O(1)",
+                "symbol-type": "function-pure"
+            }
+        },
+        "dec": {
+            "description": "Returns the predecessor of a number (decrement by 1)",
+            "args": [
+                {
+                    "name": "n",
+                    "type": "number",
+                    "description": "Number to decrement"
+                }
+            ],
+            "returns": {
+                "type": "number",
+                "description": "The input number minus 1"
+            },
+            "errors": [],
+            "examples": [
+                {
+                    "input": "(dec 5)",
+                    "output": "4"
+                },
+                {
+                    "input": "(dec 0)",
+                    "output": "-1"
+                }
+            ],
+            "metadata": {
+                "category": "arithmetic",
+                "complexity": "O(1)",
+                "symbol-type": "function-pure"
+            }
+        },
+        "zero?": {
+            "description": "Tests if a number is zero",
+            "args": [
+                {
+                    "name": "n",
+                    "type": "number",
+                    "description": "Number to test"
+                }
+            ],
+            "returns": {
+                "type": "boolean",
+                "description": "True if the number is zero, false otherwise"
+            },
+            "errors": [],
+            "examples": [
+                {
+                    "input": "(zero? 0)",
+                    "output": "true"
+                },
+                {
+                    "input": "(zero? 5)",
+                    "output": "false"
+                }
+            ],
+            "metadata": {
+                "category": "predicate",
+                "complexity": "O(1)",
+                "symbol-type": "function-pure"
+            }
+        },
+        "identity": {
+            "description": "Returns the unchanged argument (identity function)",
+            "args": [
+                {
+                    "name": "x",
+                    "type": "any",
+                    "description": "Value to return unchanged"
+                }
+            ],
+            "returns": {
+                "type": "any",
+                "description": "The input value unchanged"
+            },
+            "errors": [],
+            "examples": [
+                {
+                    "input": "(identity 42)",
+                    "output": "42"
+                },
+                {
+                    "input": "(identity [1 2 3])",
+                    "output": "[1 2 3]"
+                }
+            ],
+            "metadata": {
+                "category": "utility",
+                "complexity": "O(1)",
+                "symbol-type": "function-pure"
+            }
+        },
+        "gensym": {
+            "description": "Generates a hopefully unique symbol with a G__ prefix and incrementing counter",
+            "args": [],
+            "returns": {
+                "type": "symbol",
+                "description": "A new unique symbol"
+            },
+            "errors": [],
+            "examples": [
+                {
+                    "input": "(gensym)",
+                    "output": "G__1"
+                },
+                {
+                    "input": "(gensym)",
+                    "output": "G__2"
+                }
+            ],
+            "metadata": {
+                "category": "utility",
+                "complexity": "O(1)",
+                "symbol-type": "function-impure"
+            }
+        },
+        "benchmark": {
+            "description": "Macro that benchmarks an expression by running it n times and collecting execution times",
+            "args": [
+                {
+                    "name": "expr",
+                    "type": "expression",
+                    "description": "Expression to benchmark"
+                },
+                {
+                    "name": "n",
+                    "type": "number",
+                    "description": "Number of times to run the expression"
+                }
+            ],
+            "returns": {
+                "type": "vector",
+                "description": "Vector of execution times in milliseconds"
+            },
+            "errors": [],
+            "examples": [
+                {
+                    "input": "(benchmark (+ 1 2) 5)",
+                    "output": "[0 0 0 0 0]"
+                }
+            ],
+            "metadata": {
+                "category": "performance",
+                "complexity": "O(n)",
+                "symbol-type": "macro"
+            }
+        },
+        "reduce": {
+            "description": "Left fold operation - applies a function cumulatively to items in a sequence",
+            "args": [
+                {
+                    "name": "f",
+                    "type": "function",
+                    "description": "Function that takes accumulator and element, returns new accumulator"
+                },
+                {
+                    "name": "init",
+                    "type": "any",
+                    "description": "Initial accumulator value"
+                },
+                {
+                    "name": "xs",
+                    "type": "sequence",
+                    "description": "Sequence of elements to reduce"
+                }
+            ],
+            "returns": {
+                "type": "any",
+                "description": "Final accumulator value after processing all elements"
+            },
+            "errors": [],
+            "examples": [
+                {
+                    "input": "(reduce + 0 [1 2 3 4])",
+                    "output": "10"
+                },
+                {
+                    "input": "(reduce conj [] [1 2 3])",
+                    "output": "[1 2 3]"
+                }
+            ],
+            "metadata": {
+                "category": "sequence",
+                "complexity": "O(n)",
+                "symbol-type": "function-pure"
+            }
+        },
+        "reduce-kv": {
+            "description": "Left fold operation for key-value pairs",
+            "args": [
+                {
+                    "name": "f",
+                    "type": "function",
+                    "description": "Function that takes accumulator, key, and value, returns new accumulator"
+                },
+                {
+                    "name": "init",
+                    "type": "any",
+                    "description": "Initial accumulator value"
+                },
+                {
+                    "name": "xs",
+                    "type": "sequence",
+                    "description": "Sequence of key-value pairs"
+                }
+            ],
+            "returns": {
+                "type": "any",
+                "description": "Final accumulator value after processing all key-value pairs"
+            },
+            "errors": [],
+            "examples": [
+                {
+                    "input": "(reduce-kv (fn [acc k v] (+ acc v)) 0 [:a 1 :b 2])",
+                    "output": "3"
+                }
+            ],
+            "metadata": {
+                "category": "sequence",
+                "complexity": "O(n)",
+                "symbol-type": "function-pure"
+            }
+        },
+        "foldr": {
+            "description": "Right fold operation - applies a function from right to left in a sequence",
+            "args": [
+                {
+                    "name": "f",
+                    "type": "function",
+                    "description": "Function that takes element and accumulator, returns new accumulator"
+                },
+                {
+                    "name": "init",
+                    "type": "any",
+                    "description": "Initial accumulator value"
+                },
+                {
+                    "name": "xs",
+                    "type": "sequence",
+                    "description": "Sequence of elements to fold"
+                }
+            ],
+            "returns": {
+                "type": "any",
+                "description": "Final accumulator value after processing all elements from right to left"
+            },
+            "errors": [],
+            "examples": [
+                {
+                    "input": "(foldr cons () [1 2 3])",
+                    "output": "(1 2 3)"
+                }
+            ],
+            "metadata": {
+                "category": "sequence",
+                "complexity": "O(n)",
+                "symbol-type": "function-pure"
+            }
+        },
+        "->": {
+            "description": "Threading macro that threads an expression through a series of forms, inserting it as the first argument",
+            "args": [
+                {
+                    "name": "x",
+                    "type": "any",
+                    "description": "Initial value to thread"
+                },
+                {
+                    "name": "forms",
+                    "type": "form",
+                    "description": "Forms to thread the value through",
+                    "variadic": true
+                }
+            ],
+            "returns": {
+                "type": "any",
+                "description": "Result of threading the value through all forms"
+            },
+            "errors": [],
+            "examples": [
+                {
+                    "input": "(-> 5 (+ 3) (* 2))",
+                    "output": "16"
+                },
+                {
+                    "input": "(-> [1 2 3] (conj 4) (conj 5))",
+                    "output": "[1 2 3 4 5]"
+                }
+            ],
+            "metadata": {
+                "category": "threading",
+                "complexity": "O(1)",
+                "symbol-type": "macro"
+            }
+        },
+        "->>": {
+            "description": "Threading macro that threads an expression through a series of forms, inserting it as the last argument",
+            "args": [
+                {
+                    "name": "x",
+                    "type": "any",
+                    "description": "Initial value to thread"
+                },
+                {
+                    "name": "forms",
+                    "type": "form",
+                    "description": "Forms to thread the value through",
+                    "variadic": true
+                }
+            ],
+            "returns": {
+                "type": "any",
+                "description": "Result of threading the value through all forms"
+            },
+            "errors": [],
+            "examples": [
+                {
+                    "input": "(->> [1 2 3 4] (map inc) (filter even?))",
+                    "output": "(2 4)"
+                }
+            ],
+            "metadata": {
+                "category": "threading",
+                "complexity": "O(1)",
+                "symbol-type": "macro"
+            }
+        },
+        "memoize": {
+            "description": "Returns a memoized version of a function that caches results based on arguments",
+            "args": [
+                {
+                    "name": "f",
+                    "type": "function",
+                    "description": "Function to memoize"
+                }
+            ],
+            "returns": {
+                "type": "function",
+                "description": "Memoized version of the function"
+            },
+            "errors": [],
+            "examples": [
+                {
+                    "input": "(def slow-fn (memoize (fn [x] (do (println \"computing\" x) (* x x)))))",
+                    "output": "function"
+                }
+            ],
+            "metadata": {
+                "category": "performance",
+                "complexity": "O(1)",
+                "symbol-type": "function-impure"
+            }
+        },
+        "time": {
+            "description": "Macro that evaluates an expression and reports the time spent",
+            "args": [
+                {
+                    "name": "expr",
+                    "type": "expression",
+                    "description": "Expression to time"
+                }
+            ],
+            "returns": {
+                "type": "any",
+                "description": "Result of the expression"
+            },
+            "errors": [],
+            "examples": [
+                {
+                    "input": "(time (+ 1 2 3))",
+                    "output": "6",
+                    "sideEffect": "Prints: Elapsed time: X msecs"
+                }
+            ],
+            "metadata": {
+                "category": "performance",
+                "complexity": "O(1)",
+                "symbol-type": "macro"
+            }
+        },
+        "run-fn-for": {
+            "description": "Counts how many times a function can be executed within a given time frame",
+            "args": [
+                {
+                    "name": "fn",
+                    "type": "function",
+                    "description": "Function to execute repeatedly (should take no parameters)"
+                },
+                {
+                    "name": "max-secs",
+                    "type": "number",
+                    "description": "Maximum time in seconds to run"
+                }
+            ],
+            "returns": {
+                "type": "number",
+                "description": "Number of iterations completed"
+            },
+            "errors": [],
+            "examples": [
+                {
+                    "input": "(run-fn-for (fn [] (+ 1 2)) 1)",
+                    "output": "1000000"
+                }
+            ],
+            "metadata": {
+                "category": "performance",
+                "complexity": "O(n)",
+                "symbol-type": "function-impure"
+            }
+        },
+        "pprint": {
+            "description": "Pretty prints a MAL object with proper indentation and formatting",
+            "args": [
+                {
+                    "name": "obj",
+                    "type": "any",
+                    "description": "Object to pretty print"
+                }
+            ],
+            "returns": {
+                "type": "nil",
+                "description": "nil (side effect: prints formatted output)"
+            },
+            "errors": [],
+            "examples": [
+                {
+                    "input": "(pprint {:a 1 :b [1 2 3]})",
+                    "output": "nil",
+                    "sideEffect": "Prints formatted map structure"
+                }
+            ],
+            "metadata": {
+                "category": "io",
+                "complexity": "O(n)",
+                "symbol-type": "function-impure"
+            }
+        },
+        "find-type": {
+            "description": "Maps a MAL value to a keyword representing its type, checking metadata first",
+            "args": [
+                {
+                    "name": "obj",
+                    "type": "any",
+                    "description": "Object to find type of"
+                }
+            ],
+            "returns": {
+                "type": "keyword",
+                "description": "Keyword representing the object's type"
+            },
+            "errors": [
+                "Throws error for unknown MAL values"
+            ],
+            "examples": [
+                {
+                    "input": "(find-type 42)",
+                    "output": ":mal/number"
+                },
+                {
+                    "input": "(find-type [])",
+                    "output": ":mal/vector"
+                }
+            ],
+            "metadata": {
+                "category": "reflection",
+                "complexity": "O(1)",
+                "symbol-type": "function-pure"
+            }
+        },
+        "defprotocol": {
+            "description": "Macro that defines a protocol (interface) with method signatures",
+            "args": [
+                {
+                    "name": "proto-name",
+                    "type": "symbol",
+                    "description": "Name of the protocol"
+                },
+                {
+                    "name": "methods",
+                    "type": "list",
+                    "description": "Method definitions with names and parameter vectors",
+                    "variadic": true
+                }
+            ],
+            "returns": {
+                "type": "protocol",
+                "description": "The new protocol"
+            },
+            "errors": [],
+            "examples": [
+                {
+                    "input": "(defprotocol IExample (method1 [this]) (method2 [this arg]))",
+                    "output": "protocol"
+                }
+            ],
+            "metadata": {
+                "category": "protocols",
+                "complexity": "O(n)",
+                "symbol-type": "macro"
+            }
+        },
+        "extend": {
+            "description": "Associates implementations with a type for a protocol",
+            "args": [
+                {
+                    "name": "type",
+                    "type": "keyword",
+                    "description": "Type to extend"
+                },
+                {
+                    "name": "protocol",
+                    "type": "protocol",
+                    "description": "Protocol to implement"
+                },
+                {
+                    "name": "methods",
+                    "type": "map",
+                    "description": "Map of method keywords to implementations"
+                },
+                {
+                    "name": "more",
+                    "type": "any",
+                    "description": "Additional protocol/methods pairs",
+                    "variadic": true
+                }
+            ],
+            "returns": {
+                "type": "nil",
+                "description": "nil"
+            },
+            "errors": [],
+            "examples": [
+                {
+                    "input": "(extend :mal/number IExample {:method1 (fn [this] this)})",
+                    "output": "nil"
+                }
+            ],
+            "metadata": {
+                "category": "protocols",
+                "complexity": "O(1)",
+                "symbol-type": "function-impure"
+            }
+        },
+        "satisfies?": {
+            "description": "Checks if an object satisfies a protocol (has implementations for all methods)",
+            "args": [
+                {
+                    "name": "protocol",
+                    "type": "protocol",
+                    "description": "Protocol to check"
+                },
+                {
+                    "name": "obj",
+                    "type": "any",
+                    "description": "Object to test"
+                }
+            ],
+            "returns": {
+                "type": "boolean",
+                "description": "True if object satisfies the protocol"
+            },
+            "errors": [],
+            "examples": [
+                {
+                    "input": "(satisfies? IExample 42)",
+                    "output": "true"
+                }
+            ],
+            "metadata": {
+                "category": "protocols",
+                "complexity": "O(1)",
+                "symbol-type": "function-pure"
+            }
+        },
+        "or": {
+            "description": "Macro that returns the first truthy value, evaluating arguments lazily",
+            "args": [
+                {
+                    "name": "xs",
+                    "type": "expression",
+                    "description": "Expressions to evaluate",
+                    "variadic": true
+                }
+            ],
+            "returns": {
+                "type": "any",
+                "description": "First truthy value or nil if all are falsy"
+            },
+            "errors": [],
+            "examples": [
+                {
+                    "input": "(or false nil 42 \"never evaluated\")",
+                    "output": "42"
+                },
+                {
+                    "input": "(or false nil)",
+                    "output": "nil"
+                }
+            ],
+            "metadata": {
+                "category": "logical",
+                "complexity": "O(n)",
+                "symbol-type": "macro"
+            }
+        },
+        "every?": {
+            "description": "Tests if predicate is true for every element in a sequence",
+            "args": [
+                {
+                    "name": "pred",
+                    "type": "function",
+                    "description": "Predicate function to test each element"
+                },
+                {
+                    "name": "xs",
+                    "type": "sequence",
+                    "description": "Sequence to test"
+                }
+            ],
+            "returns": {
+                "type": "boolean",
+                "description": "True if predicate is true for all elements"
+            },
+            "errors": [],
+            "examples": [
+                {
+                    "input": "(every? number? [1 2 3])",
+                    "output": "true"
+                },
+                {
+                    "input": "(every? even? [2 4 5])",
+                    "output": "false"
+                }
+            ],
+            "metadata": {
+                "category": "sequence",
+                "complexity": "O(n)",
+                "symbol-type": "function-pure"
+            }
+        },
+        "some": {
+            "description": "Returns the first truthy result of applying predicate to sequence elements",
+            "args": [
+                {
+                    "name": "pred",
+                    "type": "function",
+                    "description": "Predicate function to test each element"
+                },
+                {
+                    "name": "xs",
+                    "type": "sequence",
+                    "description": "Sequence to test"
+                }
+            ],
+            "returns": {
+                "type": "any",
+                "description": "First truthy result or nil if none found"
+            },
+            "errors": [],
+            "examples": [
+                {
+                    "input": "(some even? [1 3 4 5])",
+                    "output": "true"
+                },
+                {
+                    "input": "(some even? [1 3 5])",
+                    "output": "nil"
+                }
+            ],
+            "metadata": {
+                "category": "sequence",
+                "complexity": "O(n)",
+                "symbol-type": "function-pure"
+            }
+        },
+        "and": {
+            "description": "Macro that returns the last value if all are truthy, evaluating lazily",
+            "args": [
+                {
+                    "name": "xs",
+                    "type": "expression",
+                    "description": "Expressions to evaluate",
+                    "variadic": true
+                }
+            ],
+            "returns": {
+                "type": "any",
+                "description": "Last value if all are truthy, or first falsy value"
+            },
+            "errors": [],
+            "examples": [
+                {
+                    "input": "(and 1 2 3)",
+                    "output": "3"
+                },
+                {
+                    "input": "(and 1 false 3)",
+                    "output": "false"
+                }
+            ],
+            "metadata": {
+                "category": "logical",
+                "complexity": "O(n)",
+                "symbol-type": "macro"
+            }
+        },
+        "load-file-once": {
+            "description": "Like load-file, but ensures the same file path is never loaded twice",
+            "args": [
+                {
+                    "name": "filename",
+                    "type": "string",
+                    "description": "Path to the file to load"
+                }
+            ],
+            "returns": {
+                "type": "any",
+                "description": "Result of loading the file, or nil if already loaded"
+            },
+            "errors": [
+                "File not found or cannot be read",
+                "Syntax errors in the loaded file"
+            ],
+            "examples": [
+                {
+                    "input": "(load-file-once \"config.lisp\")",
+                    "output": "result-of-file"
+                },
+                {
+                    "input": "(load-file-once \"config.lisp\")",
+                    "output": "nil"
+                }
+            ],
+            "metadata": {
+                "category": "io",
+                "complexity": "O(1)",
+                "symbol-type": "function-impure"
+            }
+        }
+    }
+}
