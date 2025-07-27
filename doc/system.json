@@ -1,0 +1,110 @@
+{
+    "name": "system",
+    "description": "System-level functionalities for environment variable management",
+    "version": "0.2.17",
+    "symbols": {
+        "getenv": {
+            "description": "Gets the value of an environment variable. Returns nil if the variable is not set",
+            "args": [
+                {
+                    "name": "key",
+                    "type": "string",
+                    "description": "Name of the environment variable to retrieve"
+                }
+            ],
+            "returns": {
+                "type": "string",
+                "description": "Value of the environment variable, or nil if not set"
+            },
+            "errors": [],
+            "examples": [
+                {
+                    "input": "(getenv \"HOME\")",
+                    "output": "\"/Users/username\""
+                },
+                {
+                    "input": "(getenv \"NONEXISTENT_VAR\")",
+                    "output": "nil"
+                },
+                {
+                    "input": "(getenv \"PATH\")",
+                    "output": "\"/usr/bin:/bin:/usr/sbin:/sbin\""
+                }
+            ],
+            "metadata": {
+                "category": "system",
+                "complexity": "O(1)",
+                "symbol-type": "function-impure"
+            }
+        },
+        "setenv": {
+            "description": "Sets the value of an environment variable in the current process",
+            "args": [
+                {
+                    "name": "key",
+                    "type": "string",
+                    "description": "Name of the environment variable to set"
+                },
+                {
+                    "name": "value",
+                    "type": "string",
+                    "description": "Value to assign to the environment variable"
+                }
+            ],
+            "returns": {
+                "type": "nil",
+                "description": "nil on success (side effect: modifies environment)"
+            },
+            "errors": [
+                "Returns error if setting the environment variable fails"
+            ],
+            "examples": [
+                {
+                    "input": "(setenv \"MY_VAR\" \"my_value\")",
+                    "output": "nil"
+                },
+                {
+                    "input": "(setenv \"DEBUG\" \"true\")",
+                    "output": "nil"
+                }
+            ],
+            "metadata": {
+                "category": "system",
+                "complexity": "O(1)",
+                "symbol-type": "function-impure"
+            }
+        },
+        "unsetenv": {
+            "description": "Removes an environment variable from the current process",
+            "args": [
+                {
+                    "name": "key",
+                    "type": "string",
+                    "description": "Name of the environment variable to remove"
+                }
+            ],
+            "returns": {
+                "type": "nil",
+                "description": "nil on success (side effect: removes environment variable)"
+            },
+            "errors": [
+                "Returns error if unsetting the environment variable fails"
+            ],
+            "examples": [
+                {
+                    "input": "(unsetenv \"MY_VAR\")",
+                    "output": "nil"
+                },
+                {
+                    "input": "(unsetenv \"TEMP_DEBUG_FLAG\")",
+                    "output": "nil"
+                }
+            ],
+            "metadata": {
+                "category": "system",
+                "complexity": "O(1)",
+                "symbol-type": "function-impure"
+            }
+        }
+    }
+}
