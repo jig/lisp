@@ -1,0 +1,18 @@
+{
+    "name": "nscore-cmd-line-nullargs",
+    "description": "command line arguments",
+    "version": "0.2.17",
+    "symbols": {
+        "*ARGV*": {
+            "description": "list of command line arguments",
+            "returns": {
+                "type": "list<string>",
+                "description": "command line arguments as a list of strings"
+            },
+            "metadata": {
+                "category": "os",
+                "symbol-type": "list"
+            }
+        }
+    }
+}

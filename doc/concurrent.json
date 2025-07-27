@@ -1,0 +1,342 @@
+{
+    "name": "concurrent",
+    "description": "Concurrent programming functionalities including atoms and futures",
+    "version": "0.2.17",
+    "symbols": {
+        "atom": {
+            "description": "Creates a new atom containing the given value. Atoms provide thread-safe mutable references",
+            "args": [
+                {
+                    "name": "value",
+                    "type": "any",
+                    "description": "Initial value to store in the atom"
+                }
+            ],
+            "returns": {
+                "type": "atom",
+                "description": "A new atom containing the initial value"
+            },
+            "errors": [],
+            "examples": [
+                {
+                    "input": "(atom 42)",
+                    "output": "«atom 42»"
+                },
+                {
+                    "input": "(atom [1 2 3])",
+                    "output": "«atom [1 2 3]»"
+                }
+            ],
+            "metadata": {
+                "category": "concurrency",
+                "complexity": "O(1)",
+                "symbol-type": "function-pure"
+            }
+        },
+        "new-atom": {
+            "description": "Attempts to deserialize an atom (always fails with error)",
+            "args": [
+                {
+                    "name": "atom",
+                    "type": "atom",
+                    "description": "Atom to deserialize"
+                }
+            ],
+            "returns": {
+                "type": "never",
+                "description": "Never returns successfully"
+            },
+            "errors": [
+                "Always returns error: atom cannot be deserialized"
+            ],
+            "examples": [
+                {
+                    "input": "(new-atom some-atom)",
+                    "output": "Error: atom cannot be deserialized"
+                }
+            ],
+            "metadata": {
+                "category": "concurrency",
+                "complexity": "O(1)",
+                "symbol-type": "function-pure"
+            }
+        },
+        "atom?": {
+            "description": "Checks if the given value is an atom",
+            "args": [
+                {
+                    "name": "value",
+                    "type": "any",
+                    "description": "Value to check"
+                }
+            ],
+            "returns": {
+                "type": "boolean",
+                "description": "True if value is an atom, false otherwise"
+            },
+            "errors": [],
+            "examples": [
+                {
+                    "input": "(atom? (atom 42))",
+                    "output": "true"
+                },
+                {
+                    "input": "(atom? 42)",
+                    "output": "false"
+                }
+            ],
+            "metadata": {
+                "category": "predicate",
+                "complexity": "O(1)",
+                "symbol-type": "function-pure"
+            }
+        },
+        "swap!": {
+            "description": "Atomically swaps the value of an atom by applying a function to the current value and additional arguments",
+            "args": [
+                {
+                    "name": "atom",
+                    "type": "atom",
+                    "description": "Atom whose value to swap"
+                },
+                {
+                    "name": "function",
+                    "type": "function",
+                    "description": "Function to apply to the current atom value"
+                },
+                {
+                    "name": "args",
+                    "type": "any",
+                    "description": "Additional arguments to pass to the function",
+                    "variadic": true
+                }
+            ],
+            "returns": {
+                "type": "any",
+                "description": "The new value of the atom after applying the function"
+            },
+            "errors": [
+                "Returns error if first argument is not an atom",
+                "Returns error if function application fails"
+            ],
+            "examples": [
+                {
+                    "input": "(def a (atom 10)) (swap! a + 5)",
+                    "output": "15"
+                },
+                {
+                    "input": "(def a (atom [1 2])) (swap! a conj 3)",
+                    "output": "[1 2 3]"
+                }
+            ],
+            "metadata": {
+                "category": "concurrency",
+                "complexity": "O(f(n))",
+                "symbol-type": "function-impure"
+            }
+        },
+        "reset!": {
+            "description": "Atomically sets the value of an atom to the given value",
+            "args": [
+                {
+                    "name": "atom",
+                    "type": "atom",
+                    "description": "Atom whose value to reset"
+                },
+                {
+                    "name": "value",
+                    "type": "any",
+                    "description": "New value to set in the atom"
+                }
+            ],
+            "returns": {
+                "type": "any",
+                "description": "The new value that was set in the atom"
+            },
+            "errors": [
+                "Returns error if first argument is not an atom"
+            ],
+            "examples": [
+                {
+                    "input": "(def a (atom 10)) (reset! a 42)",
+                    "output": "42"
+                },
+                {
+                    "input": "(def a (atom [])) (reset! a [1 2 3])",
+                    "output": "[1 2 3]"
+                }
+            ],
+            "metadata": {
+                "category": "concurrency",
+                "complexity": "O(1)",
+                "symbol-type": "function-impure"
+            }
+        },
+        "future-call": {
+            "description": "Creates a future that executes the given function asynchronously in a separate goroutine",
+            "args": [
+                {
+                    "name": "function",
+                    "type": "function",
+                    "description": "Function to execute asynchronously"
+                }
+            ],
+            "returns": {
+                "type": "future",
+                "description": "A future representing the asynchronous computation"
+            },
+            "errors": [],
+            "examples": [
+                {
+                    "input": "(future-call (fn [] (+ 1 2)))",
+                    "output": "«futur-call (fn [] (+ 1 2))»"
+                }
+            ],
+            "metadata": {
+                "category": "concurrency",
+                "complexity": "O(1)",
+                "symbol-type": "function-impure"
+            }
+        },
+        "future-cancel": {
+            "description": "Attempts to cancel a future. Returns true if the future was cancelled",
+            "args": [
+                {
+                    "name": "future",
+                    "type": "future",
+                    "description": "Future to cancel"
+                }
+            ],
+            "returns": {
+                "type": "boolean",
+                "description": "True if the future was successfully cancelled, false otherwise"
+            },
+            "errors": [],
+            "examples": [
+                {
+                    "input": "(def f (future-call (fn [] (+ 1 2)))) (future-cancel f)",
+                    "output": "true"
+                }
+            ],
+            "metadata": {
+                "category": "concurrency",
+                "complexity": "O(1)",
+                "symbol-type": "function-impure"
+            }
+        },
+        "future-cancelled?": {
+            "description": "Checks if a future has been cancelled",
+            "args": [
+                {
+                    "name": "future",
+                    "type": "future",
+                    "description": "Future to check"
+                }
+            ],
+            "returns": {
+                "type": "boolean",
+                "description": "True if the future is cancelled, false otherwise"
+            },
+            "errors": [],
+            "examples": [
+                {
+                    "input": "(def f (future-call (fn [] (+ 1 2)))) (future-cancelled? f)",
+                    "output": "false"
+                },
+                {
+                    "input": "(def f (future-call (fn [] (+ 1 2)))) (future-cancel f) (future-cancelled? f)",
+                    "output": "true"
+                }
+            ],
+            "metadata": {
+                "category": "predicate",
+                "complexity": "O(1)",
+                "symbol-type": "function-pure"
+            }
+        },
+        "future-done?": {
+            "description": "Checks if a future has completed execution (either successfully or with error)",
+            "args": [
+                {
+                    "name": "future",
+                    "type": "future",
+                    "description": "Future to check"
+                }
+            ],
+            "returns": {
+                "type": "boolean",
+                "description": "True if the future is done, false otherwise"
+            },
+            "errors": [],
+            "examples": [
+                {
+                    "input": "(def f (future-call (fn [] (+ 1 2)))) (future-done? f)",
+                    "output": "false"
+                }
+            ],
+            "metadata": {
+                "category": "predicate",
+                "complexity": "O(1)",
+                "symbol-type": "function-pure"
+            }
+        },
+        "future?": {
+            "description": "Checks if the given value is a future",
+            "args": [
+                {
+                    "name": "value",
+                    "type": "any",
+                    "description": "Value to check"
+                }
+            ],
+            "returns": {
+                "type": "boolean",
+                "description": "True if value is a future, false otherwise"
+            },
+            "errors": [],
+            "examples": [
+                {
+                    "input": "(future? (future-call (fn [] (+ 1 2))))",
+                    "output": "true"
+                },
+                {
+                    "input": "(future? 42)",
+                    "output": "false"
+                }
+            ],
+            "metadata": {
+                "category": "predicate",
+                "complexity": "O(1)",
+                "symbol-type": "function-pure"
+            }
+        },
+        "new-future-call": {
+            "description": "Attempts to create a new future from serialized data (always fails with error)",
+            "args": [
+                {
+                    "name": "function",
+                    "type": "function",
+                    "description": "Function to create future from"
+                }
+            ],
+            "returns": {
+                "type": "never",
+                "description": "Never returns successfully"
+            },
+            "errors": [
+                "Always returns error: atom cannot be deserialized"
+            ],
+            "examples": [
+                {
+                    "input": "(new-future-call some-function)",
+                    "output": "Error: atom cannot be deserialized"
+                }
+            ],
+            "metadata": {
+                "category": "concurrency",
+                "complexity": "O(1)",
+                "symbol-type": "function-pure"
+            }
+        }
+    }
+}

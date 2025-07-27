@@ -1,0 +1,34 @@
+{
+    "name": "nscore",
+    "description": "eval special function with io",
+    "version": "0.2.17",
+    "symbols": {
+        "eval": {
+            "description": "eval Lisp code with io",
+            "args": [
+                {
+                    "name": "code",
+                    "type": "any",
+                    "description": "AST to evaluate"
+                }
+            ],
+            "returns": {
+                "type": "any",
+                "description": "result of the function evaluation"
+            },
+            "errors": [
+                "..."
+            ],
+            "examples": [
+                {
+                    "input": "(true? true)",
+                    "output": "true"
+                }
+            ],
+            "metadata": {
+                "category": "interpreter",
+                "symbol-type": "function-impure"
+            }
+        }
+    }
+}

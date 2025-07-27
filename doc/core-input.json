@@ -1,0 +1,57 @@
+{
+    "name": "core-input",
+    "description": "read file functionality",
+    "version": "0.2.17",
+    "symbols": {
+        "slurp": {
+            "description": "read a file into a string",
+            "args": [
+                {
+                    "name": "file-path",
+                    "type": "string",
+                    "description": "file path to read"
+                }
+            ],
+            "returns": {
+                "type": "string",
+                "description": "file contents string"
+            },
+            "errors": [
+                "File not found"
+            ],
+            "examples": [
+                {
+                    "input": "(slurp \"path/to/file.txt\")",
+                    "output": "file contents as string"
+                }
+            ],
+            "metadata": {
+                "category": "io",
+                "complexity": "O(n)",
+                "symbol-type": "function-impure"
+            }
+        },
+        "read-line": {
+            "description": "read a line from standard input",
+            "args": [],
+            "returns": {
+                "type": "string",
+                "description": "input line as string"
+            },
+            "errors": [
+                "End of input"
+            ],
+            "examples": [
+                {
+                    "input": "(read-line \"prompt$\")",
+                    "output": "user input line"
+                }
+            ],
+            "metadata": {
+                "category": "io",
+                "complexity": "O(n)",
+                "symbol-type": "function-impure"
+            }
+        }
+    }
+}
