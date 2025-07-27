@@ -337,6 +337,44 @@
                 "complexity": "O(1)",
                 "symbol-type": "function-pure"
             }
+        },
+        "future": {
+            "description": "A macro that creates a future to execute the given body expressions asynchronously. Syntactic sugar for wrapping expressions in future-call with an anonymous function",
+            "args": [
+                {
+                    "name": "body",
+                    "type": "expression",
+                    "description": "One or more expressions to execute asynchronously",
+                    "variadic": true
+                }
+            ],
+            "returns": {
+                "type": "future",
+                "description": "A future representing the asynchronous computation of the body expressions"
+            },
+            "errors": [
+                "Compilation errors if body contains invalid syntax",
+                "Runtime errors during future execution depend on the body expressions"
+            ],
+            "examples": [
+                {
+                    "input": "(future (+ 1 2 3))",
+                    "output": "«futur-call (fn [] (+ 1 2 3))»"
+                },
+                {
+                    "input": "(future (println \"Hello\") 42)",
+                    "output": "«futur-call (fn [] (println \"Hello\") 42)»"
+                },
+                {
+                    "input": "(deref (future (Thread/sleep 1000) \"done\"))",
+                    "output": "\"done\""
+                }
+            ],
+            "metadata": {
+                "category": "concurrency",
+                "complexity": "O(1)",
+                "symbol-type": "macro"
+            }
         }
     }
 }
