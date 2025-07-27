@@ -26,6 +26,9 @@ type Argument struct {
 	Name        string `json:"name"`
 	Description string `json:"description"`
 	Type        string `json:"type"`
+
+	// TODO(jig): eview the management of this attribute
+	Variadic bool `json:"variadic,omitempty"` // Optional, true if the argument can take multiple values
 }
 
 type Returns struct {

@@ -2281,6 +2281,133 @@
                 "complexity": "O(1)",
                 "symbol-type": "function-pure"
             }
+        },
+        "*host-language*": {
+            "description": "A constant that identifies the host language implementation",
+            "returns": {
+                "type": "string",
+                "description": "The name of the host language, always \"go\""
+            },
+            "examples": [
+                {
+                    "input": "*host-language*",
+                    "output": "\"go\""
+                }
+            ],
+            "metadata": {
+                "category": "utility",
+                "complexity": "O(1)",
+                "symbol-type": "constant"
+            }
+        },
+        "not": {
+            "description": "Returns the logical negation of its argument. Returns true if argument is falsy (false or nil), false otherwise",
+            "args": [
+                {
+                    "name": "value",
+                    "type": "any",
+                    "description": "Value to negate logically"
+                }
+            ],
+            "returns": {
+                "type": "boolean",
+                "description": "Logical negation of the input value"
+            },
+            "errors": [],
+            "examples": [
+                {
+                    "input": "(not true)",
+                    "output": "false"
+                },
+                {
+                    "input": "(not false)",
+                    "output": "true"
+                },
+                {
+                    "input": "(not nil)",
+                    "output": "true"
+                },
+                {
+                    "input": "(not 42)",
+                    "output": "false"
+                }
+            ],
+            "metadata": {
+                "category": "logical",
+                "complexity": "O(1)",
+                "symbol-type": "function-pure"
+            }
+        },
+        "cond": {
+            "description": "A macro that provides multi-way conditional branching. Takes pairs of test-expression and result-expression",
+            "args": [
+                {
+                    "name": "clauses",
+                    "type": "any",
+                    "description": "Pairs of condition and result expressions. Must be an even number of forms",
+                    "variadic": true
+                }
+            ],
+            "returns": {
+                "type": "any",
+                "description": "Result of the first clause whose condition is truthy, or nil if no conditions match"
+            },
+            "errors": [
+                "Throws error if odd number of forms provided"
+            ],
+            "examples": [
+                {
+                    "input": "(cond (> 5 3) \"greater\" (< 5 3) \"less\")",
+                    "output": "\"greater\""
+                },
+                {
+                    "input": "(cond false \"no\" nil \"nope\" true \"yes\")",
+                    "output": "\"yes\""
+                },
+                {
+                    "input": "(cond false \"no\")",
+                    "output": "nil"
+                }
+            ],
+            "metadata": {
+                "category": "control-flow",
+                "complexity": "O(n)",
+                "symbol-type": "macro"
+            }
+        },
+        "load-file": {
+            "description": "Loads and evaluates a Lisp source file. The file contents are wrapped in a module structure and evaluated in the current environment",
+            "args": [
+                {
+                    "name": "filename",
+                    "type": "string",
+                    "description": "Path to the file to load and evaluate"
+                }
+            ],
+            "returns": {
+                "type": "any",
+                "description": "The result of evaluating the file contents, or nil if no explicit return"
+            },
+            "errors": [
+                "File not found or cannot be read",
+                "Syntax errors in the loaded file",
+                "Runtime errors during file evaluation"
+            ],
+            "examples": [
+                {
+                    "input": "(load-file \"myfile.lisp\")",
+                    "output": "nil"
+                },
+                {
+                    "input": "(load-file \"config.lisp\")",
+                    "output": "result-of-last-expression"
+                }
+            ],
+            "metadata": {
+                "category": "io",
+                "complexity": "O(n)",
+                "symbol-type": "function-impure"
+            }
         }
     }
 }
