@@ -9,6 +9,7 @@ import (
 	"github.com/jig/lisp/env"
 	"github.com/jig/lisp/lib/concurrent"
 	"github.com/jig/lisp/lib/core"
+	"github.com/jig/lisp/lib/coreextented"
 	"github.com/jig/lisp/types"
 )
 
@@ -540,19 +541,16 @@ func TestMacro(t *testing.T) {
 		return EVAL(ctx, a[0], repl_env)
 	}})
 
-	if _, err := REPL(ctx, repl_env, `(def *host-language* "go")`, types.NewCursorFile(reflect.TypeOf(_here_{}).PkgPath())); err != nil {
+	if _, err := REPL(ctx, repl_env, core.HeaderBasic(), types.NewCursorFile(reflect.TypeOf(_here_{}).PkgPath())); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := REPL(ctx, repl_env, "(def not (fn (a) (if a false true)))", types.NewCursorFile(reflect.TypeOf(_here_{}).PkgPath())); err != nil {
+	if _, err := REPL(ctx, repl_env, core.HeaderLoadFile(), types.NewCursorFile(reflect.TypeOf(_here_{}).PkgPath())); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := REPL(ctx, repl_env, `(def load-file (fn (f) (eval (read-string (str "(do " (slurp f) "\nnil)")))))`, types.NewCursorFile(reflect.TypeOf(_here_{}).PkgPath())); err != nil {
+	if _, err := REPL(ctx, repl_env, coreextented.HeaderCoreExtended(), types.NewCursorFile(reflect.TypeOf(_here_{}).PkgPath())); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := REPL(ctx, repl_env, "(defmacro cond (fn (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw \"odd number of forms to cond\")) (cons 'cond (rest (rest xs)))))))", types.NewCursorFile(reflect.TypeOf(_here_{}).PkgPath())); err != nil {
-		t.Fatal(err)
-	}
-	if err := Load(repl_env); err != nil {
+	if _, err := REPL(ctx, repl_env, concurrent.HeaderConcurrent(), types.NewCursorFile(reflect.TypeOf(_here_{}).PkgPath())); err != nil {
 		t.Fatal(err)
 	}
 

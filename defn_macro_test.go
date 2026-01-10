@@ -79,7 +79,7 @@ func TestDefnMacro2(t *testing.T) {
 	core.Load(ns) // need cons
 
 	ctx := context.Background()
-	// a slightly different version of the macro defn that supports implicit doing of body (no need for 'do' when multiple expressions in body)
+	// a slightly different version of the macro defn that supports implicit _doing_ of body (no need for 'do' when multiple expressions in body)
 	result, err := REPL(ctx, ns,
 		"(do"+
 			"(defmacro defn (fn [name params & body] `(def ~name (fn ~params ~@body))))\n"+

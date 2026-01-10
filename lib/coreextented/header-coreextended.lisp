@@ -81,6 +81,26 @@
         ;; return : Accumulator
         (rec f xs init (- (count xs) 1)))))
 
+;;; Partial Application
+  ;; Partial application of functions.
+
+  ;; Takes a function f and fewer than the normal arguments to f, and
+  ;; returns a fn that takes a variable number of additional args. When
+  ;; called, the returned function calls f with args + additional args.
+  (def partial
+    (fn [f & args]
+      (fn [& more-args]
+        (apply f (concat args more-args)))))
+
+;;; Control Flow Macros
+  ;; Convenient control flow macros.
+
+  ;; Evaluates condition. If true, evaluates all the body forms in an implicit
+  ;; do block and returns the result. Otherwise returns nil.
+  (defmacro when
+    (fn [condition & body]
+      `(if ~condition (do ~@body))))
+
 ;;; Threading
   ;; Composition of partially applied functions.
 

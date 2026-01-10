@@ -1,1 +1,2 @@
-(defmacro future (fn [& body] `(^{:once true} future-call (fn [] ~@body))))
+(defmacro future (fn [& body]
+    `(^{:once true} future-call (fn [] ~@body))))
