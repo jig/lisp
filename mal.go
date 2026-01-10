@@ -449,11 +449,15 @@ func EVAL(ctx context.Context, ast MalType, env EnvType) (res MalType, e error) 
 			ast = quasiquote(a1)
 		case "defmacro":
 			fn, e := EVAL(ctx, a2, env)
-			fn = fn.(MalFunc).SetMacro()
 			if e != nil {
 				return nil, e
 			}
-			return env.Set(a1.(Symbol), fn), nil
+			switch fn := fn.(type) {
+			case MalFunc:
+				return env.Set(a1.(Symbol), fn.SetMacro()), nil
+			default:
+				return nil, lisperror.NewLispError(fmt.Errorf("defmacro: second argument must be a function (was of type %T)", fn), ast)
+			}
 		case "macroexpand":
 			return macroexpand(ctx, a1, env)
 		case "try":
