@@ -9,7 +9,7 @@ There almost 100 implementations on almost 100 languages available on repository
 This derived implementation is focused on _embeddability_ in Go projects.
 See [lisp main](./cmd/lisp) for an example on how to embed it in Go code.
 
-Requires Go 1.18.
+Requires Go 1.25.
 
 This implementation uses [chzyer/readline](https://github.com/chzyer/readline) instead of C implented readline or libedit, making this implementation pure Go.
 
