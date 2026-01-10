@@ -76,6 +76,8 @@ go test -benchmem -benchtime 5s -bench '^.+$' github.com/jig/lisp
 - `type?` returns the type name string
 - `go-error`, `unwrap` and `panic` mapping to Go's `errors.New/fmt.Errorf`, `Unwrap` and `panic` respectively
 - `getenv`, `setenv` and `unsetenv` functions for environment variables
+- `defn`, `wait` macros added (see [./tests/stepN_defn.mal.go](./tests/stepN_defn.mal) for an example of `defn` and `wait` macro usage, or go to Clojure documentation)
+- `partial` function added (see [./tests/stepN_defn.mal.go](./tests/stepN_defn.mal) for an example of `partial` usage, or go to Clojure documentation)
 
 
 # Embed Lisp in Go code
