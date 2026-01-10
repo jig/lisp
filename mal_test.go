@@ -23,6 +23,7 @@ func BenchmarkLoadSymbols(b *testing.B) {
 func BenchmarkMAL1(b *testing.B) {
 	repl_env := NewEnv()
 	core.Load(repl_env)
+	concurrent.Load(repl_env)
 	ctx := context.Background()
 	for i := 0; i < b.N; i++ {
 		repl_env.Set(Symbol{Val: "eval"}, Func{Fn: func(ctx context.Context, a []MalType) (MalType, error) {
