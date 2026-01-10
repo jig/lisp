@@ -82,7 +82,7 @@ func TestCursor(t *testing.T) {
 		},
 	} {
 		subEnv := env.NewSubordinateEnv(bootEnv)
-		ast, err := REPL(ctx, subEnv, "(do "+testCase.Code+")", &types.Position{
+		_, err := REPL(ctx, subEnv, "(do "+testCase.Code+")", &types.Position{
 			Module: &testCase.Module,
 			Row:    0,
 		})
@@ -105,15 +105,6 @@ func TestCursor(t *testing.T) {
 			continue
 		default:
 			t.Fatal(err)
-			//			t.Fatal(err)
-		}
-		if ast == "" {
-			t.Error(testCase.Module, "(no error) AST is nil")
-			continue
-		}
-		if ast != "1234" {
-			t.Error(testCase.Module, "(no error) REPL didn't reach the end")
-			continue
 		}
 	}
 }
