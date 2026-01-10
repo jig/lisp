@@ -303,9 +303,7 @@ func name_with_hyphens(ctx context.Context, ms int) error {
 	return nil
 }
 
-func no_args_no_res() {
-	return
-}
+func no_args_no_res() {}
 
 func name_With_Caps(ctx context.Context, ms int) error {
 	return nil
