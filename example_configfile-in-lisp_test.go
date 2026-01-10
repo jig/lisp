@@ -11,7 +11,7 @@ import (
 
 func Example_configInLisp() {
 	ns := env.NewEnv()
-	nscore.Load(ns)
+	_ = nscore.Load(ns)
 	config, _ := lisp.READ(
 		`{
 			:sessions 10

@@ -13,7 +13,7 @@ import (
 
 func ExampleREAD() {
 	ns := env.NewEnv()
-	nscore.Load(ns) // to load '+' function
+	_ = nscore.Load(ns) // to load '+' function
 
 	ast, err := lisp.READ(
 		"(+ 1 1)",

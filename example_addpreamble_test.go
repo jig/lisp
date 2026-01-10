@@ -27,7 +27,7 @@ const incrementInLispSourceCode = "(+ 1 $ARG)"
 
 func incrementInLisp(arg int) (int, error) {
 	ns := env.NewEnv()
-	nscore.Load(ns) // to load '+' function
+	_ = nscore.Load(ns) // to load '+' function
 
 	preamble := map[string]types.MalType{
 		"$ARG": arg,

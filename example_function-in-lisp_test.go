@@ -13,7 +13,7 @@ import (
 
 func Example_functionInLisp() {
 	ns := env.NewEnv()
-	nscore.Load(ns)
+	_ = nscore.Load(ns)
 	ast, _ := lisp.READ(
 		`(fn [a] (* 10 a))`,
 		types.NewCursorFile("ExampleFunctionInLisp"),
