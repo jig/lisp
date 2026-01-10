@@ -83,7 +83,7 @@ func TestDefnMacro2(t *testing.T) {
 	result, err := REPL(ctx, ns,
 		"(do"+
 			"(defmacro defn (fn [name params & body] `(def ~name (fn ~params ~@body))))\n"+
-			"(defn sum [a b] (println a b) (+ a b))\n"+
+			"(defn sum [a b] (str a b) (+ a b))\n"+
 			"(sum 1 2))",
 		types.NewCursorFile(t.Name()),
 	)
