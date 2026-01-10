@@ -13,7 +13,7 @@ import (
 
 func ExampleEVAL() {
 	ns := env.NewEnv()
-	nscore.Load(ns) // to load '+' function
+	_ = nscore.Load(ns) // to load '+' function
 
 	ast := LS("+", 1, 1)
 	result, err := lisp.EVAL(

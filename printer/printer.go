@@ -11,8 +11,6 @@ import (
 )
 
 // Pr_list implements pr-list Lisp function
-//
-// Deprecated: it must not be public
 func Pr_list(lst []types.MalType, pr bool,
 	start string, end string, join string) string {
 	str_list := make([]string, 0, len(lst))

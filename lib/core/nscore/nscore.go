@@ -12,7 +12,7 @@ import (
 
 type Here struct{}
 
-var _package_ = reflect.TypeOf(Here{}).PkgPath()
+var _package_ = reflect.TypeFor[Here]().PkgPath()
 
 func Load(env EnvType) error {
 	core.Load(env)

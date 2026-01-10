@@ -13,7 +13,7 @@ import (
 
 func ExampleReadEvalWithPreamble() {
 	ns := env.NewEnv()
-	nscore.Load(ns) // to load '+' function
+	_ = nscore.Load(ns) // to load '+' function
 
 	sourceCode := `;; $ARG 1
 (+ 1 $ARG)`

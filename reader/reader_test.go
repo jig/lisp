@@ -100,11 +100,11 @@ func TestAdHocReaders(t *testing.T) {
 		if err != nil {
 			t.Error(err)
 		}
-		switch ast.(type) {
+		switch ast := ast.(type) {
 		case nil:
 			t.Fatal()
 		case Embeddable:
-			if ast.(Embeddable).in != nil {
+			if ast.in != nil {
 				t.Fatal()
 			}
 		default:
