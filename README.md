@@ -17,7 +17,7 @@ This implementation uses [chzyer/readline](https://github.com/chzyer/readline) i
 
 Changes respect to [kanaka/mal](https://github.com/kanaka/mal):
 
-- Using `def` insted of `def!`, `try` instead of `try*`, etc. symbols
+- Using `def` instead of `def!`, `try` instead of `try*`, etc. symbols
 - `atom` is multithread
 - Tests executed using Go test library. Original implementation uses a `runtest.py` in Python to keep all implementations compatible. But it makes the Go development less enjoyable. Tests files are the original ones, there is simply a new `runtest_test.go` that substitutes the original Python script
 - Some tests are actually in lisp (mal), using the macros commented in _Additions_ section (now only the test library itself). Well, actually not many at this moment, see "Test file specs" below
@@ -67,7 +67,7 @@ go test -benchmem -benchtime 5s -bench '^.+$' github.com/jig/lisp
 - `(get-in m ks)` to access nested values from a `m` map; `ks` must be a vector of hash map keys
 - `(uuid)` returns an 128 bit rfc4122 random UUID
 - `(split string cutset)` returns a lisp Vector of the elements splitted by the cutset (see [./tests/stepH_strings](./tests/stepH_strings.mal) for examples)
-- support of (hashed, unordered) sets. Only sets of strings or keywords supported. Use `#{}` for literal sets. Functions supported for sets: `set`, `set?`, `conj`, `get`, `assoc`, `dissoc`, `contains?`, `empty?`. `meta`, `with-meta` (see [./tests/stepA_mal](./tests/stepF_set.mal) and (see [./tests/stepA_mal](./tests/stepF_set.mal) for examples). `json-encode` will encode a set to a JSON array
+- support of (hashed, unordered) sets. Only sets of strings or keywords supported. Use `#{}` for literal sets. Functions supported for sets: `set`, `set?`, `conj`, `get`, `assoc`, `dissoc`, `contains?`, `empty?`. `meta`, `with-meta` (see [./tests/stepA_mal](./tests/stepA_set.mal) and [./tests/stepF_mal](./tests/stepF_set.mal) for examples). `json-encode` will encode a set to a JSON array
 - `update`, `update-in` and `assoc-in` supported for hash maps and vectors
 - Go function `READ_WithPreamble` works like `READ` but supports placeholders to be filled on READ time (see [./placeholder_test.go](./placeholder_test.go) for som samples)
 - Added support for `finally` inside `try`. `finally` expression is evaluated for side effects only. `finally` is optional
