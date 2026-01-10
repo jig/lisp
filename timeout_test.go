@@ -2,11 +2,11 @@ package lisp
 
 import (
 	"context"
-	"reflect"
 	"strings"
 	"testing"
 	"time"
 
+	"github.com/jig/lisp/lib/concurrent"
 	"github.com/jig/lisp/types"
 )
 
@@ -34,8 +34,10 @@ func TestContextNoTimeout(t *testing.T) {
 
 func TestFutureContextTimeoutFiresOnTime(t *testing.T) {
 	ctxB := context.Background()
-	future := "(defmacro future (fn [& body] `(^{:once true} future-call (fn [] ~@body))))"
-	if _, err := REPL(ctxB, newEnv(t.Name()), `(eval (read-string (str "(do "`+future+`" nil)")))`, types.NewCursorFile(reflect.TypeOf(&future).PkgPath())); err != nil {
+	env := newEnv(t.Name())
+	concurrent.Load(env)
+	concurrentHeader := concurrent.HeaderConcurrent()
+	if _, err := REPL(ctxB, env, concurrentHeader, types.NewCursorFile(t.Name())); err != nil {
 		t.Fatal(err)
 	}
 
@@ -53,8 +55,10 @@ func TestFutureContextTimeoutFiresOnTime(t *testing.T) {
 
 func TestFutureContextNoTimeout(t *testing.T) {
 	ctxB := context.Background()
-	future := "(defmacro future (fn [& body] `(^{:once true} future-call (fn [] ~@body))))"
-	if _, err := REPL(ctxB, newEnv(t.Name()), `(eval (read-string (str "(do "`+future+`" nil)")))`, types.NewCursorFile(reflect.TypeOf(&future).PkgPath())); err != nil {
+	env := newEnv(t.Name())
+	concurrent.Load(env)
+	concurrentHeader := concurrent.HeaderConcurrent()
+	if _, err := REPL(ctxB, env, concurrentHeader, types.NewCursorFile(t.Name())); err != nil {
 		t.Fatal(err)
 	}
 

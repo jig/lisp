@@ -8,6 +8,7 @@ import (
 	. "github.com/jig/lisp/env"
 	"github.com/jig/lisp/lib/concurrent"
 	"github.com/jig/lisp/lib/core"
+	"github.com/jig/lisp/lib/coreextented"
 	"github.com/jig/lisp/types"
 	. "github.com/jig/lisp/types"
 )
@@ -29,17 +30,16 @@ func BenchmarkMAL1(b *testing.B) {
 		}})
 		repl_env.Set(Symbol{Val: "*ARGV*"}, List{})
 
-		// core.mal: defined using the language itself
-		if _, err := REPL(ctx, repl_env, `(def *host-language* "go")`, types.NewCursorFile(b.Name())); err != nil {
+		if _, err := REPL(ctx, repl_env, core.HeaderBasic(), types.NewCursorFile(b.Name())); err != nil {
 			b.Fatal(err)
 		}
-		if _, err := REPL(ctx, repl_env, `(def not (fn (a) (if a false true)))`, types.NewCursorFile(b.Name())); err != nil {
+		if _, err := REPL(ctx, repl_env, core.HeaderLoadFile(), types.NewCursorFile(b.Name())); err != nil {
 			b.Fatal(err)
 		}
-		if _, err := REPL(ctx, repl_env, `(def load-file (fn (f) (eval (read-string (str "(do " (slurp f) "\nnil)")))))`, types.NewCursorFile(b.Name())); err != nil {
+		if _, err := REPL(ctx, repl_env, coreextented.HeaderCoreExtended(), types.NewCursorFile(b.Name())); err != nil {
 			b.Fatal(err)
 		}
-		if _, err := REPL(ctx, repl_env, `(defmacro cond (fn (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw "odd number of forms to cond")) (cons 'cond (rest (rest xs)))))))`, types.NewCursorFile(b.Name())); err != nil {
+		if _, err := REPL(ctx, repl_env, concurrent.HeaderConcurrent(), types.NewCursorFile(b.Name())); err != nil {
 			b.Fatal(err)
 		}
 	}
@@ -160,17 +160,17 @@ func TestAtomParallel(t *testing.T) {
 	}})
 	repl_env.Set(Symbol{Val: "*ARGV*"}, List{})
 	ctx := context.Background()
-	// core.mal: defined using the language itself
-	if _, err := REPL(ctx, repl_env, "(def *host-language* \"go\")", types.NewCursorFile(t.Name())); err != nil {
+
+	if _, err := REPL(ctx, repl_env, core.HeaderBasic(), types.NewCursorFile(t.Name())); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := REPL(ctx, repl_env, "(def not (fn (a) (if a false true)))", types.NewCursorFile(t.Name())); err != nil {
+	if _, err := REPL(ctx, repl_env, core.HeaderLoadFile(), types.NewCursorFile(t.Name())); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := REPL(ctx, repl_env, `(def load-file (fn (f) (eval (read-string (str "(do " (slurp f) "\nnil)")))))`, types.NewCursorFile(t.Name())); err != nil {
+	if _, err := REPL(ctx, repl_env, coreextented.HeaderCoreExtended(), types.NewCursorFile(t.Name())); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := REPL(ctx, repl_env, "(defmacro cond (fn (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw \"odd number of forms to cond\")) (cons 'cond (rest (rest xs)))))))", types.NewCursorFile(t.Name())); err != nil {
+	if _, err := REPL(ctx, repl_env, concurrent.HeaderConcurrent(), types.NewCursorFile(t.Name())); err != nil {
 		t.Fatal(err)
 	}
 
@@ -210,17 +210,16 @@ func BenchmarkAtomParallel(b *testing.B) {
 	repl_env.Set(Symbol{Val: "*ARGV*"}, List{})
 	ctx := context.Background()
 
-	// core.mal: defined using the language itself
-	if _, err := REPL(ctx, repl_env, "(def *host-language* \"go\")", types.NewCursorFile(b.Name())); err != nil {
+	if _, err := REPL(ctx, repl_env, core.HeaderBasic(), types.NewCursorFile(b.Name())); err != nil {
 		b.Fatal(err)
 	}
-	if _, err := REPL(ctx, repl_env, "(def not (fn (a) (if a false true)))", types.NewCursorFile(b.Name())); err != nil {
+	if _, err := REPL(ctx, repl_env, core.HeaderLoadFile(), types.NewCursorFile(b.Name())); err != nil {
 		b.Fatal(err)
 	}
-	if _, err := REPL(ctx, repl_env, `(def load-file (fn (f) (eval (read-string (str "(do " (slurp f) "\nnil)")))))`, types.NewCursorFile(b.Name())); err != nil {
+	if _, err := REPL(ctx, repl_env, coreextented.HeaderCoreExtended(), types.NewCursorFile(b.Name())); err != nil {
 		b.Fatal(err)
 	}
-	if _, err := REPL(ctx, repl_env, "(defmacro cond (fn (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw \"odd number of forms to cond\")) (cons 'cond (rest (rest xs)))))))", types.NewCursorFile(b.Name())); err != nil {
+	if _, err := REPL(ctx, repl_env, concurrent.HeaderConcurrent(), types.NewCursorFile(b.Name())); err != nil {
 		b.Fatal(err)
 	}
 
