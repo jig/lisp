@@ -309,7 +309,7 @@
 
 ;; Loading sumdown from computations.mal
 (load-file "./tests/computations.mal")
-;=>nil
+;=>(fn [n] (do (if (<= n 1) n (+ (fib (- n 1)) (fib (- n 2))))))
 
 ;;
 ;; Testing time-ms function

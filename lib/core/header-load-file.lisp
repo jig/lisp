@@ -2,5 +2,4 @@
     (eval
         (read-string
             (str
-                ";; $MODULE " (quote f) "\n"
-                "(do " (slurp f) "\nnilf)")))))
+                ";; $MODULE " (quote f) "\n(do " (slurp f) "\n)")))))
