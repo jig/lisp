@@ -603,6 +603,7 @@ a
 ;=>true
 ;; invalid:
 (empty? "hello")
+;/.*empty\? called on non-sequence.*
 ;=>nil
 (empty? {})
 ;=>true

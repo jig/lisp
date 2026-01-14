@@ -58,9 +58,11 @@ func parseFile(ctx context.Context, fileName string, code string) error {
 	env := newEnv(fileName)
 	var result types.MalType
 	var stdoutResult string
+	var lastError error
 	for _, line := range lines {
 		currentLine++
 		line = strings.Trim(line, " \t\r\n")
+		fmt.Println(line)
 		switch {
 		case len(line) == 0:
 			continue
@@ -75,9 +77,13 @@ func parseFile(ctx context.Context, fileName string, code string) error {
 			continue
 		case strings.HasPrefix(line, ";=>"):
 			line = line[3:]
+			if lastError != nil && !strings.HasPrefix(line, "Error") {
+				return fmt.Errorf("%q %000d: unexpected error: %s", fileName, currentLine, lastError)
+			}
 			if result != line {
 				return fmt.Errorf("%q %000d: expected result `%s` got `%s`", fileName, currentLine, line, result)
 			}
+			lastError = nil
 			continue
 		case strings.HasPrefix(line, ";/"):
 			line = line[2:]
@@ -88,16 +94,18 @@ func parseFile(ctx context.Context, fileName string, code string) error {
 			if !matched {
 				return fmt.Errorf("%q %000d: expected stdout `%s` got `%s`", fileName, currentLine, line, stdoutResult)
 			}
+			lastError = nil
 			continue
 		case strings.HasPrefix(line, ";"):
 			return fmt.Errorf("%q test data error at line %d:\n%s", fileName, currentLine, line)
 		default:
 			// fmt.Println(currentLine, line)
-			result, stdoutResult = captureStdout(func() (types.MalType, error) {
+			result, stdoutResult, lastError = captureStdout(func() (types.MalType, error) {
 				v, err := REPL(ctx, env, line, types.NewCursorFile(fileName))
 				if v == nil {
 					return "nil", err
 				}
+				fmt.Fprintln(os.Stderr, "-->", result)
 				return v, err
 			})
 			// fmt.Printf("\t\t%s\t\t\t%s\n", line, stdoutResult)
@@ -136,7 +144,7 @@ func newEnv(fileName string) types.EnvType {
 	return newenv
 }
 
-func captureStdout(REPL func() (types.MalType, error)) (result types.MalType, stdoutResult string) {
+func captureStdout(REPL func() (types.MalType, error)) (result types.MalType, stdoutResult string, replError error) {
 	// see https://stackoverflow.com/questions/10473800/in-go-how-do-i-capture-stdout-of-a-function-into-a-string
 	// for the source example an explanation of this Go os.Pipe lines
 	old := os.Stdout
@@ -148,6 +156,7 @@ func captureStdout(REPL func() (types.MalType, error)) (result types.MalType, st
 
 	result, errREPL := REPL()
 	if errREPL != nil {
+		replError = errREPL
 		switch errREPL := errREPL.(type) {
 		case interface{ ErrorValue() types.MalType }:
 			fmt.Printf("Error: %s", PRINT(errREPL.ErrorValue()))
@@ -168,5 +177,5 @@ func captureStdout(REPL func() (types.MalType, error)) (result types.MalType, st
 	w.Close()
 	os.Stdout = old
 	stdoutResult = <-outC
-	return result, stdoutResult
+	return result, stdoutResult, replError
 }

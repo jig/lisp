@@ -192,7 +192,13 @@
 ;=>[2 3 4 5 6]
 (conj [1] [2 3])
 ;=>[1 [2 3]]
+
+;; jig: fixed, this test was not passing... and was not Clojure compatible
+;; make it Clojure compatible
 (conj {})
+;=>{}
+;; jig: new test
+(conj)
 ;=>nil
 (conj {} :a 1)
 ;=>{:a 1}
@@ -209,7 +215,7 @@
 (get (conj {:a 1} :b 2) :c)
 ;=>nil
 (conj #{})
-;=>nil
+;=>#{}
 (conj #{} :a)
 ;=>#{:a}
 (get (conj #{} :a :b) :a)

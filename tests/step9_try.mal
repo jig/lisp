@@ -437,6 +437,7 @@
 ;=>2
 
 (try (throw 2) (catch err (throw 3)))
+;/3
 ;=>nil
 (try (try (throw 2) (catch err (throw 3))) (catch err err))
 ;=>3

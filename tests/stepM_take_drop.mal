@@ -1,10 +1,10 @@
 (throw 3)
-;=>nil
 ;/3
+;=>nil
 
 3
-;=>3
 ;/
+;=>3
 
 ;; return a (non) lazy seq of the first 3 items
 (take 3 '(1 2 3 4 5 6))
@@ -74,8 +74,8 @@
 
 ;; Unsupported default n=1
 (drop-last [1 2 3 4])
-;=>nil
 ;/wrong number of arguments
+;=>nil
 
 (drop-last -1 [1 2 3 4])
 ;=>(1 2 3 4)
@@ -95,8 +95,8 @@
 
 ;; Unsupported with hash-maps
 (drop-last 2 {:a 1 :b 2 :c 3 :d 4})
-;=>nil
 ;/drop called on non-list and non-vector
+;=>nil
 
 
 
