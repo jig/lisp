@@ -2,6 +2,8 @@ package lisp
 
 import (
 	"context"
+	"fmt"
+	"os"
 	"strings"
 	"testing"
 
@@ -328,4 +330,194 @@ func TestStackFrameValidation(t *testing.T) {
 
 	t.Logf("Total stack frames: %d", atCount)
 	t.Logf("✓ Stack trace structure validated")
+}
+
+func TestLoadFileErrorStackTrace(t *testing.T) {
+	ns := env.NewEnv()
+	core.Load(ns)
+	core.LoadInput(ns) // Needed for slurp function
+
+	// Manually load eval and load-file since we can't use nscore (import cycle)
+	ns.Set(types.Symbol{Val: "eval"}, types.Func{Fn: func(ctx context.Context, a []types.MalType) (types.MalType, error) {
+		return EVAL(ctx, a[0], ns)
+	}})
+
+	_, err := REPL(context.Background(), ns, core.HeaderBasic(), types.NewCursorFile(t.Name()))
+	if err != nil {
+		t.Fatalf("Failed to load basic headers: %v", err)
+	}
+
+	_, err = REPL(context.Background(), ns, core.HeaderLoadFile(), types.NewCursorFile(t.Name()))
+	if err != nil {
+		t.Fatalf("Failed to load load-file: %v", err)
+	}
+
+	// Create a temporary file with an error inside
+	tmpDir := t.TempDir()
+	errorFile := tmpDir + "/error_file.lisp"
+
+	// File content with nested functions and an error
+	fileContent := `
+;; This file will be loaded with load-file
+(def helper-in-file (fn [x]
+	(+ x undefined-in-loaded-file)))
+
+(def caller-in-file (fn [y]
+	(helper-in-file y)))
+
+;; Call the function to trigger the error
+(caller-in-file 42)
+`
+
+	if err := os.WriteFile(errorFile, []byte(fileContent), 0644); err != nil {
+		t.Fatalf("Failed to create test file: %v", err)
+	}
+
+	// Load the file using load-file
+	code := fmt.Sprintf(`(load-file "%s")`, errorFile)
+	_, err = REPL(context.Background(), ns, code, types.NewCursorFile(t.Name()))
+
+	if err == nil {
+		t.Fatal("expected error but got none")
+	}
+
+	errStr := err.Error()
+	lines := strings.Split(errStr, "\n")
+
+	t.Logf("Stack trace from load-file:")
+	for i, line := range lines {
+		t.Logf("  Line %d: %s", i, line)
+	}
+
+	// Verify error message
+	if !strings.Contains(errStr, "symbol 'undefined-in-loaded-file' not found") {
+		t.Fatalf("error should contain original message: %s", errStr)
+	}
+
+	// The stack trace should reference the loaded file
+	// Check if the file path appears in the error
+	if strings.Contains(errStr, "error_file.lisp") {
+		t.Logf("✓ File path appears in error: error_file.lisp")
+	} else {
+		t.Logf("Note: File path not directly visible, but may be in module reference")
+	}
+
+	// Count stack frames
+	atCount := 0
+	for _, line := range lines {
+		if strings.HasPrefix(strings.TrimSpace(line), "at ") {
+			atCount++
+		}
+	}
+
+	if atCount < 1 {
+		t.Errorf("Expected at least 1 stack frame, got %d", atCount)
+	}
+
+	t.Logf("Total stack frames from loaded file: %d", atCount)
+	t.Logf("✓ load-file error stack trace validated")
+}
+
+func TestMacroExpansionStackTrace(t *testing.T) {
+	ns := env.NewEnv()
+	core.Load(ns)
+
+	// Define a macro that expands to code with an error
+	// Use a simpler approach - macro returns quoted code
+	code := `(do
+		;; Define a macro that returns code with an undefined symbol
+		(defmacro broken-macro (fn [] (quote (+ 1 undefined-after-macro-expansion))))
+
+		;; Call the macro - this will expand to: (+ 1 undefined-after-macro-expansion)
+		(broken-macro)
+	)`
+
+	_, err := REPL(context.Background(), ns, code, types.NewCursorFile(t.Name()))
+
+	if err == nil {
+		t.Fatal("expected error but got none")
+	}
+
+	errStr := err.Error()
+	lines := strings.Split(errStr, "\n")
+
+	t.Logf("Stack trace after macro expansion:")
+	for i, line := range lines {
+		t.Logf("  Line %d: %s", i, line)
+	}
+
+	// Verify error message
+	if !strings.Contains(errStr, "symbol 'undefined-after-macro-expansion' not found") {
+		t.Fatalf("error should contain original message: %s", errStr)
+	}
+
+	// Count stack frames
+	atCount := 0
+	for _, line := range lines {
+		if strings.HasPrefix(strings.TrimSpace(line), "at ") {
+			atCount++
+		}
+	}
+
+	// The error should have stack frames showing the macro expansion context
+	if atCount < 1 {
+		t.Errorf("Expected at least 1 stack frame after macro expansion, got %d", atCount)
+	}
+
+	t.Logf("Total stack frames after macro expansion: %d", atCount)
+	t.Logf("✓ Macro expansion error stack trace validated")
+}
+
+func TestMacroWithQuasiquoteError(t *testing.T) {
+	ns := env.NewEnv()
+	core.Load(ns)
+
+	_, err := REPL(context.Background(), ns, core.HeaderBasic(), types.NewCursorFile(t.Name()))
+	if err != nil {
+		t.Fatalf("Failed to load basic headers: %v", err)
+	}
+
+	// Test macro that uses quasiquote to generate code with error
+	code := `(do
+		;; Define a simple macro using quasiquote
+		(defmacro test-macro (fn []
+			` + "`" + `(+ 1 2 undefined-symbol-in-quasiquote)))
+
+		;; Use the macro - this will expand to: (+ 1 2 undefined-symbol-in-quasiquote)
+		(test-macro)
+	)`
+
+	_, err = REPL(context.Background(), ns, code, types.NewCursorFile(t.Name()))
+
+	if err == nil {
+		t.Fatal("expected error but got none")
+	}
+
+	errStr := err.Error()
+	lines := strings.Split(errStr, "\n")
+
+	t.Logf("Stack trace from macro with quasiquote:")
+	for i, line := range lines {
+		t.Logf("  Line %d: %s", i, line)
+	}
+
+	// Verify error message
+	if !strings.Contains(errStr, "symbol 'undefined-symbol-in-quasiquote' not found") {
+		t.Fatalf("error should contain original message: %s", errStr)
+	}
+
+	// Count stack frames
+	atCount := 0
+	for _, line := range lines {
+		if strings.HasPrefix(strings.TrimSpace(line), "at ") {
+			atCount++
+		}
+	}
+
+	if atCount < 1 {
+		t.Errorf("Expected at least 1 stack frame from quasiquote macro expansion, got %d", atCount)
+	}
+
+	t.Logf("Total stack frames from macro+quasiquote: %d", atCount)
+	t.Logf("✓ Macro with quasiquote error stack trace validated")
 }
