@@ -253,7 +253,7 @@ func TestEvalAstErrorPosition(t *testing.T) {
 
 	// The cursor should point to line 4 where undefined-var is
 	// Format is typically: TestName§line…line,col…col
-	if !strings.Contains(lines[0], "§4") {
+	if !strings.Contains(lines[0], "§L4") {
 		t.Errorf("Error should reference line 4 where undefined-var is: %s", lines[0])
 	}
 
