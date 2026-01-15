@@ -13,6 +13,48 @@ Requires Go 1.25.
 
 This implementation uses [chzyer/readline](https://github.com/chzyer/readline) instead of C implented readline or libedit, making this implementation pure Go.
 
+## Breaking Changes
+
+### Position Tracking Improvements (2026-01-15)
+
+**Breaking API Changes:**
+
+1. **Constructor signatures changed** for programmatically created data structures:
+   - `types.NewList(cursor *Position, a ...MalType)` - now requires cursor as first parameter
+   - `types.NewHashMap(cursor *Position, seq MalType)` - now requires cursor as first parameter
+   - Pass `nil` for cursor if position tracking is not needed
+
+2. **Error format changed**:
+   - `LispError.Error()` now includes stack trace with multiple lines
+   - Format: `error_message\n  at position1\n  at position2\n...`
+   - Code that parses error messages should use `strings.Contains()` instead of `strings.HasSuffix()`
+
+3. **LispError struct changed**:
+   - Added `Stack []*Position` field for call stack tracking
+   - `NewLispError()` now preserves original cursor instead of overwriting it
+
+**Migration Guide:**
+
+```go
+// Before:
+list := types.NewList(elem1, elem2, elem3)
+hm, _ := types.NewHashMap(listOfKeyValues)
+
+// After:
+list := types.NewList(nil, elem1, elem2, elem3)  // nil if no position tracking needed
+hm, _ := types.NewHashMap(nil, listOfKeyValues)
+
+// Or with position tracking:
+list := types.NewList(currentCursor, elem1, elem2, elem3)
+hm, _ := types.NewHashMap(currentCursor, listOfKeyValues)
+```
+
+**Benefits:**
+- Improved error messages with full stack traces
+- Better debugging of nested function calls and macro expansions
+- Preserved position information through try/catch blocks
+- More accurate line numbers in quasiquote and generated code
+
 # Changes
 
 Changes respect to [kanaka/mal](https://github.com/kanaka/mal):

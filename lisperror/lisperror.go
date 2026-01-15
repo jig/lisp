@@ -12,6 +12,7 @@ import (
 type LispError struct {
 	err    MalType
 	cursor *Position
+	Stack  []*Position // Stack trace of positions where error propagated
 }
 
 func (e LispError) Unwrap() error {
@@ -42,20 +43,34 @@ func (e LispError) Is(target error) bool {
 }
 
 func (e LispError) Error() string {
+	var msg string
 	switch e.err.(type) {
 	case error:
 		if e.cursor != nil {
-			return fmt.Sprintf("%s: %s", e.cursor, e.err)
+			msg = fmt.Sprintf("%s: %s", e.cursor, e.err)
+		} else {
+			msg = fmt.Sprint(e.err)
 		}
-		return fmt.Sprint(e.err)
 	default:
 		// TODO: this should be prt_str
 		// panic("internal error: LispError.Error() called on non-error")
 		if e.cursor != nil {
-			return fmt.Sprintf("%s: %s", e.cursor, e.err)
+			msg = fmt.Sprintf("%s: %s", e.cursor, e.err)
+		} else {
+			msg = fmt.Sprint(e.err)
 		}
-		return fmt.Sprint(e.err)
 	}
+	
+	// Append stack trace if available
+	if len(e.Stack) > 0 {
+		for _, pos := range e.Stack {
+			if pos != nil {
+				msg += fmt.Sprintf("\n  at %s", pos)
+			}
+		}
+	}
+	
+	return msg
 }
 
 func (e LispError) Position() *Position {
@@ -108,14 +123,27 @@ func GetPosition(ast MalType) *Position {
 func NewLispError(err MalType, ast MalType) LispError {
 	switch err := err.(type) {
 	case LispError:
-		err.cursor = GetPosition(ast)
+		// Preserve original cursor if it exists
+		if err.cursor == nil {
+			err.cursor = GetPosition(ast)
+		}
+		// Preserve existing stack
 		return err
 	default:
 		return LispError{
 			err:    err,
 			cursor: GetPosition(ast),
+			Stack:  nil,
 		}
 	}
+}
+
+// AddStackFrame adds a position to the error's stack trace
+func (e LispError) AddStackFrame(pos *Position) LispError {
+	if pos != nil {
+		e.Stack = append(e.Stack, pos)
+	}
+	return e
 }
 
 func (e LispError) MarshalHashMap() (MalType, error) {

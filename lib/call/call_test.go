@@ -189,7 +189,7 @@ func TestLispNil(t *testing.T) {
 		t.Fatal(err)
 	}
 	_, err = lisp.EVAL(context.Background(), ast, ns)
-	if !strings.HasSuffix(err.Error(), "reflect: cannot use types.MalType as type int in Call") {
+	if !strings.Contains(err.Error(), "reflect: cannot use types.MalType as type int in Call") {
 		t.Fatal(err)
 	}
 }
@@ -199,7 +199,7 @@ func TestWrongTypePassed(t *testing.T) {
 	Call(ns, divExample)
 
 	_, err := lisp.REPL(context.Background(), ns, `(divexample "hello" "world")`, types.NewCursorFile(t.Name()))
-	if !strings.HasSuffix(err.Error(), "reflect: Call using string as type int") {
+	if !strings.Contains(err.Error(), "reflect: Call using string as type int") {
 		t.Fatal(err)
 	}
 }
@@ -226,7 +226,7 @@ func TestEmpty(t *testing.T) {
 		t.Fatal(err)
 	}
 	res, err := lisp.EVAL(context.Background(), ast, ns)
-	if !strings.HasSuffix(err.Error(), "empty? called on non-sequence") {
+	if !strings.Contains(err.Error(), "empty? called on non-sequence") {
 		t.Fatal(err)
 	}
 	if res != nil {

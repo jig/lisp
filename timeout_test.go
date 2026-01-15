@@ -17,7 +17,7 @@ func TestContextTimeoutFiresOnTime(t *testing.T) {
 	if _, err := REPL(ctx, newEnv(t.Name()), `(sleep 1000)`, types.NewCursorFile(t.Name())); err == nil {
 		t.Fatalf("Must fail")
 	} else {
-		if !strings.HasSuffix(err.Error(), "timeout while evaluating expression") {
+		if !strings.Contains(err.Error(), "timeout while evaluating expression") {
 			t.Fatalf("%s != %s", err.Error(), "timeout while evaluating expression")
 		}
 	}
@@ -47,7 +47,7 @@ func TestFutureContextTimeoutFiresOnTime(t *testing.T) {
 	if _, err := REPL(ctx, newEnv(t.Name()), `@(future (sleep 1000))`, types.NewCursorFile(t.Name())); err == nil {
 		t.Fatalf("Must fail")
 	} else {
-		if !strings.HasSuffix(err.Error(), "timeout while dereferencing future") {
+		if !strings.Contains(err.Error(), "timeout while dereferencing future") {
 			t.Fatalf("%s != %s", err.Error(), "timeout while dereferencing future")
 		}
 	}

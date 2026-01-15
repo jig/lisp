@@ -201,7 +201,11 @@ func read_hash_map(rdr *tokenReader, placeholderValues *HashMap, ns EnvType) (Ma
 	if e != nil {
 		return nil, e
 	}
-	return NewHashMap(mal_lst)
+	var cursor *Position
+	if lst, ok := mal_lst.(List); ok {
+		cursor = lst.Cursor
+	}
+	return NewHashMap(cursor, mal_lst)
 }
 
 func read_set(rdr *tokenReader, placeholderValues *HashMap, ns EnvType) (MalType, error) {

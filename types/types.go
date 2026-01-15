@@ -134,8 +134,8 @@ type List struct {
 	Cursor *Position
 }
 
-func NewList(a ...MalType) MalType {
-	return List{Val: a}
+func NewList(cursor *Position, a ...MalType) MalType {
+	return List{Val: a, Cursor: cursor}
 }
 
 // Vectors
@@ -163,7 +163,7 @@ type HashMap struct {
 	Cursor *Position
 }
 
-func NewHashMap(seq MalType) (MalType, error) {
+func NewHashMap(cursor *Position, seq MalType) (MalType, error) {
 	lst, e := GetSlice(seq)
 	if e != nil {
 		return nil, e
@@ -179,7 +179,7 @@ func NewHashMap(seq MalType) (MalType, error) {
 		}
 		m[str] = lst[i+1]
 	}
-	return HashMap{Val: m}, nil
+	return HashMap{Val: m, Cursor: cursor}, nil
 }
 
 // Sets
