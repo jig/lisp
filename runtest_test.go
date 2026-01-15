@@ -62,7 +62,7 @@ func parseFile(ctx context.Context, fileName string, code string) error {
 	for _, line := range lines {
 		currentLine++
 		line = strings.Trim(line, " \t\r\n")
-		fmt.Println(line)
+		// fmt.Println(line)
 		switch {
 		case len(line) == 0:
 			continue
@@ -77,7 +77,7 @@ func parseFile(ctx context.Context, fileName string, code string) error {
 			continue
 		case strings.HasPrefix(line, ";=>"):
 			line = line[3:]
-			if lastError != nil && !strings.HasPrefix(line, "Error") {
+			if lastError != nil {
 				return fmt.Errorf("%q %000d: unexpected error: %s", fileName, currentLine, lastError)
 			}
 			if result != line {
@@ -105,7 +105,7 @@ func parseFile(ctx context.Context, fileName string, code string) error {
 				if v == nil {
 					return "nil", err
 				}
-				fmt.Fprintln(os.Stderr, "-->", result)
+				// fmt.Fprintln(os.Stderr, "-->", result)
 				return v, err
 			})
 			// fmt.Printf("\t\t%s\t\t\t%s\n", line, stdoutResult)
