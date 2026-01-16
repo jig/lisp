@@ -100,7 +100,7 @@ func NewTestEnv() EnvType {
 	}{
 		{"core mal", nscore.Load},
 		{"core mal with input", nscore.LoadInput},
-		{"command line args", nscore.LoadCmdLineArgs},
+		// {"command line args", nscore.LoadCmdLineArgs(command.PreParseArgs(os.Args))} // if needed
 		{"concurrent", nsconcurrent.Load},
 		{"core mal extended", nscoreextended.Load},
 		{"assert", nsassert.Load},

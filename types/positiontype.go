@@ -127,11 +127,15 @@ func (cursor *Position) StringModule() string {
 func (cursor *Position) StringPosition() string {
 	if cursor == nil {
 		return ""
-	}
-	if cursor.Row < 0 {
+	} else if cursor.Row < 0 {
 		return ""
+	} else if cursor.BeginRow == cursor.Row {
+		if cursor.BeginCol == cursor.Col {
+			return fmt.Sprintf("L%d,C%d", cursor.BeginRow, cursor.BeginCol)
+		}
+		return fmt.Sprintf("L%d,C%d…C%d", cursor.BeginRow, cursor.BeginCol, cursor.Col)
 	}
-	return fmt.Sprintf("%d…%d,%d…%d", cursor.BeginRow, cursor.Row, cursor.BeginCol, cursor.Col)
+	return fmt.Sprintf("L%d…L%d,C%d…C%d", cursor.BeginRow, cursor.Row, cursor.BeginCol, cursor.Col)
 }
 
 func (cursor *Position) StringPositionRow() string {
@@ -142,9 +146,9 @@ func (cursor *Position) StringPositionRow() string {
 		return ""
 	}
 	if cursor.BeginRow != cursor.Row {
-		return fmt.Sprintf("%d…%d", cursor.BeginRow, cursor.Row)
+		return fmt.Sprintf("L%d…L%d", cursor.BeginRow, cursor.Row)
 	}
-	return fmt.Sprintf("%d", cursor.Row)
+	return fmt.Sprintf("L%d", cursor.Row)
 }
 
 func (cursor *Position) Includes(inside Position) bool {

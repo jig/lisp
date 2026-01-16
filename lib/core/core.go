@@ -1151,7 +1151,7 @@ func hash_map(a ...MalType) (MalType, error) {
 	case 1:
 		return a[0].(marshaler.HashMap).MarshalHashMap()
 	default:
-		return NewHashMap(List{Val: a})
+		return NewHashMap(nil, List{Val: a})
 	}
 }
 
