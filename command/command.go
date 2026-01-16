@@ -3,6 +3,7 @@ package command
 import (
 	"context"
 	"errors"
+	"flag"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -18,14 +19,30 @@ func printHelp() {
 	fmt.Println(`Lisp
 	--version, -v provides the version number
 	--help, -h provides this help message
-	--test, -t runs the test suite`)
+	--test, -t runs the test suite
+	--debug enables DEBUG-EVAL support (may impact performance)`)
 }
 
 // Execute is the main function of a command line MAL interpreter.
 // args are usually the os.Args, and repl_env contains the environment filled
 // with the symbols required for the interpreter.
 func Execute(args []string, repl_env types.EnvType) error {
-	switch len(os.Args) {
+	// Parse flags
+	var debugEval bool
+	flagSet := flag.NewFlagSet("lisp", flag.ContinueOnError)
+	flagSet.BoolVar(&debugEval, "debug", false, "Enable DEBUG-EVAL support")
+	_ = flagSet.Parse(os.Args[1:])
+
+	// Enable DEBUG-EVAL if flag is set
+	if debugEval {
+		lisp.DebugEvalEnabled = true
+	}
+
+	// Get remaining args after flag parsing
+	remainingArgs := flagSet.Args()
+	argsCount := len(remainingArgs) + 1 // +1 for program name
+
+	switch argsCount {
 	case 0:
 		return errors.New("invalid arguments array")
 	case 1:
@@ -39,7 +56,10 @@ func Execute(args []string, repl_env types.EnvType) error {
 		}
 		return nil
 	default:
-		switch os.Args[1] {
+		if len(remainingArgs) == 0 {
+			return errors.New("no arguments provided")
+		}
+		switch remainingArgs[0] {
 		case "--version", "-v":
 			versionInfo, ok := debug.ReadBuildInfo()
 			if !ok {
@@ -52,11 +72,11 @@ func Execute(args []string, repl_env types.EnvType) error {
 			printHelp()
 			return nil
 		case "--test", "-t":
-			if len(os.Args) != 3 {
+			if len(remainingArgs) != 2 {
 				printHelp()
 				return fmt.Errorf("too many args")
 			}
-			if err := filepath.Walk(os.Args[2], func(path string, info os.FileInfo, err error) error {
+			if err := filepath.Walk(remainingArgs[1], func(path string, info os.FileInfo, err error) error {
 				if !info.IsDir() {
 					if strings.HasSuffix(info.Name(), "_test.mal") {
 						testParams := fmt.Sprintf(`(def *test-params* {:test-file %q :test-absolute-path %q})`, info.Name(), path)
@@ -78,7 +98,7 @@ func Execute(args []string, repl_env types.EnvType) error {
 		}
 
 		// called with mal script to load and eval
-		result, err := ExecuteFile(os.Args[1], repl_env)
+		result, err := ExecuteFile(remainingArgs[0], repl_env)
 		if err != nil {
 			return err
 		}

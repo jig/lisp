@@ -47,6 +47,11 @@ var placeholderRE = regexp.MustCompile(`^(;; \$[\-\d\w]+)+\s(.+)`)
 
 const preamblePrefix = ";; $"
 
+// DebugEvalEnabled controls whether DEBUG-EVAL support is active.
+// When false, the DEBUG-EVAL check is skipped entirely for better performance.
+// Set this to true before evaluation if you need DEBUG-EVAL functionality.
+var DebugEvalEnabled = false
+
 // READ reads Lisp source code and generates an AST that might be evaled by [EVAL] or printed by [PRINT].
 //
 // cursor and environment might be passed nil and READ will provide correct values for you.
@@ -343,18 +348,20 @@ func EVAL(ctx context.Context, ast MalType, env EnvType) (res MalType, e error) 
 		}
 
 		// DEBUG-EVAL support: print AST if DEBUG-EVAL is set and truthy
-		if dbgEval, err := env.Get(Symbol{Val: "DEBUG-EVAL"}); err == nil {
-			// Print if DEBUG-EVAL exists and is not nil or false
-			switch dbgEval := dbgEval.(type) {
-			case bool:
-				if dbgEval {
-					pos := lisperror.GetPosition(ast)
-					if pos != nil {
-						fmt.Printf("\033[38;5;208m%s\033[0m: %s\n", pos, PRINT(ast))
+		if DebugEvalEnabled {
+			if dbgEval, err := env.Get(Symbol{Val: "DEBUG-EVAL"}); err == nil {
+				// Print if DEBUG-EVAL exists and is not nil or false
+				switch dbgEval := dbgEval.(type) {
+				case bool:
+					if dbgEval {
+						pos := lisperror.GetPosition(ast)
+						if pos != nil {
+							fmt.Printf("\033[38;5;208m%s\033[0m: %s\n", pos, PRINT(ast))
+						}
 					}
+				default:
+					// do nothing
 				}
-			default:
-				// do nothing
 			}
 		}
 
