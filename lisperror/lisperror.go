@@ -8,11 +8,17 @@ import (
 	. "github.com/jig/lisp/types"
 )
 
+// StackFrame represents a single frame in the error stack trace
+type StackFrame struct {
+	FunctionName string    // Name of the function, macro, or special form (empty if not applicable)
+	Position     *Position // Location in source code
+}
+
 // Errors/Exceptions
 type LispError struct {
 	err    MalType
 	cursor *Position
-	Stack  []*Position // Stack trace of positions where error propagated
+	Stack  []*StackFrame // Stack trace of positions where error propagated
 }
 
 func (e LispError) Unwrap() error {
@@ -60,16 +66,20 @@ func (e LispError) Error() string {
 			msg = fmt.Sprint(e.err)
 		}
 	}
-	
+
 	// Append stack trace if available
 	if len(e.Stack) > 0 {
-		for _, pos := range e.Stack {
-			if pos != nil {
-				msg += fmt.Sprintf("\n  at %s", pos)
+		for _, frame := range e.Stack {
+			if frame.Position != nil {
+				if frame.FunctionName != "" {
+					msg += fmt.Sprintf("\n  at %s (%s)", frame.FunctionName, frame.Position)
+				} else {
+					msg += fmt.Sprintf("\n  at %s", frame.Position)
+				}
 			}
 		}
 	}
-	
+
 	return msg
 }
 
@@ -138,10 +148,20 @@ func NewLispError(err MalType, ast MalType) LispError {
 	}
 }
 
-// AddStackFrame adds a position to the error's stack trace
-func (e LispError) AddStackFrame(pos *Position) LispError {
+// AddStackFrame adds a position and function name to the error's stack trace
+// Skips adding duplicate frames when position matches cursor and no function name is provided
+func (e LispError) AddStackFrame(pos *Position, functionName string) LispError {
 	if pos != nil {
-		e.Stack = append(e.Stack, pos)
+		// Skip if this would duplicate the original cursor without adding useful information
+		// (i.e., same position as cursor and no function name)
+		if functionName == "" && e.cursor != nil && pos.String() == e.cursor.String() {
+			return e
+		}
+
+		e.Stack = append(e.Stack, &StackFrame{
+			FunctionName: functionName,
+			Position:     pos,
+		})
 	}
 	return e
 }
