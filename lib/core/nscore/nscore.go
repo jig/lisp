@@ -2,7 +2,6 @@ package nscore
 
 import (
 	"context"
-	"os"
 	"reflect"
 
 	"github.com/jig/lisp"
@@ -38,10 +37,16 @@ func LoadInput(env EnvType) error {
 	return nil
 }
 
-func LoadCmdLineArgs(env EnvType) error {
-	if len(os.Args) > 2 {
-		args := make([]MalType, 0, len(os.Args)-2)
-		for _, a := range os.Args[2:] {
+func LoadCmdLineArgs(scriptArgs []string) func(EnvType) error {
+	return func(env EnvType) error {
+		return loadCmdLineArgs(env, scriptArgs)
+	}
+}
+
+func loadCmdLineArgs(env EnvType, scriptArgs []string) error {
+	if len(scriptArgs) > 0 {
+		args := make([]MalType, 0, len(scriptArgs))
+		for _, a := range scriptArgs {
 			args = append(args, a)
 		}
 		env.Set(Symbol{Val: "*ARGV*"}, List{Val: args})
