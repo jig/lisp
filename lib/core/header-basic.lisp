@@ -1,3 +1,5 @@
+;; $MODULE header-basic
+
 (do
     (def *host-language* "go")
 

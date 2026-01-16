@@ -1,3 +1,5 @@
+;; $MODULE header-assert-macros
+
 ;; assert macros
 (do
     (defmacro assert-true
@@ -29,7 +31,7 @@
                     ~failureError)
                 (catch err nil)))))
 
-    (def test-suite (fn [name & assert-cases]
+    (defn test-suite [name & assert-cases]
         (if
             (reduce and true
                 (map
@@ -38,4 +40,4 @@
                             (println "TEST SUITE FAIL" name ">" (get x :name) ">>" (get x :expr))
                             true))
                     assert-cases))
-            (println "TEST SUITE PASS" name "PASS")))))
+            (println "TEST SUITE PASS" name "PASS"))))

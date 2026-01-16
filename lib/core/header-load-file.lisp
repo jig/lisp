@@ -1,5 +1,8 @@
-(def load-file (fn (f)
+;; $MODULE header-load-file
+
+(defn load-file [file-path]
     (eval
         (read-string
             (str
-                ";; $MODULE " (quote f) "\n(do " (slurp f) "\n)")))))
+                ";; $MODULE " file-path "\n"
+                "(do " (slurp file-path) "\n)"))))
