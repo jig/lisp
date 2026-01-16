@@ -120,7 +120,7 @@ func Load(env EnvType) {
 	call.CallOverrideFN(env, "sequential?", func(a MalType) (bool, error) { return Sequential_Q(a), nil })
 
 	call.Call(env, apply, 2)     // at least two parameters
-	call.Call(env, conj, 2)      // at least two parameters
+	call.Call(env, conj, 0)      // at least zero parameters
 	call.Call(env, assert, 1, 2) // at least one parameter, at most two
 
 	call.Call(env, go_error, 1) // at least one parameter
@@ -908,6 +908,9 @@ func mAp(ctx context.Context, f, seq MalType) (MalType, error) {
 }
 
 func conj(a ...MalType) (MalType, error) {
+	if len(a) == 0 {
+		return nil, nil
+	}
 	seq := a[0]
 	switch seq := seq.(type) {
 	case List:
@@ -973,6 +976,8 @@ func seq(seq MalType) (MalType, error) {
 			new_slc = append(new_slc, ch)
 		}
 		return List{Val: new_slc}, nil
+	case nil:
+		return nil, nil
 	}
 	return nil, errors.New("seq requires string or list or vector or nil")
 }
