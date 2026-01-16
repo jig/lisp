@@ -342,6 +342,22 @@ func EVAL(ctx context.Context, ast MalType, env EnvType) (res MalType, e error) 
 			}
 		}
 
+		// DEBUG-EVAL support: print AST if DEBUG-EVAL is set and truthy
+		if dbgEval, err := env.Get(Symbol{Val: "DEBUG-EVAL"}); err == nil {
+			// Print if DEBUG-EVAL exists and is not nil or false
+			switch dbgEval := dbgEval.(type) {
+			case bool:
+				if dbgEval {
+					pos := lisperror.GetPosition(ast)
+					if pos != nil {
+						fmt.Printf("\033[38;5;208m%s\033[0m: %s\n", pos, PRINT(ast))
+					}
+				}
+			default:
+				// do nothing
+			}
+		}
+
 		switch ast := ast.(type) {
 		case List: // continue
 			// aStr, _ := PRINT(ast)
