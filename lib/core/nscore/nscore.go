@@ -3,6 +3,7 @@ package nscore
 import (
 	"context"
 	"reflect"
+	"strings"
 
 	"github.com/jig/lisp"
 	"github.com/jig/lisp/lib/core"
@@ -11,7 +12,10 @@ import (
 
 type Here struct{}
 
-var _package_ = reflect.TypeFor[Here]().PkgPath()
+var (
+	__package_fullpath__ = strings.Split(reflect.TypeFor[Here]().PkgPath(), "/")
+	_package_            = "$" + __package_fullpath__[len(__package_fullpath__)-1]
+)
 
 func Load(env EnvType) error {
 	core.Load(env)

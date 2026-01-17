@@ -4,6 +4,7 @@ import (
 	"context"
 	_ "embed"
 	"reflect"
+	"strings"
 
 	"github.com/jig/lisp"
 	"github.com/jig/lisp/lib/coreextented"
@@ -12,7 +13,10 @@ import (
 
 type Here struct{}
 
-var _package_ = reflect.TypeFor[Here]().PkgPath()
+var (
+	__package_fullpath__ = strings.Split(reflect.TypeFor[Here]().PkgPath(), "/")
+	_package_            = "$" + __package_fullpath__[len(__package_fullpath__)-1]
+)
 
 func Load(env types.EnvType) error {
 	if _, err := lisp.REPL(context.Background(), env, coreextented.HeaderCoreExtended(), types.NewCursorFile(_package_)); err != nil {

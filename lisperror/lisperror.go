@@ -2,6 +2,7 @@ package lisperror
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/jig/lisp/marshaler"
 	"github.com/jig/lisp/printer"
@@ -72,7 +73,11 @@ func (e LispError) Error() string {
 		for _, frame := range e.Stack {
 			if frame.Position != nil {
 				if frame.FunctionName != "" {
-					msg += fmt.Sprintf("\n  at %s (%s)", frame.FunctionName, frame.Position)
+					if frame.Position.Module != nil && strings.HasPrefix(*frame.Position.Module, "$") {
+						msg += fmt.Sprintf("\n  at [%[2]s]%[1]s", frame.FunctionName, *frame.Position.Module)
+					} else {
+						msg += fmt.Sprintf("\n  at %s (%s)", frame.FunctionName, frame.Position)
+					}
 				} else {
 					msg += fmt.Sprintf("\n  at %s", frame.Position)
 				}

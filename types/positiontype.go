@@ -110,7 +110,7 @@ func (cursor *Position) String() string {
 	if cursor == nil {
 		return ""
 	}
-	return cursor.StringModule() + "§" + cursor.StringPosition()
+	return cursor.StringModule() + ":" + cursor.StringPosition()
 }
 
 func (cursor *Position) StringModule() string {
@@ -131,11 +131,14 @@ func (cursor *Position) StringPosition() string {
 		return ""
 	} else if cursor.BeginRow == cursor.Row {
 		if cursor.BeginCol == cursor.Col {
-			return fmt.Sprintf("L%d,C%d", cursor.BeginRow, cursor.BeginCol)
+			// return fmt.Sprintf("%d: (C%d)", cursor.BeginRow, cursor.BeginCol)
+			return fmt.Sprintf("%d", cursor.BeginRow)
 		}
-		return fmt.Sprintf("L%d,C%d…C%d", cursor.BeginRow, cursor.BeginCol, cursor.Col)
+		// return fmt.Sprintf("%d: (C%d…C%d)", cursor.BeginRow, cursor.BeginCol, cursor.Col)
+		return fmt.Sprintf("%d", cursor.BeginRow)
 	}
-	return fmt.Sprintf("L%d…L%d,C%d…C%d", cursor.BeginRow, cursor.Row, cursor.BeginCol, cursor.Col)
+	// return fmt.Sprintf("%d: (…L%d:C%d…C%d)", cursor.BeginRow, cursor.Row, cursor.BeginCol, cursor.Col)
+	return fmt.Sprintf("%d", cursor.BeginRow)
 }
 
 func (cursor *Position) StringPositionRow() string {
