@@ -110,7 +110,11 @@ func (cursor *Position) String() string {
 	if cursor == nil {
 		return ""
 	}
-	return cursor.StringModule() + ":" + cursor.StringPosition()
+	if cursor.Module != nil {
+		return cursor.StringModule() + ":" + cursor.StringPosition()
+	} else {
+		return cursor.StringPosition()
+	}
 }
 
 func (cursor *Position) StringModule() string {
