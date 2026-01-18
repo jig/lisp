@@ -197,7 +197,7 @@ $ lisp --test .
 
 And a minimal test example `sample_test.mal`:
 
-```lisp
+```clojure
 (test.suite "complete tests"
     (assert-true "2 + 2 = 4 is true" (= 4 (+ 2 2)))
     (assert-false "2 + 2 = 5 is false" (= 5 (+ 2 2)))
