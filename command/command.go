@@ -19,6 +19,7 @@ type args struct {
 	Version bool     `arg:"-v,--version" help:"show version information"`
 	Test    string   `arg:"-t,--test" help:"run test suite from directory" placeholder:"DIR"`
 	Debug   bool     `arg:"--debug" help:"enable DEBUG-EVAL support (may impact performance)"`
+	Eval    string   `arg:"-e,--eval" help:"evaluate expression and exit" placeholder:"EXPR"`
 	Script  string   `arg:"positional" help:"lisp script to execute"`
 	Args    []string `arg:"positional" help:"arguments to pass to the script"`
 }
@@ -78,6 +79,10 @@ func Execute(cmdArgs []string, repl_env types.EnvType) error {
 		lisp.DebugEvalEnabled = true
 	}
 
+	if parsedArgs.Eval != "" && (parsedArgs.Version || parsedArgs.Test != "") {
+		return fmt.Errorf("-e cannot be used with --version or --test")
+	}
+
 	// Handle --version
 	if parsedArgs.Version {
 		versionInfo, ok := debug.ReadBuildInfo()
@@ -103,11 +108,28 @@ func Execute(cmdArgs []string, repl_env types.EnvType) error {
 			if _, err := lisp.REPL(ctx, repl_env, `(println (str "Lisp Mal [" *host-language* "]"))`, types.NewCursorFile("REPL")); err != nil {
 				return fmt.Errorf("internal error: %s", err)
 			}
-			return repl.Execute(ctx, repl_env)
+			if err := repl.Execute(ctx, repl_env); err != nil {
+				return err
+			}
+		} else {
+			// Execute file
+			result, err := ExecuteFile(parsedArgs.Script, repl_env)
+			if err != nil {
+				return err
+			}
+			if parsedArgs.Eval == "" {
+				fmt.Println(result)
+			}
 		}
 
-		// Execute file
-		result, err := ExecuteFile(parsedArgs.Script, repl_env)
+		if parsedArgs.Eval == "" {
+			return nil
+		}
+	}
+
+	if parsedArgs.Eval != "" {
+		ctx := context.Background()
+		result, err := lisp.REPL(ctx, repl_env, parsedArgs.Eval, types.NewCursorFile("-e"))
 		if err != nil {
 			return err
 		}

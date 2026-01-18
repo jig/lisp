@@ -231,6 +231,38 @@ Use <kbd>Ctrl</kbd> + <kbd>D</kbd> to exit Lisp REPL.
 lisp helloworld.lisp
 ```
 
+# Execute inline expression
+
+```bash
+lisp -e "(+ 1 2)"
+```
+
+If both a script and `-e` are provided, the script executes first and the `-e` expression executes last. Only the `-e` result is printed.
+
+`-e` cannot be combined with `--version` or `--test`.
+
+A bit longer example:
+
+```bash
+lisp helloargs.lisp --eval '(do (println "evaled to" *ARGV*) 42)' ee rr
+```
+
+Will print:
+
+```
+Hello Args:  (ee rr)
+evaled to (ee rr)
+42
+```
+
+# Pass script arguments that look like flags
+
+Use `--` to stop flag parsing so script arguments are passed through:
+
+```bash
+lisp -- helloworld.lisp --foo --bar
+```
+
 # Licence
 
 This "lisp" implementation is licensed under the MPL 2.0 (Mozilla Public License 2.0). See [LICENCE](./LICENCE) for more details.
