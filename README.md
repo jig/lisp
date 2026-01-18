@@ -120,6 +120,47 @@ go test -benchmem -benchtime 5s -bench '^.+$' github.com/jig/lisp
 - `defn`, `wait` macros added (see [./tests/stepN_defn.mal.go](./tests/stepN_defn.mal) for an example of `defn` and `wait` macro usage, or go to Clojure documentation)
 - `partial` function added (see [./tests/stepN_defn.mal.go](./tests/stepN_defn.mal) for an example of `partial` usage, or go to Clojure documentation)
 
+# Command line eval and module loading
+
+The interpreter supports inline evaluation and a lightweight module loader.
+
+## Inline eval (-e/--eval)
+
+Use `-e` to execute a Lisp snippet and exit. If a script is provided before `-e`, the script runs first with its own `*ARGV*`. Any positionals after `-e` become `*ARGV*` for the inline expression. The result is printed using REPL formatting.
+
+```bash
+$ lisp -e '(+ 1 2)'
+3
+```
+
+## Include paths (-i/--include)
+
+You can add one or more include roots with `-i` (repeatable). These paths are used by `require`.
+
+```bash
+$ lisp -i ./lib -i ./vendor
+```
+
+## require
+
+`require` loads a module by name (do not add `.lisp`).
+
+```clojure
+(require "hello/world")
+```
+
+Resolution order:
+
+1. Directories passed via `-i/--include`
+2. `.<binary>/` under the Git repository root (for "lisp" it'll be: `.lisp/`)
+3. `$HOME/.config/<binary>/` (e.g. `$HOME/.config/lisp/`)
+4. `/usr/local/share/<binary>/` (e.g. `/usr/local/share/lisp/`)
+
+Notes:
+- Only relative module paths are allowed (no absolute paths, no `..`, no hidden path segments)
+- The module name is resolved to `module.lisp`
+- `require` ultimately uses `load-file-once` so modules are loaded only once
+
 
 # Embed Lisp in Go code
 
@@ -237,20 +278,20 @@ lisp helloworld.lisp
 lisp -e "(+ 1 2)"
 ```
 
-If both a script and `-e` are provided, the script executes first and the `-e` expression executes last. Only the `-e` result is printed.
+If both a script and `-e` are provided, the script executes first and the `-e` expression executes last. Only the `-e` result is printed. Arguments before `-e` are passed to the script; arguments after `-e` are passed to the `-e` expression.
 
 `-e` cannot be combined with `--version` or `--test`.
 
 A bit longer example:
 
 ```bash
-lisp helloargs.lisp --eval '(do (println "evaled to" *ARGV*) 42)' ee rr
+lisp helloargs.lisp aa bb --eval '(do (println "evaled to" *ARGV*) 42)' ee rr
 ```
 
 Will print:
 
 ```
-Hello Args:  (ee rr)
+Hello Args:  (aa bb)
 evaled to (ee rr)
 42
 ```

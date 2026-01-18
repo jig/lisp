@@ -20,6 +20,7 @@ type args struct {
 	Test    string   `arg:"-t,--test" help:"run test suite from directory" placeholder:"DIR"`
 	Debug   bool     `arg:"--debug" help:"enable DEBUG-EVAL support (may impact performance)"`
 	Eval    string   `arg:"-e,--eval" help:"evaluate expression and exit" placeholder:"EXPR"`
+	Include []string `arg:"-i,--include,separate" help:"add include directory for require" placeholder:"DIR"`
 	Script  string   `arg:"positional" help:"lisp script to execute"`
 	Args    []string `arg:"positional" help:"arguments to pass to the script"`
 }
@@ -32,6 +33,14 @@ func (args) Description() string {
 // before libraries are loaded. This is needed because if LoadCmdLineArgs is used it
 // needs to know the script arguments before the main Execute runs.
 func PreParseArgs(cmdArgs []string) []string {
+	ordering := evalOrderingFromArgs(cmdArgs[1:])
+	if ordering.EvalSeen {
+		if ordering.Script != "" {
+			return ordering.ScriptArgs
+		}
+		return ordering.EvalArgs
+	}
+
 	var parsedArgs args
 	parser, err := arg.NewParser(arg.Config{Program: "lisp"}, &parsedArgs)
 	if err != nil {
@@ -62,6 +71,8 @@ func Execute(cmdArgs []string, repl_env types.EnvType) error {
 		return err
 	}
 
+	ordering := evalOrderingFromArgs(cmdArgs[1:])
+
 	// Parse arguments (skip program name)
 	if len(cmdArgs) > 1 {
 		err = parser.Parse(cmdArgs[1:])
@@ -77,6 +88,18 @@ func Execute(cmdArgs []string, repl_env types.EnvType) error {
 	// Enable DEBUG-EVAL if flag is set
 	if parsedArgs.Debug {
 		lisp.DebugEvalEnabled = true
+	}
+
+	if ordering.EvalSeen {
+		if ordering.Script != "" {
+			parsedArgs.Script = ordering.Script
+			parsedArgs.Args = ordering.ScriptArgs
+			setArgv(repl_env, ordering.ScriptArgs)
+		} else {
+			parsedArgs.Script = ""
+			parsedArgs.Args = ordering.EvalArgs
+			setArgv(repl_env, ordering.EvalArgs)
+		}
 	}
 
 	if parsedArgs.Eval != "" && (parsedArgs.Version || parsedArgs.Test != "") {
@@ -128,6 +151,9 @@ func Execute(cmdArgs []string, repl_env types.EnvType) error {
 	}
 
 	if parsedArgs.Eval != "" {
+		if ordering.EvalSeen {
+			setArgv(repl_env, ordering.EvalArgs)
+		}
 		ctx := context.Background()
 		result, err := lisp.REPL(ctx, repl_env, parsedArgs.Eval, types.NewCursorFile("-e"))
 		if err != nil {
@@ -174,4 +200,90 @@ func ExecuteFile(fileName string, ns types.EnvType) (types.MalType, error) {
 		return nil, err
 	}
 	return result, nil
+}
+
+type evalOrdering struct {
+	EvalSeen   bool
+	Script     string
+	ScriptArgs []string
+	EvalArgs   []string
+}
+
+func evalOrderingFromArgs(cmdArgs []string) evalOrdering {
+	var before []string
+	var after []string
+	var evalSeen bool
+	stopFlags := false
+
+	for i := 0; i < len(cmdArgs); i++ {
+		arg := cmdArgs[i]
+
+		if !stopFlags {
+			if arg == "--" {
+				stopFlags = true
+				continue
+			}
+
+			switch arg {
+			case "-e", "--eval":
+				evalSeen = true
+				if i+1 < len(cmdArgs) {
+					i++
+				}
+				continue
+			case "-i", "--include", "-t", "--test":
+				if i+1 < len(cmdArgs) {
+					i++
+				}
+				continue
+			case "-v", "--version", "--debug":
+				continue
+			}
+
+			if strings.HasPrefix(arg, "--eval=") || strings.HasPrefix(arg, "-e=") {
+				evalSeen = true
+				continue
+			}
+			if strings.HasPrefix(arg, "--include=") || strings.HasPrefix(arg, "-i=") || strings.HasPrefix(arg, "--test=") {
+				continue
+			}
+			if strings.HasPrefix(arg, "-") {
+				continue
+			}
+		}
+
+		if evalSeen {
+			after = append(after, arg)
+		} else {
+			before = append(before, arg)
+		}
+	}
+
+	var script string
+	var scriptArgs []string
+	if len(before) > 0 {
+		script = before[0]
+		if len(before) > 1 {
+			scriptArgs = append(scriptArgs, before[1:]...)
+		}
+	}
+
+	return evalOrdering{
+		EvalSeen:   evalSeen,
+		Script:     script,
+		ScriptArgs: scriptArgs,
+		EvalArgs:   after,
+	}
+}
+
+func setArgv(env types.EnvType, args []string) {
+	if len(args) == 0 {
+		env.Set(types.Symbol{Val: "*ARGV*"}, types.List{})
+		return
+	}
+	list := types.List{Val: make([]types.MalType, 0, len(args))}
+	for _, a := range args {
+		list.Val = append(list.Val, a)
+	}
+	env.Set(types.Symbol{Val: "*ARGV*"}, list)
 }
