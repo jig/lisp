@@ -40,6 +40,7 @@ import (
 	"github.com/jig/lisp/lisperror"
 	"github.com/jig/lisp/printer"
 	"github.com/jig/lisp/reader"
+	"github.com/jig/lisp/runtime"
 	. "github.com/jig/lisp/types"
 )
 
@@ -47,14 +48,13 @@ var placeholderRE = regexp.MustCompile(`^(;; \$[\-\d\w]+)+\s(.+)`)
 
 const preamblePrefix = ";; $"
 
-// DebugEvalEnabled controls whether DEBUG-EVAL support is active.
-// When false, the DEBUG-EVAL check is skipped entirely for better performance.
-// Set this to true before evaluation if you need DEBUG-EVAL functionality.
+// DebugEvalEnabled is a deprecated shim for the legacy DEBUG-EVAL print
+// behaviour. Setting it to true installs runtime.PrintEvalHook on the next
+// EVAL call if no other hook is active.
 //
-// This is also the public extension point for external debuggers: when
-// enabled, EVAL inspects the DEBUG-EVAL binding before evaluating each form
-// (see EVAL in this file). A future DAP/LSP integration will hook here.
-// Do not remove or rename without coordinating with the debugger work.
+// Deprecated: install a runtime.EvalHook directly via
+// `runtime.Hook = runtime.PrintEvalHook{}` (or your own implementation).
+// New code in this repo wires --debug through runtime.Hook.
 var DebugEvalEnabled = false
 
 // READ reads Lisp source code and generates an AST that might be evaled by [EVAL] or printed by [PRINT].
@@ -352,21 +352,14 @@ func EVAL(ctx context.Context, ast MalType, env EnvType) (res MalType, e error) 
 			}
 		}
 
-		// DEBUG-EVAL support: print AST if DEBUG-EVAL is set and truthy
-		if DebugEvalEnabled {
-			if dbgEval, err := env.Get(Symbol{Val: "DEBUG-EVAL"}); err == nil {
-				// Print if DEBUG-EVAL exists and is not nil or false
-				switch dbgEval := dbgEval.(type) {
-				case bool:
-					if dbgEval {
-						pos := lisperror.GetPosition(ast)
-						if pos != nil {
-							fmt.Printf("\033[38;5;208m%s\033[0m: %s\n", pos, PRINT(ast))
-						}
-					}
-				default:
-					// do nothing
-				}
+		// Pluggable hook: external debuggers / DEBUG-EVAL printing.
+		if DebugEvalEnabled && runtime.Hook == nil {
+			runtime.Hook = runtime.PrintEvalHook{}
+		}
+		if runtime.Hook != nil {
+			ev := runtime.EvalEvent{AST: ast, Env: env, Cursor: lisperror.GetPosition(ast)}
+			if err := runtime.Hook.OnEval(ctx, ev); err != nil {
+				return nil, err
 			}
 		}
 

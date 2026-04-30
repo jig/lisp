@@ -11,6 +11,7 @@ import (
 	"github.com/alexflint/go-arg"
 	"github.com/jig/lisp"
 	"github.com/jig/lisp/repl"
+	"github.com/jig/lisp/runtime"
 	"github.com/jig/lisp/types"
 )
 
@@ -76,7 +77,7 @@ func Execute(cmdArgs []string, repl_env types.EnvType) error {
 
 	// Enable DEBUG-EVAL if flag is set
 	if parsedArgs.Debug {
-		lisp.DebugEvalEnabled = true
+		runtime.Hook = runtime.PrintEvalHook{}
 	}
 
 	if parsedArgs.Eval != "" && (parsedArgs.Version || parsedArgs.Test != "") {
