@@ -1,0 +1,56 @@
+{
+  "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+  "name": "jig/lisp",
+  "scopeName": "source.lisp",
+  "patterns": [
+    { "include": "#comment" },
+    { "include": "#string" },
+    { "include": "#number" },
+    { "include": "#keyword" },
+    { "include": "#special-form" },
+    { "include": "#constant" },
+    { "include": "#quote" },
+    { "include": "#symbol" }
+  ],
+  "repository": {
+    "comment": {
+      "name": "comment.line.semicolon.lisp",
+      "match": ";.*$"
+    },
+    "string": {
+      "name": "string.quoted.double.lisp",
+      "begin": "\"",
+      "end": "\"",
+      "patterns": [
+        {
+          "name": "constant.character.escape.lisp",
+          "match": "\\\\."
+        }
+      ]
+    },
+    "number": {
+      "name": "constant.numeric.lisp",
+      "match": "(?<![\\w-])-?\\d+(\\.\\d+)?(?![\\w-])"
+    },
+    "keyword": {
+      "name": "constant.other.keyword.lisp",
+      "match": ":[\\w\\-?!*+<>=/]+"
+    },
+    "special-form": {
+      "name": "keyword.control.lisp",
+      "match": "(?<=\\(|\\s)(def|defmacro|defn|let|fn|if|do|quote|quasiquote|unquote|splice-unquote|try|catch|finally|throw|macroexpand|recur)(?=\\s|\\))"
+    },
+    "constant": {
+      "name": "constant.language.lisp",
+      "match": "(?<=\\(|\\s|^)(true|false|nil)(?=\\s|\\)|$)"
+    },
+    "quote": {
+      "name": "keyword.operator.quote.lisp",
+      "match": "['`~@]"
+    },
+    "symbol": {
+      "name": "variable.other.lisp",
+      "match": "[a-zA-Z_+\\-*/<>=!?][\\w\\-+*/<>=!?]*"
+    }
+  }
+}
