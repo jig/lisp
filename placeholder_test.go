@@ -51,8 +51,6 @@ func TestPlaceholders(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// fmt.Println(PRINT(exp))
-
 	ctx := context.Background()
 	res, err := EVAL(ctx, exp, repl_env)
 	if err != nil {
@@ -131,7 +129,6 @@ func TestREADWithPreamble(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// fmt.Println(PRINT(exp))
 	ctx := context.Background()
 	res, err := EVAL(ctx, exp, repl_env)
 	if err != nil {
@@ -229,14 +226,10 @@ func TestAddPreamble(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// fmt.Println(source)
-
 	exp, err := READWithPreamble(source, nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-
-	// fmt.Println(PRINT(exp))
 
 	ctx := context.Background()
 	res, err := EVAL(ctx, exp, repl_env)
@@ -635,14 +628,11 @@ func TestHashMapMarshalers(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// fmt.Println(source)
-
 	exp, err := READWithPreamble(source, nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	// fmt.Println(PRINT(exp))
 	ctx := context.Background()
 	res, err := EVAL(ctx, exp, repl_env)
 	if err != nil {

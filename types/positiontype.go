@@ -70,10 +70,6 @@ func (p *Position) Here(here *Position) *Position {
 	}
 }
 
-// func (p *Position) Row(row int) *Position {
-// 	p := &Position{}
-// }
-
 func (p *Position) Copy() *Position {
 	if p == nil {
 		return nil
