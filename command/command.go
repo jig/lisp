@@ -16,12 +16,14 @@ import (
 
 // args represents command line arguments for the Lisp interpreter
 type args struct {
-	Version bool     `arg:"-v,--version" help:"show version information"`
-	Test    string   `arg:"-t,--test" help:"run test suite from directory" placeholder:"DIR"`
-	Debug   bool     `arg:"--debug" help:"enable DEBUG-EVAL support (may impact performance)"`
-	Eval    string   `arg:"-e,--eval" help:"evaluate expression and exit" placeholder:"EXPR"`
-	Script  string   `arg:"positional" help:"lisp script to execute"`
-	Args    []string `arg:"positional" help:"arguments to pass to the script"`
+	Version   bool     `arg:"-v,--version" help:"show version information"`
+	Test      string   `arg:"-t,--test" help:"run test suite from directory" placeholder:"DIR"`
+	Debug     bool     `arg:"--debug" help:"enable DEBUG-EVAL support (requires lispdebug build)"`
+	Eval      string   `arg:"-e,--eval" help:"evaluate expression and exit" placeholder:"EXPR"`
+	DAP       bool     `arg:"--dap" help:"start a Debug Adapter Protocol server on stdio (requires lispdebug build)"`
+	DAPListen string   `arg:"--dap-listen" help:"start a DAP server on the given TCP address (requires lispdebug build)" placeholder:"HOST:PORT"`
+	Script    string   `arg:"positional" help:"lisp script to execute"`
+	Args      []string `arg:"positional" help:"arguments to pass to the script"`
 }
 
 func (args) Description() string {
@@ -85,6 +87,11 @@ func Execute(cmdArgs []string, repl_env types.EnvType) error {
 
 	if parsedArgs.Eval != "" && (parsedArgs.Version || parsedArgs.Test != "") {
 		return fmt.Errorf("-e cannot be used with --version or --test")
+	}
+
+	// DAP server takes precedence over the rest of the modes when set.
+	if parsedArgs.DAP || parsedArgs.DAPListen != "" {
+		return startDAP(parsedArgs.DAPListen, parsedArgs.Script, repl_env)
 	}
 
 	// Handle --version
@@ -172,6 +179,9 @@ func runTests(dir string, repl_env types.EnvType) error {
 
 // ExecuteFile executes a file on the given path
 func ExecuteFile(fileName string, ns types.EnvType) (types.MalType, error) {
+	if abs, err := filepath.Abs(fileName); err == nil {
+		registerModule(fileName, abs)
+	}
 	ctx := context.Background()
 	result, err := lisp.REPL(ctx, ns, `(load-file "`+fileName+`")`, types.NewCursorHere(fileName, -3, 1))
 	if err != nil {
