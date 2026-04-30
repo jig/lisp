@@ -142,6 +142,64 @@ func TestServer_InitializeLaunchHandshake(t *testing.T) {
 	sendRequest(t, client, 4, "disconnect", nil)
 }
 
+func TestServer_StepOverSkipsTCOContinuation(t *testing.T) {
+	client, server, closer := pair()
+
+	ns := newTestEnv(t)
+	called := make(chan struct{}, 1)
+	eval := func(ctx context.Context, env types.EnvType) error {
+		_, err := evalSimple(ctx, env, "(do 1 2 3 4)")
+		called <- struct{}{}
+		return err
+	}
+
+	srv := NewServer(server, eval, ns)
+	stop := runServer(t, srv, closer)
+	defer stop()
+
+	sendRequest(t, client, 1, "initialize", nil)
+	readUntil(t, client, func(m map[string]interface{}) bool {
+		return m["event"] == "initialized"
+	})
+	sendRequest(t, client, 2, "launch", map[string]interface{}{"stopOnEntry": true})
+	readUntil(t, client, func(m map[string]interface{}) bool {
+		return m["command"] == "launch" && m["type"] == "response"
+	})
+	sendRequest(t, client, 3, "configurationDone", nil)
+	readUntil(t, client, func(m map[string]interface{}) bool {
+		return m["command"] == "configurationDone" && m["type"] == "response"
+	})
+
+	// First stop: entry pause on the outer (do …) form.
+	readUntil(t, client, func(m map[string]interface{}) bool {
+		return m["event"] == "stopped"
+	})
+
+	// Step over should walk past every TCO continuation of the outer
+	// `do` and land at the next *new* call. Since `(do 1 2 3 4)` has
+	// only literal subforms (no nested calls), it should run to
+	// completion without another stop.
+	sendRequest(t, client, 4, "next", map[string]interface{}{"threadId": 1})
+	readUntil(t, client, func(m map[string]interface{}) bool {
+		return m["command"] == "next" && m["type"] == "response"
+	})
+
+	// Expect terminated without an intervening stopped.
+	got := readUntil(t, client, func(m map[string]interface{}) bool {
+		return m["event"] == "stopped" || m["event"] == "terminated"
+	})
+	if got["event"] != "terminated" {
+		t.Fatalf("expected terminated next, got another stopped: %v", got)
+	}
+
+	select {
+	case <-called:
+	case <-time.After(3 * time.Second):
+		t.Fatal("eval did not finish")
+	}
+	sendRequest(t, client, 5, "disconnect", nil)
+}
+
 func TestServer_StopOnEntryAndContinue(t *testing.T) {
 	client, server, closer := pair()
 

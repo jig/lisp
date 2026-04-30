@@ -27,8 +27,10 @@ func (h *StepHook) OnEval(ctx context.Context, ev runtime.EvalEvent) error {
 
 	t := runtime.ThreadFromContext(ctx)
 	depth := 0
+	var top *runtime.Frame
 	if t != nil {
 		depth = t.Depth()
+		top = t.Top()
 	}
 
 	// Breakpoint check first: a breakpoint always wins over step mode.
@@ -37,12 +39,24 @@ func (h *StepHook) OnEval(ctx context.Context, ev runtime.EvalEvent) error {
 		return nil
 	}
 
+	// EVAL's TCO loop calls OnEval repeatedly on the *same* frame for
+	// constructs like do/let/if/fn-body. A "step" should only react to a
+	// genuinely new call (push) or return to a different frame (pop), so
+	// we ignore re-entries on the frame we were on at step time.
+	sameFrame := top != nil && top == s.stepFrame
+
 	switch s.mode {
 	case modeStopOnEntry:
 		s.pauseAndWait("entry", "")
 	case modeStepIn:
+		if sameFrame {
+			break
+		}
 		s.pauseAndWait("step", "")
 	case modeStepOver:
+		if sameFrame {
+			break
+		}
 		if depth <= s.targetDepth {
 			s.pauseAndWait("step", "")
 		}

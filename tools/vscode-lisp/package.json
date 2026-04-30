@@ -18,7 +18,8 @@
   ],
   "main": "./out/extension.js",
   "activationEvents": [
-    "onDebug",
+    "onDebugResolve:lisp",
+    "onDebugDynamicConfigurations:lisp",
     "onLanguage:lisp"
   ],
   "contributes": {

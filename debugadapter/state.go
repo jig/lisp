@@ -48,7 +48,11 @@ type state struct {
 	cond *sync.Cond
 
 	mode        mode
-	targetDepth int // for stepOver (entered at this depth) / stepOut
+	targetDepth int            // for stepOver (entered at this depth) / stepOut
+	stepFrame   *runtime.Frame // top frame at the moment the step request arrived;
+	//                            EVAL's TCO loop re-enters OnEval on the same frame,
+	//                            so we use this to distinguish a "new call" from a
+	//                            "next iteration of the same call".
 
 	breakpoints map[string]map[int]bool // abs path → line → set
 
@@ -137,10 +141,13 @@ func (s *state) pauseAndWait(reason, description string) {
 }
 
 // resume wakes the EVAL goroutine after switching to the given mode.
+// stepFrame snapshots the top frame so the hook can ignore TCO loop
+// re-entries on the same frame and only react to a real new call.
 // Caller must hold s.mu.
 func (s *state) resume(m mode, depth int) {
 	s.mode = m
 	s.targetDepth = depth
+	s.stepFrame = s.thread.Top()
 	s.cond.Signal()
 	go s.server.sendEvent("continued", ContinuedEventBody{
 		ThreadID:            1,
