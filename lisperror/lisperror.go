@@ -58,12 +58,12 @@ func (e LispError) Error() string {
 			msg = fmt.Sprint(e.err)
 		}
 	default:
-		// TODO: this should be prt_str
-		// panic("internal error: LispError.Error() called on non-error")
+		// Non-error MalType payloads (e.g. values thrown via (throw {:a 1}))
+		// are rendered with Pr_str so they print as Lisp data, not Go reflection.
 		if e.cursor != nil {
-			msg = fmt.Sprintf("%s: %s", e.cursor, e.err)
+			msg = fmt.Sprintf("%s: %s", e.cursor, printer.Pr_str(e.err, true))
 		} else {
-			msg = fmt.Sprint(e.err)
+			msg = printer.Pr_str(e.err, true)
 		}
 	}
 
@@ -86,14 +86,6 @@ func (e LispError) Error() string {
 func (e LispError) Position() *Position {
 	return e.cursor
 }
-
-// func (e LispError) LispPrint(_Pr_str func(obj MalType, print_readably bool) string) string {
-// 	return "(error " + _Pr_str(e.err, true) + ")"
-// }
-
-// func (e LispError) Type() string {
-// 	return "error"
-// }
 
 // NewGoError is used to create a LispError on errors returned by go functions
 func NewGoError(fFullName string, err interface{}) error {

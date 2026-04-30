@@ -50,6 +50,11 @@ const preamblePrefix = ";; $"
 // DebugEvalEnabled controls whether DEBUG-EVAL support is active.
 // When false, the DEBUG-EVAL check is skipped entirely for better performance.
 // Set this to true before evaluation if you need DEBUG-EVAL functionality.
+//
+// This is also the public extension point for external debuggers: when
+// enabled, EVAL inspects the DEBUG-EVAL binding before evaluating each form
+// (see EVAL in this file). A future DAP/LSP integration will hook here.
+// Do not remove or rename without coordinating with the debugger work.
 var DebugEvalEnabled = false
 
 // READ reads Lisp source code and generates an AST that might be evaled by [EVAL] or printed by [PRINT].
@@ -309,7 +314,7 @@ func do(ctx context.Context, ast MalType, from, to int, env EnvType) (MalType, e
 	if len(lst) == from {
 		return nil, nil
 	}
-	evaledAST, e := eval_ast(ctx, List{Val: lst[from : len(lst)+to]}, env)
+	evaledAST, e := eval_ast(ctx, List{Val: lst[from : len(lst)+to], Cursor: ast.(List).Cursor}, env)
 	if e != nil {
 		return nil, e
 	}
@@ -367,11 +372,7 @@ func EVAL(ctx context.Context, ast MalType, env EnvType) (res MalType, e error) 
 
 		switch ast := ast.(type) {
 		case List: // continue
-			// aStr, _ := PRINT(ast)
-			// fmt.Printf("%s◉ %s\n", ast.Cursor, aStr)
 		default:
-			// aStr, _ := PRINT(ast)
-			// fmt.Printf("%T○ %s\n", ast, aStr)
 			return eval_ast(ctx, ast, env)
 		}
 
@@ -488,28 +489,28 @@ func EVAL(ctx context.Context, ast MalType, env EnvType) (res MalType, e error) 
 			case "catch":
 				finallyDo = nil
 				catchBind = last.(List).Val[1]
-				catchDo = List{Val: last.(List).Val[2:]}
-				tryDo = List{Val: lst[1 : len(lst)-1]}
+				catchDo = List{Val: last.(List).Val[2:], Cursor: last.(List).Cursor}
+				tryDo = List{Val: lst[1 : len(lst)-1], Cursor: ast.(List).Cursor}
 				if len(catchDo.(List).Val) == 0 {
 					return nil, lisperror.NewLispError(errors.New("catch must have 2 arguments at least"), ast)
 				}
 			case "finally":
-				finallyDo = List{Val: last.(List).Val[1:]}
+				finallyDo = List{Val: last.(List).Val[1:], Cursor: last.(List).Cursor}
 				switch first(prelast) {
 				case "catch":
 					catchBind = prelast.(List).Val[1]
-					catchDo = List{Val: prelast.(List).Val[2:]}
-					tryDo = List{Val: lst[1 : len(lst)-2]}
+					catchDo = List{Val: prelast.(List).Val[2:], Cursor: prelast.(List).Cursor}
+					tryDo = List{Val: lst[1 : len(lst)-2], Cursor: ast.(List).Cursor}
 				default:
 					catchBind = nil
 					catchDo = nil
-					tryDo = List{Val: lst[1 : len(lst)-1]}
+					tryDo = List{Val: lst[1 : len(lst)-1], Cursor: ast.(List).Cursor}
 				}
 			default:
 				finallyDo = nil
 				catchBind = nil
 				catchDo = nil
-				tryDo = List{Val: lst[1:]}
+				tryDo = List{Val: lst[1:], Cursor: ast.(List).Cursor}
 			}
 			exp, e := func() (res MalType, err error) {
 				defer malRecover(&err)
@@ -572,7 +573,7 @@ func EVAL(ctx context.Context, ast MalType, env EnvType) (res MalType, e error) 
 		case "fn":
 			fn := MalFunc{
 				Eval:    EVAL,
-				Exp:     List{Val: append([]MalType{Symbol{Val: "do"}}, ast.(List).Val[2:]...)},
+				Exp:     List{Val: append([]MalType{Symbol{Val: "do"}}, ast.(List).Val[2:]...), Cursor: ast.(List).Cursor},
 				Env:     env,
 				Params:  a1,
 				IsMacro: false,
@@ -590,7 +591,7 @@ func EVAL(ctx context.Context, ast MalType, env EnvType) (res MalType, e error) 
 			if Q[MalFunc](f) {
 				fn := f.(MalFunc)
 				ast = fn.Exp
-				env, e = NewSubordinateEnvWithBinds(fn.Env, fn.Params, List{Val: el.(List).Val[1:]})
+				env, e = NewSubordinateEnvWithBinds(fn.Env, fn.Params, List{Val: el.(List).Val[1:], Cursor: el.(List).Cursor})
 				if e != nil {
 					if ast == nil {
 						return nil, lisperror.NewLispError(e, nil)

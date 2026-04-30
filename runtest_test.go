@@ -40,7 +40,6 @@ func TestFileTests(t *testing.T) {
 		if dirEntry.Name() == "step1_read_print.mal" {
 			continue
 		}
-		// fmt.Println(dirEntry.Name())
 		code, err := os.ReadFile("./tests/" + dirEntry.Name())
 		if err != nil {
 			log.Fatal(err)
@@ -62,7 +61,6 @@ func parseFile(ctx context.Context, fileName string, code string) error {
 	for _, line := range lines {
 		currentLine++
 		line = strings.Trim(line, " \t\r\n")
-		// fmt.Println(line)
 		switch {
 		case len(line) == 0:
 			continue
@@ -70,7 +68,6 @@ func parseFile(ctx context.Context, fileName string, code string) error {
 			// ignored, all tests executed
 			continue
 		case strings.HasPrefix(line, ";;"):
-			// fmt.Println(line)
 			continue
 		case strings.HasPrefix(line, ";>>>"):
 			// settings/commands ignored
@@ -99,16 +96,13 @@ func parseFile(ctx context.Context, fileName string, code string) error {
 		case strings.HasPrefix(line, ";"):
 			return fmt.Errorf("%q test data error at line %d:\n%s", fileName, currentLine, line)
 		default:
-			// fmt.Println(currentLine, line)
 			result, stdoutResult, lastError = captureStdout(func() (types.MalType, error) {
 				v, err := REPL(ctx, env, line, types.NewCursorFile(fileName))
 				if v == nil {
 					return "nil", err
 				}
-				// fmt.Fprintln(os.Stderr, "-->", result)
 				return v, err
 			})
-			// fmt.Printf("\t\t%s\t\t\t%s\n", line, stdoutResult)
 		}
 	}
 	return nil

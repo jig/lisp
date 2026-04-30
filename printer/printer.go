@@ -26,8 +26,6 @@ func Pr_str(obj types.MalType, print_readably bool) string {
 	switch tobj := obj.(type) {
 	case types.LispPrintable:
 		return tobj.LispPrint(Pr_str)
-	// case lisperror.LispError:
-	// 	return tobj.LispPrint(Pr_str)
 	case types.List:
 		return Pr_list(tobj.Val, print_readably, "(", ")", " ")
 	case types.Vector:
@@ -76,9 +74,6 @@ func Pr_str(obj types.MalType, print_readably bool) string {
 		return fmt.Sprintf("«function %v»", obj)
 	case error:
 		return "«go-error " + Pr_str(tobj.Error(), true) + "»"
-	// case *types.Atom:
-	// 	return "(atom " +
-	// 		Pr_str(tobj.Val, true) + ")"
 	default:
 		if v := reflect.ValueOf(obj); v.Kind() == reflect.Ptr {
 			// if the value is a pointer, dereference it to print the value instead of the address
