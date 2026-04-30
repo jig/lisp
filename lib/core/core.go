@@ -1,3 +1,9 @@
+// Package core defines the Lisp built-in functions implemented in Go.
+//
+// Lists, vectors, and hashmaps returned by these builtins are
+// runtime-constructed and therefore intentionally carry a nil Cursor:
+// they have no source-code position to attribute. Source positions are
+// preserved only on AST nodes produced by the reader.
 package core
 
 import (
@@ -409,6 +415,8 @@ func str(a ...MalType) (string, error) {
 	return printer.Pr_list(a, false, "", "", ""), nil
 }
 
+// sPew backs the (spew x) Lisp builtin: it deep-prints any value via go-spew.
+// The lib/call dispatcher lowercases this Go name to register the symbol.
 func sPew(a MalType) (MalType, error) {
 	spew.Dump(a)
 	return nil, nil

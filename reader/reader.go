@@ -50,7 +50,6 @@ func tokenize(sourceCode string, cursor *Position) ([]Token, error) {
 		s.Filename = *cursor.Module
 	}
 	for tok := s.Scan(); tok != scanner.EOF; tok = s.Scan() {
-		// fmt.Printf("%s: (%s) %s\n", s.Position, scanner.TokenString(tok), s.TokenText())
 		if s.ErrorCount != 0 {
 			return nil, lisperror.NewLispError(fmt.Errorf("invalid token %s", s.TokenText()), &Position{
 				Module:   cursor.Module,
@@ -169,7 +168,6 @@ func read_external(rdr *tokenReader, placeholderValues *HashMap, ns EnvType) (Ma
 		return nil, e
 	}
 	args := lst.(List).Val
-	// cursor := lst.(List).Cursor
 	symbol := Symbol{Val: "new-" + args[0].(Symbol).Val}
 	constructor, err := ns.Get(symbol)
 	if err != nil {
@@ -178,7 +176,7 @@ func read_external(rdr *tokenReader, placeholderValues *HashMap, ns EnvType) (Ma
 
 	fnConstructor, ok := constructor.(Func)
 	if !ok {
-		return nil, fmt.Errorf("attempt to call non-function (was of type %T)", constructor)
+		return nil, lisperror.NewLispError(fmt.Errorf("attempt to call non-function (was of type %T)", constructor), lst.(List).Cursor)
 	}
 	typedValue, err := fnConstructor.Fn(context.Background(), args[1:])
 	if err != nil {

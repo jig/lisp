@@ -237,3 +237,29 @@ var codeUndefinedSymbol = `;; undefined-symbol is undefined
 
 undefined-symbol
 `
+
+// TestTryFinallyBodyHasCursor verifies that errors raised inside a try/finally
+// body (which evaluates through a synthetic do-list constructed by EVAL)
+// still carry a non-nil source position, exercising the cursor propagation
+// in mal.go's try special form.
+func TestTryFinallyBodyHasCursor(t *testing.T) {
+	bootEnv := env.NewEnv()
+	core.Load(bootEnv)
+
+	ctx := context.Background()
+	src := `(try
+  undefined-in-try
+  (finally 1))`
+
+	_, err := REPL(ctx, bootEnv, src, types.NewCursorFile(t.Name()))
+	if err == nil {
+		t.Fatal("expected error from undefined-in-try, got none")
+	}
+	posErr, ok := err.(interface{ Position() *types.Position })
+	if !ok {
+		t.Fatalf("expected error to expose Position(), got %T: %v", err, err)
+	}
+	if posErr.Position() == nil {
+		t.Fatalf("expected non-nil position for error inside try body, got nil; err=%v", err)
+	}
+}
