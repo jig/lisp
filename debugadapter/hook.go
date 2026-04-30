@@ -39,6 +39,14 @@ func (h *StepHook) OnEval(ctx context.Context, ev runtime.EvalEvent) error {
 		return nil
 	}
 
+	// Don't pause inside library code: stop-on-entry and step modes
+	// only fire on forms whose source file the client can actually
+	// open. Otherwise VSCode tries to fetch the source via the
+	// `source` request and errors out.
+	if !s.isUserCode(ev.Cursor) {
+		return nil
+	}
+
 	// EVAL's TCO loop calls OnEval repeatedly on the *same* frame for
 	// constructs like do/let/if/fn-body. A "step" should only react to a
 	// genuinely new call (push) or return to a different frame (pop), so

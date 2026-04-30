@@ -104,6 +104,22 @@ func (s *state) setBreakpoints(src Source, requested []SourceBreakpoint) []Break
 	return out
 }
 
+// isUserCode reports whether the cursor points at a file the client
+// could plausibly know about. A Module is considered "user code" only
+// when it has been registered with runtime.Modules — that means a real
+// filesystem path was associated with it (e.g. via command.ExecuteFile
+// or command.startDAP). Library headers (header-load-file, etc.) live
+// in the binary as embedded strings; pausing inside them would point
+// the client at non-existent files and trigger "Could not load source"
+// errors in VSCode.
+func (s *state) isUserCode(cursor *types.Position) bool {
+	if cursor == nil || cursor.Module == nil {
+		return false
+	}
+	_, ok := runtime.Modules.Lookup(*cursor.Module)
+	return ok
+}
+
 // matchBreakpoint reports whether cursor is on a line with a registered
 // breakpoint.
 func (s *state) matchBreakpoint(cursor *types.Position) bool {

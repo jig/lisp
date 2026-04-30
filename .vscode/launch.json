@@ -5,6 +5,13 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "LISP DEBUGGER: CURRENT FILE",
+            "type": "lisp",
+            "request": "launch",
+            "program": "${file}",
+            "stopOnEntry": true
+        },
+        {
             "name": "test root",
             "type": "go",
             "request": "launch",

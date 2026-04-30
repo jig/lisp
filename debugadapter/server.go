@@ -219,7 +219,12 @@ func (s *Server) handleStackTrace(req *Request) {
 			line = f.Cursor.BeginRow
 			col = f.Cursor.BeginCol
 			if f.Cursor.Module != nil {
-				src = Source{Name: *f.Cursor.Module, Path: runtime.Modules.Resolve(*f.Cursor.Module)}
+				// Only emit a Source when we know a real filesystem
+				// path. Otherwise the client would fire the `source`
+				// request for an embedded library header.
+				if path, ok := runtime.Modules.Lookup(*f.Cursor.Module); ok {
+					src = Source{Name: *f.Cursor.Module, Path: path}
+				}
 			}
 		}
 		name := f.FunctionName
