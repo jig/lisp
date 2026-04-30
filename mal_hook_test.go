@@ -1,3 +1,5 @@
+//go:build lispdebug
+
 package lisp
 
 import (

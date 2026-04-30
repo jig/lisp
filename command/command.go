@@ -11,7 +11,6 @@ import (
 	"github.com/alexflint/go-arg"
 	"github.com/jig/lisp"
 	"github.com/jig/lisp/repl"
-	"github.com/jig/lisp/runtime"
 	"github.com/jig/lisp/types"
 )
 
@@ -75,9 +74,13 @@ func Execute(cmdArgs []string, repl_env types.EnvType) error {
 		}
 	}
 
-	// Enable DEBUG-EVAL if flag is set
+	// Enable DEBUG-EVAL if flag is set. setupDebugHook is gated by the
+	// `lispdebug` build tag: in release builds it returns an error so the
+	// flag cannot accidentally enable hook code that was compiled out.
 	if parsedArgs.Debug {
-		runtime.Hook = runtime.PrintEvalHook{}
+		if err := setupDebugHook(); err != nil {
+			return err
+		}
 	}
 
 	if parsedArgs.Eval != "" && (parsedArgs.Version || parsedArgs.Test != "") {

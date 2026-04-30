@@ -1,19 +1,29 @@
 // Package runtime exposes hooks that external tooling (debuggers, LSP
 // servers) can install to observe or intercept Lisp evaluation.
 //
-// The package is intentionally tiny: it provides a single pre-eval callback
-// that is invoked once per EVAL iteration. Consumers are expected to keep
-// any auxiliary state (call stacks, breakpoint tables, pause channels) in
-// their own implementation of EvalHook.
+// # Build modes
 //
-// When Hook is nil, EVAL pays no overhead beyond a single nil check.
+// The hook machinery is gated by the build tag `lispdebug`:
+//
+//   - **release** (default, no tag): runtime.Enabled == false. The hook
+//     dispatch in EVAL is dead code and the compiler removes it. There is
+//     no way to install a hook in this build, no performance overhead in
+//     the hot path, and no in-process attack surface for an unwanted
+//     observer of evaluation.
+//
+//   - **debug** (`-tags lispdebug`): runtime.Enabled == true. The exported
+//     `Hook` variable accepts an EvalHook implementation. EVAL invokes
+//     `runtime.Dispatch` once per iteration. Use this build for the
+//     `--debug` CLI flag and for the upcoming DAP debugger and LSP
+//     server.
+//
+// Build the production binary with `go build ./cmd/lisp`. Build the
+// debug binary with `go build -tags lispdebug ./cmd/lisp`.
 package runtime
 
 import (
 	"context"
-	"fmt"
 
-	"github.com/jig/lisp/printer"
 	"github.com/jig/lisp/types"
 )
 
@@ -26,37 +36,8 @@ type EvalEvent struct {
 
 // EvalHook is invoked by EVAL before each iteration of its TCO loop.
 // Returning a non-nil error aborts evaluation and propagates the error.
+//
+// Only meaningful in `lispdebug` builds; see package doc.
 type EvalHook interface {
 	OnEval(ctx context.Context, ev EvalEvent) error
-}
-
-// Hook is the active EvalHook. nil disables hooking entirely.
-//
-// Set this once before kicking off EVAL goroutines. Concurrent reads are
-// safe (a single pointer assignment is atomic on supported platforms);
-// concurrent writes are not synchronised — callers must coordinate.
-var Hook EvalHook
-
-// PrintEvalHook reproduces the legacy DEBUG-EVAL printing behaviour:
-// when the symbol DEBUG-EVAL is bound to true in the active env, it prints
-// the source position followed by the form being evaluated.
-type PrintEvalHook struct{}
-
-// OnEval implements EvalHook.
-func (PrintEvalHook) OnEval(_ context.Context, ev EvalEvent) error {
-	if ev.Env == nil {
-		return nil
-	}
-	dbg, err := ev.Env.Get(types.Symbol{Val: "DEBUG-EVAL"})
-	if err != nil {
-		return nil
-	}
-	b, ok := dbg.(bool)
-	if !ok || !b {
-		return nil
-	}
-	if ev.Cursor != nil {
-		fmt.Printf("\033[38;5;208m%s\033[0m: %s\n", ev.Cursor, printer.Pr_str(ev.AST, true))
-	}
-	return nil
 }
