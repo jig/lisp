@@ -336,6 +336,19 @@ func EVAL(ctx context.Context, ast MalType, env EnvType) (res MalType, e error) 
 	isMacro := is_macro_call(ast, env)
 	functionName := extractFunctionName(ast, isMacro)
 
+	// Live execution stack (debug builds only). In release builds the
+	// helpers are no-ops and `runtime.Enabled` is the compile-time
+	// constant `false`, so the whole block is dead code.
+	var frame *runtime.Frame
+	if runtime.Enabled {
+		frame = runtime.MakeFrame(functionName, ast, env, lisperror.GetPosition(ast))
+		if runtime.PushFrame(ctx, frame) {
+			defer runtime.PopFrame(ctx)
+		} else {
+			frame = nil
+		}
+	}
+
 	// Add stack frame to any error that propagates out of this EVAL call
 	defer func() {
 		if e != nil {
@@ -358,6 +371,7 @@ func EVAL(ctx context.Context, ast MalType, env EnvType) (res MalType, e error) 
 		// the compile-time constant `false` (release build), the entire
 		// branch is dead code and the compiler removes it.
 		if runtime.Enabled {
+			runtime.UpdateFrame(frame, ast, env, lisperror.GetPosition(ast))
 			if DebugEvalEnabled {
 				installLegacyDebugHook()
 			}
