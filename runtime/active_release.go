@@ -18,3 +18,23 @@ const Enabled = false
 func Dispatch(_ context.Context, _ types.MalType, _ types.EnvType, _ *types.Position) error {
 	return nil
 }
+
+// Frame is a stub in release builds. The Frame contents only exist in
+// `lispdebug` builds; this empty struct keeps consumer code (mal.go,
+// debugadapter) compilable when wrapped in `if runtime.Enabled { ... }`.
+type Frame struct{}
+
+// MakeFrame returns nil in release builds. Dead code under
+// `if runtime.Enabled`.
+func MakeFrame(_ string, _ types.MalType, _ types.EnvType, _ *types.Position) *Frame {
+	return nil
+}
+
+// UpdateFrame is a no-op in release builds.
+func UpdateFrame(_ *Frame, _ types.MalType, _ types.EnvType, _ *types.Position) {}
+
+// PushFrame is a no-op in release builds.
+func PushFrame(_ context.Context, _ *Frame) bool { return false }
+
+// PopFrame is a no-op in release builds.
+func PopFrame(_ context.Context) {}
