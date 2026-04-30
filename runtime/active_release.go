@@ -38,3 +38,6 @@ func PushFrame(_ context.Context, _ *Frame) bool { return false }
 
 // PopFrame is a no-op in release builds.
 func PopFrame(_ context.Context) {}
+
+// FrameID always returns 0 in release builds — Frame has no fields.
+func FrameID(_ *Frame) int64 { return 0 }

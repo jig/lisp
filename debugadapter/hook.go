@@ -51,7 +51,9 @@ func (h *StepHook) OnEval(ctx context.Context, ev runtime.EvalEvent) error {
 	// constructs like do/let/if/fn-body. A "step" should only react to a
 	// genuinely new call (push) or return to a different frame (pop), so
 	// we ignore re-entries on the frame we were on at step time.
-	sameFrame := top != nil && top == s.stepFrame
+	// We compare by frame ID rather than pointer because the GC may
+	// reuse the memory of a popped frame.
+	sameFrame := s.stepFrameID != 0 && runtime.FrameID(top) == s.stepFrameID
 
 	switch s.mode {
 	case modeStopOnEntry:

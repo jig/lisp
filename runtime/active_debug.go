@@ -6,6 +6,7 @@ import (
 	"context"
 	"fmt"
 	"sync"
+	"sync/atomic"
 
 	"github.com/jig/lisp/printer"
 	"github.com/jig/lisp/types"
@@ -59,12 +60,20 @@ func (PrintEvalHook) OnEval(_ context.Context, ev EvalEvent) error {
 //
 // EVAL pushes a Frame on entry and mutates AST/Env/Cursor as the TCO loop
 // progresses. A Frame is popped when the EVAL call returns.
+//
+// ID is a process-wide monotonically increasing identifier assigned by
+// MakeFrame. The DAP server uses it (instead of a *Frame pointer) to
+// recognise "same call" vs "new call" — pointer identity is unreliable
+// because the GC can reuse the memory of a popped frame.
 type Frame struct {
+	ID           int64
 	FunctionName string
 	AST          types.MalType
 	Env          types.EnvType
 	Cursor       *types.Position
 }
+
+var nextFrameID atomic.Int64
 
 // Thread is the live call stack of a single Lisp evaluation goroutine.
 //
@@ -83,11 +92,22 @@ func NewThread() *Thread { return &Thread{} }
 // stub can hide the Frame layout entirely.
 func MakeFrame(functionName string, ast types.MalType, env types.EnvType, cursor *types.Position) *Frame {
 	return &Frame{
+		ID:           nextFrameID.Add(1),
 		FunctionName: functionName,
 		AST:          ast,
 		Env:          env,
 		Cursor:       cursor,
 	}
+}
+
+// FrameID returns the unique identifier of a Frame, or 0 for nil. The
+// release-build stub also returns 0; consumers can compare IDs
+// portably across builds.
+func FrameID(f *Frame) int64 {
+	if f == nil {
+		return 0
+	}
+	return f.ID
 }
 
 // UpdateFrame mutates an existing Frame in place. Used by the TCO loop in
