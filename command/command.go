@@ -74,9 +74,13 @@ func Execute(cmdArgs []string, repl_env types.EnvType) error {
 		}
 	}
 
-	// Enable DEBUG-EVAL if flag is set
+	// Enable DEBUG-EVAL if flag is set. setupDebugHook is gated by the
+	// `lispdebug` build tag: in release builds it returns an error so the
+	// flag cannot accidentally enable hook code that was compiled out.
 	if parsedArgs.Debug {
-		lisp.DebugEvalEnabled = true
+		if err := setupDebugHook(); err != nil {
+			return err
+		}
 	}
 
 	if parsedArgs.Eval != "" && (parsedArgs.Version || parsedArgs.Test != "") {

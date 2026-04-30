@@ -40,6 +40,7 @@ import (
 	"github.com/jig/lisp/lisperror"
 	"github.com/jig/lisp/printer"
 	"github.com/jig/lisp/reader"
+	"github.com/jig/lisp/runtime"
 	. "github.com/jig/lisp/types"
 )
 
@@ -47,14 +48,15 @@ var placeholderRE = regexp.MustCompile(`^(;; \$[\-\d\w]+)+\s(.+)`)
 
 const preamblePrefix = ";; $"
 
-// DebugEvalEnabled controls whether DEBUG-EVAL support is active.
-// When false, the DEBUG-EVAL check is skipped entirely for better performance.
-// Set this to true before evaluation if you need DEBUG-EVAL functionality.
+// DebugEvalEnabled is a deprecated shim for the legacy DEBUG-EVAL print
+// behaviour. Setting it to true takes effect only in `lispdebug` builds,
+// where it installs runtime.PrintEvalHook on the next EVAL call. In
+// release builds (the default) the flag has no effect because the hook
+// dispatch in EVAL is compiled out.
 //
-// This is also the public extension point for external debuggers: when
-// enabled, EVAL inspects the DEBUG-EVAL binding before evaluating each form
-// (see EVAL in this file). A future DAP/LSP integration will hook here.
-// Do not remove or rename without coordinating with the debugger work.
+// Deprecated: in `lispdebug` builds, install a runtime.EvalHook directly
+// via `runtime.Hook = runtime.PrintEvalHook{}` (or your own
+// implementation). New code in this repo wires --debug through that path.
 var DebugEvalEnabled = false
 
 // READ reads Lisp source code and generates an AST that might be evaled by [EVAL] or printed by [PRINT].
@@ -352,21 +354,15 @@ func EVAL(ctx context.Context, ast MalType, env EnvType) (res MalType, e error) 
 			}
 		}
 
-		// DEBUG-EVAL support: print AST if DEBUG-EVAL is set and truthy
-		if DebugEvalEnabled {
-			if dbgEval, err := env.Get(Symbol{Val: "DEBUG-EVAL"}); err == nil {
-				// Print if DEBUG-EVAL exists and is not nil or false
-				switch dbgEval := dbgEval.(type) {
-				case bool:
-					if dbgEval {
-						pos := lisperror.GetPosition(ast)
-						if pos != nil {
-							fmt.Printf("\033[38;5;208m%s\033[0m: %s\n", pos, PRINT(ast))
-						}
-					}
-				default:
-					// do nothing
-				}
+		// Pluggable hook (debug builds only). When `runtime.Enabled` is
+		// the compile-time constant `false` (release build), the entire
+		// branch is dead code and the compiler removes it.
+		if runtime.Enabled {
+			if DebugEvalEnabled {
+				installLegacyDebugHook()
+			}
+			if err := runtime.Dispatch(ctx, ast, env, lisperror.GetPosition(ast)); err != nil {
+				return nil, err
 			}
 		}
 
