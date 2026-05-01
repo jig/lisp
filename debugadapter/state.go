@@ -67,6 +67,13 @@ type state struct {
 	stopOnEntry bool
 	disconnect  bool
 	exited      bool
+
+	// lastObservedLine is the BeginRow of the cursor seen on the
+	// previous OnEval. matchBreakpoint uses it to skip the cascade of
+	// matches that would otherwise fire on every sub-form sharing the
+	// row (head Symbol, args, etc.). A breakpoint should pause once,
+	// then re-arm when execution moves to a different line.
+	lastObservedLine int
 }
 
 func newState(s *Server) *state {
@@ -122,9 +129,14 @@ func (s *state) isUserCode(cursor *types.Position) bool {
 }
 
 // matchBreakpoint reports whether cursor is on a line with a registered
-// breakpoint.
-func (s *state) matchBreakpoint(cursor *types.Position) bool {
+// breakpoint *and* execution just transitioned onto that line. The
+// transition check (cursor.BeginRow != prevLine) prevents the BP from
+// re-firing for every sub-form on the same row.
+func (s *state) matchBreakpoint(cursor *types.Position, prevLine int) bool {
 	if cursor == nil || cursor.Module == nil {
+		return false
+	}
+	if cursor.BeginRow == prevLine {
 		return false
 	}
 	resolved := runtime.Modules.Resolve(*cursor.Module)
@@ -165,6 +177,8 @@ func (s *state) resume(m mode, depth int) {
 	s.mode = m
 	s.targetDepth = depth
 	s.stepFrameID = runtime.FrameID(s.thread.Top())
+	tracef("resume mode=%d targetDepth=%d stepFrameID=%d (thread.Depth=%d)",
+		m, depth, s.stepFrameID, s.thread.Depth())
 	s.cond.Signal()
 	go s.server.sendEvent("continued", ContinuedEventBody{
 		ThreadID:            1,

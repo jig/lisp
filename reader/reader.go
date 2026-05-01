@@ -318,15 +318,29 @@ func Read_str(str string, cursor *Position, placeholderValues *HashMap, ns ...En
 	if cursor == nil {
 		cursor = NewAnonymousCursorHere(1, 1)
 	}
+	// `;; $MODULE <path>\n` at the head of the source claims a module
+	// identity for the rest of the input. The line itself is consumed
+	// before the user-relevant code begins, so every emitted cursor row
+	// has to be shifted by -1 to match the path's real on-disk contents.
+	rowShift := 0
 	if cursor.Module == nil {
 		matches := moduleNamePrefixRE.FindStringSubmatch(str)
 		if matches != nil {
 			cursor = NewCursorFile(matches[1])
+			rowShift = 1
 		}
 	}
 	tokens, err := tokenize(str, cursor)
 	if err != nil {
 		return nil, err
+	}
+	if rowShift != 0 {
+		for i := range tokens {
+			tokens[i].Cursor.BeginRow -= rowShift
+			if tokens[i].Cursor.Row > 0 {
+				tokens[i].Cursor.Row -= rowShift
+			}
+		}
 	}
 	if len(tokens) == 0 {
 		return nil, errors.New("<empty line>")
