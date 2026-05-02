@@ -9,6 +9,7 @@ import (
 
 	"github.com/jig/lisp/printer"
 	"github.com/jig/lisp/runtime"
+	"github.com/jig/lisp/types"
 )
 
 // traceEnabled is set by the LISP_DAP_TRACE environment variable. When
@@ -39,6 +40,18 @@ func (h *StepHook) OnEval(ctx context.Context, ev runtime.EvalEvent) error {
 
 	if s.disconnect {
 		return errDisconnected
+	}
+
+	// Atomic forms (Symbol, Number, String, Keyword, …) carry no
+	// program structure the user would meaningfully step into. EVAL
+	// pushes a frame for them so error stacks stay accurate, but the
+	// debugger should not treat them as stops. Lists / Vectors /
+	// HashMaps still flow through.
+	switch ev.AST.(type) {
+	case types.List, types.Vector, types.HashMap:
+		// fall through
+	default:
+		return nil
 	}
 
 	t := runtime.ThreadFromContext(ctx)
@@ -97,9 +110,9 @@ func (h *StepHook) OnEval(ctx context.Context, ev runtime.EvalEvent) error {
 	case modeStopOnEntry:
 		s.pauseAndWait("entry", "")
 	case modeStepIn:
-		if sameFrame {
-			break
-		}
+		// step-in stops on the next list-form, even if it's a TCO
+		// continuation of the same frame: that's exactly how the user
+		// "enters" a fn body or a let body.
 		s.pauseAndWait("step", "")
 	case modeStepOver:
 		if sameFrame {

@@ -165,5 +165,100 @@ func TestServer_StepOverThroughLoadFile(t *testing.T) {
 	sendRequest(t, client, 11, "disconnect", nil)
 }
 
+// TestServer_StepInSkipsAtoms verifies F11 (step in) does not pause on
+// atomic sub-forms (the head Symbol of a call, literal arguments). One
+// F11 should land directly on the next list-form to evaluate.
+func TestServer_StepInSkipsAtoms(t *testing.T) {
+	if os.Getenv("LISP_DAP_TRACE") == "" {
+		t.Setenv("LISP_DAP_TRACE", "1")
+		traceEnabled = true
+		t.Cleanup(func() { traceEnabled = false })
+	}
+
+	tmp := t.TempDir()
+	script := filepath.Join(tmp, "stepin.lisp")
+	src := "(do\n" +
+		"    (println 1)\n" +
+		"    (println 2)\n" +
+		"    (println 3))\n"
+	if err := os.WriteFile(script, []byte(src), 0o644); err != nil {
+		t.Fatalf("write: %v", err)
+	}
+	runtime.Modules.Register(script, script)
+
+	client, server, closer := pair()
+	ns := fullEnv(t)
+	done := make(chan error, 1)
+	eval := func(ctx context.Context, env types.EnvType) error {
+		_, err := lisp.REPL(ctx, env, fmt.Sprintf("(load-file %q)", script), types.NewCursorHere(script, -3, 1))
+		done <- err
+		return err
+	}
+
+	srv := NewServer(server, eval, ns)
+	stop := runServer(t, srv, closer)
+	defer stop()
+
+	sendRequest(t, client, 1, "initialize", nil)
+	readUntil(t, client, func(m map[string]interface{}) bool { return m["event"] == "initialized" })
+	sendRequest(t, client, 2, "launch", map[string]interface{}{"stopOnEntry": false})
+	readUntil(t, client, func(m map[string]interface{}) bool {
+		return m["command"] == "launch" && m["type"] == "response"
+	})
+	sendRequest(t, client, 3, "setBreakpoints", SetBreakpointsArguments{
+		Source:      Source{Path: script},
+		Breakpoints: []SourceBreakpoint{{Line: 2}},
+	})
+	readUntil(t, client, func(m map[string]interface{}) bool {
+		return m["command"] == "setBreakpoints" && m["type"] == "response"
+	})
+	sendRequest(t, client, 4, "configurationDone", nil)
+	readUntil(t, client, func(m map[string]interface{}) bool {
+		return m["command"] == "configurationDone" && m["type"] == "response"
+	})
+
+	// First stop: breakpoint at (println 1).
+	if got := stoppedAt(t, client, 5); got != 2 {
+		t.Errorf("first stop: expected line 2, got %d", got)
+	}
+
+	// step in → should land directly on (println 2) (line 3), not on
+	// the head Symbol or the integer 1 of (println 1).
+	sendRequest(t, client, 6, "stepIn", map[string]interface{}{"threadId": 1})
+	readUntil(t, client, func(m map[string]interface{}) bool {
+		return m["command"] == "stepIn" && m["type"] == "response"
+	})
+	if got := stoppedAt(t, client, 7); got != 3 {
+		t.Errorf("after step in: expected line 3, got %d", got)
+	}
+
+	// step in → (println 3)
+	sendRequest(t, client, 8, "stepIn", map[string]interface{}{"threadId": 1})
+	readUntil(t, client, func(m map[string]interface{}) bool {
+		return m["command"] == "stepIn" && m["type"] == "response"
+	})
+	if got := stoppedAt(t, client, 9); got != 4 {
+		t.Errorf("after second step in: expected line 4, got %d", got)
+	}
+
+	sendRequest(t, client, 10, "continue", map[string]interface{}{"threadId": 1})
+	readUntil(t, client, func(m map[string]interface{}) bool {
+		return m["command"] == "continue" && m["type"] == "response"
+	})
+	readUntil(t, client, func(m map[string]interface{}) bool {
+		return m["event"] == "terminated"
+	})
+
+	select {
+	case err := <-done:
+		if err != nil {
+			t.Fatalf("eval error: %v", err)
+		}
+	case <-time.After(3 * time.Second):
+		t.Fatal("eval did not return")
+	}
+	sendRequest(t, client, 11, "disconnect", nil)
+}
+
 // avoid "declared and not used" if json import is otherwise unused
 var _ = json.Marshal
