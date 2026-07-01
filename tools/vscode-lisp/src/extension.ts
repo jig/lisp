@@ -42,7 +42,12 @@ class LispDebugAdapterDescriptorFactory
       );
     }
     const args = [...extra, "--dap", program];
-    return new vscode.DebugAdapterExecutable(command, args);
+    const cfgEnv = session.configuration.env;
+    const options: vscode.DebugAdapterExecutableOptions = {};
+    if (cfgEnv && typeof cfgEnv === "object") {
+      options.env = cfgEnv as { [key: string]: string };
+    }
+    return new vscode.DebugAdapterExecutable(command, args, options);
   }
 }
 

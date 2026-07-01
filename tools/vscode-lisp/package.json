@@ -56,6 +56,11 @@
                 "type": "boolean",
                 "description": "Pause at the first form before any code runs.",
                 "default": true
+              },
+              "env": {
+                "type": "object",
+                "description": "Environment variables passed to the lisp-debug process. Useful for LISP_DAP_TRACE=1 to print step-mode diagnostics on the debug console.",
+                "default": {}
               }
             }
           }
