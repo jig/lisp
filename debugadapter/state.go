@@ -173,6 +173,13 @@ func (s *state) pauseAndWait(reason, description string) {
 // stepFrameID snapshots the top frame's identifier so the hook can
 // ignore TCO loop re-entries on the same frame and only react to a
 // real new call. Caller must hold s.mu.
+//
+// No `continued` event is sent: every resume is the direct result of a
+// client request (continue/next/stepIn/stepOut), and per the DAP spec
+// the request's response already implies the continuation. Sending an
+// explicit event from a separate goroutine raced with the next `stopped`
+// event; when it arrived after it, VSCode discarded the pause and a step
+// appeared to do nothing.
 func (s *state) resume(m mode, depth int) {
 	s.mode = m
 	s.targetDepth = depth
@@ -180,10 +187,6 @@ func (s *state) resume(m mode, depth int) {
 	tracef("resume mode=%d targetDepth=%d stepFrameID=%d (thread.Depth=%d)",
 		m, depth, s.stepFrameID, s.thread.Depth())
 	s.cond.Signal()
-	go s.server.sendEvent("continued", ContinuedEventBody{
-		ThreadID:            1,
-		AllThreadsContinued: true,
-	})
 }
 
 // registerVarRef stores v in the references table and returns a fresh

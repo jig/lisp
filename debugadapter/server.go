@@ -171,26 +171,31 @@ func (s *Server) dispatch(_ context.Context, req *Request) {
 		s.handleScopes(req)
 	case "variables":
 		s.handleVariables(req)
+	// For the four resume-style requests the response is written while
+	// still holding the state mutex: the EVAL goroutine is blocked on the
+	// condition variable and cannot wake (and emit the next `stopped`
+	// event) until the mutex is released, which guarantees the client
+	// always observes response → stopped in that order.
 	case "continue":
 		s.state.mu.Lock()
+		s.respond(req, true, "", map[string]interface{}{"allThreadsContinued": true})
 		s.state.resume(modeRunning, 0)
 		s.state.mu.Unlock()
-		s.respond(req, true, "", map[string]interface{}{"allThreadsContinued": true})
 	case "next":
 		s.state.mu.Lock()
+		s.respond(req, true, "", nil)
 		s.state.resume(modeStepOver, s.state.thread.Depth())
 		s.state.mu.Unlock()
-		s.respond(req, true, "", nil)
 	case "stepIn":
 		s.state.mu.Lock()
+		s.respond(req, true, "", nil)
 		s.state.resume(modeStepIn, 0)
 		s.state.mu.Unlock()
-		s.respond(req, true, "", nil)
 	case "stepOut":
 		s.state.mu.Lock()
+		s.respond(req, true, "", nil)
 		s.state.resume(modeStepOut, s.state.thread.Depth())
 		s.state.mu.Unlock()
-		s.respond(req, true, "", nil)
 	case "pause":
 		// Cooperative pause: flip mode so the next OnEval blocks. The
 		// goroutine is currently running; OnEval will pick this up.

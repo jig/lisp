@@ -154,12 +154,6 @@ type StoppedEventBody struct {
 	AllThreadsStopped bool   `json:"allThreadsStopped"`
 }
 
-// ContinuedEventBody is sent when execution resumes.
-type ContinuedEventBody struct {
-	ThreadID            int  `json:"threadId"`
-	AllThreadsContinued bool `json:"allThreadsContinued"`
-}
-
 // OutputEventBody carries program output to the client.
 type OutputEventBody struct {
 	Category string `json:"category,omitempty"`
