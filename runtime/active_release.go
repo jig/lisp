@@ -41,3 +41,19 @@ func PopFrame(_ context.Context) {}
 
 // FrameID always returns 0 in release builds — Frame has no fields.
 func FrameID(_ *Frame) int64 { return 0 }
+
+// ModuleResolver is a no-op stub in release builds; it keeps callers
+// like lib/core's slurp compilable when guarded by `runtime.Enabled`.
+type ModuleResolver struct{}
+
+// Register is a no-op in release builds.
+func (r *ModuleResolver) Register(_, _ string) {}
+
+// Resolve returns the module name unchanged in release builds.
+func (r *ModuleResolver) Resolve(module string) string { return module }
+
+// Lookup always misses in release builds.
+func (r *ModuleResolver) Lookup(_ string) (string, bool) { return "", false }
+
+// Modules is the global module-to-path resolver (no-op in release builds).
+var Modules = &ModuleResolver{}

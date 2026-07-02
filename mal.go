@@ -215,23 +215,89 @@ func is_macro_call(ast MalType, env EnvType) bool {
 	return false
 }
 
-func macroexpand(ctx context.Context, ast MalType, env EnvType) (MalType, error) {
+// macroexpand fully expands ast while its head is a macro call. The
+// boolean reports whether any expansion happened, so EVAL can re-run
+// the debug hook on the expanded form (a breakpoint on the line of the
+// outermost expanded call would otherwise never fire).
+func macroexpand(ctx context.Context, ast MalType, env EnvType) (MalType, bool, error) {
 	var mac MalType
 	var e error
+	origPos := lisperror.GetPosition(ast)
+	expanded := false
 	for is_macro_call(ast, env) {
 		slc, _ := GetSlice(ast)
 		a0 := slc[0]
 		mac, e = env.Get(a0.(Symbol))
 		if e != nil {
-			return nil, e
+			return nil, expanded, e
 		}
 		fn := mac.(MalFunc)
 		ast, e = Apply(ctx, fn, slc[1:])
 		if e != nil {
-			return nil, e
+			return nil, expanded, e
+		}
+		expanded = true
+	}
+	if expanded {
+		ast = fillExpansionCursors(ast, origPos)
+	}
+	return ast, expanded, nil
+}
+
+// fillExpansionCursors assigns source positions to the forms a macro
+// expansion created. Macro results are built at runtime by cons/concat
+// (via quasiquote), which produce lists without cursors, so stepping
+// and error reporting lost track of where expanded code came from —
+// e.g. the debugger skipped every stage of a threading macro
+// `(-> x (assoc …) (assoc …))`. Original subforms spliced into the
+// expansion keep their cursors, so a generated list inherits the
+// position of its first positioned child (for a threading stage, the
+// head symbol the user wrote); anything else falls back to the
+// position of the original macro call. Subtrees that already carry a
+// cursor are original source and are left untouched.
+func fillExpansionCursors(ast MalType, fallback *Position) MalType {
+	switch n := ast.(type) {
+	case List:
+		if n.Cursor != nil {
+			return n
+		}
+		for i, c := range n.Val {
+			n.Val[i] = fillExpansionCursors(c, fallback)
+		}
+		n.Cursor = firstChildPosition(n.Val, fallback)
+		return n
+	case Vector:
+		if n.Cursor != nil {
+			return n
+		}
+		for i, c := range n.Val {
+			n.Val[i] = fillExpansionCursors(c, fallback)
+		}
+		n.Cursor = firstChildPosition(n.Val, fallback)
+		return n
+	case HashMap:
+		if n.Cursor != nil {
+			return n
+		}
+		for k, v := range n.Val {
+			n.Val[k] = fillExpansionCursors(v, fallback)
+		}
+		n.Cursor = fallback.Copy()
+		return n
+	default:
+		return ast
+	}
+}
+
+// firstChildPosition returns a copy of the first child's position, or
+// a copy of fallback when no child carries one.
+func firstChildPosition(vals []MalType, fallback *Position) *Position {
+	for _, v := range vals {
+		if p := lisperror.GetPosition(v); p != nil {
+			return p.Copy()
 		}
 	}
-	return ast, nil
+	return fallback.Copy()
 }
 
 func eval_ast(ctx context.Context, ast MalType, env EnvType) (MalType, error) {
@@ -387,9 +453,20 @@ func EVAL(ctx context.Context, ast MalType, env EnvType) (res MalType, e error) 
 		}
 
 		// apply list
-		ast, e = macroexpand(ctx, ast, env)
+		var wasMacro bool
+		ast, wasMacro, e = macroexpand(ctx, ast, env)
 		if e != nil {
 			return nil, e
+		}
+		// A macro expansion replaces the form mid-iteration: the hook
+		// already ran for the original call, so run it again for the
+		// expanded form. Otherwise a breakpoint or step on the line of
+		// the outermost expanded call would never trigger.
+		if runtime.Enabled && wasMacro {
+			runtime.UpdateFrame(frame, ast, env, lisperror.GetPosition(ast))
+			if err := runtime.Dispatch(ctx, ast, env, lisperror.GetPosition(ast)); err != nil {
+				return nil, err
+			}
 		}
 		if !Q[List](ast) {
 			return eval_ast(ctx, ast, env)
@@ -474,7 +551,8 @@ func EVAL(ctx context.Context, ast MalType, env EnvType) (res MalType, e error) 
 				return nil, lisperror.NewLispError(fmt.Errorf("defmacro: second argument must be a function (was of type %T)", fn), ast)
 			}
 		case "macroexpand":
-			return macroexpand(ctx, a1, env)
+			expanded, _, err := macroexpand(ctx, a1, env)
+			return expanded, err
 		case "try":
 			lst := ast.(List).Val
 			var last MalType

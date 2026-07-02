@@ -16,6 +16,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"path/filepath"
 	"runtime/debug"
 	"strings"
 	"time"
@@ -27,6 +28,7 @@ import (
 	"github.com/jig/lisp/marshaler"
 	"github.com/jig/lisp/printer"
 	"github.com/jig/lisp/reader"
+	lispruntime "github.com/jig/lisp/runtime"
 
 	. "github.com/jig/lisp/types"
 )
@@ -436,6 +438,16 @@ func slurp(fileName string) (MalType, error) {
 	b, e := os.ReadFile(fileName)
 	if e != nil {
 		return nil, e
+	}
+	// Register the module so the debugger can map cursors from files
+	// loaded at runtime back to their on-disk source (load-file injects
+	// a `;; $MODULE <fileName>` prefix naming the module after this same
+	// path); without the mapping, stepping would skip those files as
+	// library code. Dead code in release builds.
+	if lispruntime.Enabled {
+		if abs, err := filepath.Abs(fileName); err == nil {
+			lispruntime.Modules.Register(fileName, abs)
+		}
 	}
 	return string(b), nil
 }

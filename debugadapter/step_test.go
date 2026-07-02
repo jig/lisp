@@ -15,6 +15,8 @@ import (
 	"github.com/jig/lisp/env"
 	"github.com/jig/lisp/lib/concurrent"
 	"github.com/jig/lisp/lib/core"
+	"github.com/jig/lisp/lib/coreextented"
+	"github.com/jig/lisp/lib/coreextented/nscoreextended"
 	"github.com/jig/lisp/runtime"
 	"github.com/jig/lisp/types"
 )
@@ -538,4 +540,90 @@ func TestServer_Evaluate(t *testing.T) {
 		t.Fatal("eval did not return")
 	}
 	sendRequest(t, client, 10, "disconnect", nil)
+}
+
+// TestStepInto_ThreadingMacro verifies that F11 visits every stage of a
+// threading macro at its own source line. Macro expansions are built at
+// runtime by cons/concat and used to carry no cursors, so the debugger
+// skipped every stage; macroexpand now fills the missing positions from
+// the original subforms and EVAL re-runs the hook on the expanded form.
+func TestStepInto_ThreadingMacro(t *testing.T) {
+	tmp := t.TempDir()
+	script := filepath.Join(tmp, "thread.lisp")
+	src := "(def a3 (-> {}\n" + // line 1
+		"    (assoc :a \"1980\")\n" + // line 2
+		"    (assoc :b \"1981\")\n" + // line 3
+		"    (assoc :c \"1982\")))\n" + // line 4
+		"(println a3)\n" // line 5
+	if err := os.WriteFile(script, []byte(src), 0o644); err != nil {
+		t.Fatalf("write: %v", err)
+	}
+	runtime.Modules.Register(script, script)
+
+	client, server, closer := pair()
+	ns := fullEnv(t)
+	if err := nscoreextended.Load(ns); err != nil {
+		t.Fatalf("nscoreextended.Load: %v", err)
+	}
+	if _, err := lisp.REPL(context.Background(), ns, coreextented.HeaderCoreExtended(), types.NewCursorFile("preamble")); err != nil {
+		t.Fatalf("HeaderCoreExtended: %v", err)
+	}
+	done := make(chan error, 1)
+	eval := func(ctx context.Context, env types.EnvType) error {
+		_, err := lisp.REPL(ctx, env, fmt.Sprintf("(load-file %q)", script), types.NewAnonymousCursorHere(1, 1))
+		done <- err
+		return err
+	}
+	srv := NewServer(server, eval, ns)
+	stop := runServer(t, srv, closer)
+	defer stop()
+
+	sendRequest(t, client, 1, "initialize", nil)
+	readUntil(t, client, func(m map[string]interface{}) bool { return m["event"] == "initialized" })
+	sendRequest(t, client, 2, "launch", map[string]interface{}{"stopOnEntry": false})
+	readUntil(t, client, func(m map[string]interface{}) bool {
+		return m["command"] == "launch" && m["type"] == "response"
+	})
+	// Breakpoint directly on a threading stage: it must fire even though
+	// the stage only exists inside the macro expansion.
+	sendRequest(t, client, 3, "setBreakpoints", SetBreakpointsArguments{
+		Source:      Source{Path: script},
+		Breakpoints: []SourceBreakpoint{{Line: 3}},
+	})
+	readUntil(t, client, func(m map[string]interface{}) bool {
+		return m["command"] == "setBreakpoints" && m["type"] == "response"
+	})
+	sendRequest(t, client, 4, "configurationDone", nil)
+	readUntil(t, client, func(m map[string]interface{}) bool {
+		return m["command"] == "configurationDone" && m["type"] == "response"
+	})
+
+	// BP on stage (assoc :b …) at line 3.
+	if got := stoppedAt(t, client, 5); got != 3 {
+		t.Errorf("breakpoint on stage: expected line 3, got %d", got)
+	}
+	// F11 → inner stage (assoc :a …) at line 2 (evaluation goes inwards).
+	sendRequest(t, client, 6, "stepIn", map[string]interface{}{"threadId": 1})
+	readUntil(t, client, func(m map[string]interface{}) bool { return m["command"] == "stepIn" && m["type"] == "response" })
+	if got := stoppedAt(t, client, 7); got != 2 {
+		t.Errorf("after stepIn: expected line 2, got %d", got)
+	}
+	// F11 → the {} literal back on line 1.
+	sendRequest(t, client, 8, "stepIn", map[string]interface{}{"threadId": 1})
+	readUntil(t, client, func(m map[string]interface{}) bool { return m["command"] == "stepIn" && m["type"] == "response" })
+	if got := stoppedAt(t, client, 9); got != 1 {
+		t.Errorf("after second stepIn: expected line 1, got %d", got)
+	}
+
+	sendRequest(t, client, 10, "continue", map[string]interface{}{"threadId": 1})
+	readUntil(t, client, func(m map[string]interface{}) bool { return m["event"] == "terminated" })
+	select {
+	case err := <-done:
+		if err != nil {
+			t.Fatalf("eval error: %v", err)
+		}
+	case <-time.After(3 * time.Second):
+		t.Fatal("eval did not return")
+	}
+	sendRequest(t, client, 11, "disconnect", nil)
 }
