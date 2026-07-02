@@ -137,13 +137,40 @@ func (s *Server) updateDocument(uri, content string) {
 	s.mu.Lock()
 	s.docs[uri] = &document{content: content, analysis: anal}
 	s.mu.Unlock()
-	diags := anal.diagnostics
-	if diags == nil {
-		diags = []Diagnostic{}
-	}
+	diags := append([]Diagnostic{}, anal.diagnostics...)
+	diags = append(diags, s.unknownSymbolDiagnostics(anal)...)
 	s.notify("textDocument/publishDiagnostics", PublishDiagnosticsParams{
 		URI: uri, Diagnostics: diags,
 	})
+}
+
+// unknownSymbolDiagnostics warns about symbols used in call position
+// that resolve nowhere: not bound anywhere in the document, and not
+// present in the interpreter environment. It is a warning rather than
+// an error because the symbol may be defined at runtime (load-file of
+// another script, dynamic def).
+func (s *Server) unknownSymbolDiagnostics(anal *analysis) []Diagnostic {
+	if s.env == nil {
+		return nil
+	}
+	var out []Diagnostic
+	reported := map[string]bool{}
+	for _, call := range anal.calls {
+		if anal.bound[call.name] || reported[call.name] {
+			continue
+		}
+		if _, err := s.env.Get(types.Symbol{Val: call.name}); err == nil {
+			continue
+		}
+		reported[call.name] = true
+		out = append(out, Diagnostic{
+			Range:    symbolRange(call.pos, call.name),
+			Severity: severityWarning,
+			Source:   "lisp",
+			Message:  fmt.Sprintf("unknown symbol '%s'", call.name),
+		})
+	}
+	return out
 }
 
 func (s *Server) handleCompletion(req *requestMessage) {
@@ -261,7 +288,7 @@ func (s *Server) handleDocumentSymbol(req *requestMessage) {
 				Detail:         definitionDetail(d),
 				Kind:           kind,
 				Range:          rangeOf(d.formPos),
-				SelectionRange: rangeOf(d.namePos),
+				SelectionRange: symbolRange(d.namePos, d.name),
 			})
 		}
 	}

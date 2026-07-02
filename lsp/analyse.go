@@ -18,11 +18,20 @@ type definition struct {
 	formPos *types.Position // position of the whole form
 }
 
+// symbolRef is one occurrence of a symbol in call-head position.
+type symbolRef struct {
+	name string
+	pos  *types.Position
+}
+
 // analysis is the result of parsing one document.
 type analysis struct {
 	diagnostics []Diagnostic
 	defs        []definition
 	forms       []types.MalType // top-level forms (empty on parse error)
+
+	calls []symbolRef     // symbols used as the head of a call form
+	bound map[string]bool // every name bound anywhere in the document
 }
 
 // analyseDocument parses content with the interpreter's reader and
@@ -33,7 +42,7 @@ type analysis struct {
 // undone by walking the AST once. This reuses the real reader — the
 // same positions, the same errors the interpreter itself would report.
 func analyseDocument(name, content string) *analysis {
-	a := &analysis{}
+	a := &analysis{bound: map[string]bool{}}
 	wrapped := "(do\n" + content + "\n)"
 	ast, err := reader.Read_str(wrapped, types.NewCursorFile(name), nil)
 	if err != nil {
@@ -50,8 +59,123 @@ func analyseDocument(name, content string) *analysis {
 		if d, ok := definitionOf(form); ok {
 			a.defs = append(a.defs, d)
 		}
+		a.scan(form)
 	}
 	return a
+}
+
+// specialForms are evaluated by EVAL itself: they are neither in the
+// environment nor definable, so call-head checking must skip them.
+var specialForms = map[string]bool{
+	"def": true, "let": true, "quote": true, "quasiquote": true,
+	"quasiquoteexpand": true, "defmacro": true, "macroexpand": true,
+	"try": true, "catch": true, "finally": true, "do": true, "if": true,
+	"fn": true, "unquote": true, "splice-unquote": true, "context": true,
+}
+
+// scan walks a form collecting call-head symbol references and every
+// name bound anywhere (def/defn/defmacro names, fn/defn parameters,
+// let bindings, catch variables). Bindings are collected document-wide
+// rather than per-scope: the goal is zero false positives on unknown-
+// symbol checks, not precise scope resolution.
+func (a *analysis) scan(form types.MalType) {
+	list, ok := form.(types.List)
+	if !ok {
+		switch n := form.(type) {
+		case types.Vector:
+			for _, c := range n.Val {
+				a.scan(c)
+			}
+		case types.HashMap:
+			for _, v := range n.Val {
+				a.scan(v)
+			}
+		}
+		return
+	}
+	if len(list.Val) == 0 {
+		return
+	}
+	head, ok := list.Val[0].(types.Symbol)
+	if !ok {
+		// e.g. ((fn [x] x) 1): scan every element
+		for _, c := range list.Val {
+			a.scan(c)
+		}
+		return
+	}
+	switch head.Val {
+	case "quote", "quasiquote", "quasiquoteexpand":
+		// data, not code: don't analyse
+		return
+	case "def", "defn", "defmacro":
+		if len(list.Val) >= 2 {
+			if name, ok := list.Val[1].(types.Symbol); ok {
+				a.bound[name.Val] = true
+			}
+		}
+		if head.Val != "def" && len(list.Val) >= 3 {
+			a.bindAll(list.Val[2])
+		}
+		for _, c := range list.Val[2:] {
+			a.scan(c)
+		}
+	case "fn":
+		if len(list.Val) >= 2 {
+			a.bindAll(list.Val[1])
+		}
+		for _, c := range list.Val[2:] {
+			a.scan(c)
+		}
+	case "let":
+		if len(list.Val) >= 2 {
+			var binds []types.MalType
+			switch b := list.Val[1].(type) {
+			case types.Vector:
+				binds = b.Val
+			case types.List:
+				binds = b.Val
+			}
+			for i := 0; i+1 < len(binds); i += 2 {
+				a.bindAll(binds[i])
+				a.scan(binds[i+1])
+			}
+		}
+		for _, c := range list.Val[2:] {
+			a.scan(c)
+		}
+	case "catch":
+		if len(list.Val) >= 2 {
+			a.bindAll(list.Val[1])
+		}
+		for _, c := range list.Val[2:] {
+			a.scan(c)
+		}
+	default:
+		if !specialForms[head.Val] {
+			a.calls = append(a.calls, symbolRef{name: head.Val, pos: head.Cursor})
+		}
+		for _, c := range list.Val[1:] {
+			a.scan(c)
+		}
+	}
+}
+
+// bindAll records every symbol inside a binding form (a parameter
+// vector, possibly with `&`, or a plain symbol) as bound.
+func (a *analysis) bindAll(form types.MalType) {
+	switch n := form.(type) {
+	case types.Symbol:
+		a.bound[n.Val] = true
+	case types.Vector:
+		for _, c := range n.Val {
+			a.bindAll(c)
+		}
+	case types.List:
+		for _, c := range n.Val {
+			a.bindAll(c)
+		}
+	}
 }
 
 // diagnosticFromError converts a reader error into an LSP diagnostic.
@@ -188,6 +312,32 @@ func rangeOf(p *types.Position) Range {
 		end = Position{Line: start.Line, Character: start.Character + 1}
 	}
 	return Range{Start: start, End: end}
+}
+
+// symbolRange converts a symbol token position to an LSP range. The
+// reader's scanner records a token's position AFTER consuming it, so
+// BeginCol points just past the token's last character; the start
+// column is recovered by subtracting the symbol's length.
+func symbolRange(p *types.Position, name string) Range {
+	if p == nil {
+		return Range{}
+	}
+	line := p.BeginRow - 1
+	if line < 0 {
+		line = 0
+	}
+	endChar := p.BeginCol - 1
+	if endChar < 0 {
+		endChar = 0
+	}
+	startChar := endChar - len(name)
+	if startChar < 0 {
+		startChar = 0
+	}
+	return Range{
+		Start: Position{Line: line, Character: startChar},
+		End:   Position{Line: line, Character: endChar},
+	}
 }
 
 // symbolBreak reports whether b terminates a lisp symbol.

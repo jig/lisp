@@ -270,3 +270,35 @@ func TestServer_UnknownMethod(t *testing.T) {
 		t.Fatalf("expected MethodNotFound error, got %v", resp)
 	}
 }
+
+func TestServer_UnknownSymbolWarning(t *testing.T) {
+	client, stop := startSession(t)
+	defer stop()
+
+	// printlnooo is not defined anywhere; println is; my-fn is defined
+	// later in the file (order must not matter); x is a let binding.
+	src := "(printlnooo 3)\n" +
+		"(println 4)\n" +
+		"(my-fn 5)\n" +
+		"(let [x (fn [y] y)] (x 6))\n" +
+		"(defn my-fn [a] a)\n"
+	diags := didOpen(t, client, "file:///unknown.lisp", src)
+	list := diags["params"].(map[string]interface{})["diagnostics"].([]interface{})
+	if len(list) != 1 {
+		t.Fatalf("expected exactly 1 diagnostic, got %d: %v", len(list), list)
+	}
+	d := list[0].(map[string]interface{})
+	if d["severity"].(float64) != 2 {
+		t.Errorf("expected warning severity 2, got %v", d["severity"])
+	}
+	if !strings.Contains(d["message"].(string), "printlnooo") {
+		t.Errorf("expected message about printlnooo, got %v", d["message"])
+	}
+	start := d["range"].(map[string]interface{})["start"].(map[string]interface{})
+	if start["line"].(float64) != 0 {
+		t.Errorf("expected warning at line 0, got %v", start["line"])
+	}
+	if start["character"].(float64) != 1 {
+		t.Errorf("expected warning at character 1, got %v", start["character"])
+	}
+}

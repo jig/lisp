@@ -66,7 +66,10 @@ type Diagnostic struct {
 	Message  string `json:"message"`
 }
 
-const severityError = 1
+const (
+	severityError   = 1
+	severityWarning = 2
+)
 
 // PublishDiagnosticsParams is the payload of the
 // textDocument/publishDiagnostics notification.
