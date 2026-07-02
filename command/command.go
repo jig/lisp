@@ -22,6 +22,8 @@ type args struct {
 	Eval      string   `arg:"-e,--eval" help:"evaluate expression and exit" placeholder:"EXPR"`
 	DAP       bool     `arg:"--dap" help:"start a Debug Adapter Protocol server on stdio (requires lispdebug build)"`
 	DAPListen string   `arg:"--dap-listen" help:"start a DAP server on the given TCP address (requires lispdebug build)" placeholder:"HOST:PORT"`
+	LSP       bool     `arg:"--lsp" help:"start a Language Server Protocol server on stdio (requires lispdebug build)"`
+	LSPListen string   `arg:"--lsp-listen" help:"start an LSP server on the given TCP address (requires lispdebug build)" placeholder:"HOST:PORT"`
 	Script    string   `arg:"positional" help:"lisp script to execute"`
 	Args      []string `arg:"positional" help:"arguments to pass to the script"`
 }
@@ -92,6 +94,11 @@ func Execute(cmdArgs []string, repl_env types.EnvType) error {
 	// DAP server takes precedence over the rest of the modes when set.
 	if parsedArgs.DAP || parsedArgs.DAPListen != "" {
 		return startDAP(parsedArgs.DAPListen, parsedArgs.Script, repl_env)
+	}
+
+	// LSP server likewise runs instead of the normal modes.
+	if parsedArgs.LSP || parsedArgs.LSPListen != "" {
+		return startLSP(parsedArgs.LSPListen, repl_env)
 	}
 
 	// Handle --version

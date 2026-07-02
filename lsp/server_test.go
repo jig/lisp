@@ -1,0 +1,272 @@
+package lsp
+
+import (
+	"context"
+	"encoding/json"
+	"net"
+	"strings"
+	"testing"
+	"time"
+
+	"github.com/jig/lisp"
+	"github.com/jig/lisp/env"
+	"github.com/jig/lisp/lib/core"
+	"github.com/jig/lisp/types"
+)
+
+// pair returns two Transports talking over an in-memory net.Pipe: one
+// for the test client, one for the server under test.
+func pair() (*Transport, *Transport, func()) {
+	a, b := net.Pipe()
+	return NewTransport(a, a, a), NewTransport(b, b, b), func() {
+		_ = a.Close()
+		_ = b.Close()
+	}
+}
+
+// testEnv builds an interpreter environment with the core library and
+// the lisp-defined headers (defn, …), mirroring what cmd/lisp loads.
+func testEnv(t *testing.T) types.EnvType {
+	t.Helper()
+	ns := env.NewEnv()
+	core.Load(ns)
+	if _, err := lisp.REPL(context.Background(), ns, core.HeaderBasic(), types.NewCursorFile("preamble")); err != nil {
+		t.Fatalf("HeaderBasic: %v", err)
+	}
+	return ns
+}
+
+func runServer(t *testing.T, srv *Server, closer func()) func() {
+	t.Helper()
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		_ = srv.Run(context.Background())
+	}()
+	return func() {
+		closer()
+		select {
+		case <-done:
+		case <-time.After(3 * time.Second):
+			t.Fatal("server did not stop within 3s")
+		}
+	}
+}
+
+func send(t *testing.T, c *Transport, id int, method string, params interface{}) {
+	t.Helper()
+	msg := map[string]interface{}{"jsonrpc": "2.0", "method": method}
+	if id != 0 {
+		msg["id"] = id
+	}
+	if params != nil {
+		raw, err := json.Marshal(params)
+		if err != nil {
+			t.Fatalf("marshal params: %v", err)
+		}
+		msg["params"] = json.RawMessage(raw)
+	}
+	if err := c.WriteMessage(msg); err != nil {
+		t.Fatalf("WriteMessage: %v", err)
+	}
+}
+
+// readUntil reads messages until one matches the predicate.
+func readUntil(t *testing.T, c *Transport, predicate func(map[string]interface{}) bool) map[string]interface{} {
+	t.Helper()
+	deadline := time.After(3 * time.Second)
+	for {
+		select {
+		case <-deadline:
+			t.Fatal("timed out waiting for matching message")
+		default:
+		}
+		raw, err := c.ReadMessage()
+		if err != nil {
+			t.Fatalf("ReadMessage: %v", err)
+		}
+		var m map[string]interface{}
+		if err := json.Unmarshal(raw, &m); err != nil {
+			t.Fatalf("decode: %v", err)
+		}
+		if predicate(m) {
+			return m
+		}
+	}
+}
+
+func response(id int) func(map[string]interface{}) bool {
+	return func(m map[string]interface{}) bool {
+		got, ok := m["id"].(float64)
+		return ok && int(got) == id
+	}
+}
+
+func notification(method string) func(map[string]interface{}) bool {
+	return func(m map[string]interface{}) bool {
+		return m["method"] == method && m["id"] == nil
+	}
+}
+
+// startSession spins up a server with the standard handshake done.
+func startSession(t *testing.T) (*Transport, func()) {
+	t.Helper()
+	client, server, closer := pair()
+	srv := NewServer(server, testEnv(t))
+	stop := runServer(t, srv, closer)
+
+	send(t, client, 1, "initialize", map[string]interface{}{})
+	resp := readUntil(t, client, response(1))
+	caps := resp["result"].(map[string]interface{})["capabilities"].(map[string]interface{})
+	if caps["hoverProvider"] != true {
+		t.Fatalf("expected hoverProvider capability, got %v", caps)
+	}
+	send(t, client, 0, "initialized", map[string]interface{}{})
+	return client, stop
+}
+
+func didOpen(t *testing.T, client *Transport, uri, text string) map[string]interface{} {
+	t.Helper()
+	send(t, client, 0, "textDocument/didOpen", DidOpenTextDocumentParams{
+		TextDocument: TextDocumentItem{URI: uri, LanguageID: "lisp", Version: 1, Text: text},
+	})
+	return readUntil(t, client, notification("textDocument/publishDiagnostics"))
+}
+
+func TestServer_DiagnosticsOnParseError(t *testing.T) {
+	client, stop := startSession(t)
+	defer stop()
+
+	// missing closing paren on line 2 (zero-based line 1)
+	diags := didOpen(t, client, "file:///broken.lisp", "(def a 1)\n(defn foo [x]\n")
+	params := diags["params"].(map[string]interface{})
+	list := params["diagnostics"].([]interface{})
+	if len(list) == 0 {
+		t.Fatal("expected a parse diagnostic, got none")
+	}
+	d := list[0].(map[string]interface{})
+	if d["severity"].(float64) != 1 {
+		t.Errorf("expected severity 1, got %v", d["severity"])
+	}
+	if d["message"] == "" {
+		t.Error("expected a non-empty message")
+	}
+}
+
+func TestServer_DiagnosticsClearOnFix(t *testing.T) {
+	client, stop := startSession(t)
+	defer stop()
+
+	uri := "file:///fix.lisp"
+	diags := didOpen(t, client, uri, "(def a\n")
+	if l := diags["params"].(map[string]interface{})["diagnostics"].([]interface{}); len(l) == 0 {
+		t.Fatal("expected initial diagnostic")
+	}
+
+	send(t, client, 0, "textDocument/didChange", map[string]interface{}{
+		"textDocument":   map[string]interface{}{"uri": uri, "version": 2},
+		"contentChanges": []map[string]interface{}{{"text": "(def a 1)\n"}},
+	})
+	diags = readUntil(t, client, notification("textDocument/publishDiagnostics"))
+	if l := diags["params"].(map[string]interface{})["diagnostics"].([]interface{}); len(l) != 0 {
+		t.Fatalf("expected diagnostics cleared after fix, got %v", l)
+	}
+}
+
+func TestServer_DocumentSymbols(t *testing.T) {
+	client, stop := startSession(t)
+	defer stop()
+
+	uri := "file:///syms.lisp"
+	didOpen(t, client, uri, "(def answer 42)\n(defn add [a b]\n    (+ a b))\n")
+
+	send(t, client, 2, "textDocument/documentSymbol", DocumentSymbolParams{
+		TextDocument: TextDocumentIdentifier{URI: uri},
+	})
+	resp := readUntil(t, client, response(2))
+	syms := resp["result"].([]interface{})
+	if len(syms) != 2 {
+		t.Fatalf("expected 2 symbols, got %d: %v", len(syms), syms)
+	}
+	first := syms[0].(map[string]interface{})
+	if first["name"] != "answer" {
+		t.Errorf("expected first symbol answer, got %v", first["name"])
+	}
+	second := syms[1].(map[string]interface{})
+	if second["name"] != "add" {
+		t.Errorf("expected second symbol add, got %v", second["name"])
+	}
+	// (defn add …) starts on line 2 → zero-based line 1
+	rng := second["range"].(map[string]interface{})["start"].(map[string]interface{})
+	if rng["line"].(float64) != 1 {
+		t.Errorf("expected add at line 1, got %v", rng["line"])
+	}
+}
+
+func TestServer_Completion(t *testing.T) {
+	client, stop := startSession(t)
+	defer stop()
+
+	uri := "file:///comp.lisp"
+	didOpen(t, client, uri, "(defn my-local-fn [x] x)\n")
+
+	send(t, client, 3, "textDocument/completion", TextDocumentPositionParams{
+		TextDocument: TextDocumentIdentifier{URI: uri},
+		Position:     Position{Line: 1, Character: 0},
+	})
+	resp := readUntil(t, client, response(3))
+	items := resp["result"].([]interface{})
+	labels := map[string]bool{}
+	for _, it := range items {
+		labels[it.(map[string]interface{})["label"].(string)] = true
+	}
+	for _, want := range []string{"my-local-fn", "str", "println"} {
+		if !labels[want] {
+			t.Errorf("expected completion %q, missing (got %d items)", want, len(items))
+		}
+	}
+}
+
+func TestServer_Hover(t *testing.T) {
+	client, stop := startSession(t)
+	defer stop()
+
+	uri := "file:///hover.lisp"
+	didOpen(t, client, uri, "(defn add [a b]\n    (+ a b))\n(add 1 2)\n")
+
+	// hover over `add` on line 3 (zero-based 2), character 1
+	send(t, client, 4, "textDocument/hover", TextDocumentPositionParams{
+		TextDocument: TextDocumentIdentifier{URI: uri},
+		Position:     Position{Line: 2, Character: 1},
+	})
+	resp := readUntil(t, client, response(4))
+	result, ok := resp["result"].(map[string]interface{})
+	if !ok {
+		t.Fatalf("expected hover result, got %v", resp["result"])
+	}
+	value := result["contents"].(map[string]interface{})["value"].(string)
+	if want := "(defn add [a b])"; !strings.Contains(value, want) {
+		t.Errorf("expected hover to contain %q, got %q", want, value)
+	}
+
+	// hover over a core builtin
+	send(t, client, 5, "textDocument/hover", TextDocumentPositionParams{
+		TextDocument: TextDocumentIdentifier{URI: uri},
+		Position:     Position{Line: 1, Character: 5}, // the `+`
+	})
+	resp = readUntil(t, client, response(5))
+	if _, ok := resp["result"].(map[string]interface{}); !ok {
+		t.Errorf("expected hover result for +, got %v", resp["result"])
+	}
+}
+
+func TestServer_UnknownMethod(t *testing.T) {
+	client, stop := startSession(t)
+	defer stop()
+
+	send(t, client, 6, "textDocument/definition", map[string]interface{}{})
+	resp := readUntil(t, client, response(6))
+	if resp["error"] == nil {
+		t.Fatalf("expected MethodNotFound error, got %v", resp)
+	}
+}
