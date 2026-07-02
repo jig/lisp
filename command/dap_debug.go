@@ -40,9 +40,31 @@ func startDAP(listen, script string, env types.EnvType) error {
 		return err
 	}
 
+	// redirectStdout swaps os.Stdout for a pipe whose contents are
+	// forwarded to the client as DAP `output` events, so println/prn
+	// output shows up in the Debug Console. In stdio mode this also
+	// keeps raw prints from corrupting the protocol framing. Returns a
+	// restore function.
+	redirectStdout := func(srv *debugadapter.Server) func() {
+		r, w, err := os.Pipe()
+		if err != nil {
+			return func() {}
+		}
+		orig := os.Stdout
+		os.Stdout = w
+		go srv.StreamOutput(r, "stdout")
+		return func() {
+			os.Stdout = orig
+			_ = w.Close()
+		}
+	}
+
 	if listen == "" {
+		// Capture the real stdout for the transport before it is
+		// replaced by the output-forwarding pipe.
 		t := debugadapter.NewTransport(os.Stdin, os.Stdout, nil)
 		srv := debugadapter.NewServer(t, eval, env)
+		defer redirectStdout(srv)()
 		return srv.Run(context.Background())
 	}
 
@@ -59,5 +81,6 @@ func startDAP(listen, script string, env types.EnvType) error {
 	defer conn.Close()
 	t := debugadapter.NewTransport(conn, conn, conn)
 	srv := debugadapter.NewServer(t, eval, env)
+	defer redirectStdout(srv)()
 	return srv.Run(context.Background())
 }

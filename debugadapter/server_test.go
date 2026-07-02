@@ -253,3 +253,45 @@ func TestServer_StopOnEntryAndContinue(t *testing.T) {
 	})
 	sendRequest(t, client, 5, "disconnect", nil)
 }
+
+// TestServer_StreamOutput verifies that bytes fed into StreamOutput
+// arrive at the client as `output` events with the right category.
+func TestServer_StreamOutput(t *testing.T) {
+	client, server, closer := pair()
+
+	ns := newTestEnv(t)
+	eval := func(_ context.Context, _ types.EnvType) error { return nil }
+	srv := NewServer(server, eval, ns)
+	stop := runServer(t, srv, closer)
+	defer stop()
+
+	sendRequest(t, client, 1, "initialize", nil)
+	readUntil(t, client, func(m map[string]interface{}) bool { return m["event"] == "initialized" })
+	sendRequest(t, client, 2, "launch", map[string]interface{}{"stopOnEntry": false})
+	readUntil(t, client, func(m map[string]interface{}) bool {
+		return m["command"] == "launch" && m["type"] == "response"
+	})
+	sendRequest(t, client, 3, "configurationDone", nil)
+	readUntil(t, client, func(m map[string]interface{}) bool {
+		return m["command"] == "configurationDone" && m["type"] == "response"
+	})
+
+	pr, pw := net.Pipe()
+	go srv.StreamOutput(pr, "stdout")
+	go func() {
+		_, _ = pw.Write([]byte("hello from println\n"))
+		_ = pw.Close()
+	}()
+
+	got := readUntil(t, client, func(m map[string]interface{}) bool {
+		if m["event"] != "output" {
+			return false
+		}
+		body, _ := m["body"].(map[string]interface{})
+		return body["category"] == "stdout" && body["output"] == "hello from println\n"
+	})
+	if got == nil {
+		t.Fatal("output event not received")
+	}
+	sendRequest(t, client, 4, "disconnect", nil)
+}

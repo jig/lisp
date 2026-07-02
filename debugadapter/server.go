@@ -54,6 +54,26 @@ func NewServer(t *Transport, eval EvalFunc, env types.EnvType) *Server {
 	return s
 }
 
+// StreamOutput reads r until EOF and forwards each chunk to the client
+// as an `output` event with the given category ("stdout" or "stderr").
+// Run it on its own goroutine, typically fed by an os.Pipe that replaces
+// the process's real stdout while the debuggee runs: the interpreter's
+// println/prn write to os.Stdout, which in stdio DAP mode is the
+// protocol channel itself — raw prints there would corrupt the message
+// framing and never reach the client's Debug Console.
+func (s *Server) StreamOutput(r io.Reader, category string) {
+	buf := make([]byte, 4096)
+	for {
+		n, err := r.Read(buf)
+		if n > 0 {
+			s.sendEvent("output", OutputEventBody{Category: category, Output: string(buf[:n])})
+		}
+		if err != nil {
+			return
+		}
+	}
+}
+
 // Run blocks reading and dispatching DAP messages until the client
 // disconnects or the debuggee exits.
 func (s *Server) Run(ctx context.Context) error {
