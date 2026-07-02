@@ -31,7 +31,14 @@ export function activate(context: vscode.ExtensionContext): void {
   const cfg = vscode.workspace.getConfiguration("lisp");
   if (cfg.get<boolean>("languageServer.enabled", true)) {
     const command = cfg.get<string>("languageServer.command", "lisp-debug");
-    const serverOptions: ServerOptions = { command, args: ["--lsp"] };
+    // Spawn at the workspace root: require's git-root search walks up
+    // from the process cwd.
+    const cwd = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+    const serverOptions: ServerOptions = {
+      command,
+      args: ["--lsp"],
+      options: { cwd },
+    };
     const clientOptions: LanguageClientOptions = {
       documentSelector: [{ language: "lisp" }],
     };
@@ -104,6 +111,10 @@ class LispDebugConfigurationProvider
           "Cannot find a program to debug. Open a .lisp file or set 'program' in launch.json.",
         )
         .then(() => undefined);
+    }
+    if (!config.cwd) {
+      config.cwd = _folder?.uri.fsPath ??
+        vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
     }
     return config;
   }

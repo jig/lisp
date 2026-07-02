@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"os"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -165,6 +166,12 @@ func (s *Server) dispatch(_ context.Context, req *Request) {
 	case "launch":
 		var args LaunchArguments
 		_ = json.Unmarshal(req.Arguments, &args)
+		if args.Cwd != "" {
+			if err := os.Chdir(args.Cwd); err != nil {
+				s.respond(req, false, fmt.Sprintf("launch: cannot chdir to %q: %v", args.Cwd, err), nil)
+				return
+			}
+		}
 		s.state.mu.Lock()
 		if args.StopOnEntry {
 			s.state.stopOnEntry = true

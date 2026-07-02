@@ -115,6 +115,12 @@ type Thread struct {
 type LaunchArguments struct {
 	Program     string `json:"program,omitempty"`
 	StopOnEntry bool   `json:"stopOnEntry,omitempty"`
+	// Cwd is applied with os.Chdir before the program runs. VSCode
+	// spawns the adapter with an arbitrary working directory (often /),
+	// which would break relative load-file paths and require's
+	// git-root search; the extension defaults this to the workspace
+	// folder.
+	Cwd string `json:"cwd,omitempty"`
 }
 
 // SetBreakpointsArguments configures breakpoints in a single source file.
