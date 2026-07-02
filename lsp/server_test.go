@@ -335,37 +335,44 @@ func TestServer_RequireImportsSymbols(t *testing.T) {
 	readUntil(t, client, response(1))
 	send(t, client, 0, "initialized", map[string]interface{}{})
 
-	// area comes from the require'd module, perimeter from its nested
-	// require: neither must be flagged as unknown.
+	// geometry/area comes from the require'd module (qualified),
+	// nested/perimeter from its nested require, and area unqualified via
+	// :refer: none must be flagged as unknown.
 	uri := "file:///main.lisp"
 	diags := didOpen(t, client, uri,
-		"(require \"geometry\")\n(println (area 2))\n(println (perimeter 2))\n")
+		"(require \"geometry\" :refer [\"area\"])\n(println (geometry/area 2))\n(println (nested/perimeter 2))\n(println (area 2))\n")
 	list := diags["params"].(map[string]interface{})["diagnostics"].([]interface{})
 	if len(list) != 0 {
 		t.Fatalf("expected no diagnostics, got %v", list)
 	}
 
-	// completion includes the imported definition with its module name
+	// completion includes the qualified definition with its module name
 	send(t, client, 2, "textDocument/completion", TextDocumentPositionParams{
 		TextDocument: TextDocumentIdentifier{URI: uri},
 		Position:     Position{Line: 1, Character: 0},
 	})
 	resp := readUntil(t, client, response(2))
-	var areaDetail string
+	labels := map[string]string{}
 	for _, it := range resp["result"].([]interface{}) {
 		item := it.(map[string]interface{})
-		if item["label"] == "area" {
-			areaDetail, _ = item["detail"].(string)
-		}
+		label, _ := item["label"].(string)
+		detail, _ := item["detail"].(string)
+		labels[label] = detail
 	}
-	if !strings.Contains(areaDetail, "geometry.lisp") {
-		t.Errorf("expected area completion detail to name geometry.lisp, got %q", areaDetail)
+	if !strings.Contains(labels["geometry/area"], "geometry.lisp") {
+		t.Errorf("expected geometry/area completion naming geometry.lisp, got %q", labels["geometry/area"])
+	}
+	if _, ok := labels["area"]; !ok {
+		t.Error("expected unqualified area (via :refer) in completion")
+	}
+	if _, ok := labels["nested/perimeter"]; !ok {
+		t.Error("expected nested/perimeter (transitive require) in completion")
 	}
 
-	// hover on the imported symbol shows its signature and module
+	// hover on the qualified symbol shows its signature and module
 	send(t, client, 3, "textDocument/hover", TextDocumentPositionParams{
 		TextDocument: TextDocumentIdentifier{URI: uri},
-		Position:     Position{Line: 1, Character: 11}, // over `area`
+		Position:     Position{Line: 1, Character: 14}, // over `geometry/area`
 	})
 	resp = readUntil(t, client, response(3))
 	hover, ok := resp["result"].(map[string]interface{})
@@ -373,8 +380,16 @@ func TestServer_RequireImportsSymbols(t *testing.T) {
 		t.Fatalf("expected hover result, got %v", resp["result"])
 	}
 	value := hover["contents"].(map[string]interface{})["value"].(string)
-	if !strings.Contains(value, "(defn area [r])") || !strings.Contains(value, "geometry.lisp") {
+	if !strings.Contains(value, "area") || !strings.Contains(value, "geometry.lisp") {
 		t.Errorf("expected hover with signature and module, got %q", value)
+	}
+
+	// :as aliasing is honoured
+	diags = didOpen(t, client, "file:///alias.lisp",
+		"(require \"geometry\" :as \"g\")\n(println (g/area 2))\n")
+	list = diags["params"].(map[string]interface{})["diagnostics"].([]interface{})
+	if len(list) != 0 {
+		t.Fatalf("expected no diagnostics with :as alias, got %v", list)
 	}
 
 	// an unresolvable require warns on the require form

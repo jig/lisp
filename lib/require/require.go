@@ -17,23 +17,19 @@ package require
 
 import (
 	"context"
-	_ "embed"
 	"fmt"
 	"os"
 	"path"
 	"path/filepath"
 	"strings"
+	"sync"
 
 	"github.com/jig/lisp"
+	"github.com/jig/lisp/env"
 	"github.com/jig/lisp/lib/call"
+	"github.com/jig/lisp/runtime"
 	"github.com/jig/lisp/types"
 )
-
-//go:embed header-require.lisp
-var headerRequire string
-
-// HeaderRequire returns the lisp source of the require function.
-func HeaderRequire() string { return headerRequire }
 
 // Config parametrises module resolution.
 type Config struct {
@@ -69,19 +65,160 @@ func LoadWithConfig(cfg Config) func(types.EnvType) error {
 	}
 }
 
-func load(env types.EnvType, cfg Config) error {
+func load(rootEnv types.EnvType, cfg Config) error {
 	if strings.TrimSpace(cfg.InterpreterBinary) == "" {
 		cfg.InterpreterBinary = "lisp"
 	}
 	config = cfg
 
-	env.Set(types.Symbol{Val: "*interpreter-binary*"}, cfg.InterpreterBinary)
-	call.Call(env, resolve_require)
+	rootEnv.Set(types.Symbol{Val: "*interpreter-binary*"}, cfg.InterpreterBinary)
+	call.Call(rootEnv, resolve_require)
 
-	if _, err := lisp.REPL(context.Background(), env, headerRequire, types.NewCursorFile("header-require")); err != nil {
-		return err
-	}
+	// Each loaded module is evaluated once in its own environment
+	// subordinate to rootEnv; the cache lives in this closure so
+	// distinct root environments (e.g. tests) do not share modules.
+	loader := &moduleLoader{root: rootEnv, cache: map[string]types.EnvType{}}
+	rootEnv.Set(types.Symbol{Val: "require"}, types.Func{Fn: loader.require})
 	return nil
+}
+
+// moduleLoader evaluates modules once and exposes their top-level
+// definitions in the root environment under qualified names.
+type moduleLoader struct {
+	mu    sync.Mutex
+	root  types.EnvType
+	cache map[string]types.EnvType // abs path → module env
+}
+
+// require implements `(require "module" [:as "alias"] [:refer ["name" …]])`.
+//
+// The module file is evaluated in a fresh environment subordinate to
+// the root env, so its internal cross-references keep working (its
+// functions close over that environment), and its top-level
+// definitions are then published in the root environment as
+// `module/name` (or `alias/name` with :as). :refer additionally
+// publishes the listed names unqualified. Re-requiring an already
+// loaded module does not re-evaluate it, but does publish the new
+// alias or refers.
+func (l *moduleLoader) require(ctx context.Context, args []types.MalType) (types.MalType, error) {
+	if len(args) < 1 {
+		return nil, fmt.Errorf("require: module name required")
+	}
+	module, ok := args[0].(string)
+	if !ok {
+		return nil, fmt.Errorf("require: module name must be a string (was %T)", args[0])
+	}
+	prefix, refers, err := parseRequireOptions(module, args[1:])
+	if err != nil {
+		return nil, err
+	}
+
+	absPath, err := resolve_require(module)
+	if err != nil {
+		return nil, err
+	}
+
+	moduleEnv, err := l.loadModule(ctx, absPath)
+	if err != nil {
+		return nil, err
+	}
+
+	locals, ok := moduleEnv.(interface{ LocalSymbols() []string })
+	if !ok {
+		return nil, fmt.Errorf("require: environment does not support symbol enumeration")
+	}
+	names := locals.LocalSymbols()
+	defined := map[string]bool{}
+	for _, name := range names {
+		v, err := moduleEnv.Get(types.Symbol{Val: name})
+		if err != nil {
+			continue
+		}
+		l.root.Set(types.Symbol{Val: prefix + "/" + name}, v)
+		defined[name] = true
+	}
+	for _, name := range refers {
+		if !defined[name] {
+			return nil, fmt.Errorf("require: symbol '%s' not found in module %q", name, module)
+		}
+		v, err := moduleEnv.Get(types.Symbol{Val: name})
+		if err != nil {
+			return nil, err
+		}
+		l.root.Set(types.Symbol{Val: name}, v)
+	}
+	return nil, nil
+}
+
+// loadModule evaluates the module file once and caches its environment.
+func (l *moduleLoader) loadModule(ctx context.Context, absPath string) (types.EnvType, error) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	if moduleEnv, ok := l.cache[absPath]; ok {
+		return moduleEnv, nil
+	}
+	content, err := os.ReadFile(absPath)
+	if err != nil {
+		return nil, fmt.Errorf("require: %w", err)
+	}
+	// Register the module so the debugger maps its cursors back to the
+	// on-disk file. Dead code in release builds.
+	if runtime.Enabled {
+		runtime.Modules.Register(absPath, absPath)
+	}
+	moduleEnv := env.NewSubordinateEnv(l.root)
+	// The `;; $MODULE` prefix names the module in every cursor, exactly
+	// like load-file does, so positions in errors and in the debugger
+	// point at the real file.
+	src := ";; $MODULE " + absPath + "\n(do " + string(content) + "\n)"
+	ast, err := lisp.READ(src, nil, moduleEnv)
+	if err != nil {
+		return nil, err
+	}
+	if _, err := lisp.EVAL(ctx, ast, moduleEnv); err != nil {
+		return nil, err
+	}
+	l.cache[absPath] = moduleEnv
+	return moduleEnv, nil
+}
+
+// parseRequireOptions handles the optional `:as "alias"` and
+// `:refer ["name" …]` argument pairs. Keywords arrive from the reader
+// as strings with the "ʞ" prefix.
+func parseRequireOptions(module string, opts []types.MalType) (prefix string, refers []string, err error) {
+	prefix = module
+	for i := 0; i < len(opts); i += 2 {
+		key, ok := opts[i].(string)
+		if !ok || !strings.HasPrefix(key, "ʞ") {
+			return "", nil, fmt.Errorf("require: expected :as or :refer, got %v", opts[i])
+		}
+		if i+1 >= len(opts) {
+			return "", nil, fmt.Errorf("require: %s requires a value", ":"+strings.TrimPrefix(key, "ʞ"))
+		}
+		switch strings.TrimPrefix(key, "ʞ") {
+		case "as":
+			alias, ok := opts[i+1].(string)
+			if !ok || alias == "" {
+				return "", nil, fmt.Errorf("require: :as expects a non-empty string")
+			}
+			prefix = alias
+		case "refer":
+			vec, ok := opts[i+1].(types.Vector)
+			if !ok {
+				return "", nil, fmt.Errorf("require: :refer expects a vector of strings")
+			}
+			for _, e := range vec.Val {
+				name, ok := e.(string)
+				if !ok {
+					return "", nil, fmt.Errorf("require: :refer expects a vector of strings")
+				}
+				refers = append(refers, name)
+			}
+		default:
+			return "", nil, fmt.Errorf("require: unknown option :%s", strings.TrimPrefix(key, "ʞ"))
+		}
+	}
+	return prefix, refers, nil
 }
 
 // parseIncludeArgs extracts -i/--include values from raw command line

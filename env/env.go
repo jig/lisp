@@ -143,6 +143,20 @@ func (e *Env) Symbols(newLine [][]rune, lastPartial string) [][]rune {
 	return newLine
 }
 
+// LocalSymbols returns the names bound in this environment only (the
+// outer chain is not consulted), sorted. Used by the require library to
+// enumerate a module's top-level definitions.
+func (e *Env) LocalSymbols() []string {
+	e.mu.RLock()
+	defer e.mu.RUnlock()
+	out := make([]string, 0, len(e.data))
+	for key := range e.data {
+		out = append(out, key)
+	}
+	sort.Strings(out)
+	return out
+}
+
 func (e *Env) FindNT(key types.Symbol) types.EnvType {
 	if _, ok := e.data[key.Val]; ok {
 		return e

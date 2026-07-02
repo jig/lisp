@@ -24,9 +24,12 @@ type symbolRef struct {
 	pos  *types.Position
 }
 
-// requireRef is one `(require "module")` occurrence.
+// requireRef is one `(require "module" [:as "a"] [:refer ["n" …]])`
+// occurrence.
 type requireRef struct {
 	module  string
+	alias   string          // :as alias; empty means the module name
+	refers  []string        // :refer names imported unqualified
 	headPos *types.Position // position of the `require` symbol
 }
 
@@ -159,12 +162,35 @@ func (a *analysis) scan(form types.MalType) {
 			a.scan(c)
 		}
 	case "require":
-		// `(require "module")` with a literal name is statically
-		// resolvable: record it so the server can import the module's
-		// definitions. Still recorded as a call (require must exist).
+		// `(require "module" …)` with a literal name is statically
+		// resolvable: record it (with its :as / :refer options) so the
+		// server can import the module's definitions. Still recorded as
+		// a call (require must exist).
 		if len(list.Val) >= 2 {
 			if mod, ok := list.Val[1].(string); ok {
-				a.requires = append(a.requires, requireRef{module: mod, headPos: head.Cursor})
+				ref := requireRef{module: mod, headPos: head.Cursor}
+				opts := list.Val[2:]
+				for i := 0; i+1 < len(opts); i += 2 {
+					key, ok := opts[i].(string)
+					if !ok {
+						continue
+					}
+					switch key {
+					case "ʞas": // keyword :as
+						if alias, ok := opts[i+1].(string); ok {
+							ref.alias = alias
+						}
+					case "ʞrefer": // keyword :refer
+						if vec, ok := opts[i+1].(types.Vector); ok {
+							for _, e := range vec.Val {
+								if name, ok := e.(string); ok {
+									ref.refers = append(ref.refers, name)
+								}
+							}
+						}
+					}
+				}
+				a.requires = append(a.requires, ref)
 			}
 		}
 		a.calls = append(a.calls, symbolRef{name: head.Val, pos: head.Cursor})

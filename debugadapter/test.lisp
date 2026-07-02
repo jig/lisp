@@ -43,8 +43,9 @@
 
 ;; debugging across files: cube is defined in testlib.lisp, resolved by
 ;; require through the search path (here it finds <git root>/.lisp/
-;; regardless of the working directory) — F11 on the (cube …) call must
-;; step into that file
+;; regardless of the working directory) — F11 on the (testlib/cube …)
+;; call must step into that file. require namespaces the module's
+;; definitions; :refer would import selected names unqualified.
 (require "testlib")
-(def a5 (cube 3))
+(def a5 (testlib/cube 3))
 (println a5)

@@ -159,13 +159,15 @@ func (s *Server) updateDocument(uri, content string) {
 // resolveRequires statically resolves the document's `(require …)`
 // forms with the same search cascade the runtime uses, analyses the
 // resolved files (transitively, cycle-safe) and returns their
-// definitions. A require that cannot be resolved or read yields a
+// definitions under the same names the runtime would publish:
+// `module/name` (or `alias/name` with :as), plus the unqualified names
+// listed in :refer. A require that cannot be resolved or read yields a
 // warning on the `require` symbol itself; nested failures are silent
 // (they belong to the module's own diagnostics when opened).
 func resolveRequires(anal *analysis) ([]externalDef, []Diagnostic) {
 	var out []externalDef
 	var diags []Diagnostic
-	visited := map[string]bool{}
+	analysed := map[string]*analysis{} // path → analysis; nil = unreadable
 	var walk func(a *analysis, depth int, report bool)
 	walk = func(a *analysis, depth int, report bool) {
 		if depth > 16 {
@@ -184,27 +186,46 @@ func resolveRequires(anal *analysis) ([]externalDef, []Diagnostic) {
 				}
 				continue
 			}
-			if visited[path] {
-				continue
-			}
-			visited[path] = true
-			content, err := os.ReadFile(path)
-			if err != nil {
-				if report {
-					diags = append(diags, Diagnostic{
-						Range:    symbolRange(req.headPos, "require"),
-						Severity: severityWarning,
-						Source:   "lisp",
-						Message:  fmt.Sprintf("require: %v", err),
-					})
+			ma, seen := analysed[path]
+			if !seen {
+				content, err := os.ReadFile(path)
+				if err != nil {
+					analysed[path] = nil
+					if report {
+						diags = append(diags, Diagnostic{
+							Range:    symbolRange(req.headPos, "require"),
+							Severity: severityWarning,
+							Source:   "lisp",
+							Message:  fmt.Sprintf("require: %v", err),
+						})
+					}
+					continue
 				}
+				ma = analyseDocument(path, string(content))
+				analysed[path] = ma
+				// Each file is analysed and recursed once; publication
+				// below happens per require occurrence (aliases differ).
+				walk(ma, depth+1, false)
+			}
+			if ma == nil {
 				continue
 			}
-			ma := analyseDocument(path, string(content))
-			for _, d := range ma.defs {
-				out = append(out, externalDef{definition: d, path: path})
+			prefix := req.module
+			if req.alias != "" {
+				prefix = req.alias
 			}
-			walk(ma, depth+1, false)
+			referred := map[string]bool{}
+			for _, name := range req.refers {
+				referred[name] = true
+			}
+			for _, d := range ma.defs {
+				qualified := d
+				qualified.name = prefix + "/" + d.name
+				out = append(out, externalDef{definition: qualified, path: path})
+				if referred[d.name] {
+					out = append(out, externalDef{definition: d, path: path})
+				}
+			}
 		}
 	}
 	walk(anal, 0, true)

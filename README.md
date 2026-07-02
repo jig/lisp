@@ -340,11 +340,23 @@ lisp -- helloworld.lisp --foo --bar
 The optional `require` library loads modules by name through a search
 path, independently of the process working directory (unlike
 `load-file`, whose relative paths resolve against the cwd). Each module
-is loaded at most once.
+is evaluated at most once, in its own environment, and its top-level
+definitions are published under a namespace prefix (Clojure style):
 
 ```clojure
-(require "hello/world")   ; loads hello/world.lisp (do not add .lisp)
+(require "geometry")                    ; loads geometry.lisp (do not add .lisp)
+(geometry/area 2)                       ; definitions are qualified
+
+(require "geometry" :as "g")            ; short alias
+(g/area 2)
+
+(require "geometry" :refer ["area"])    ; import selected names unqualified
+(area 2)                                ; (geometry/area still available)
 ```
+
+Module-internal references stay unqualified: the module's functions
+close over the module environment, so `area` can call a sibling helper
+without any prefix.
 
 Resolution order:
 
@@ -354,16 +366,17 @@ Resolution order:
 4. `/usr/local/share/<binary>/`
 
 ```bash
-lisp -i ./lib -i ./vendor -e '(do (require "hello/world") (hello))'
+lisp -i ./lib -i ./vendor -e '(do (require "geometry") (geometry/area 2))'
 ```
 
 Notes:
 
 - Only relative module paths are allowed (no absolute paths, no `..`,
   no hidden path segments)
+- Re-requiring an already loaded module does not re-evaluate it, but
+  does publish new aliases or refers
 - The library is optional: load it from Go with `nsrequire.Load("lisp")`
-  (see [./cmd/lisp](./cmd/lisp)); it needs `core`, `concurrent` and
-  `coreextented` loaded first (it builds on `load-file-once`)
+  (see [./cmd/lisp](./cmd/lisp))
 
 # Licence
 
