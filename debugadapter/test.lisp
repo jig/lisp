@@ -45,7 +45,16 @@
 ;; require through the search path (here it finds <git root>/.lisp/
 ;; regardless of the working directory) — F11 on the (testlib/cube …)
 ;; call must step into that file. require namespaces the module's
-;; definitions; :refer would import selected names unqualified.
+;; definitions.
 (require "testlib")
 (def a5 (testlib/cube 3))
 (println a5)
+
+;; :as gives the module a short alias prefix (the module is already
+;; loaded, so this only publishes the alias — no re-evaluation)
+(require "testlib" :as "tl")
+(println (tl/cube 4))
+
+;; :refer imports the listed names unqualified
+(require "testlib" :refer ["cube"])
+(println (cube 5))
