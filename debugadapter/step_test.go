@@ -449,3 +449,93 @@ func TestUserFlatFile(t *testing.T) {
 	}
 	sendRequest(t, client, 11, "disconnect", nil)
 }
+
+// TestServer_Evaluate exercises the `evaluate` request while paused on a
+// breakpoint: resolving a def'd symbol in the paused frame's env,
+// computing a compound expression, and reporting errors.
+func TestServer_Evaluate(t *testing.T) {
+	tmp := t.TempDir()
+	script := filepath.Join(tmp, "eval.lisp")
+	src := "(def answer 41)\n(println answer)\n"
+	if err := os.WriteFile(script, []byte(src), 0o644); err != nil {
+		t.Fatalf("write: %v", err)
+	}
+	runtime.Modules.Register(script, script)
+
+	client, server, closer := pair()
+	ns := fullEnv(t)
+	done := make(chan error, 1)
+	eval := func(ctx context.Context, env types.EnvType) error {
+		_, err := lisp.REPL(ctx, env, fmt.Sprintf("(load-file %q)", script), types.NewAnonymousCursorHere(1, 1))
+		done <- err
+		return err
+	}
+	srv := NewServer(server, eval, ns)
+	stop := runServer(t, srv, closer)
+	defer stop()
+
+	sendRequest(t, client, 1, "initialize", nil)
+	readUntil(t, client, func(m map[string]interface{}) bool { return m["event"] == "initialized" })
+	sendRequest(t, client, 2, "launch", map[string]interface{}{"stopOnEntry": false})
+	readUntil(t, client, func(m map[string]interface{}) bool {
+		return m["command"] == "launch" && m["type"] == "response"
+	})
+	sendRequest(t, client, 3, "setBreakpoints", SetBreakpointsArguments{
+		Source:      Source{Path: script},
+		Breakpoints: []SourceBreakpoint{{Line: 2}},
+	})
+	readUntil(t, client, func(m map[string]interface{}) bool {
+		return m["command"] == "setBreakpoints" && m["type"] == "response"
+	})
+	sendRequest(t, client, 4, "configurationDone", nil)
+	readUntil(t, client, func(m map[string]interface{}) bool {
+		return m["command"] == "configurationDone" && m["type"] == "response"
+	})
+
+	if got := stoppedAt(t, client, 5); got != 2 {
+		t.Fatalf("breakpoint: expected line 2, got %d", got)
+	}
+
+	evaluate := func(seq int, expr string) map[string]interface{} {
+		sendRequest(t, client, seq, "evaluate", map[string]interface{}{
+			"expression": expr, "frameId": 0, "context": "repl",
+		})
+		return readUntil(t, client, func(m map[string]interface{}) bool {
+			return m["command"] == "evaluate" && m["type"] == "response"
+		})
+	}
+
+	// def'd symbol resolves in the paused frame's env
+	resp := evaluate(6, "answer")
+	if ok, _ := resp["success"].(bool); !ok {
+		t.Fatalf("evaluate answer failed: %v", resp)
+	}
+	if body := resp["body"].(map[string]interface{}); body["result"] != "41" {
+		t.Errorf("evaluate answer: expected 41, got %v", body["result"])
+	}
+
+	// compound expression
+	resp = evaluate(7, "(+ answer 1)")
+	if body := resp["body"].(map[string]interface{}); body["result"] != "42" {
+		t.Errorf("evaluate (+ answer 1): expected 42, got %v", body["result"])
+	}
+
+	// error case: unknown symbol → success=false
+	resp = evaluate(8, "no-such-symbol")
+	if ok, _ := resp["success"].(bool); ok {
+		t.Errorf("evaluate no-such-symbol: expected failure, got %v", resp)
+	}
+
+	// stepping still works after console evaluations (BP state intact)
+	sendRequest(t, client, 9, "continue", map[string]interface{}{"threadId": 1})
+	readUntil(t, client, func(m map[string]interface{}) bool { return m["event"] == "terminated" })
+	select {
+	case err := <-done:
+		if err != nil {
+			t.Fatalf("eval error: %v", err)
+		}
+	case <-time.After(3 * time.Second):
+		t.Fatal("eval did not return")
+	}
+	sendRequest(t, client, 10, "disconnect", nil)
+}

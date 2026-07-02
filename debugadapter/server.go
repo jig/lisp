@@ -11,7 +11,9 @@ import (
 	"strings"
 	"sync"
 	"sync/atomic"
+	"time"
 
+	"github.com/jig/lisp"
 	"github.com/jig/lisp/printer"
 	"github.com/jig/lisp/runtime"
 	"github.com/jig/lisp/types"
@@ -157,6 +159,7 @@ func (s *Server) dispatch(_ context.Context, req *Request) {
 		s.respond(req, true, "", Capabilities{
 			SupportsConfigurationDoneRequest: true,
 			SupportsTerminateRequest:         true,
+			SupportsEvaluateForHovers:        true,
 		})
 		s.sendEvent("initialized", struct{}{})
 	case "launch":
@@ -191,6 +194,8 @@ func (s *Server) dispatch(_ context.Context, req *Request) {
 		s.handleScopes(req)
 	case "variables":
 		s.handleVariables(req)
+	case "evaluate":
+		s.handleEvaluate(req)
 	// For the four resume-style requests the response is written while
 	// still holding the state mutex: the EVAL goroutine is blocked on the
 	// condition variable and cannot wake (and emit the next `stopped`
@@ -267,6 +272,64 @@ func (s *Server) handleStackTrace(req *Request) {
 	s.respond(req, true, "", map[string]interface{}{
 		"stackFrames": out,
 		"totalFrames": len(out),
+	})
+}
+
+// handleEvaluate serves `evaluate` requests: Debug Console input, watch
+// expressions and hovers. The expression is evaluated in the environment
+// of the requested stack frame (top frame by default) so local bindings
+// resolve as the user expects.
+//
+// The evaluation runs on the server goroutine with a fresh context that
+// carries no runtime.Thread: EVAL therefore pushes no frames onto the
+// debuggee's stack (stepOver depths stay intact), and the hook ignores
+// the module-less cursor, so the paused session is not disturbed. The
+// only state the hook touches is lastObservedLine, which is saved and
+// restored so the breakpoint line-transition detection cannot re-fire
+// because of a console evaluation.
+func (s *Server) handleEvaluate(req *Request) {
+	var args EvaluateArguments
+	_ = json.Unmarshal(req.Arguments, &args)
+
+	s.state.mu.Lock()
+	frames := s.state.thread.Snapshot()
+	env := s.evalEnv
+	// FrameID was assigned in handleStackTrace as `len(frames)-1-i`
+	// (top frame → 0). Resolve it back to a slice index.
+	idx := len(frames) - 1 - args.FrameID
+	if idx >= 0 && idx < len(frames) && frames[idx].Env != nil {
+		env = frames[idx].Env
+	}
+	savedLine := s.state.lastObservedLine
+	s.state.mu.Unlock()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	var res types.MalType
+	ast, err := lisp.READ(args.Expression, types.NewAnonymousCursorHere(1, 1), env)
+	if err == nil {
+		res, err = lisp.EVAL(ctx, ast, env)
+	}
+
+	s.state.mu.Lock()
+	s.state.lastObservedLine = savedLine
+	ref := 0
+	if err == nil {
+		switch res.(type) {
+		case types.List, types.Vector, types.HashMap, types.Set:
+			ref = s.state.registerVarRef(varRef{kind: varRefValue, value: res})
+		}
+	}
+	s.state.mu.Unlock()
+
+	if err != nil {
+		s.respond(req, false, err.Error(), nil)
+		return
+	}
+	s.respond(req, true, "", map[string]interface{}{
+		"result":             printer.Pr_str(res, true),
+		"type":               fmt.Sprintf("%T", res),
+		"variablesReference": ref,
 	})
 }
 

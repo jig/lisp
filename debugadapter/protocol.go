@@ -49,6 +49,15 @@ type Capabilities struct {
 	SupportsConfigurationDoneRequest bool `json:"supportsConfigurationDoneRequest"`
 	SupportsTerminateRequest         bool `json:"supportsTerminateRequest"`
 	SupportsStepInTargetsRequest     bool `json:"supportsStepInTargetsRequest"`
+	SupportsEvaluateForHovers        bool `json:"supportsEvaluateForHovers"`
+}
+
+// EvaluateArguments is the payload of an `evaluate` request (Debug
+// Console input, watch expressions and hovers).
+type EvaluateArguments struct {
+	Expression string `json:"expression"`
+	FrameID    int    `json:"frameId"`
+	Context    string `json:"context,omitempty"`
 }
 
 // Source identifies a script file in DAP terms.
