@@ -9,7 +9,8 @@
             "type": "lisp",
             "request": "launch",
             "program": "${file}",
-            "stopOnEntry": true
+            "stopOnEntry": false,
+            // "cwd": "${workspaceFolder}"   // optional path for require
         },
         {
             "name": "test root",

@@ -271,7 +271,8 @@ Add a launch configuration (`.vscode/launch.json`):
       "request": "launch",
       "name": "Debug current Lisp file",
       "program": "${file}",
-      "stopOnEntry": true
+      "stopOnEntry": true,
+      // "cwd": "${workspaceFolder}"   // optional path for (require "module") resolution, defaults to the git root directory (following Go logic)
     }
   ]
 }
