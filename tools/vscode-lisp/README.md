@@ -10,9 +10,12 @@ interpreter.
   over / in / out, continue, pause, call stack, locals, program output
   in the Debug Console, and expression evaluation (Debug Console,
   watch, hover) in the context of the selected stack frame.
+- Language Server Protocol client: live parse diagnostics, symbol
+  completion (core library plus document `def`/`defn`), hover with
+  definition signatures, and document outline. Spawned as
+  `lisp-debug --lsp` when a lisp document opens.
 
-LSP features (hover, completion, go-to-definition) are not part of
-this release; they ship in a follow-up PR.
+Go-to-definition and find-references are not part of this release.
 
 ## Requirements
 
@@ -67,6 +70,8 @@ code --install-extension vscode-lisp-*.vsix
 | -------------------------------- | ------------- | ------------------------------------------------ |
 | `lisp.debugAdapter.command`      | `lisp-debug`  | Path or name of the debug-build interpreter.     |
 | `lisp.debugAdapter.extraArgs`    | `[]`          | Args inserted before `--dap` on every spawn.     |
+| `lisp.languageServer.enabled`    | `true`        | Start the LSP client for lisp documents.         |
+| `lisp.languageServer.command`    | `lisp-debug`  | Binary spawned as the LSP server (with `--lsp`). |
 
 ## Development
 

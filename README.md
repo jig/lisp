@@ -219,16 +219,24 @@ go install
 
 # Debug in VSCode
 
-The interpreter includes a DAP (Debug Adapter Protocol) server, enabled
-with the `lispdebug` build tag, plus a VSCode extension in
-[./tools/vscode-lisp](./tools/vscode-lisp). Together they provide
-breakpoints, step over / in / out, call stack, locals, Debug Console
-evaluation (with watch and hover) and program output.
+The interpreter includes a DAP (Debug Adapter Protocol) server and an
+LSP (Language Server Protocol) server, both enabled with the
+`lispdebug` build tag, plus a VSCode extension in
+[./tools/vscode-lisp](./tools/vscode-lisp). Together they provide:
+
+- **Debugger (DAP)**: breakpoints, step over / in / out, call stack,
+  locals, Debug Console evaluation (with watch and hover) and program
+  output.
+- **Language server (LSP)**: live parse diagnostics while you type,
+  symbol completion (core library plus your `def`/`defn`), hover with
+  definition signatures, and the document outline (Ctrl+Shift+O,
+  breadcrumbs).
 
 ## 1. Build and install the debug interpreter
 
 The extension spawns a separate binary named `lisp-debug` (the regular
-`lisp` binary does not embed the DAP server). From the repo root:
+`lisp` binary embeds neither the DAP nor the LSP server). From the repo
+root:
 
 ```bash
 go build -tags lispdebug -o /tmp/lisp-debug ./cmd/lisp
@@ -271,6 +279,10 @@ Open a `.lisp` file, set breakpoints with <kbd>F9</kbd> and start with
 <kbd>F5</kbd>. `println`/`prn` output appears in the Debug Console, and
 while paused you can evaluate any expression there in the context of
 the selected stack frame.
+
+The language server needs no configuration: it starts automatically
+when a `.lisp` file is opened (disable with the
+`lisp.languageServer.enabled` setting).
 
 See [./tools/vscode-lisp/README.md](./tools/vscode-lisp/README.md) for
 extension settings and development notes.
