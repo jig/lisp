@@ -217,6 +217,64 @@ cd cmd/lisp
 go install
 ```
 
+# Debug in VSCode
+
+The interpreter includes a DAP (Debug Adapter Protocol) server, enabled
+with the `lispdebug` build tag, plus a VSCode extension in
+[./tools/vscode-lisp](./tools/vscode-lisp). Together they provide
+breakpoints, step over / in / out, call stack, locals, Debug Console
+evaluation (with watch and hover) and program output.
+
+## 1. Build and install the debug interpreter
+
+The extension spawns a separate binary named `lisp-debug` (the regular
+`lisp` binary does not embed the DAP server). From the repo root:
+
+```bash
+go build -tags lispdebug -o /tmp/lisp-debug ./cmd/lisp
+sudo install /tmp/lisp-debug /usr/local/bin/    # or anywhere on $PATH
+```
+
+> Repeat this step after every change to the interpreter or debugger
+> code: the extension runs the installed binary, not your working tree.
+
+## 2. Build and install the VSCode extension
+
+```bash
+cd tools/vscode-lisp
+npm install
+npm run compile
+npx @vscode/vsce package
+code --install-extension vscode-lisp-*.vsix
+```
+
+## 3. Debug a file
+
+Add a launch configuration (`.vscode/launch.json`):
+
+```json
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "lisp",
+      "request": "launch",
+      "name": "Debug current Lisp file",
+      "program": "${file}",
+      "stopOnEntry": true
+    }
+  ]
+}
+```
+
+Open a `.lisp` file, set breakpoints with <kbd>F9</kbd> and start with
+<kbd>F5</kbd>. `println`/`prn` output appears in the Debug Console, and
+while paused you can evaluate any expression there in the context of
+the selected stack frame.
+
+See [./tools/vscode-lisp/README.md](./tools/vscode-lisp/README.md) for
+extension settings and development notes.
+
 # Execute REPL
 
 ```bash

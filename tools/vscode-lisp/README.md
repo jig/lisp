@@ -7,7 +7,9 @@ interpreter.
 
 - Syntax highlighting for `.lisp` and `.mal` files.
 - Debug Adapter Protocol client: launch, breakpoints (line), step
-  over / in / out, continue, pause, call stack, locals.
+  over / in / out, continue, pause, call stack, locals, program output
+  in the Debug Console, and expression evaluation (Debug Console,
+  watch, hover) in the context of the selected stack frame.
 
 LSP features (hover, completion, go-to-definition) are not part of
 this release; they ship in a follow-up PR.
