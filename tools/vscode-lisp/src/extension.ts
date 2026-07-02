@@ -1,9 +1,17 @@
 import * as vscode from "vscode";
+import {
+  LanguageClient,
+  LanguageClientOptions,
+  ServerOptions,
+} from "vscode-languageclient/node";
+
+let client: LanguageClient | undefined;
 
 /**
  * Activate the extension. Registers a DebugAdapterDescriptorFactory for
- * the `lisp` debug type. The factory tells VSCode to spawn the
- * lispdebug-build interpreter as the DAP server, talking over stdio.
+ * the `lisp` debug type (the factory tells VSCode to spawn the
+ * lispdebug-build interpreter as the DAP server over stdio) and starts
+ * the LSP client against the same binary (`lisp-debug --lsp`).
  */
 export function activate(context: vscode.ExtensionContext): void {
   context.subscriptions.push(
@@ -19,10 +27,29 @@ export function activate(context: vscode.ExtensionContext): void {
       new LispDebugConfigurationProvider(),
     ),
   );
+
+  const cfg = vscode.workspace.getConfiguration("lisp");
+  if (cfg.get<boolean>("languageServer.enabled", true)) {
+    const command = cfg.get<string>("languageServer.command", "lisp-debug");
+    const serverOptions: ServerOptions = { command, args: ["--lsp"] };
+    const clientOptions: LanguageClientOptions = {
+      documentSelector: [{ language: "lisp" }],
+    };
+    client = new LanguageClient(
+      "lisp",
+      "jig/lisp language server",
+      serverOptions,
+      clientOptions,
+    );
+    // start() spawns the server; errors (e.g. binary not on PATH) are
+    // surfaced by the client in its output channel without breaking
+    // the debugger features.
+    void client.start();
+  }
 }
 
-export function deactivate(): void {
-  /* no-op */
+export function deactivate(): Thenable<void> | undefined {
+  return client?.stop();
 }
 
 class LispDebugAdapterDescriptorFactory

@@ -2,7 +2,7 @@
   "name": "vscode-lisp",
   "displayName": "jig/lisp",
   "description": "Language support and debugger for the jig/lisp interpreter",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "publisher": "jig",
   "license": "SEE LICENSE IN ../../LICENCE",
   "repository": {
@@ -26,8 +26,14 @@
     "languages": [
       {
         "id": "lisp",
-        "aliases": ["jig/lisp", "Lisp"],
-        "extensions": [".lisp", ".mal"],
+        "aliases": [
+          "jig/lisp",
+          "Lisp"
+        ],
+        "extensions": [
+          ".lisp",
+          ".mal"
+        ],
         "configuration": "./language-configuration.json"
       }
     ],
@@ -42,10 +48,14 @@
       {
         "type": "lisp",
         "label": "jig/lisp",
-        "languages": ["lisp"],
+        "languages": [
+          "lisp"
+        ],
         "configurationAttributes": {
           "launch": {
-            "required": ["program"],
+            "required": [
+              "program"
+            ],
             "properties": {
               "program": {
                 "type": "string",
@@ -99,9 +109,21 @@
         },
         "lisp.debugAdapter.extraArgs": {
           "type": "array",
-          "items": { "type": "string" },
+          "items": {
+            "type": "string"
+          },
           "default": [],
           "description": "Additional arguments prepended before --dap when invoking the interpreter."
+        },
+        "lisp.languageServer.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable the LSP client (diagnostics, completion, hover, outline). Requires the lisp-debug binary."
+        },
+        "lisp.languageServer.command": {
+          "type": "string",
+          "default": "lisp-debug",
+          "description": "Path or name of the debug-build interpreter spawned as the LSP server (with --lsp)."
         }
       }
     }
@@ -115,5 +137,8 @@
     "@types/node": "^20.0.0",
     "@types/vscode": "^1.85.0",
     "typescript": "^5.4.0"
+  },
+  "dependencies": {
+    "vscode-languageclient": "^9.0.1"
   }
 }
