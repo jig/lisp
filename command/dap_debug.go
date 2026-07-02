@@ -29,7 +29,14 @@ func startDAP(listen, script string, env types.EnvType) error {
 	registerModule(script, abs)
 
 	eval := func(ctx context.Context, env types.EnvType) error {
-		_, err := lisp.REPL(ctx, env, `(load-file "`+script+`")`, types.NewCursorHere(script, -3, 1))
+		// The `(load-file …)` call is bootstrap scaffolding, not part of
+		// the user's program. Give it an anonymous cursor (no module) so
+		// the debugger treats it as non-user code: a breakpoint or step
+		// won't stop on this synthetic call, letting the session land on
+		// the first real statement of the loaded file instead. The file's
+		// own forms get their module from the `;; $MODULE` prefix that
+		// load-file injects, so source mapping is unaffected.
+		_, err := lisp.REPL(ctx, env, `(load-file "`+script+`")`, types.NewAnonymousCursorHere(1, 1))
 		return err
 	}
 

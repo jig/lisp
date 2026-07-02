@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/jig/lisp/lisperror"
 	"github.com/jig/lisp/printer"
 	"github.com/jig/lisp/runtime"
 	"github.com/jig/lisp/types"
@@ -51,6 +52,19 @@ func (h *StepHook) OnEval(ctx context.Context, ev runtime.EvalEvent) error {
 	case types.List, types.Vector, types.HashMap:
 		// fall through
 	default:
+		return nil
+	}
+
+	// An *inline* `(do …)` wrapper — one whose body opens on the same
+	// source line as the `do` keyword — is structural scaffolding, not a
+	// statement the user would stop on. `load-file` builds exactly such a
+	// wrapper: `(do <file body>` on the file's first line, sharing the line
+	// with the first real form. Stopping on it would burn a breakpoint,
+	// step or entry stop on the same visible line before reaching the
+	// first statement, so skip it and let the stop land on the body's
+	// first child. In stop-on-entry mode this simply defers the entry
+	// pause: the mode stays armed until the first real form arrives.
+	if list, ok := ev.AST.(types.List); ok && isInlineDoWrapper(list) {
 		return nil
 	}
 
@@ -112,7 +126,15 @@ func (h *StepHook) OnEval(ctx context.Context, ev runtime.EvalEvent) error {
 	case modeStepIn:
 		// step-in stops on the next list-form, even if it's a TCO
 		// continuation of the same frame: that's exactly how the user
-		// "enters" a fn body or a let body.
+		// "enters" a fn body or a let body. But never on a `do`: a `do`
+		// is a block delimiter, not a statement (like `{` in C), and it
+		// often shares its source row with the previous stop (multi-line
+		// user `(do`, fn bodies — whose Exp is a synthetic do wrapper).
+		// Pausing there leaves the highlighted line unchanged, so F11
+		// looks like a no-op. Stay armed until a real statement arrives.
+		if list, ok := ev.AST.(types.List); ok && isDoForm(list) {
+			break
+		}
 		s.pauseAndWait("step", "")
 	case modeStepOver:
 		if sameFrame {
@@ -134,6 +156,40 @@ func (h *StepHook) OnEval(ctx context.Context, ev runtime.EvalEvent) error {
 		return errDisconnected
 	}
 	return nil
+}
+
+// isDoForm reports whether ast is a `(do …)` special form.
+func isDoForm(ast types.List) bool {
+	if len(ast.Val) == 0 {
+		return false
+	}
+	sym, ok := ast.Val[0].(types.Symbol)
+	return ok && sym.Val == "do"
+}
+
+// isInlineDoWrapper reports whether ast is a `(do …)` special form whose
+// first body element begins on the same source row as the form itself.
+// That is the shape of the synthetic wrapper `load-file` injects
+// (`(do <file body>` sharing the first line); a `do` the user wrote on its
+// own line has its body on a later row and is not treated as a wrapper.
+func isInlineDoWrapper(ast types.List) bool {
+	if !isDoForm(ast) {
+		return false
+	}
+	if len(ast.Val) < 2 {
+		// `(do)` with no body: nothing to stop on either way.
+		return true
+	}
+	if ast.Cursor == nil {
+		return false
+	}
+	child := lisperror.GetPosition(ast.Val[1])
+	if child == nil {
+		// Position unknown (e.g. a literal number): cannot prove it is a
+		// wrapper, so treat it as a real stop.
+		return false
+	}
+	return child.BeginRow == ast.Cursor.BeginRow
 }
 
 // errDisconnected is returned by OnEval to abort EVAL when the client
