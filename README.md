@@ -230,7 +230,9 @@ LSP (Language Server Protocol) server, both enabled with the
 - **Language server (LSP)**: live parse diagnostics while you type,
   symbol completion (core library plus your `def`/`defn`), hover with
   definition signatures, and the document outline (Ctrl+Shift+O,
-  breadcrumbs).
+  breadcrumbs). `(require "module")` forms are resolved statically, so
+  definitions from required modules are known to completion, hover and
+  the unknown-symbol check.
 
 ## 1. Build and install the debug interpreter
 

@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"net"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -11,6 +13,7 @@ import (
 	"github.com/jig/lisp"
 	"github.com/jig/lisp/env"
 	"github.com/jig/lisp/lib/core"
+	"github.com/jig/lisp/lib/require"
 	"github.com/jig/lisp/types"
 )
 
@@ -300,5 +303,88 @@ func TestServer_UnknownSymbolWarning(t *testing.T) {
 	}
 	if start["character"].(float64) != 1 {
 		t.Errorf("expected warning at character 1, got %v", start["character"])
+	}
+}
+
+// TestServer_RequireImportsSymbols verifies the LSP follows
+// `(require "module")` forms: definitions from the resolved module are
+// known (no false unknown-symbol warning), completable and hoverable;
+// an unresolvable require yields a warning on the require form itself.
+func TestServer_RequireImportsSymbols(t *testing.T) {
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, "geometry.lisp"),
+		[]byte("(require \"nested\")\n(defn area [r] (* r r 3))\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "nested.lisp"),
+		[]byte("(defn perimeter [r] (* 2 r 3))\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	client, server, closer := pair()
+	ns := testEnv(t)
+	// Configure the require search path (also installs `require` in ns).
+	if err := require.LoadWithConfig(require.Config{IncludeDirs: []string{dir}})(ns); err != nil {
+		t.Fatalf("require.LoadWithConfig: %v", err)
+	}
+	srv := NewServer(server, ns)
+	stop := runServer(t, srv, closer)
+	defer stop()
+
+	send(t, client, 1, "initialize", map[string]interface{}{})
+	readUntil(t, client, response(1))
+	send(t, client, 0, "initialized", map[string]interface{}{})
+
+	// area comes from the require'd module, perimeter from its nested
+	// require: neither must be flagged as unknown.
+	uri := "file:///main.lisp"
+	diags := didOpen(t, client, uri,
+		"(require \"geometry\")\n(println (area 2))\n(println (perimeter 2))\n")
+	list := diags["params"].(map[string]interface{})["diagnostics"].([]interface{})
+	if len(list) != 0 {
+		t.Fatalf("expected no diagnostics, got %v", list)
+	}
+
+	// completion includes the imported definition with its module name
+	send(t, client, 2, "textDocument/completion", TextDocumentPositionParams{
+		TextDocument: TextDocumentIdentifier{URI: uri},
+		Position:     Position{Line: 1, Character: 0},
+	})
+	resp := readUntil(t, client, response(2))
+	var areaDetail string
+	for _, it := range resp["result"].([]interface{}) {
+		item := it.(map[string]interface{})
+		if item["label"] == "area" {
+			areaDetail, _ = item["detail"].(string)
+		}
+	}
+	if !strings.Contains(areaDetail, "geometry.lisp") {
+		t.Errorf("expected area completion detail to name geometry.lisp, got %q", areaDetail)
+	}
+
+	// hover on the imported symbol shows its signature and module
+	send(t, client, 3, "textDocument/hover", TextDocumentPositionParams{
+		TextDocument: TextDocumentIdentifier{URI: uri},
+		Position:     Position{Line: 1, Character: 11}, // over `area`
+	})
+	resp = readUntil(t, client, response(3))
+	hover, ok := resp["result"].(map[string]interface{})
+	if !ok {
+		t.Fatalf("expected hover result, got %v", resp["result"])
+	}
+	value := hover["contents"].(map[string]interface{})["value"].(string)
+	if !strings.Contains(value, "(defn area [r])") || !strings.Contains(value, "geometry.lisp") {
+		t.Errorf("expected hover with signature and module, got %q", value)
+	}
+
+	// an unresolvable require warns on the require form
+	diags = didOpen(t, client, "file:///bad.lisp", "(require \"no/such/module\")\n")
+	list = diags["params"].(map[string]interface{})["diagnostics"].([]interface{})
+	if len(list) != 1 {
+		t.Fatalf("expected 1 diagnostic for missing module, got %v", list)
+	}
+	msg := list[0].(map[string]interface{})["message"].(string)
+	if !strings.Contains(msg, "not found") {
+		t.Errorf("expected not-found message, got %q", msg)
 	}
 }

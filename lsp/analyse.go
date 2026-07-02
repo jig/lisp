@@ -24,14 +24,21 @@ type symbolRef struct {
 	pos  *types.Position
 }
 
+// requireRef is one `(require "module")` occurrence.
+type requireRef struct {
+	module  string
+	headPos *types.Position // position of the `require` symbol
+}
+
 // analysis is the result of parsing one document.
 type analysis struct {
 	diagnostics []Diagnostic
 	defs        []definition
 	forms       []types.MalType // top-level forms (empty on parse error)
 
-	calls []symbolRef     // symbols used as the head of a call form
-	bound map[string]bool // every name bound anywhere in the document
+	calls    []symbolRef     // symbols used as the head of a call form
+	bound    map[string]bool // every name bound anywhere in the document
+	requires []requireRef    // require'd module names (string literals)
 }
 
 // analyseDocument parses content with the interpreter's reader and
@@ -149,6 +156,19 @@ func (a *analysis) scan(form types.MalType) {
 			a.bindAll(list.Val[1])
 		}
 		for _, c := range list.Val[2:] {
+			a.scan(c)
+		}
+	case "require":
+		// `(require "module")` with a literal name is statically
+		// resolvable: record it so the server can import the module's
+		// definitions. Still recorded as a call (require must exist).
+		if len(list.Val) >= 2 {
+			if mod, ok := list.Val[1].(string); ok {
+				a.requires = append(a.requires, requireRef{module: mod, headPos: head.Cursor})
+			}
+		}
+		a.calls = append(a.calls, symbolRef{name: head.Val, pos: head.Cursor})
+		for _, c := range list.Val[1:] {
 			a.scan(c)
 		}
 	default:

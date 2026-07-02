@@ -116,6 +116,14 @@ func parseIncludeArgs(args []string) ([]string, error) {
 	return includes, nil
 }
 
+// Resolve maps a module name to the absolute path of its `.lisp` file
+// using the same search cascade as the lisp `require` function. It is
+// exported for tooling: the LSP server resolves require'd modules
+// statically to import their definitions.
+func Resolve(module string) (string, error) {
+	return resolve_require(module)
+}
+
 // resolve_require maps a module name to the absolute path of its
 // `.lisp` file, searching the configured roots in order. Module names
 // are relative slash-separated paths without extension; absolute paths,

@@ -9,9 +9,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"os"
+	"path/filepath"
 	"sort"
 	"sync"
 
+	"github.com/jig/lisp/lib/require"
 	"github.com/jig/lisp/types"
 )
 
@@ -34,6 +37,13 @@ type Server struct {
 type document struct {
 	content  string
 	analysis *analysis
+	external []externalDef // definitions imported from require'd modules
+}
+
+// externalDef is a definition imported from a require'd module.
+type externalDef struct {
+	definition
+	path string // absolute path of the module file
 }
 
 // NewServer constructs a server. env supplies builtin symbols for
@@ -134,14 +144,71 @@ func (s *Server) dispatch(req *requestMessage) {
 // the resulting diagnostics.
 func (s *Server) updateDocument(uri, content string) {
 	anal := analyseDocument(uri, content)
+	external, requireDiags := resolveRequires(anal)
 	s.mu.Lock()
-	s.docs[uri] = &document{content: content, analysis: anal}
+	s.docs[uri] = &document{content: content, analysis: anal, external: external}
 	s.mu.Unlock()
 	diags := append([]Diagnostic{}, anal.diagnostics...)
-	diags = append(diags, s.unknownSymbolDiagnostics(anal)...)
+	diags = append(diags, requireDiags...)
+	diags = append(diags, s.unknownSymbolDiagnostics(anal, external)...)
 	s.notify("textDocument/publishDiagnostics", PublishDiagnosticsParams{
 		URI: uri, Diagnostics: diags,
 	})
+}
+
+// resolveRequires statically resolves the document's `(require …)`
+// forms with the same search cascade the runtime uses, analyses the
+// resolved files (transitively, cycle-safe) and returns their
+// definitions. A require that cannot be resolved or read yields a
+// warning on the `require` symbol itself; nested failures are silent
+// (they belong to the module's own diagnostics when opened).
+func resolveRequires(anal *analysis) ([]externalDef, []Diagnostic) {
+	var out []externalDef
+	var diags []Diagnostic
+	visited := map[string]bool{}
+	var walk func(a *analysis, depth int, report bool)
+	walk = func(a *analysis, depth int, report bool) {
+		if depth > 16 {
+			return
+		}
+		for _, req := range a.requires {
+			path, err := require.Resolve(req.module)
+			if err != nil {
+				if report {
+					diags = append(diags, Diagnostic{
+						Range:    symbolRange(req.headPos, "require"),
+						Severity: severityWarning,
+						Source:   "lisp",
+						Message:  err.Error(),
+					})
+				}
+				continue
+			}
+			if visited[path] {
+				continue
+			}
+			visited[path] = true
+			content, err := os.ReadFile(path)
+			if err != nil {
+				if report {
+					diags = append(diags, Diagnostic{
+						Range:    symbolRange(req.headPos, "require"),
+						Severity: severityWarning,
+						Source:   "lisp",
+						Message:  fmt.Sprintf("require: %v", err),
+					})
+				}
+				continue
+			}
+			ma := analyseDocument(path, string(content))
+			for _, d := range ma.defs {
+				out = append(out, externalDef{definition: d, path: path})
+			}
+			walk(ma, depth+1, false)
+		}
+	}
+	walk(anal, 0, true)
+	return out, diags
 }
 
 // unknownSymbolDiagnostics warns about symbols used in call position
@@ -149,14 +216,18 @@ func (s *Server) updateDocument(uri, content string) {
 // present in the interpreter environment. It is a warning rather than
 // an error because the symbol may be defined at runtime (load-file of
 // another script, dynamic def).
-func (s *Server) unknownSymbolDiagnostics(anal *analysis) []Diagnostic {
+func (s *Server) unknownSymbolDiagnostics(anal *analysis, external []externalDef) []Diagnostic {
 	if s.env == nil {
 		return nil
+	}
+	imported := map[string]bool{}
+	for _, d := range external {
+		imported[d.name] = true
 	}
 	var out []Diagnostic
 	reported := map[string]bool{}
 	for _, call := range anal.calls {
-		if anal.bound[call.name] || reported[call.name] {
+		if anal.bound[call.name] || imported[call.name] || reported[call.name] {
 			continue
 		}
 		if _, err := s.env.Get(types.Symbol{Val: call.name}); err == nil {
@@ -197,6 +268,18 @@ func (s *Server) handleCompletion(req *requestMessage) {
 				Label:  d.name,
 				Kind:   completionKindOf(d.kind),
 				Detail: definitionDetail(d),
+			})
+		}
+		// Then definitions imported from require'd modules.
+		for _, d := range doc.external {
+			if seen[d.name] {
+				continue
+			}
+			seen[d.name] = true
+			items = append(items, CompletionItem{
+				Label:  d.name,
+				Kind:   completionKindOf(d.kind),
+				Detail: definitionDetail(d.definition) + " — " + filepath.Base(d.path),
 			})
 		}
 	}
@@ -249,6 +332,18 @@ func (s *Server) handleHover(req *requestMessage) {
 			s.respond(req, Hover{Contents: MarkupContent{
 				Kind:  "markdown",
 				Value: "```lisp\n" + definitionDetail(d) + "\n```",
+			}})
+			return
+		}
+	}
+
+	// Then definitions imported from require'd modules, with their
+	// source file as context.
+	for _, d := range doc.external {
+		if d.name == sym {
+			s.respond(req, Hover{Contents: MarkupContent{
+				Kind:  "markdown",
+				Value: "```lisp\n" + definitionDetail(d.definition) + "\n```\n" + filepath.Base(d.path),
 			}})
 			return
 		}

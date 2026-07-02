@@ -12,8 +12,9 @@ interpreter.
   watch, hover) in the context of the selected stack frame.
 - Language Server Protocol client: live parse diagnostics, symbol
   completion (core library plus document `def`/`defn`), hover with
-  definition signatures, and document outline. Spawned as
-  `lisp-debug --lsp` when a lisp document opens.
+  definition signatures, and document outline. `(require "module")`
+  forms are followed statically, importing the module's definitions.
+  Spawned as `lisp-debug --lsp` when a lisp document opens.
 
 Go-to-definition and find-references are not part of this release.
 
