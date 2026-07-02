@@ -333,6 +333,36 @@ Use `--` to stop flag parsing so script arguments are passed through:
 lisp -- helloworld.lisp --foo --bar
 ```
 
+# Module loading with require
+
+The optional `require` library loads modules by name through a search
+path, independently of the process working directory (unlike
+`load-file`, whose relative paths resolve against the cwd). Each module
+is loaded at most once.
+
+```clojure
+(require "hello/world")   ; loads hello/world.lisp (do not add .lisp)
+```
+
+Resolution order:
+
+1. Directories passed via `-i/--include` (repeatable)
+2. `.<binary>/` under the enclosing Git repository root (for `lisp`: `.lisp/`)
+3. `$HOME/.config/<binary>/`
+4. `/usr/local/share/<binary>/`
+
+```bash
+lisp -i ./lib -i ./vendor -e '(do (require "hello/world") (hello))'
+```
+
+Notes:
+
+- Only relative module paths are allowed (no absolute paths, no `..`,
+  no hidden path segments)
+- The library is optional: load it from Go with `nsrequire.Load("lisp")`
+  (see [./cmd/lisp](./cmd/lisp)); it needs `core`, `concurrent` and
+  `coreextented` loaded first (it builds on `load-file-once`)
+
 # Licence
 
 This "lisp" implementation is licensed under the MPL 2.0 (Mozilla Public License 2.0). See [LICENCE](./LICENCE) for more details.
