@@ -41,9 +41,10 @@
     (< a4 100) "medium"
     :else      "large"))
 
-;; debugging across files: cube is defined in testlib.lisp — F11 on the
-;; (cube …) call must step into that file. The path is relative to the
-;; process working directory (the workspace root in VSCode).
-(load-file "../../debugadapter/testlib.lisp")
+;; debugging across files: cube is defined in testlib.lisp, resolved by
+;; require through the search path (here it finds <git root>/.lisp/
+;; regardless of the working directory) — F11 on the (cube …) call must
+;; step into that file
+(require "testlib")
 (def a5 (cube 3))
 (println a5)
