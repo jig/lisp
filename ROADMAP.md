@@ -102,6 +102,32 @@ with per-form indentation rules (`defn` vs `let` vs plain calls) —
 opinionated and easy to get wrong against existing code styles.
 *Effort: large. Impact: nice-to-have.*
 
+## Backward compatibility (vital)
+
+Ground rule for every item above: **anything touching the interpreter
+(mal.go, lib/concurrent, runtime) goes behind the `lispdebug` build tag
+so the release binary's semantics never change.** LSP/DAP protocol
+additions are inherently safe: their only consumer is the VSCode
+extension.
+
+Item-specific notes:
+
+- **`LISPPATH`**: if the variable is already set in someone's shell for
+  another tool, require resolution changes silently. Pick a distinctive
+  name and slot it *after* the git-root `.lisp/` in the cascade.
+- **Exception breakpoints**: the hook lands on EVAL's error path — the
+  same area as the 2026-01-15 breaking changes (LispError format,
+  try/catch/finally). It must observe, never wrap or alter propagated
+  errors, or external `catch`/error-parsing code breaks.
+- **Rename / formatting**: not a compat issue, but they rewrite user
+  sources on explicit action; ship with conservative scope rules and
+  tests before trusting them.
+- Already-shipped delta to keep in mind: since the macro-expansion
+  cursor fill (63c6647), errors raised inside macro-expanded code carry
+  a `file:line:` prefix they previously lacked. Code matching error
+  strings with `strings.Contains` (as the README recommends) is
+  unaffected; strict equality matching is not.
+
 ## Suggested order
 
 1. `LISPPATH` (minutes, immediate quality of life)
