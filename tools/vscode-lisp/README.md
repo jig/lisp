@@ -14,9 +14,11 @@ interpreter.
   completion (core library plus document `def`/`defn`), hover with
   definition signatures, and document outline. `(require "module")`
   forms are followed statically, importing the module's definitions.
-  Spawned as `lisp-debug --lsp` when a lisp document opens.
+  Go-to-definition (F12) jumps to local definitions and into require'd
+  module files. Spawned as `lisp-debug --lsp` when a lisp document
+  opens.
 
-Go-to-definition and find-references are not part of this release.
+Find-references and rename are not part of this release.
 
 ## Known limitations
 
@@ -80,6 +82,7 @@ code --install-extension vscode-lisp-*.vsix
 | `lisp.debugAdapter.extraArgs`    | `[]`          | Args inserted before `--dap` on every spawn.     |
 | `lisp.languageServer.enabled`    | `true`        | Start the LSP client for lisp documents.         |
 | `lisp.languageServer.command`    | `lisp-debug`  | Binary spawned as the LSP server (with `--lsp`). |
+| `lisp.languageServer.includeDirs`| `[]`          | require search dirs for the editor (like `-i`).  |
 
 ## Development
 

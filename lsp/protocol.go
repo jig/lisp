@@ -163,6 +163,22 @@ const (
 	symbolKindVariable = 13
 )
 
+// Location points at a range inside a document.
+type Location struct {
+	URI   string `json:"uri"`
+	Range Range  `json:"range"`
+}
+
+// InitializeParams is the (subset of the) payload of the initialize
+// request this server consumes.
+type InitializeParams struct {
+	InitializationOptions struct {
+		// IncludeDirs extends require's module search path, so the
+		// editor resolves the same modules the runtime would with -i.
+		IncludeDirs []string `json:"includeDirs"`
+	} `json:"initializationOptions"`
+}
+
 // InitializeResult is the response to the initialize request.
 type InitializeResult struct {
 	Capabilities ServerCapabilities `json:"capabilities"`
@@ -175,6 +191,7 @@ type ServerCapabilities struct {
 	CompletionProvider     struct{} `json:"completionProvider"`
 	HoverProvider          bool     `json:"hoverProvider"`
 	DocumentSymbolProvider bool     `json:"documentSymbolProvider"`
+	DefinitionProvider     bool     `json:"definitionProvider"`
 }
 
 // ServerInfo identifies the server to the client.

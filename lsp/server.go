@@ -44,6 +44,10 @@ type document struct {
 type externalDef struct {
 	definition
 	path string // absolute path of the module file
+	// localName is the name as written in the module file; definition
+	// name may be qualified (module/name), but namePos points at the
+	// short name, so range math needs the original spelling.
+	localName string
 }
 
 // NewServer constructs a server. env supplies builtin symbols for
@@ -84,11 +88,17 @@ func (s *Server) Run(ctx context.Context) error {
 func (s *Server) dispatch(req *requestMessage) {
 	switch req.Method {
 	case "initialize":
+		var p InitializeParams
+		_ = json.Unmarshal(req.Params, &p)
+		if len(p.InitializationOptions.IncludeDirs) > 0 {
+			require.AddIncludeDirs(p.InitializationOptions.IncludeDirs...)
+		}
 		s.respond(req, InitializeResult{
 			Capabilities: ServerCapabilities{
 				TextDocumentSync:       1, // full document sync
 				HoverProvider:          true,
 				DocumentSymbolProvider: true,
+				DefinitionProvider:     true,
 			},
 			ServerInfo: ServerInfo{Name: "jig-lisp-lsp"},
 		})
@@ -132,6 +142,8 @@ func (s *Server) dispatch(req *requestMessage) {
 		s.handleHover(req)
 	case "textDocument/documentSymbol":
 		s.handleDocumentSymbol(req)
+	case "textDocument/definition":
+		s.handleDefinition(req)
 	default:
 		if req.ID != nil {
 			s.respondError(req, codeMethodNotFound, "unsupported method: "+req.Method)
@@ -221,9 +233,9 @@ func resolveRequires(anal *analysis) ([]externalDef, []Diagnostic) {
 			for _, d := range ma.defs {
 				qualified := d
 				qualified.name = prefix + "/" + d.name
-				out = append(out, externalDef{definition: qualified, path: path})
+				out = append(out, externalDef{definition: qualified, path: path, localName: d.name})
 				if referred[d.name] {
-					out = append(out, externalDef{definition: d, path: path})
+					out = append(out, externalDef{definition: d, path: path, localName: d.name})
 				}
 			}
 		}
@@ -377,6 +389,48 @@ func (s *Server) handleHover(req *requestMessage) {
 				Kind:  "markdown",
 				Value: fmt.Sprintf("```lisp\n%s\n```\n%s", sym, envValueDetail(v)),
 			}})
+			return
+		}
+	}
+	s.respond(req, nil)
+}
+
+// handleDefinition serves go-to-definition (F12): document-local
+// definitions jump within the file; definitions imported through
+// require jump into the module's file.
+func (s *Server) handleDefinition(req *requestMessage) {
+	var p TextDocumentPositionParams
+	if err := json.Unmarshal(req.Params, &p); err != nil {
+		s.respondError(req, codeInvalidParams, err.Error())
+		return
+	}
+	s.mu.Lock()
+	doc := s.docs[p.TextDocument.URI]
+	s.mu.Unlock()
+	if doc == nil {
+		s.respond(req, nil)
+		return
+	}
+	sym := symbolAt(doc.content, p.Position.Line, p.Position.Character)
+	if sym == "" {
+		s.respond(req, nil)
+		return
+	}
+	for _, d := range doc.analysis.defs {
+		if d.name == sym {
+			s.respond(req, Location{
+				URI:   p.TextDocument.URI,
+				Range: symbolRange(d.namePos, d.name),
+			})
+			return
+		}
+	}
+	for _, d := range doc.external {
+		if d.name == sym {
+			s.respond(req, Location{
+				URI:   "file://" + d.path,
+				Range: symbolRange(d.namePos, d.localName),
+			})
 			return
 		}
 	}

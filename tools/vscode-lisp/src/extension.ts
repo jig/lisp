@@ -41,6 +41,9 @@ export function activate(context: vscode.ExtensionContext): void {
     };
     const clientOptions: LanguageClientOptions = {
       documentSelector: [{ language: "lisp" }],
+      initializationOptions: {
+        includeDirs: cfg.get<string[]>("languageServer.includeDirs", []),
+      },
     };
     client = new LanguageClient(
       "lisp",

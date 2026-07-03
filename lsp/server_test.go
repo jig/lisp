@@ -267,7 +267,7 @@ func TestServer_UnknownMethod(t *testing.T) {
 	client, stop := startSession(t)
 	defer stop()
 
-	send(t, client, 6, "textDocument/definition", map[string]interface{}{})
+	send(t, client, 6, "textDocument/rename", map[string]interface{}{})
 	resp := readUntil(t, client, response(6))
 	if resp["error"] == nil {
 		t.Fatalf("expected MethodNotFound error, got %v", resp)
@@ -401,5 +401,126 @@ func TestServer_RequireImportsSymbols(t *testing.T) {
 	msg := list[0].(map[string]interface{})["message"].(string)
 	if !strings.Contains(msg, "not found") {
 		t.Errorf("expected not-found message, got %q", msg)
+	}
+}
+
+// TestServer_InitializationIncludeDirs verifies that includeDirs passed
+// via initializationOptions extend require's search path for the
+// editor's module resolution.
+func TestServer_InitializationIncludeDirs(t *testing.T) {
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, "extras.lisp"),
+		[]byte("(defn extra-fn [] 7)\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	client, server, closer := pair()
+	ns := testEnv(t)
+	// Reset require's config (no include dirs) and install `require`.
+	if err := require.LoadWithConfig(require.Config{})(ns); err != nil {
+		t.Fatalf("require.LoadWithConfig: %v", err)
+	}
+	srv := NewServer(server, ns)
+	stop := runServer(t, srv, closer)
+	defer stop()
+
+	send(t, client, 1, "initialize", map[string]interface{}{
+		"initializationOptions": map[string]interface{}{
+			"includeDirs": []string{dir},
+		},
+	})
+	readUntil(t, client, response(1))
+	send(t, client, 0, "initialized", map[string]interface{}{})
+
+	diags := didOpen(t, client, "file:///inc.lisp",
+		"(require \"extras\")\n(println (extras/extra-fn))\n")
+	list := diags["params"].(map[string]interface{})["diagnostics"].([]interface{})
+	if len(list) != 0 {
+		t.Fatalf("expected no diagnostics with initialization includeDirs, got %v", list)
+	}
+}
+
+// TestServer_GoToDefinition verifies F12 for document-local and
+// require-imported symbols.
+func TestServer_GoToDefinition(t *testing.T) {
+	dir := t.TempDir()
+	modPath := filepath.Join(dir, "shapes.lisp")
+	if err := os.WriteFile(modPath,
+		[]byte(";; module header comment\n(defn circle [r] (* r r 3))\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	client, server, closer := pair()
+	ns := testEnv(t)
+	if err := require.LoadWithConfig(require.Config{IncludeDirs: []string{dir}})(ns); err != nil {
+		t.Fatalf("require.LoadWithConfig: %v", err)
+	}
+	srv := NewServer(server, ns)
+	stop := runServer(t, srv, closer)
+	defer stop()
+
+	send(t, client, 1, "initialize", map[string]interface{}{})
+	resp := readUntil(t, client, response(1))
+	caps := resp["result"].(map[string]interface{})["capabilities"].(map[string]interface{})
+	if caps["definitionProvider"] != true {
+		t.Fatalf("expected definitionProvider capability, got %v", caps)
+	}
+	send(t, client, 0, "initialized", map[string]interface{}{})
+
+	uri := "file:///gtd.lisp"
+	didOpen(t, client, uri,
+		"(require \"shapes\")\n"+ // line 0
+			"(defn local-fn [x] x)\n"+ // line 1
+			"(local-fn 1)\n"+ // line 2
+			"(shapes/circle 2)\n") // line 3
+
+	// Local definition: F12 on local-fn call → line 1 of the same doc.
+	send(t, client, 2, "textDocument/definition", TextDocumentPositionParams{
+		TextDocument: TextDocumentIdentifier{URI: uri},
+		Position:     Position{Line: 2, Character: 3},
+	})
+	resp = readUntil(t, client, response(2))
+	loc, ok := resp["result"].(map[string]interface{})
+	if !ok {
+		t.Fatalf("expected local definition location, got %v", resp["result"])
+	}
+	if loc["uri"] != uri {
+		t.Errorf("expected same-document uri, got %v", loc["uri"])
+	}
+	if line := loc["range"].(map[string]interface{})["start"].(map[string]interface{})["line"].(float64); line != 1 {
+		t.Errorf("expected local-fn defined at line 1, got %v", line)
+	}
+
+	// Imported definition: F12 on shapes/circle → the module file,
+	// (defn circle …) on its line 2 (zero-based 1).
+	send(t, client, 3, "textDocument/definition", TextDocumentPositionParams{
+		TextDocument: TextDocumentIdentifier{URI: uri},
+		Position:     Position{Line: 3, Character: 9},
+	})
+	resp = readUntil(t, client, response(3))
+	loc, ok = resp["result"].(map[string]interface{})
+	if !ok {
+		t.Fatalf("expected imported definition location, got %v", resp["result"])
+	}
+	if loc["uri"] != "file://"+modPath {
+		t.Errorf("expected module uri file://%s, got %v", modPath, loc["uri"])
+	}
+	rng := loc["range"].(map[string]interface{})
+	if line := rng["start"].(map[string]interface{})["line"].(float64); line != 1 {
+		t.Errorf("expected circle defined at line 1 of module, got %v", line)
+	}
+	// range must cover exactly the name `circle` (cols 6..12)
+	if ch := rng["start"].(map[string]interface{})["character"].(float64); ch != 6 {
+		t.Errorf("expected name start at character 6, got %v", ch)
+	}
+
+	// Unknown symbol → null result.
+	send(t, client, 4, "textDocument/definition", TextDocumentPositionParams{
+		TextDocument: TextDocumentIdentifier{URI: uri},
+		Position:     Position{Line: 0, Character: 0},
+	})
+	resp = readUntil(t, client, response(4))
+	if resp["result"] != nil {
+		t.Errorf("expected null for non-symbol position, got %v", resp["result"])
 	}
 }

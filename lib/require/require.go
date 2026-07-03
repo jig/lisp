@@ -253,6 +253,18 @@ func parseIncludeArgs(args []string) ([]string, error) {
 	return includes, nil
 }
 
+// AddIncludeDirs appends directories to the search cascade at runtime.
+// Used by the LSP server to honour editor-configured include
+// directories (they land after any -i dirs, before the standard roots).
+func AddIncludeDirs(dirs ...string) {
+	for _, d := range dirs {
+		d = strings.TrimSpace(d)
+		if d != "" {
+			config.IncludeDirs = append(config.IncludeDirs, d)
+		}
+	}
+}
+
 // Resolve maps a module name to the absolute path of its `.lisp` file
 // using the same search cascade as the lisp `require` function. It is
 // exported for tooling: the LSP server resolves require'd modules
