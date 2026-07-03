@@ -12,6 +12,7 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strings"
 	"sync"
 
 	"github.com/jig/lisp/lib/require"
@@ -292,6 +293,17 @@ func (s *Server) handleCompletion(req *requestMessage) {
 
 	// Document-local definitions first: they are the most relevant.
 	if doc != nil {
+		for _, pre := range doc.analysis.preambles {
+			if seen[pre.name] {
+				continue
+			}
+			seen[pre.name] = true
+			items = append(items, CompletionItem{
+				Label:  pre.name,
+				Kind:   completionKindVariable,
+				Detail: "preamble placeholder — default: " + pre.expr,
+			})
+		}
 		for _, d := range doc.analysis.defs {
 			if seen[d.name] {
 				continue
@@ -359,6 +371,26 @@ func (s *Server) handleHover(req *requestMessage) {
 		return
 	}
 
+	// Preamble placeholders are read-time substitutions, not variables:
+	// show the in-file default (if any) and where values come from.
+	if strings.HasPrefix(sym, "$") {
+		for _, pre := range doc.analysis.preambles {
+			if pre.name == sym {
+				s.respond(req, Hover{Contents: MarkupContent{
+					Kind: "markdown",
+					Value: fmt.Sprintf("```lisp\n;; %s %s\n```\npreamble placeholder — in-file default (line %d); may be overridden at run time (--preamble / launch.json)",
+						pre.name, pre.expr, pre.line+1),
+				}})
+				return
+			}
+		}
+		s.respond(req, Hover{Contents: MarkupContent{
+			Kind:  "markdown",
+			Value: "```lisp\n" + sym + "\n```\npreamble placeholder — value provided at run time (--preamble, launch.json or Go embedding); reads as nil when absent",
+		}})
+		return
+	}
+
 	// Document-local definition wins: show its header.
 	for _, d := range doc.analysis.defs {
 		if d.name == sym {
@@ -413,6 +445,22 @@ func (s *Server) handleDefinition(req *requestMessage) {
 	}
 	sym := symbolAt(doc.content, p.Position.Line, p.Position.Character)
 	if sym == "" {
+		s.respond(req, nil)
+		return
+	}
+	if strings.HasPrefix(sym, "$") {
+		for _, pre := range doc.analysis.preambles {
+			if pre.name == sym {
+				s.respond(req, Location{
+					URI: p.TextDocument.URI,
+					Range: Range{
+						Start: Position{Line: pre.line, Character: 3},
+						End:   Position{Line: pre.line, Character: 3 + len(pre.name)},
+					},
+				})
+				return
+			}
+		}
 		s.respond(req, nil)
 		return
 	}

@@ -1,6 +1,7 @@
 package lsp
 
 import (
+	"regexp"
 	"strings"
 
 	"github.com/jig/lisp/lisperror"
@@ -33,15 +34,23 @@ type requireRef struct {
 	headPos *types.Position // position of the `require` symbol
 }
 
+// preambleDef is one leading `;; $NAME <expr>` placeholder default.
+type preambleDef struct {
+	name string // including the $ prefix
+	expr string // the raw default expression as written
+	line int    // zero-based line of the preamble entry
+}
+
 // analysis is the result of parsing one document.
 type analysis struct {
 	diagnostics []Diagnostic
 	defs        []definition
 	forms       []types.MalType // top-level forms (empty on parse error)
 
-	calls    []symbolRef     // symbols used as the head of a call form
-	bound    map[string]bool // every name bound anywhere in the document
-	requires []requireRef    // require'd module names (string literals)
+	calls     []symbolRef     // symbols used as the head of a call form
+	bound     map[string]bool // every name bound anywhere in the document
+	requires  []requireRef    // require'd module names (string literals)
+	preambles []preambleDef   // in-file placeholder defaults
 }
 
 // analyseDocument parses content with the interpreter's reader and
@@ -58,8 +67,19 @@ type analysis struct {
 // a parse error.
 var emptyPlaceholders = &types.HashMap{Val: map[string]types.MalType{}}
 
+// preambleLineRE matches one in-file placeholder default line.
+var preambleLineRE = regexp.MustCompile(`^;; (\$[-\w\d]+)\s+(.+)$`)
+
 func analyseDocument(name, content string) *analysis {
 	a := &analysis{bound: map[string]bool{}}
+	for i, line := range strings.Split(content, "\n") {
+		if !strings.HasPrefix(line, ";; $") {
+			break
+		}
+		if m := preambleLineRE.FindStringSubmatch(line); m != nil && m[1] != "$MODULE" {
+			a.preambles = append(a.preambles, preambleDef{name: m[1], expr: m[2], line: i})
+		}
+	}
 	wrapped := "(do\n" + content + "\n)"
 	ast, err := reader.Read_str(wrapped, types.NewCursorFile(name), emptyPlaceholders)
 	if err != nil {

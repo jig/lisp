@@ -524,3 +524,71 @@ func TestServer_GoToDefinition(t *testing.T) {
 		t.Errorf("expected null for non-symbol position, got %v", resp["result"])
 	}
 }
+
+// TestServer_PreambleHover verifies hover, go-to-definition and
+// completion for $NAME preamble placeholders: in-file defaults show
+// their value and origin; unknown placeholders explain where values
+// come from at run time.
+func TestServer_PreambleHover(t *testing.T) {
+	client, stop := startSession(t)
+	defer stop()
+
+	uri := "file:///pre.lisp"
+	didOpen(t, client, uri,
+		";; $FACTOR 1\n"+ // line 0
+			"(println (* $FACTOR 2))\n"+ // line 1
+			"(println $UNSET)\n") // line 2
+
+	// hover over $FACTOR (line 1, inside the expression)
+	send(t, client, 2, "textDocument/hover", TextDocumentPositionParams{
+		TextDocument: TextDocumentIdentifier{URI: uri},
+		Position:     Position{Line: 1, Character: 13},
+	})
+	resp := readUntil(t, client, response(2))
+	value := resp["result"].(map[string]interface{})["contents"].(map[string]interface{})["value"].(string)
+	if !strings.Contains(value, "$FACTOR 1") || !strings.Contains(value, "in-file default (line 1)") {
+		t.Errorf("expected hover with default and origin, got %q", value)
+	}
+
+	// hover over $UNSET: no in-file default → run-time explanation
+	send(t, client, 3, "textDocument/hover", TextDocumentPositionParams{
+		TextDocument: TextDocumentIdentifier{URI: uri},
+		Position:     Position{Line: 2, Character: 10},
+	})
+	resp = readUntil(t, client, response(3))
+	value = resp["result"].(map[string]interface{})["contents"].(map[string]interface{})["value"].(string)
+	if !strings.Contains(value, "run time") {
+		t.Errorf("expected run-time explanation for $UNSET, got %q", value)
+	}
+
+	// F12 on $FACTOR jumps to its preamble line
+	send(t, client, 4, "textDocument/definition", TextDocumentPositionParams{
+		TextDocument: TextDocumentIdentifier{URI: uri},
+		Position:     Position{Line: 1, Character: 13},
+	})
+	resp = readUntil(t, client, response(4))
+	loc := resp["result"].(map[string]interface{})
+	if line := loc["range"].(map[string]interface{})["start"].(map[string]interface{})["line"].(float64); line != 0 {
+		t.Errorf("expected definition at preamble line 0, got %v", line)
+	}
+
+	// completion offers $FACTOR with its default
+	send(t, client, 5, "textDocument/completion", TextDocumentPositionParams{
+		TextDocument: TextDocumentIdentifier{URI: uri},
+		Position:     Position{Line: 2, Character: 0},
+	})
+	resp = readUntil(t, client, response(5))
+	found := false
+	for _, it := range resp["result"].([]interface{}) {
+		m := it.(map[string]interface{})
+		if m["label"] == "$FACTOR" {
+			found = true
+			if d, _ := m["detail"].(string); !strings.Contains(d, "default: 1") {
+				t.Errorf("expected completion detail with default, got %q", d)
+			}
+		}
+	}
+	if !found {
+		t.Error("expected $FACTOR in completion")
+	}
+}
