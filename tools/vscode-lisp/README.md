@@ -7,7 +7,9 @@ interpreter.
 
 - Syntax highlighting for `.lisp` and `.mal` files.
 - Debug Adapter Protocol client: launch, breakpoints (line), step
-  over / in / out, continue, pause, call stack, locals, program output
+  over / in / out, continue, pause, call stack, scoped variables
+  following the environment nesting (Locals / Closure / Globals, with
+  the library-filled Globals collapsed by default), program output
   in the Debug Console, and expression evaluation (Debug Console,
   watch, hover) in the context of the selected stack frame.
 - Language Server Protocol client: live parse diagnostics, symbol

@@ -31,9 +31,9 @@ const (
 )
 
 type varRef struct {
-	kind     varRefKind
-	frameIdx int           // for scope-locals
-	value    types.MalType // for value
+	kind  varRefKind
+	env   types.EnvType // for scope-locals: one level of the env chain
+	value types.MalType // for value
 }
 
 // state holds the live debug session: mode, breakpoints, the thread

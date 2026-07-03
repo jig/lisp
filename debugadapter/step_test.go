@@ -821,3 +821,125 @@ func TestServer_FutureIsInvisibleToDebugger(t *testing.T) {
 	}
 	sendRequest(t, client, 5, "disconnect", nil)
 }
+
+// TestServer_NestedScopes verifies the VARIABLES panel reflects the
+// environment chain: the frame's own bindings ("Locals"), enclosing
+// function parameters ("Closure") and the root environment ("Globals",
+// expensive so clients keep it collapsed, with user defs and builtins).
+func TestServer_NestedScopes(t *testing.T) {
+	tmp := t.TempDir()
+	script := filepath.Join(tmp, "scopes.lisp")
+	src := "(def top-var 7)\n" + // line 1
+		"(defn compute [x]\n" + // line 2
+		"    (let [y (* x 2)]\n" + // line 3
+		"        (println y)))\n" + // line 4
+		"(compute 3)\n" // line 5
+	if err := os.WriteFile(script, []byte(src), 0o644); err != nil {
+		t.Fatalf("write: %v", err)
+	}
+	runtime.Modules.Register(script, script)
+
+	client, server, closer := pair()
+	ns := fullEnv(t)
+	done := make(chan error, 1)
+	eval := func(ctx context.Context, env types.EnvType) error {
+		_, err := lisp.REPL(ctx, env, fmt.Sprintf("(load-file %q)", script), types.NewAnonymousCursorHere(1, 1))
+		done <- err
+		return err
+	}
+	srv := NewServer(server, eval, ns)
+	stop := runServer(t, srv, closer)
+	defer stop()
+
+	sendRequest(t, client, 1, "initialize", nil)
+	readUntil(t, client, func(m map[string]interface{}) bool { return m["event"] == "initialized" })
+	sendRequest(t, client, 2, "launch", map[string]interface{}{"stopOnEntry": false})
+	readUntil(t, client, func(m map[string]interface{}) bool {
+		return m["command"] == "launch" && m["type"] == "response"
+	})
+	sendRequest(t, client, 3, "setBreakpoints", SetBreakpointsArguments{
+		Source:      Source{Path: script},
+		Breakpoints: []SourceBreakpoint{{Line: 4}},
+	})
+	readUntil(t, client, func(m map[string]interface{}) bool {
+		return m["command"] == "setBreakpoints" && m["type"] == "response"
+	})
+	sendRequest(t, client, 4, "configurationDone", nil)
+	readUntil(t, client, func(m map[string]interface{}) bool {
+		return m["command"] == "configurationDone" && m["type"] == "response"
+	})
+
+	if got := stoppedAt(t, client, 5); got != 4 {
+		t.Fatalf("breakpoint: expected line 4, got %d", got)
+	}
+
+	// scopes of the top frame
+	sendRequest(t, client, 6, "scopes", map[string]interface{}{"frameId": 0})
+	resp := readUntil(t, client, func(m map[string]interface{}) bool {
+		return m["command"] == "scopes" && m["type"] == "response"
+	})
+	scopes := resp["body"].(map[string]interface{})["scopes"].([]interface{})
+	names := []string{}
+	refs := map[string]int{}
+	expensive := map[string]bool{}
+	for _, sc := range scopes {
+		m := sc.(map[string]interface{})
+		name := m["name"].(string)
+		names = append(names, name)
+		refs[name] = int(m["variablesReference"].(float64))
+		expensive[name] = m["expensive"] == true
+	}
+	want := []string{"Locals", "Closure", "Globals"}
+	if len(names) != len(want) {
+		t.Fatalf("expected scopes %v, got %v", want, names)
+	}
+	for i := range want {
+		if names[i] != want[i] {
+			t.Fatalf("expected scopes %v, got %v", want, names)
+		}
+	}
+	if !expensive["Globals"] {
+		t.Error("expected Globals scope to be expensive (collapsed by default)")
+	}
+
+	variables := func(seq, ref int) map[string]string {
+		sendRequest(t, client, seq, "variables", map[string]interface{}{"variablesReference": ref})
+		resp := readUntil(t, client, func(m map[string]interface{}) bool {
+			return m["command"] == "variables" && m["type"] == "response"
+		})
+		out := map[string]string{}
+		for _, v := range resp["body"].(map[string]interface{})["variables"].([]interface{}) {
+			m := v.(map[string]interface{})
+			out[m["name"].(string)], _ = m["value"].(string)
+		}
+		return out
+	}
+
+	locals := variables(7, refs["Locals"])
+	if locals["y"] != "6" || len(locals) != 1 {
+		t.Errorf("expected Locals to be exactly {y: 6}, got %v", locals)
+	}
+	closure := variables(8, refs["Closure"])
+	if closure["x"] != "3" || len(closure) != 1 {
+		t.Errorf("expected Closure to be exactly {x: 3}, got %v", closure)
+	}
+	globals := variables(9, refs["Globals"])
+	if globals["top-var"] != "7" {
+		t.Errorf("expected top-var in Globals, got %d entries", len(globals))
+	}
+	if _, ok := globals["str"]; !ok {
+		t.Error("expected builtins (str) present in Globals for library inspection")
+	}
+
+	sendRequest(t, client, 10, "continue", map[string]interface{}{"threadId": 1})
+	readUntil(t, client, func(m map[string]interface{}) bool { return m["event"] == "terminated" })
+	select {
+	case err := <-done:
+		if err != nil {
+			t.Fatalf("eval error: %v", err)
+		}
+	case <-time.After(3 * time.Second):
+		t.Fatal("eval did not return")
+	}
+	sendRequest(t, client, 11, "disconnect", nil)
+}

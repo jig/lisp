@@ -143,6 +143,14 @@ func (e *Env) Symbols(newLine [][]rune, lastPartial string) [][]rune {
 	return newLine
 }
 
+// Outer returns the enclosing environment, or nil for the root.
+func (e *Env) Outer() types.EnvType {
+	if e.outer == nil {
+		return nil
+	}
+	return e.outer
+}
+
 // LocalSymbols returns the names bound in this environment only (the
 // outer chain is not consulted), sorted. Used by the require library to
 // enumerate a module's top-level definitions.

@@ -340,6 +340,13 @@ func (s *Server) handleEvaluate(req *Request) {
 	})
 }
 
+// envChain is the accessor pair the DAP server needs to walk and
+// enumerate the nested environments.
+type envChain interface {
+	LocalSymbols() []string
+	Outer() types.EnvType
+}
+
 func (s *Server) handleScopes(req *Request) {
 	var args ScopesArguments
 	_ = json.Unmarshal(req.Arguments, &args)
@@ -355,8 +362,36 @@ func (s *Server) handleScopes(req *Request) {
 		s.respond(req, true, "", map[string]interface{}{"scopes": []Scope{}})
 		return
 	}
-	ref := s.state.registerVarRef(varRef{kind: varRefScopeLocals, frameIdx: idx})
-	scopes := []Scope{{Name: "Locals", VariablesReference: ref, Expensive: false}}
+
+	// One scope per level of the environment chain, each listing only
+	// its own bindings: the frame's immediate env ("Locals"), the
+	// enclosing ones ("Closure", "Closure 2", …) and the root env
+	// ("Globals" — everything the session loaded, builtins included;
+	// marked expensive so the client keeps it collapsed by default).
+	scopes := []Scope{}
+	level := 0
+	for e := frames[idx].Env; e != nil; level++ {
+		chain, ok := e.(envChain)
+		if !ok {
+			break
+		}
+		ref := s.state.registerVarRef(varRef{kind: varRefScopeLocals, env: e})
+		outer := chain.Outer()
+		switch {
+		case outer == nil && level == 0:
+			// top-level frame: its env IS the root
+			scopes = append(scopes, Scope{Name: "Globals", VariablesReference: ref, Expensive: false})
+		case outer == nil:
+			scopes = append(scopes, Scope{Name: "Globals", VariablesReference: ref, Expensive: true})
+		case level == 0:
+			scopes = append(scopes, Scope{Name: "Locals", VariablesReference: ref, Expensive: false})
+		case level == 1:
+			scopes = append(scopes, Scope{Name: "Closure", VariablesReference: ref, Expensive: false})
+		default:
+			scopes = append(scopes, Scope{Name: fmt.Sprintf("Closure %d", level), VariablesReference: ref, Expensive: false})
+		}
+		e = outer
+	}
 	s.respond(req, true, "", map[string]interface{}{"scopes": scopes})
 }
 
@@ -375,37 +410,23 @@ func (s *Server) handleVariables(req *Request) {
 	var vars []Variable
 	switch entry.kind {
 	case varRefScopeLocals:
-		vars = s.localsForFrame(entry.frameIdx)
+		vars = s.varsForEnvLevel(entry.env)
 	case varRefValue:
 		vars = s.childrenOf(entry.value)
 	}
 	s.respond(req, true, "", map[string]interface{}{"variables": vars})
 }
 
-// localsForFrame returns the bindings local to the frame's environment
-// (not the outer chain). We surface only the immediate scope to keep
-// the variables view manageable.
-func (s *Server) localsForFrame(frameIdx int) []Variable {
-	frames := s.state.thread.Snapshot()
-	if frameIdx < 0 || frameIdx >= len(frames) {
+// varsForEnvLevel returns the bindings of a single level of the
+// environment chain (outers are separate scopes).
+func (s *Server) varsForEnvLevel(env types.EnvType) []Variable {
+	chain, ok := env.(envChain)
+	if !ok || env == nil {
 		return nil
 	}
-	env := frames[frameIdx].Env
-	if env == nil {
-		return nil
-	}
-	// Use the prefix-completion API to enumerate local symbols. With an
-	// empty prefix it returns symbols from the current scope (and outers
-	// after that — we slice on the first scope by reading via Get).
-	syms := env.Symbols(nil, "")
-	seen := map[string]bool{}
-	out := make([]Variable, 0, len(syms))
-	for _, r := range syms {
-		name := string(r)
-		if name == "" || seen[name] {
-			continue
-		}
-		seen[name] = true
+	names := chain.LocalSymbols()
+	out := make([]Variable, 0, len(names))
+	for _, name := range names {
 		v, err := env.Get(types.Symbol{Val: name})
 		if err != nil {
 			continue
