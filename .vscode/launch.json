@@ -13,6 +13,17 @@
             // "cwd": "${workspaceFolder}"   // optional path for require
         },
         {
+            "name": "LISP DEBUGGER: PREAMBLE TEST",
+            "type": "lisp",
+            "request": "launch",
+            "program": "${workspaceFolder}/debugadapter/test-preamble.lisp",
+            "stopOnEntry": false,
+            "preamble": [
+                "$FACTOR 1984",
+                "$GREETING \"hola des del launch.json\""
+            ]
+        },
+        {
             "name": "test root",
             "type": "go",
             "request": "launch",
