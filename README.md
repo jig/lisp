@@ -331,6 +331,34 @@ evaled to (ee rr)
 42
 ```
 
+# Preamble placeholders (-P/--preamble)
+
+Scripts can reference `$NAME` placeholders, filled at read time — the
+same mechanism Go embedders use through `READWithPreamble` (see
+"L notation" and [./placeholder_test.go](./placeholder_test.go)). When
+running a script from the CLI, values come from (later sources win):
+
+1. Leading `;; $NAME <expr>` lines in the file itself (defaults)
+2. `-P/--preamble` flags (repeatable)
+
+```bash
+lisp -P '$NUMBER 1984' -P '$NAME "world"' script.lisp
+```
+
+```clojure
+;; $NUMBER 1                  ; default, overridden by -P
+(println (* $NUMBER 2))
+```
+
+A placeholder with no value anywhere reads as `nil`. Source line
+numbers are preserved, so breakpoints in the debugger keep matching;
+under VSCode, assignments can be listed in the launch configuration:
+
+```json
+{ "type": "lisp", "request": "launch", "program": "${file}",
+  "preamble": ["$NUMBER 1984"] }
+```
+
 # Pass script arguments that look like flags
 
 Use `--` to stop flag parsing so script arguments are passed through:

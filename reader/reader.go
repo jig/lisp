@@ -219,6 +219,13 @@ func read_placeholder(rdr *tokenReader, placeholderValues *HashMap, ns EnvType) 
 	if tokenStruct == nil {
 		return nil, lisperror.NewLispError(errors.New("read_placeholder underflow"), &tokenStruct)
 	}
+	// Reading placeholder-bearing source without providing values used
+	// to dereference a nil map (a runtime panic surfacing as "invalid
+	// memory address" through read-string). Report it as a proper
+	// parse error instead.
+	if placeholderValues == nil {
+		return nil, lisperror.NewLispError(fmt.Errorf("placeholder %s used but no placeholder values provided", tokenStruct.Value), tokenStruct.GetPosition())
+	}
 	return placeholderValues.Val[tokenStruct.Value], nil
 }
 

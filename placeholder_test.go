@@ -705,3 +705,17 @@ func TestPassingLispDataFromGo(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+// TestPlaceholderWithoutValuesErrors covers the regression where
+// reading placeholder-bearing source without providing values crashed
+// with a nil map dereference (surfacing as "invalid memory address"
+// through read-string / load-file).
+func TestPlaceholderWithoutValuesErrors(t *testing.T) {
+	_, err := READ(`(println $NUMBER)`, nil, nil)
+	if err == nil {
+		t.Fatal("expected an error for placeholder without values")
+	}
+	if !strings.Contains(err.Error(), "$NUMBER") {
+		t.Errorf("expected the error to name the placeholder, got %q", err.Error())
+	}
+}

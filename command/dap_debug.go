@@ -9,7 +9,6 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/jig/lisp"
 	"github.com/jig/lisp/debugadapter"
 	"github.com/jig/lisp/types"
 )
@@ -18,7 +17,7 @@ import (
 // "host:port" TCP address. script is the program to debug; if empty,
 // the session is REPL-style and waits for `evaluate` requests (not yet
 // implemented at MVP).
-func startDAP(listen, script string, env types.EnvType) error {
+func startDAP(listen, script string, preamble []string, env types.EnvType) error {
 	if script == "" {
 		return fmt.Errorf("--dap requires a script positional argument (REPL mode not yet supported)")
 	}
@@ -29,14 +28,14 @@ func startDAP(listen, script string, env types.EnvType) error {
 	registerModule(script, abs)
 
 	eval := func(ctx context.Context, env types.EnvType) error {
-		// The `(load-file …)` call is bootstrap scaffolding, not part of
-		// the user's program. Give it an anonymous cursor (no module) so
-		// the debugger treats it as non-user code: a breakpoint or step
-		// won't stop on this synthetic call, letting the session land on
-		// the first real statement of the loaded file instead. The file's
-		// own forms get their module from the `;; $MODULE` prefix that
-		// load-file injects, so source mapping is unaffected.
-		_, err := lisp.REPL(ctx, env, `(load-file "`+script+`")`, types.NewAnonymousCursorHere(1, 1))
+		// runScript's classic path issues a `(load-file …)` bootstrap
+		// call; the anonymous cursor (no module) makes the debugger
+		// treat it as non-user code, so breakpoints and steps land on
+		// the first real statement of the loaded file. With preamble
+		// placeholders (from --preamble flags or in-file `;; $NAME`
+		// lines) the file is evaluated directly with the same
+		// `;; $MODULE` source mapping.
+		_, err := runScript(ctx, env, script, preamble, types.NewAnonymousCursorHere(1, 1))
 		return err
 	}
 

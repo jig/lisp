@@ -68,11 +68,15 @@ code --install-extension vscode-lisp-*.vsix
       "request": "launch",
       "name": "Debug current Lisp file",
       "program": "${file}",
-      "stopOnEntry": true
+      "stopOnEntry": true,
+      "preamble": ["$NUMBER 1984"]
     }
   ]
 }
 ```
+
+`preamble` (optional) lists `$NAME <expr>` placeholder assignments,
+forwarded to the interpreter as `--preamble` flags.
 
 ## Settings
 

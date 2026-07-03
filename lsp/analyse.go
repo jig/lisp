@@ -51,10 +51,17 @@ type analysis struct {
 // `(do\n…\n)`; the extra leading line shifts every row by one, which is
 // undone by walking the AST once. This reuses the real reader — the
 // same positions, the same errors the interpreter itself would report.
+// emptyPlaceholders lets the reader accept `$NAME` preamble
+// placeholders in analysed documents: their values are only known at
+// run time (--preamble flags or Go embedding), so the editor treats
+// them as nil rather than flagging every placeholder-bearing file as
+// a parse error.
+var emptyPlaceholders = &types.HashMap{Val: map[string]types.MalType{}}
+
 func analyseDocument(name, content string) *analysis {
 	a := &analysis{bound: map[string]bool{}}
 	wrapped := "(do\n" + content + "\n)"
-	ast, err := reader.Read_str(wrapped, types.NewCursorFile(name), nil)
+	ast, err := reader.Read_str(wrapped, types.NewCursorFile(name), emptyPlaceholders)
 	if err != nil {
 		a.diagnostics = append(a.diagnostics, diagnosticFromError(err))
 		return a

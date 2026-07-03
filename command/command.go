@@ -21,6 +21,7 @@ type args struct {
 	Debug     bool     `arg:"--debug" help:"enable DEBUG-EVAL support (requires lispdebug build)"`
 	Eval      string   `arg:"-e,--eval" help:"evaluate expression and exit" placeholder:"EXPR"`
 	Include   []string `arg:"-i,--include,separate" help:"add include directory for require (needs the require library loaded)" placeholder:"DIR"`
+	Preamble  []string `arg:"-P,--preamble,separate" help:"define a preamble placeholder for the script, e.g. -P '$NAME <expr>'" placeholder:"ASSIGN"`
 	DAP       bool     `arg:"--dap" help:"start a Debug Adapter Protocol server on stdio (requires lispdebug build)"`
 	DAPListen string   `arg:"--dap-listen" help:"start a DAP server on the given TCP address (requires lispdebug build)" placeholder:"HOST:PORT"`
 	LSP       bool     `arg:"--lsp" help:"start a Language Server Protocol server on stdio (requires lispdebug build)"`
@@ -94,7 +95,7 @@ func Execute(cmdArgs []string, repl_env types.EnvType) error {
 
 	// DAP server takes precedence over the rest of the modes when set.
 	if parsedArgs.DAP || parsedArgs.DAPListen != "" {
-		return startDAP(parsedArgs.DAPListen, parsedArgs.Script, repl_env)
+		return startDAP(parsedArgs.DAPListen, parsedArgs.Script, parsedArgs.Preamble, repl_env)
 	}
 
 	// LSP server likewise runs instead of the normal modes.
@@ -132,7 +133,8 @@ func Execute(cmdArgs []string, repl_env types.EnvType) error {
 			}
 		} else {
 			// Execute file
-			result, err := ExecuteFile(parsedArgs.Script, repl_env)
+			result, err := runScript(context.Background(), repl_env, parsedArgs.Script, parsedArgs.Preamble,
+				types.NewCursorHere(parsedArgs.Script, -3, 1))
 			if err != nil {
 				return err
 			}

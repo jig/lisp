@@ -78,7 +78,16 @@ class LispDebugAdapterDescriptorFactory
         "lisp debug: 'program' is required in launch configuration",
       );
     }
-    const args = [...extra, "--dap", program];
+    const args = [...extra];
+    const preamble = session.configuration.preamble;
+    if (Array.isArray(preamble)) {
+      for (const assignment of preamble) {
+        if (typeof assignment === "string" && assignment.length > 0) {
+          args.push("--preamble", assignment);
+        }
+      }
+    }
+    args.push("--dap", program);
     const cfgEnv = session.configuration.env;
     const options: vscode.DebugAdapterExecutableOptions = {};
     if (cfgEnv && typeof cfgEnv === "object") {
