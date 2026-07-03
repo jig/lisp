@@ -13,3 +13,6 @@ jobs:
         go-version: ${{ matrix.go-version }}
     - uses: actions/checkout@v3
     - run: go test ./...
+    # The DAP/LSP debugger code is gated behind the lispdebug build tag;
+    # without this second pass its tests never run in CI.
+    - run: go test -tags lispdebug ./...
