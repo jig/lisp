@@ -627,3 +627,132 @@ func TestStepInto_ThreadingMacro(t *testing.T) {
 	}
 	sendRequest(t, client, 11, "disconnect", nil)
 }
+
+// TestServer_StepOut verifies Shift-F11: from a breakpoint inside a
+// function body, stepOut runs the rest of the function and stops at the
+// next form of the caller's level.
+func TestServer_StepOut(t *testing.T) {
+	tmp := t.TempDir()
+	script := filepath.Join(tmp, "stepout.lisp")
+	src := "(defn helper [x]\n" + // line 1
+		"    (* x 2))\n" + // line 2
+		"(println (helper 3))\n" + // line 3
+		"(println \"after\")\n" // line 4
+	if err := os.WriteFile(script, []byte(src), 0o644); err != nil {
+		t.Fatalf("write: %v", err)
+	}
+	runtime.Modules.Register(script, script)
+
+	client, server, closer := pair()
+	ns := fullEnv(t)
+	done := make(chan error, 1)
+	eval := func(ctx context.Context, env types.EnvType) error {
+		_, err := lisp.REPL(ctx, env, fmt.Sprintf("(load-file %q)", script), types.NewAnonymousCursorHere(1, 1))
+		done <- err
+		return err
+	}
+	srv := NewServer(server, eval, ns)
+	stop := runServer(t, srv, closer)
+	defer stop()
+
+	sendRequest(t, client, 1, "initialize", nil)
+	readUntil(t, client, func(m map[string]interface{}) bool { return m["event"] == "initialized" })
+	sendRequest(t, client, 2, "launch", map[string]interface{}{"stopOnEntry": false})
+	readUntil(t, client, func(m map[string]interface{}) bool {
+		return m["command"] == "launch" && m["type"] == "response"
+	})
+	sendRequest(t, client, 3, "setBreakpoints", SetBreakpointsArguments{
+		Source:      Source{Path: script},
+		Breakpoints: []SourceBreakpoint{{Line: 2}},
+	})
+	readUntil(t, client, func(m map[string]interface{}) bool {
+		return m["command"] == "setBreakpoints" && m["type"] == "response"
+	})
+	sendRequest(t, client, 4, "configurationDone", nil)
+	readUntil(t, client, func(m map[string]interface{}) bool {
+		return m["command"] == "configurationDone" && m["type"] == "response"
+	})
+
+	// Breakpoint inside helper's body.
+	if got := stoppedAt(t, client, 5); got != 2 {
+		t.Fatalf("breakpoint: expected line 2, got %d", got)
+	}
+	// Shift-F11 → finish helper, stop at the caller level: next
+	// top-level statement (println "after") on line 4.
+	sendRequest(t, client, 6, "stepOut", map[string]interface{}{"threadId": 1})
+	readUntil(t, client, func(m map[string]interface{}) bool { return m["command"] == "stepOut" && m["type"] == "response" })
+	if got := stoppedAt(t, client, 7); got != 4 {
+		t.Errorf("after stepOut: expected line 4, got %d", got)
+	}
+
+	sendRequest(t, client, 8, "continue", map[string]interface{}{"threadId": 1})
+	readUntil(t, client, func(m map[string]interface{}) bool { return m["event"] == "terminated" })
+	select {
+	case err := <-done:
+		if err != nil {
+			t.Fatalf("eval error: %v", err)
+		}
+	case <-time.After(3 * time.Second):
+		t.Fatal("eval did not return")
+	}
+	sendRequest(t, client, 9, "disconnect", nil)
+}
+
+// TestServer_Pause verifies the pause request: a running program (no
+// breakpoints) is interrupted at the next evaluated form.
+func TestServer_Pause(t *testing.T) {
+	tmp := t.TempDir()
+	script := filepath.Join(tmp, "pause.lisp")
+	src := "(sleep 300)\n" + // line 1: long enough to send pause meanwhile
+		"(println 1)\n" // line 2
+	if err := os.WriteFile(script, []byte(src), 0o644); err != nil {
+		t.Fatalf("write: %v", err)
+	}
+	runtime.Modules.Register(script, script)
+
+	client, server, closer := pair()
+	ns := fullEnv(t)
+	done := make(chan error, 1)
+	eval := func(ctx context.Context, env types.EnvType) error {
+		_, err := lisp.REPL(ctx, env, fmt.Sprintf("(load-file %q)", script), types.NewAnonymousCursorHere(1, 1))
+		done <- err
+		return err
+	}
+	srv := NewServer(server, eval, ns)
+	stop := runServer(t, srv, closer)
+	defer stop()
+
+	sendRequest(t, client, 1, "initialize", nil)
+	readUntil(t, client, func(m map[string]interface{}) bool { return m["event"] == "initialized" })
+	sendRequest(t, client, 2, "launch", map[string]interface{}{"stopOnEntry": false})
+	readUntil(t, client, func(m map[string]interface{}) bool {
+		return m["command"] == "launch" && m["type"] == "response"
+	})
+	sendRequest(t, client, 3, "configurationDone", nil)
+	readUntil(t, client, func(m map[string]interface{}) bool {
+		return m["command"] == "configurationDone" && m["type"] == "response"
+	})
+
+	// Let the program enter the (sleep 300) and pause it.
+	time.Sleep(100 * time.Millisecond)
+	sendRequest(t, client, 4, "pause", map[string]interface{}{"threadId": 1})
+	readUntil(t, client, func(m map[string]interface{}) bool {
+		return m["command"] == "pause" && m["type"] == "response"
+	})
+	// The pause lands on the next evaluated form: (println 1) at line 2.
+	if got := stoppedAt(t, client, 5); got != 2 {
+		t.Errorf("after pause: expected line 2, got %d", got)
+	}
+
+	sendRequest(t, client, 6, "continue", map[string]interface{}{"threadId": 1})
+	readUntil(t, client, func(m map[string]interface{}) bool { return m["event"] == "terminated" })
+	select {
+	case err := <-done:
+		if err != nil {
+			t.Fatalf("eval error: %v", err)
+		}
+	case <-time.After(3 * time.Second):
+		t.Fatal("eval did not return")
+	}
+	sendRequest(t, client, 7, "disconnect", nil)
+}
