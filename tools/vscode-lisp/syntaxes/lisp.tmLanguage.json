@@ -3,16 +3,31 @@
   "name": "jig/lisp",
   "scopeName": "source.lisp",
   "patterns": [
+    { "include": "#preamble" },
     { "include": "#comment" },
     { "include": "#string" },
+    { "include": "#notation-string" },
     { "include": "#number" },
     { "include": "#keyword" },
     { "include": "#special-form" },
+    { "include": "#macro" },
     { "include": "#constant" },
+    { "include": "#definition-name" },
+    { "include": "#placeholder" },
+    { "include": "#function-head" },
     { "include": "#quote" },
     { "include": "#symbol" }
   ],
   "repository": {
+    "preamble": {
+      "comment": "leading `;; $NAME <expr>` placeholder default lines",
+      "match": "^(;;)\\s(\\$[-\\w\\d]+)\\s(.*)$",
+      "captures": {
+        "1": { "name": "comment.line.semicolon.lisp" },
+        "2": { "name": "constant.other.placeholder.lisp" },
+        "3": { "name": "comment.line.semicolon.lisp" }
+      }
+    },
     "comment": {
       "name": "comment.line.semicolon.lisp",
       "match": ";.*$"
@@ -28,6 +43,18 @@
         }
       ]
     },
+    "notation-string": {
+      "comment": "¬…¬ JSON-friendly strings; ¬¬ escapes a literal ¬",
+      "name": "string.quoted.other.notation.lisp",
+      "begin": "¬",
+      "end": "¬(?!¬)",
+      "patterns": [
+        {
+          "name": "constant.character.escape.lisp",
+          "match": "¬¬"
+        }
+      ]
+    },
     "number": {
       "name": "constant.numeric.lisp",
       "match": "(?<![\\w-])-?\\d+(\\.\\d+)?(?![\\w-])"
@@ -38,15 +65,37 @@
     },
     "special-form": {
       "name": "keyword.control.lisp",
-      "match": "(?<=\\(|\\s)(def|defmacro|defn|let|fn|if|do|quote|quasiquote|unquote|splice-unquote|try|catch|finally|throw|macroexpand|recur)(?=\\s|\\))"
+      "match": "(?<=\\(|\\s)(def|defmacro|defn|let|fn|if|do|quote|quasiquote|unquote|splice-unquote|try|catch|finally|throw|macroexpand|recur|context)(?=\\s|\\))"
+    },
+    "macro": {
+      "comment": "core/coreextended macros and module loading",
+      "name": "keyword.other.macro.lisp",
+      "match": "(?<=\\(|\\s)(when|cond|and|or|->>|->|require|load-file|load-file-once|future|wait|time|benchmark|partial)(?=\\s|\\))"
     },
     "constant": {
       "name": "constant.language.lisp",
       "match": "(?<=\\(|\\s|^)(true|false|nil)(?=\\s|\\)|$)"
     },
+    "definition-name": {
+      "comment": "the name being defined by def/defn/defmacro",
+      "match": "(?<=(?:def|defn|defmacro)\\s)([\\w\\-+*/<>=!?.]+)",
+      "captures": {
+        "1": { "name": "entity.name.function.definition.lisp" }
+      }
+    },
+    "placeholder": {
+      "comment": "$NAME preamble placeholders, substituted at read time",
+      "name": "constant.other.placeholder.lisp",
+      "match": "\\$[-\\w\\d]+"
+    },
+    "function-head": {
+      "comment": "symbol in call position, qualified names included",
+      "name": "entity.name.function.lisp",
+      "match": "(?<=\\()[a-zA-Z_+\\-*/<>=!?][\\w\\-+*/<>=!?.]*"
+    },
     "quote": {
       "name": "keyword.operator.quote.lisp",
-      "match": "['`~@]"
+      "match": "['`~@^]|#(?=\\{)"
     },
     "symbol": {
       "name": "variable.other.lisp",
