@@ -43,6 +43,17 @@ func (h *StepHook) OnEval(ctx context.Context, ev runtime.EvalEvent) error {
 		return errDisconnected
 	}
 
+	// Only the goroutine carrying this session's Thread participates in
+	// debugging: futures run detached (concurrent.NewFuture strips the
+	// thread from their context) and Debug Console evaluations carry no
+	// thread at all. Pausing a foreign goroutine would emit stopped
+	// events for a thread the client believes is running, and the DAP
+	// session models a single thread. Known limitation: code inside
+	// (future …) does not hit breakpoints and cannot be stepped.
+	if runtime.ThreadFromContext(ctx) != s.thread {
+		return nil
+	}
+
 	// Atomic forms (Symbol, Number, String, Keyword, …) carry no
 	// program structure the user would meaningfully step into. EVAL
 	// pushes a frame for them so error stacks stay accurate, but the

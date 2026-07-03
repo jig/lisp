@@ -2,8 +2,10 @@ package concurrent
 
 import (
 	"context"
+
 	_ "embed"
 	"errors"
+	"github.com/jig/lisp/runtime"
 	"sync"
 
 	"github.com/jig/lisp/lib/call"
@@ -122,7 +124,9 @@ func NewFuture(ctx context.Context, fn MalFunc) *Future {
 	}
 	go func() {
 		defer func() { f.Done = true }()
-		res, err := Apply(ctx, fn, nil)
+		// The future's goroutine must not share the spawner's debug
+		// thread: see runtime.DetachThread. No-op in release builds.
+		res, err := Apply(runtime.DetachThread(ctx), fn, nil)
 		if err != nil {
 			f.ErrChan <- err
 			return

@@ -756,3 +756,68 @@ func TestServer_Pause(t *testing.T) {
 	}
 	sendRequest(t, client, 7, "disconnect", nil)
 }
+
+// TestServer_FutureIsInvisibleToDebugger verifies that code running
+// inside (future …) neither hits breakpoints nor corrupts the session:
+// futures run on detached goroutines outside the single-thread DAP
+// model, so a breakpoint inside a future body is ignored and the
+// program runs to completion.
+func TestServer_FutureIsInvisibleToDebugger(t *testing.T) {
+	tmp := t.TempDir()
+	script := filepath.Join(tmp, "future.lisp")
+	src := "(def f (future\n" + // line 1
+		"    (println 42)))\n" + // line 2: breakpoint here is ignored
+		"(sleep 100)\n" + // line 3: let the future run
+		"(println \"done\")\n" // line 4
+	if err := os.WriteFile(script, []byte(src), 0o644); err != nil {
+		t.Fatalf("write: %v", err)
+	}
+	runtime.Modules.Register(script, script)
+
+	client, server, closer := pair()
+	ns := fullEnv(t)
+	done := make(chan error, 1)
+	eval := func(ctx context.Context, env types.EnvType) error {
+		_, err := lisp.REPL(ctx, env, fmt.Sprintf("(load-file %q)", script), types.NewAnonymousCursorHere(1, 1))
+		done <- err
+		return err
+	}
+	srv := NewServer(server, eval, ns)
+	stop := runServer(t, srv, closer)
+	defer stop()
+
+	sendRequest(t, client, 1, "initialize", nil)
+	readUntil(t, client, func(m map[string]interface{}) bool { return m["event"] == "initialized" })
+	sendRequest(t, client, 2, "launch", map[string]interface{}{"stopOnEntry": false})
+	readUntil(t, client, func(m map[string]interface{}) bool {
+		return m["command"] == "launch" && m["type"] == "response"
+	})
+	sendRequest(t, client, 3, "setBreakpoints", SetBreakpointsArguments{
+		Source:      Source{Path: script},
+		Breakpoints: []SourceBreakpoint{{Line: 2}},
+	})
+	readUntil(t, client, func(m map[string]interface{}) bool {
+		return m["command"] == "setBreakpoints" && m["type"] == "response"
+	})
+	sendRequest(t, client, 4, "configurationDone", nil)
+	readUntil(t, client, func(m map[string]interface{}) bool {
+		return m["command"] == "configurationDone" && m["type"] == "response"
+	})
+
+	// Expect terminated with no intervening stopped event.
+	got := readUntil(t, client, func(m map[string]interface{}) bool {
+		return m["event"] == "stopped" || m["event"] == "terminated"
+	})
+	if got["event"] != "terminated" {
+		t.Fatalf("expected terminated without stops, got %v", got)
+	}
+	select {
+	case err := <-done:
+		if err != nil {
+			t.Fatalf("eval error: %v", err)
+		}
+	case <-time.After(3 * time.Second):
+		t.Fatal("eval did not return")
+	}
+	sendRequest(t, client, 5, "disconnect", nil)
+}

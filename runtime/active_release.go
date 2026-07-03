@@ -39,6 +39,9 @@ func PushFrame(_ context.Context, _ *Frame) bool { return false }
 // PopFrame is a no-op in release builds.
 func PopFrame(_ context.Context) {}
 
+// DetachThread returns ctx unchanged in release builds.
+func DetachThread(ctx context.Context) context.Context { return ctx }
+
 // FrameID always returns 0 in release builds — Frame has no fields.
 func FrameID(_ *Frame) int64 { return 0 }
 

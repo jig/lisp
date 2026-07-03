@@ -211,6 +211,18 @@ func ThreadFromContext(ctx context.Context) *Thread {
 	return t
 }
 
+// DetachThread returns a context that carries no Thread. Futures use it
+// for their goroutines: inheriting the spawning goroutine's Thread would
+// let two goroutines push/pop frames on the same live stack, corrupting
+// the debugger's view, and would allow the debugger to pause a goroutine
+// the client does not know about.
+func DetachThread(ctx context.Context) context.Context {
+	if ThreadFromContext(ctx) == nil {
+		return ctx
+	}
+	return context.WithValue(ctx, threadKey, (*Thread)(nil))
+}
+
 // ModuleResolver maps Lisp module names (as carried in Position.Module)
 // to absolute filesystem paths. The DAP server consumes this to populate
 // `source.path` on stack frames and to match `setBreakpoints` requests

@@ -18,6 +18,13 @@ interpreter.
 
 Go-to-definition and find-references are not part of this release.
 
+## Known limitations
+
+- The debugger models a single thread. Code running inside
+  `(future …)` executes on a detached goroutine: it does not hit
+  breakpoints and cannot be stepped (the rest of the session stays
+  consistent). Full multi-thread debugging is future work.
+
 ## Requirements
 
 The interpreter must be built with the `lispdebug` build tag — this is
