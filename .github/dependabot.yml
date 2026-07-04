@@ -1,0 +1,28 @@
+version: 2
+updates:
+  # Go module dependencies.
+  - package-ecosystem: gomod
+    directory: "/"
+    schedule:
+      interval: weekly
+    groups:
+      go-modules:
+        patterns: ["*"]
+
+  # GitHub Actions used by the workflows above.
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+    groups:
+      actions:
+        patterns: ["*"]
+
+  # npm dependencies of the VSCode extension.
+  - package-ecosystem: npm
+    directory: "/tools/vscode-lisp"
+    schedule:
+      interval: weekly
+    groups:
+      vscode-extension:
+        patterns: ["*"]

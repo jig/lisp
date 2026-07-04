@@ -8,11 +8,32 @@ jobs:
         os: [ubuntu-latest, macos-latest]
     runs-on: ${{ matrix.os }}
     steps:
-    - uses: actions/setup-go@v3
+    - uses: actions/checkout@v5
+    - uses: actions/setup-go@v5
       with:
         go-version: ${{ matrix.go-version }}
-    - uses: actions/checkout@v3
     - run: go test ./...
     # The DAP/LSP debugger code is gated behind the lispdebug build tag;
     # without this second pass its tests never run in CI.
     - run: go test -tags lispdebug ./...
+
+  quality:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v5
+    - uses: actions/setup-go@v5
+      with:
+        go-version: 1.25.x
+    - name: gofmt
+      run: |
+        unformatted=$(gofmt -l .)
+        if [ -n "$unformatted" ]; then
+          echo "These files are not gofmt-ed:"
+          echo "$unformatted"
+          exit 1
+        fi
+    - name: go vet
+      run: go vet ./...
+    # Vet the debugger code too: it never compiles in the default build.
+    - name: go vet (lispdebug)
+      run: go vet -tags lispdebug ./...

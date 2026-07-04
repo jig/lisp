@@ -1,0 +1,5 @@
+version: "2"
+run:
+  # Lint the debugger code too; it only compiles under this build tag.
+  build-tags:
+    - lispdebug
