@@ -245,7 +245,7 @@
 (env-set repl-env '*ARGV* (rest *ARGV*))
 
 ;; core.mal: defined using the new language itself
-(rep (str "(def *host-language* \"" *host-language* "-jig-lisp\")"))
+(rep (str "(def *host-language* \"" *host-language* "-jig/lisp\")"))
 (rep "(def not (fn [a] (if a false true)))")
 (rep ¬(def load-file (fn (f) (eval (read-string (str "(do " (slurp f) "\nnil)")))))¬)
 (rep "(defmacro cond (fn (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw \"odd number of forms to cond\")) (cons 'cond (rest (rest xs)))))))")
@@ -273,6 +273,6 @@
   (do
     ;; Print the banner once, directly, so its nil return value is not
     ;; echoed the way repl-loop would echo every evaluated line.
-    (println (str "jig/lisp [" *host-language* "-jig-lisp]"))
+    (println (str "jig/lisp [" *host-language* "-jig/lisp]"))
     (repl-loop (readline "lisp-user> ")))
   (rep (str "(load-file \"" (first *ARGV*) "\")")))
