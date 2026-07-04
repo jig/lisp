@@ -14,8 +14,10 @@ import (
 	"sort"
 	"strings"
 	"sync"
+	"unicode/utf8"
 
 	"github.com/jig/lisp/docmeta"
+	"github.com/jig/lisp/format"
 	"github.com/jig/lisp/lib/require"
 	"github.com/jig/lisp/printer"
 	"github.com/jig/lisp/types"
@@ -106,6 +108,7 @@ func (s *Server) dispatch(req *requestMessage) {
 					TriggerCharacters:   []string{" ", "("},
 					RetriggerCharacters: []string{" "},
 				},
+				DocumentFormattingProvider: true,
 			},
 			ServerInfo: ServerInfo{Name: "jig-lisp-lsp"},
 		})
@@ -153,6 +156,8 @@ func (s *Server) dispatch(req *requestMessage) {
 		s.handleDefinition(req)
 	case "textDocument/signatureHelp":
 		s.handleSignatureHelp(req)
+	case "textDocument/formatting":
+		s.handleFormatting(req)
 	case "workspace/didChangeWatchedFiles":
 		// A .lisp file on disk changed (possibly a module required by an
 		// open document, and possibly not open itself). Re-analyse every
@@ -724,6 +729,45 @@ func (s *Server) handleDocumentSymbol(req *requestMessage) {
 		}
 	}
 	s.respond(req, symbols)
+}
+
+// handleFormatting answers textDocument/formatting by running format.Source
+// over the document and returning a single whole-document TextEdit. A
+// document that does not parse is left untouched (an empty edit list), so
+// formatting never destroys work in progress.
+func (s *Server) handleFormatting(req *requestMessage) {
+	var p DocumentFormattingParams
+	if err := json.Unmarshal(req.Params, &p); err != nil {
+		s.respondError(req, codeInvalidParams, err.Error())
+		return
+	}
+	s.mu.Lock()
+	doc := s.docs[p.TextDocument.URI]
+	s.mu.Unlock()
+	if doc == nil {
+		s.respond(req, []TextEdit{})
+		return
+	}
+	out, err := format.Source([]byte(doc.content))
+	if err != nil || string(out) == doc.content {
+		s.respond(req, []TextEdit{})
+		return
+	}
+	s.respond(req, []TextEdit{{
+		Range:   wholeDocumentRange(doc.content),
+		NewText: string(out),
+	}})
+}
+
+// wholeDocumentRange spans from the start of the document to the end of its
+// last line.
+func wholeDocumentRange(content string) Range {
+	lines := strings.Split(content, "\n")
+	last := len(lines) - 1
+	return Range{
+		Start: Position{Line: 0, Character: 0},
+		End:   Position{Line: last, Character: utf8.RuneCountInString(lines[last])},
+	}
 }
 
 // completionKindOf maps a definition kind to a CompletionItem kind.

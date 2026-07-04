@@ -76,32 +76,33 @@
 ;; The first block matches kanaka/mal; the second exposes jig/lisp's
 ;; additions (every entry must be a plain function, not a macro or a
 ;; special form such as `future`, `context` or `try`).
-(def core_ns '[* + - / < <= = > >= apply assoc atom atom? concat conj
-  cons contains? count deref dissoc empty? false? first fn? get
-  hash-map keys keyword keyword? list list? map map? meta nil?
-  nth number? pr-str println prn read-string readline reset! rest seq
-  sequential? slurp str string? swap! symbol symbol? throw time-ms
-  true? vals vec vector vector? with-meta
+(def core_ns
+  '[* + - / < <= = > >= apply assoc atom atom? concat conj
+    cons contains? count deref dissoc empty? false? first fn? get
+    hash-map keys keyword keyword? list list? map map? meta nil?
+    nth number? pr-str println prn read-string readline reset! rest seq
+    sequential? slurp str string? swap! symbol symbol? throw time-ms
+    true? vals vec vector vector? with-meta
 
-  ;; --- lib/core extras (Go builtins beyond kanaka/mal) ---
-  range merge get-in rename-keys assoc-in update update-in reduce-kv
-  take take-last drop drop-last subvec split not= hash-set set set?
-  json-encode json-decode hash-map-decode
-  base64 unbase64 str2binary binary2str
-  uuid sleep time-ns spew type? doc version assert
-  go-error new-go-error new-error unwrap-error error-string panic
+    ;; --- lib/core extras (Go builtins beyond kanaka/mal) ---
+    range merge get-in rename-keys assoc-in update update-in reduce-kv
+    take take-last drop drop-last subvec split not= hash-set set set?
+    json-encode json-decode hash-map-decode
+    base64 unbase64 str2binary binary2str
+    uuid sleep time-ns spew type? doc version assert
+    go-error new-go-error new-error unwrap-error error-string panic
 
-  ;; --- lib/coreextended (lisp-defined functions; its macros when, ->,
-  ;; ->> and time are defined in the bootstrap below, as `(eval sym)`
-  ;; cannot bind a macro; benchmark and defprotocol are left out) ---
-  reduce foldr inc dec zero? identity partial gensym
-  every? some memoize find-type extend satisfies? pprint
+    ;; --- lib/coreextended (lisp-defined functions; its macros when, ->,
+    ;; ->> and time are defined in the bootstrap below, as `(eval sym)`
+    ;; cannot bind a macro; benchmark and defprotocol are left out) ---
+    reduce foldr inc dec zero? identity partial gensym
+    every? some memoize find-type extend satisfies? pprint
 
-  ;; --- lib/system ---
-  getenv setenv unsetenv
+    ;; --- lib/system ---
+    getenv setenv unsetenv
 
-  ;; --- lib/require (resolve-require only; see note in main) ---
-  resolve-require])
+    ;; --- lib/require (resolve-require only; see note in main) ---
+    resolve-require])
 
 ;; EVAL extends this stack trace-atom when propagating exceptions.  If the
 ;; exception reaches the REPL loop, the full trace-atom is printed.
@@ -130,19 +131,19 @@
   "Expand a quasiquoted AST into code that rebuilds it at run time."
   [ast]
   (cond
-    (vector? ast)            (list 'vec (qq-foldr ast))
-    (map? ast)               (list 'quote ast)
-    (symbol? ast)            (list 'quote ast)
-    (not (list? ast))        ast
+    (vector? ast) (list 'vec (qq-foldr ast))
+    (map? ast) (list 'quote ast)
+    (symbol? ast) (list 'quote ast)
+    (not (list? ast)) ast
     (= (first ast) 'unquote) (nth ast 1)
-    "else"                   (qq-foldr ast)))
+    "else" (qq-foldr ast)))
 
 (defn MACROEXPAND
   "Repeatedly expand ast while its head resolves to a macro."
   [ast env]
   (let [a0 (if (list? ast) (first ast))
-        e  (if (symbol? a0) (env-find env a0))
-        m  (if e (env-get e a0))]
+        e (if (symbol? a0) (env-find env a0))
+        m (if e (env-get e a0))]
     (if (_macro? m)
       (MACROEXPAND (apply (get m :__MAL_MACRO__) (rest ast)) env)
       ast)))
@@ -154,13 +155,13 @@
   ;; (do (prn "eval-ast" ast "/" (keys @env)) )
   (cond
     (symbol? ast) (env-get env ast)
-    (list? ast)   (map (fn [exp] (EVAL exp env)) ast)
+    (list? ast) (map (fn [exp] (EVAL exp env)) ast)
     (vector? ast) (vec (map (fn [exp] (EVAL exp env)) ast))
-    (map? ast)    (apply hash-map
-                    (apply concat
-                      (map (fn [k] [k (EVAL (get ast k) env)])
-                           (keys ast))))
-    "else"        ast))
+    (map? ast) (apply hash-map
+                 (apply concat
+                   (map (fn [k] [k (EVAL (get ast k) env)])
+                     (keys ast))))
+    "else" ast))
 
 (defn LET
   "Evaluate a let: bind the pairs in binds sequentially, then the body."
@@ -204,7 +205,7 @@
 
             (= 'defmacro a0)
             (env-set env (nth ast 1) (hash-map :__MAL_MACRO__
-                                               (EVAL (nth ast 2) env)))
+                                       (EVAL (nth ast 2) env)))
 
             (= 'macroexpand a0)
             (MACROEXPAND (nth ast 1) env)
@@ -212,13 +213,13 @@
             (= 'try a0)
             (if (< (count ast) 3)
               (EVAL (nth ast 1) env)
-                (try
-                  (EVAL (nth ast 1) env)
-                  (catch exc
-                    (do
-                      (reset! trace-atom "")
-                        (let [a2 (nth ast 2)]
-                          (EVAL (nth a2 2) (new-env env [(nth a2 1)] [exc])))))))
+              (try
+                (EVAL (nth ast 1) env)
+                (catch exc
+                  (do
+                    (reset! trace-atom "")
+                    (let [a2 (nth ast 2)]
+                      (EVAL (nth a2 2) (new-env env [(nth a2 1)] [exc])))))))
 
             (= 'do a0)
             (nth (eval-ast (rest ast) env) (- (count ast) 2))
@@ -275,10 +276,10 @@
              (fn [& xs]
                (if (> (count xs) 0)
                  (list 'if (first xs)
-                       (if (> (count xs) 1)
-                         (nth xs 1)
-                         (throw "odd number of forms to cond"))
-                       (cons 'cond (rest (rest xs))))))))
+                   (if (> (count xs) 1)
+                     (nth xs 1)
+                     (throw "odd number of forms to cond"))
+                   (cons 'cond (rest (rest xs))))))))
 ;; defn: like def but with an optional leading docstring, mirroring
 ;; jig/lisp's own defn. The docstring is currently discarded.
 (mal-eval '(defmacro defn
@@ -296,7 +297,7 @@
                  (if (= 1 (count xs))
                    (first xs)
                    (list 'let (list 'or_ (first xs))
-                         (list 'if 'or_ 'or_ (cons 'or (rest xs)))))))))
+                     (list 'if 'or_ 'or_ (cons 'or (rest xs)))))))))
 (mal-eval '(defmacro and
              (fn [& xs]
                (if (empty? xs)
@@ -304,7 +305,7 @@
                  (if (= 1 (count xs))
                    (first xs)
                    (list 'let (list 'and_ (first xs))
-                         (list 'if 'and_ (cons 'and (rest xs)) 'and_)))))))
+                     (list 'if 'and_ (cons 'and (rest xs)) 'and_)))))))
 ;; when and the threading macros -> / ->> from coreextended. Kept
 ;; self-contained (only list/cons/concat) and expanded step by step.
 (mal-eval '(defmacro when
@@ -315,30 +316,30 @@
                (if (empty? forms)
                  x
                  (cons '->
-                       (cons (if (list? (first forms))
-                               (cons (first (first forms))
-                                     (cons x (rest (first forms))))
-                               (list (first forms) x))
-                             (rest forms)))))))
+                   (cons (if (list? (first forms))
+                           (cons (first (first forms))
+                             (cons x (rest (first forms))))
+                           (list (first forms) x))
+                     (rest forms)))))))
 (mal-eval '(defmacro ->>
              (fn [x & forms]
                (if (empty? forms)
                  x
                  (cons '->>
-                       (cons (if (list? (first forms))
-                               (concat (first forms) (list x))
-                               (list (first forms) x))
-                             (rest forms)))))))
+                   (cons (if (list? (first forms))
+                           (concat (first forms) (list x))
+                           (list (first forms) x))
+                     (rest forms)))))))
 ;; time: evaluate expr, print the elapsed milliseconds, return its value.
 (mal-eval '(defmacro time
              (fn [expr]
                (list 'let (list 'start (list 'time-ms)
-                                'ret expr
-                                'end (list 'time-ms))
-                     (list 'do
-                           (list 'println "Elapsed time:"
-                                 (list '- 'end 'start) "msecs")
-                           'ret)))))
+                            'ret expr
+                            'end (list 'time-ms))
+                 (list 'do
+                   (list 'println "Elapsed time:"
+                     (list '- 'end 'start) "msecs")
+                   'ret)))))
 
 ;; repl loop
 (defn repl-loop

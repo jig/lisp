@@ -176,6 +176,44 @@ func TestServer_DiagnosticsClearOnFix(t *testing.T) {
 	}
 }
 
+func TestServer_Formatting(t *testing.T) {
+	client, stop := startSession(t)
+	defer stop()
+
+	uri := "file:///fmt.lisp"
+	didOpen(t, client, uri, "(defn foo [x]\n        (+ x\n1))\n")
+
+	send(t, client, 5, "textDocument/formatting", DocumentFormattingParams{
+		TextDocument: TextDocumentIdentifier{URI: uri},
+	})
+	resp := readUntil(t, client, response(5))
+	edits := resp["result"].([]interface{})
+	if len(edits) != 1 {
+		t.Fatalf("expected 1 edit, got %d", len(edits))
+	}
+	edit := edits[0].(map[string]interface{})
+	want := "(defn foo [x]\n  (+ x\n    1))\n"
+	if got := edit["newText"].(string); got != want {
+		t.Errorf("newText mismatch\n--- got ---\n%s\n--- want ---\n%s", got, want)
+	}
+}
+
+func TestServer_FormattingNoChange(t *testing.T) {
+	client, stop := startSession(t)
+	defer stop()
+
+	uri := "file:///clean.lisp"
+	didOpen(t, client, uri, "(+ 1 2)\n")
+
+	send(t, client, 6, "textDocument/formatting", DocumentFormattingParams{
+		TextDocument: TextDocumentIdentifier{URI: uri},
+	})
+	resp := readUntil(t, client, response(6))
+	if edits := resp["result"].([]interface{}); len(edits) != 0 {
+		t.Fatalf("expected no edits for already-formatted doc, got %v", edits)
+	}
+}
+
 func TestServer_DocumentSymbols(t *testing.T) {
 	client, stop := startSession(t)
 	defer stop()

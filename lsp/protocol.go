@@ -187,12 +187,26 @@ type InitializeResult struct {
 
 // ServerCapabilities declares what this server implements.
 type ServerCapabilities struct {
-	TextDocumentSync       int                  `json:"textDocumentSync"` // 1 = full
-	CompletionProvider     struct{}             `json:"completionProvider"`
-	HoverProvider          bool                 `json:"hoverProvider"`
-	DocumentSymbolProvider bool                 `json:"documentSymbolProvider"`
-	DefinitionProvider     bool                 `json:"definitionProvider"`
-	SignatureHelpProvider  SignatureHelpOptions `json:"signatureHelpProvider"`
+	TextDocumentSync           int                  `json:"textDocumentSync"` // 1 = full
+	CompletionProvider         struct{}             `json:"completionProvider"`
+	HoverProvider              bool                 `json:"hoverProvider"`
+	DocumentSymbolProvider     bool                 `json:"documentSymbolProvider"`
+	DefinitionProvider         bool                 `json:"definitionProvider"`
+	SignatureHelpProvider      SignatureHelpOptions `json:"signatureHelpProvider"`
+	DocumentFormattingProvider bool                 `json:"documentFormattingProvider"`
+}
+
+// DocumentFormattingParams is the payload of textDocument/formatting. The
+// FormattingOptions (tab size, insert spaces) are ignored: the formatter
+// has a single canonical style.
+type DocumentFormattingParams struct {
+	TextDocument TextDocumentIdentifier `json:"textDocument"`
+}
+
+// TextEdit replaces Range with NewText.
+type TextEdit struct {
+	Range   Range  `json:"range"`
+	NewText string `json:"newText"`
 }
 
 // SignatureHelpOptions declares the characters that (re)trigger

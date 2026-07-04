@@ -21,6 +21,8 @@ type args struct {
 	Test      string   `arg:"-t,--test" help:"run test suite from directory" placeholder:"DIR"`
 	Debug     bool     `arg:"--debug" help:"enable DEBUG-EVAL support (requires lispdebug build)"`
 	Eval      string   `arg:"-e,--eval" help:"evaluate expression and exit" placeholder:"EXPR"`
+	Fmt       bool     `arg:"--fmt" help:"format lisp source (files given as arguments, or stdin) and print the result"`
+	Write     bool     `arg:"-w,--write" help:"with --fmt, rewrite each file in place instead of printing"`
 	Include   []string `arg:"-i,--include,separate" help:"add include directory for require (needs the require library loaded)" placeholder:"DIR"`
 	Preamble  []string `arg:"-P,--preamble,separate" help:"define a preamble placeholder for the script, e.g. -P '$NAME <expr>'" placeholder:"ASSIGN"`
 	DAP       bool     `arg:"--dap" help:"start a Debug Adapter Protocol server on stdio (requires lispdebug build)"`
@@ -92,6 +94,17 @@ func Execute(cmdArgs []string, repl_env types.EnvType) error {
 
 	if parsedArgs.Eval != "" && (parsedArgs.Version || parsedArgs.Test != "") {
 		return fmt.Errorf("-e cannot be used with --version or --test")
+	}
+
+	// Formatting is a standalone text transformation; it loads no libraries
+	// and runs no code, so handle it before any of the evaluating modes.
+	if parsedArgs.Fmt {
+		files := []string{}
+		if parsedArgs.Script != "" {
+			files = append(files, parsedArgs.Script)
+		}
+		files = append(files, parsedArgs.Args...)
+		return formatSources(files, parsedArgs.Write)
 	}
 
 	// DAP server takes precedence over the rest of the modes when set.
