@@ -16,6 +16,7 @@ import (
 	"sync"
 
 	"github.com/jig/lisp/lib/require"
+	"github.com/jig/lisp/printer"
 	"github.com/jig/lisp/types"
 )
 
@@ -357,8 +358,11 @@ func (s *Server) handleSignatureHelp(req *requestMessage) {
 }
 
 // paramsFor returns the printed parameter vector for a symbol used as a
-// call head — a document-local definition or one imported through
-// require. Returns found=false when no parameter info is available.
+// call head. It looks first at document-local definitions, then those
+// imported through require, then the interpreter environment: any
+// lisp-defined library function or macro (defn/defmacro) is a MalFunc
+// whose Params vector carries the real parameter names. Pure Go
+// builtins hold no parameter metadata and yield found=false.
 func (s *Server) paramsFor(doc *document, head string) (string, bool) {
 	for _, d := range doc.analysis.defs {
 		if d.name == head && d.kind != "def" {
@@ -368,6 +372,13 @@ func (s *Server) paramsFor(doc *document, head string) (string, bool) {
 	for _, d := range doc.external {
 		if d.name == head && d.kind != "def" {
 			return d.params, d.params != ""
+		}
+	}
+	if s.env != nil {
+		if v, err := s.env.Get(types.Symbol{Val: head}); err == nil {
+			if fn, ok := v.(types.MalFunc); ok && fn.Params != nil {
+				return printer.Pr_str(fn.Params, true), true
+			}
 		}
 	}
 	return "", false
@@ -509,12 +520,18 @@ func (s *Server) handleHover(req *requestMessage) {
 		}
 	}
 
-	// Otherwise ask the interpreter environment.
+	// Otherwise ask the interpreter environment. A lisp-defined
+	// function or macro shows its real parameter list; anything else
+	// shows a short kind description.
 	if s.env != nil {
 		if v, err := s.env.Get(types.Symbol{Val: sym}); err == nil {
+			header := sym
+			if fn, ok := v.(types.MalFunc); ok && fn.Params != nil {
+				header = "(" + sym + " " + strings.Join(splitParams(printer.Pr_str(fn.Params, true)), " ") + ")"
+			}
 			s.respond(req, Hover{Contents: MarkupContent{
 				Kind:  "markdown",
-				Value: fmt.Sprintf("```lisp\n%s\n```\n%s", sym, envValueDetail(v)),
+				Value: fmt.Sprintf("```lisp\n%s\n```\n%s", header, envValueDetail(v)),
 			}})
 			return
 		}

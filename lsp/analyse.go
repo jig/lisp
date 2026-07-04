@@ -609,10 +609,18 @@ func isSpaceByte(b byte) bool {
 }
 
 // splitParams turns a printed parameter vector (`[a b & rest]`) into
-// individual parameter labels.
+// individual parameter labels. The variadic marker `&` is dropped so
+// the trailing rest parameter maps to a single label (arguments beyond
+// the fixed ones then land on it).
 func splitParams(params string) []string {
 	params = strings.TrimSpace(params)
 	params = strings.TrimPrefix(params, "[")
 	params = strings.TrimSuffix(params, "]")
-	return strings.Fields(params)
+	var out []string
+	for _, f := range strings.Fields(params) {
+		if f != "&" {
+			out = append(out, f)
+		}
+	}
+	return out
 }

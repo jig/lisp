@@ -17,8 +17,12 @@ placement from the compatibility notes below.
 ### ~~LSP: signature help~~ (done)
 `textDocument/signatureHelp` shows the parameter list of the call
 surrounding the cursor with the active argument highlighted, for
-user-defined defn/defmacro (local or imported via require). Builtins
-carry no parameter metadata and yield no signature.
+user-defined defn/defmacro (local, imported via require, or any
+lisp-defined library function/macro read from the interpreter env as a
+MalFunc with real parameter names). Pure Go builtins keep no parameter
+metadata (Go reflection exposes arity and types but not names) and
+yield no signature — a curated arglist map would be the way to cover
+them.
 
 ### ~~LSP: re-analyse open documents when required modules change~~ (done)
 The server handles `workspace/didChangeWatchedFiles` by re-analysing

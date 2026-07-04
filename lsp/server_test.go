@@ -720,3 +720,52 @@ func TestServer_SignatureHelp(t *testing.T) {
 		t.Errorf("expected null signature at top level, got %v", resp["result"])
 	}
 }
+
+// TestServer_SignatureHelpBuiltin verifies signature help for a
+// lisp-defined library function/macro resolved from the interpreter
+// environment (reduce is a MalFunc carrying its Params). Pure Go
+// builtins (no parameter metadata) yield no signature.
+func TestServer_SignatureHelpBuiltin(t *testing.T) {
+	client, stop := startSession(t)
+	defer stop()
+
+	uri := "file:///sigb.lisp"
+	// not: (fn [a] …) → named param; cond: (fn [& xs] …) → variadic,
+	// the & is dropped so the label reads (cond xs).
+	didOpen(t, client, uri, "(not x)\n(cond a b)\n(+ 1 2)\n")
+
+	// (not |x) → signature from the env MalFunc with the real param name
+	send(t, client, 2, "textDocument/signatureHelp", TextDocumentPositionParams{
+		TextDocument: TextDocumentIdentifier{URI: uri},
+		Position:     Position{Line: 0, Character: 5},
+	})
+	resp := readUntil(t, client, response(2))
+	res, ok := resp["result"].(map[string]interface{})
+	if !ok {
+		t.Fatalf("expected signature for not, got %v", resp["result"])
+	}
+	if label := res["signatures"].([]interface{})[0].(map[string]interface{})["label"].(string); label != "(not a)" {
+		t.Errorf("expected label (not a), got %q", label)
+	}
+
+	// variadic macro: (cond …) → the & is dropped from the label
+	send(t, client, 3, "textDocument/signatureHelp", TextDocumentPositionParams{
+		TextDocument: TextDocumentIdentifier{URI: uri},
+		Position:     Position{Line: 1, Character: 6},
+	})
+	resp = readUntil(t, client, response(3))
+	res = resp["result"].(map[string]interface{})
+	if label := res["signatures"].([]interface{})[0].(map[string]interface{})["label"].(string); label != "(cond xs)" {
+		t.Errorf("expected label (cond xs), got %q", label)
+	}
+
+	// pure Go builtin (+) has no parameter metadata → null
+	send(t, client, 4, "textDocument/signatureHelp", TextDocumentPositionParams{
+		TextDocument: TextDocumentIdentifier{URI: uri},
+		Position:     Position{Line: 2, Character: 3},
+	})
+	resp = readUntil(t, client, response(4))
+	if resp["result"] != nil {
+		t.Errorf("expected null for pure Go builtin +, got %v", resp["result"])
+	}
+}
