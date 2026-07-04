@@ -14,13 +14,25 @@ OS path-list separated, placed *after* the git-root `.lisp/` so a
 project's own modules always win over the shell env — the conservative
 placement from the compatibility notes below.
 
+### Curated docs for Go builtins and special forms (done — 2026-07-04)
+`docmeta` (leaf package) is the curated table for what the interpreter
+cannot describe by itself: pure Go builtins (reflection has no
+parameter names) and special forms (never in the environment). Each
+entry has an arglist, kind, group (for the future doc generator) and a
+one-line doc. The LSP reads it for hover, signature help and
+completion; a consistency test asserts every Function entry resolves as
+a Go builtin and every SpecialForm entry does not. Lisp-defined
+functions/macros are deliberately absent — they are read from the live
+env. Incrementally extendable (a solid common subset is filled in;
+~106 Go builtins exist).
+
 ### Docstrings for lisp-defined functions (done — 2026-07-04)
 `(defn name "docstring" [params] …)` stores `{:doc "…"}` metadata on the
 function (Clojure style), read by `(doc name)`, `(meta f)` and the LSP
 hover. Backwards compatible (a leading string is a docstring only when
-a parameter vector follows). Go builtins and special forms still need a
-curated table; the doc-reference generator can then draw arglists from
-the env (lisp fns/macros, MalFunc.Params) plus that table.
+a parameter vector follows). The doc-reference generator can now draw arglists from the env (lisp
+fns/macros, MalFunc.Params) plus the docmeta table (Go builtins +
+special forms) — building it is the remaining step.
 
 ### ~~LSP: signature help~~ (done)
 `textDocument/signatureHelp` shows the parameter list of the call

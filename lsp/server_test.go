@@ -731,8 +731,9 @@ func TestServer_SignatureHelpBuiltin(t *testing.T) {
 
 	uri := "file:///sigb.lisp"
 	// not: (fn [a] …) → named param; cond: (fn [& xs] …) → variadic,
-	// the & is dropped so the label reads (cond xs).
-	didOpen(t, client, uri, "(not x)\n(cond a b)\n(+ 1 2)\n")
+	// the & is dropped so the label reads (cond xs); spew is a Go
+	// builtin with no curated docmeta entry → no signature.
+	didOpen(t, client, uri, "(not x)\n(cond a b)\n(spew v)\n")
 
 	// (not |x) → signature from the env MalFunc with the real param name
 	send(t, client, 2, "textDocument/signatureHelp", TextDocumentPositionParams{
@@ -759,14 +760,14 @@ func TestServer_SignatureHelpBuiltin(t *testing.T) {
 		t.Errorf("expected label (cond xs), got %q", label)
 	}
 
-	// pure Go builtin (+) has no parameter metadata → null
+	// undocumented Go builtin (spew) has no parameter metadata → null
 	send(t, client, 4, "textDocument/signatureHelp", TextDocumentPositionParams{
 		TextDocument: TextDocumentIdentifier{URI: uri},
-		Position:     Position{Line: 2, Character: 3},
+		Position:     Position{Line: 2, Character: 6},
 	})
 	resp = readUntil(t, client, response(4))
 	if resp["result"] != nil {
-		t.Errorf("expected null for pure Go builtin +, got %v", resp["result"])
+		t.Errorf("expected null for undocumented Go builtin spew, got %v", resp["result"])
 	}
 }
 
@@ -824,5 +825,53 @@ func TestServer_HoverDocstring(t *testing.T) {
 	}
 	if !strings.Contains(fromEnv, "Greets a name warmly.") {
 		t.Errorf("expected env docstring, got %q", fromEnv)
+	}
+}
+
+// TestServer_CuratedBuiltinsAndSpecialForms verifies hover and
+// signature help for curated Go builtins and special forms (docmeta):
+// special forms are not in the environment, so this is the only path
+// that documents them.
+func TestServer_CuratedBuiltinsAndSpecialForms(t *testing.T) {
+	client, stop := startSession(t)
+	defer stop()
+
+	uri := "file:///curated.lisp"
+	didOpen(t, client, uri, "(assoc m :k 1)\n(if x y z)\n")
+
+	hover := func(seq, line, char int) string {
+		send(t, client, seq, "textDocument/hover", TextDocumentPositionParams{
+			TextDocument: TextDocumentIdentifier{URI: uri},
+			Position:     Position{Line: line, Character: char},
+		})
+		resp := readUntil(t, client, response(seq))
+		r, ok := resp["result"].(map[string]interface{})
+		if !ok {
+			return ""
+		}
+		return r["contents"].(map[string]interface{})["value"].(string)
+	}
+
+	// Go builtin assoc
+	if v := hover(2, 0, 2); !strings.Contains(v, "(assoc map key val kvs)") || !strings.Contains(v, "_function_") {
+		t.Errorf("assoc hover: got %q", v)
+	}
+	// special form if (not in the environment at all)
+	if v := hover(3, 1, 1); !strings.Contains(v, "(if test then else)") || !strings.Contains(v, "_special form_") {
+		t.Errorf("if hover: got %q", v)
+	}
+
+	// signature help for the special form if
+	send(t, client, 4, "textDocument/signatureHelp", TextDocumentPositionParams{
+		TextDocument: TextDocumentIdentifier{URI: uri},
+		Position:     Position{Line: 1, Character: 4},
+	})
+	resp := readUntil(t, client, response(4))
+	res, ok := resp["result"].(map[string]interface{})
+	if !ok {
+		t.Fatalf("expected signature for if, got %v", resp["result"])
+	}
+	if label := res["signatures"].([]interface{})[0].(map[string]interface{})["label"].(string); label != "(if test then else)" {
+		t.Errorf("if signature: got %q", label)
 	}
 }

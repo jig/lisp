@@ -15,6 +15,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/jig/lisp/docmeta"
 	"github.com/jig/lisp/lib/require"
 	"github.com/jig/lisp/printer"
 	"github.com/jig/lisp/types"
@@ -367,6 +368,16 @@ func hoverBody(code, body string) string {
 	return out
 }
 
+// sigLabel builds a call signature label like "(name a b c)" from a
+// printed parameter vector, dropping the variadic `&` marker.
+func sigLabel(name, params string) string {
+	ps := splitParams(params)
+	if len(ps) == 0 {
+		return "(" + name + ")"
+	}
+	return "(" + name + " " + strings.Join(ps, " ") + ")"
+}
+
 // malFuncDoc returns the Clojure-style docstring stored as {:doc "…"}
 // metadata on a lisp-defined function/macro (see defn), or "" when it
 // has none. Keywords are stored with the "ʞ" prefix by the reader.
@@ -406,6 +417,10 @@ func (s *Server) paramsFor(doc *document, head string) (string, bool) {
 				return printer.Pr_str(fn.Params, true), true
 			}
 		}
+	}
+	// Curated Go builtins and special forms.
+	if e, ok := docmeta.Builtins[head]; ok {
+		return e.Params, e.Params != ""
 	}
 	return "", false
 }
@@ -475,11 +490,26 @@ func (s *Server) handleCompletion(req *requestMessage) {
 		}
 		sort.Strings(names)
 		for _, name := range names {
-			items = append(items, CompletionItem{
-				Label: name,
-				Kind:  s.envSymbolKind(name),
-			})
+			item := CompletionItem{Label: name, Kind: s.envSymbolKind(name)}
+			// Curated arglist/doc for Go builtins, when available.
+			if e, ok := docmeta.Builtins[name]; ok {
+				item.Detail = sigLabel(name, e.Params)
+			}
+			items = append(items, item)
 		}
+	}
+	// Special forms are not in the environment; offer them from the
+	// curated table so they complete too.
+	for name, e := range docmeta.Builtins {
+		if e.Kind != docmeta.SpecialForm || seen[name] {
+			continue
+		}
+		seen[name] = true
+		items = append(items, CompletionItem{
+			Label:  name,
+			Kind:   completionKindFunction,
+			Detail: sigLabel(name, e.Params),
+		})
 	}
 	s.respond(req, items)
 }
@@ -548,6 +578,21 @@ func (s *Server) handleHover(req *requestMessage) {
 			}})
 			return
 		}
+	}
+
+	// Curated Go builtins and special forms (special forms are not in
+	// the environment, so this is the only place they resolve).
+	if e, ok := docmeta.Builtins[sym]; ok {
+		body := e.Doc
+		if body != "" {
+			body += "\n\n"
+		}
+		body += "_" + e.Kind.String() + "_"
+		s.respond(req, Hover{Contents: MarkupContent{
+			Kind:  "markdown",
+			Value: hoverBody(sigLabel(sym, e.Params), body),
+		}})
+		return
 	}
 
 	// Otherwise ask the interpreter environment. A lisp-defined
