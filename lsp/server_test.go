@@ -592,3 +592,51 @@ func TestServer_PreambleHover(t *testing.T) {
 		t.Error("expected $FACTOR in completion")
 	}
 }
+
+// TestServer_ReanalyseOnWatchedFileChange verifies that editing a
+// required module on disk and sending workspace/didChangeWatchedFiles
+// re-analyses open documents: a symbol that disappears from the module
+// becomes an unknown-symbol warning in the requiring document.
+func TestServer_ReanalyseOnWatchedFileChange(t *testing.T) {
+	dir := t.TempDir()
+	modPath := filepath.Join(dir, "mod.lisp")
+	if err := os.WriteFile(modPath, []byte("(defn helper [] 1)\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	client, server, closer := pair()
+	ns := testEnv(t)
+	if err := require.LoadWithConfig(require.Config{IncludeDirs: []string{dir}})(ns); err != nil {
+		t.Fatalf("require.LoadWithConfig: %v", err)
+	}
+	srv := NewServer(server, ns)
+	stop := runServer(t, srv, closer)
+	defer stop()
+
+	send(t, client, 1, "initialize", map[string]interface{}{})
+	readUntil(t, client, response(1))
+	send(t, client, 0, "initialized", map[string]interface{}{})
+
+	uri := "file:///main.lisp"
+	diags := didOpen(t, client, uri, "(require \"mod\")\n(mod/helper)\n")
+	if l := diags["params"].(map[string]interface{})["diagnostics"].([]interface{}); len(l) != 0 {
+		t.Fatalf("expected clean diagnostics initially, got %v", l)
+	}
+
+	// Remove helper from the module and notify the change.
+	if err := os.WriteFile(modPath, []byte("(defn other [] 2)\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	send(t, client, 0, "workspace/didChangeWatchedFiles", map[string]interface{}{
+		"changes": []map[string]interface{}{{"uri": "file://" + modPath, "type": 2}},
+	})
+
+	diags = readUntil(t, client, notification("textDocument/publishDiagnostics"))
+	list := diags["params"].(map[string]interface{})["diagnostics"].([]interface{})
+	if len(list) != 1 {
+		t.Fatalf("expected 1 diagnostic after module change, got %v", list)
+	}
+	if msg := list[0].(map[string]interface{})["message"].(string); !strings.Contains(msg, "mod/helper") {
+		t.Errorf("expected unknown-symbol warning for mod/helper, got %q", msg)
+	}
+}

@@ -44,6 +44,12 @@ export function activate(context: vscode.ExtensionContext): void {
       initializationOptions: {
         includeDirs: cfg.get<string[]>("languageServer.includeDirs", []),
       },
+      synchronize: {
+        // Notify the server when any .lisp/.mal file changes on disk,
+        // even if it is not open in an editor, so requiring documents
+        // re-analyse against the new module content.
+        fileEvents: vscode.workspace.createFileSystemWatcher("**/*.{lisp,mal}"),
+      },
     };
     client = new LanguageClient(
       "lisp",

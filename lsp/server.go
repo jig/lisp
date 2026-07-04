@@ -145,11 +145,33 @@ func (s *Server) dispatch(req *requestMessage) {
 		s.handleDocumentSymbol(req)
 	case "textDocument/definition":
 		s.handleDefinition(req)
+	case "workspace/didChangeWatchedFiles":
+		// A .lisp file on disk changed (possibly a module required by an
+		// open document, and possibly not open itself). Re-analyse every
+		// open document so imported definitions and require diagnostics
+		// refresh — resolveRequires reads module files fresh from disk.
+		s.reanalyseOpenDocuments()
 	default:
 		if req.ID != nil {
 			s.respondError(req, codeMethodNotFound, "unsupported method: "+req.Method)
 		}
 		// unknown notifications are ignored per the spec
+	}
+}
+
+// reanalyseOpenDocuments re-runs analysis for every open document,
+// using each one's currently-held content. Called when a watched file
+// changes on disk (a required module may have been edited outside the
+// editor, or in another tab).
+func (s *Server) reanalyseOpenDocuments() {
+	s.mu.Lock()
+	contents := make(map[string]string, len(s.docs))
+	for uri, doc := range s.docs {
+		contents[uri] = doc.content
+	}
+	s.mu.Unlock()
+	for uri, content := range contents {
+		s.updateDocument(uri, content)
 	}
 }
 

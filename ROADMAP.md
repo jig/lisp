@@ -21,11 +21,11 @@ highlighted. The definition analysis already extracts parameter vectors
 a `textDocument/signatureHelp` handler. Entry point:
 [lsp/server.go](lsp/server.go). *Effort: small. Impact: medium.*
 
-### LSP: re-analyse open documents when required modules change
-Today, editing `testlib.lisp` does not refresh the diagnostics of an
-open `test.lisp` that requires it until the latter is touched. Register
-for `workspace/didChangeWatchedFiles` and re-run `updateDocument` on
-open docs. *Effort: small. Impact: medium — avoids stale diagnostics.*
+### ~~LSP: re-analyse open documents when required modules change~~ (done)
+The server handles `workspace/didChangeWatchedFiles` by re-analysing
+every open document; the extension registers a `**/*.{lisp,mal}` file
+watcher so the notification fires even for modules not open in an
+editor.
 
 ## High value, moderate effort (still surgical)
 
