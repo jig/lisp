@@ -19,6 +19,7 @@ import (
 	"path/filepath"
 	"runtime/debug"
 	"strings"
+	"sync"
 	"time"
 
 	spew "github.com/davecgh/go-spew/spew"
@@ -1309,11 +1310,27 @@ func array2list(a []interface{}) List {
 	return l
 }
 
-func readLine(prompt string) (string, error) {
-	scanner := bufio.NewScanner(os.Stdin)
+// stdinScanner is created once and reused across readLine calls: a fresh
+// bufio.Scanner per call would discard any input it read past the current
+// line, dropping subsequent lines in a REPL loop.
+var (
+	stdinScanner     *bufio.Scanner
+	stdinScannerOnce sync.Once
+)
+
+// readLine prints prompt and reads one line from stdin. On end of input
+// (Ctrl-D) or a read error it returns nil — as kanaka/mal does — so a
+// REPL loop reading `(readline …)` can tell EOF apart from an empty line
+// (which returns "") and terminate.
+func readLine(prompt string) (MalType, error) {
+	stdinScannerOnce.Do(func() {
+		stdinScanner = bufio.NewScanner(os.Stdin)
+	})
 	fmt.Print(prompt)
-	scanner.Scan()
-	return scanner.Text(), nil
+	if !stdinScanner.Scan() {
+		return nil, nil
+	}
+	return stdinScanner.Text(), nil
 }
 
 func sleep(ctx context.Context, ms int) error {
