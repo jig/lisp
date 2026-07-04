@@ -38,6 +38,11 @@ func Load(env types.EnvType) {
 	call.Doc(env, "atom?", "[x]", "Whether x is an atom.")
 	call.Doc(env, "reset!", "[atom value]", "Sets the atom to value and returns it.")
 	call.Doc(env, "swap!", "[atom f & args]", "Atomically sets the atom to (f current & args).")
+	call.Doc(env, "future-call", "[fn]", "Runs fn on a new goroutine, returning a future for its result.")
+	call.Doc(env, "future-cancel", "[future]", "Requests cancellation of a running future.")
+	call.Doc(env, "future-cancelled?", "[future]", "Whether the future was cancelled.")
+	call.Doc(env, "future-done?", "[future]", "Whether the future has finished.")
+	call.Doc(env, "future?", "[x]", "Whether x is a future.")
 }
 
 func future_call(ctx context.Context, f MalFunc) (*Future, error) {

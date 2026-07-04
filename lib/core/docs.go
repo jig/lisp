@@ -113,4 +113,35 @@ var coreDocs = []struct{ name, arglist, doc string }{
 	{"uuid", "[]", "A random RFC-4122 UUID string."},
 	{"deref", "[ref]", "Current value of an atom or other dereferenceable (also @ref)."},
 	{"doc", "[f]", "Documentation string of a function/macro, or nil."},
+	{"macro?", "[x]", "Whether x is a macro."},
+	{"assert", "[expr & error]", "Returns nil when expr is truthy, otherwise raises error (or a default)."},
+
+	// More collections
+	{"take-last", "[n coll]", "Last n elements of coll."},
+	{"drop-last", "[n coll]", "coll without its last n elements."},
+	{"subvec", "[vec start end]", "Sub-vector of vec from start to end (end optional)."},
+	{"update-in", "[coll keys f]", "Copy of coll with the nested value at keys replaced by (f old)."},
+	{"rename-keys", "[map keymap]", "Copy of map with keys renamed according to keymap."},
+	{"set", "[coll]", "Creates a set from the elements of coll."},
+
+	// Time & version
+	{"time-ms", "[]", "Current time in milliseconds since the epoch."},
+	{"time-ns", "[]", "Current time in nanoseconds since the epoch."},
+	{"version", "[]", "Interpreter build information as a hash-map."},
+
+	// Bytes, base64 & JSON
+	{"base64", "[bytes]", "Encodes a byte string to a base64 string."},
+	{"unbase64", "[string]", "Decodes a base64 string to a byte string."},
+	{"str2binary", "[string]", "Converts a string to a byte string."},
+	{"binary2str", "[bytes]", "Converts a byte string to a string."},
+	{"json-encode", "[obj]", "Encodes a lisp value (or Go object) to a JSON string."},
+	{"json-decode", "[factory json]", "Decodes a JSON string into a lisp value."},
+	{"hash-map-decode", "[factory json]", "Decodes JSON into a Go-backed hash-map."},
+
+	// Errors & debugging
+	{"error-string", "[err]", "The message of an error as a string."},
+	{"go-error", "[format & args]", "Creates a Go error from a format string and arguments."},
+	{"unwrap-error", "[err]", "The error wrapped inside err (Go's errors.Unwrap)."},
+	{"panic", "[value]", "Raises value as a Go panic."},
+	{"spew", "[x]", "Dumps x to stderr in Go syntax for debugging; returns nil."},
 }

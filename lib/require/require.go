@@ -79,6 +79,11 @@ func load(rootEnv types.EnvType, cfg Config) error {
 	// distinct root environments (e.g. tests) do not share modules.
 	loader := &moduleLoader{root: rootEnv, cache: map[string]types.EnvType{}}
 	rootEnv.Set(types.Symbol{Val: "require"}, types.Func{Fn: loader.require})
+
+	call.Doc(rootEnv, "require", `[module & [:as alias] [:refer [names]]]`,
+		"Loads a module once and publishes its definitions as module/name (or alias/name with :as; :refer imports selected names unqualified).")
+	call.Doc(rootEnv, "resolve-require", "[module]",
+		"Resolves a module name to the absolute path of its file through the search path.")
 	return nil
 }
 
