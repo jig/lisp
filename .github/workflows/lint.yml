@@ -4,9 +4,6 @@ on: [push, pull_request]
 jobs:
   golangci:
     runs-on: ubuntu-latest
-    # Non-blocking for now: golangci-lint findings are surfaced but do not
-    # fail the build. Flip this to false once the codebase is clean.
-    continue-on-error: true
     steps:
     - uses: actions/checkout@v5
     - uses: actions/setup-go@v5
@@ -14,4 +11,7 @@ jobs:
         go-version: 1.25.x
     - uses: golangci/golangci-lint-action@v7
       with:
-        version: latest
+        # Pinned so a new golangci-lint release with extra linters arrives
+        # as a Dependabot PR instead of breaking main. The tree is clean
+        # at this version (see .golangci.yml for the disabled checks).
+        version: v2.12.2

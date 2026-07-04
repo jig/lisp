@@ -27,7 +27,7 @@ func captureStdout(t *testing.T, fn func() error) (string, error) {
 
 	// Wait for fn to finish, then close writer so Read returns EOF.
 	fnErr := <-errCh
-	w.Close()
+	_ = w.Close()
 	os.Stdout = old
 	out, _ := io.ReadAll(r)
 	return string(out), fnErr

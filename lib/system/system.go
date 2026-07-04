@@ -6,11 +6,10 @@ import (
 	"os"
 
 	"github.com/jig/lisp/lib/call"
-	"github.com/jig/lisp/types"
 	. "github.com/jig/lisp/types"
 )
 
-func Load(env types.EnvType) {
+func Load(env EnvType) {
 	call.Call(env, getenv)
 	call.Call(env, setenv)
 	call.Call(env, unsetenv)

@@ -71,13 +71,13 @@ func startDAP(listen, script string, preamble []string, env types.EnvType) error
 	if err != nil {
 		return fmt.Errorf("listen %s: %w", listen, err)
 	}
-	defer ln.Close()
+	defer func() { _ = ln.Close() }()
 	fmt.Fprintf(os.Stderr, "DAP server listening on %s\n", listen)
 	conn, err := ln.Accept()
 	if err != nil {
 		return fmt.Errorf("accept: %w", err)
 	}
-	defer conn.Close()
+	defer func() { _ = conn.Close() }()
 	t := debugadapter.NewTransport(conn, conn, conn)
 	srv := debugadapter.NewServer(t, eval, env)
 	defer redirectStdout(srv)()

@@ -42,7 +42,7 @@ func NewCursor() *Position {
 	}
 }
 
-func (p *Position) SetPos(row int) *Position {
+func (cursor *Position) SetPos(row int) *Position {
 	return &Position{
 		BeginRow: row,
 		BeginCol: 1,
@@ -51,10 +51,10 @@ func (p *Position) SetPos(row int) *Position {
 	}
 }
 
-func (p *Position) Here(here *Position) *Position {
+func (cursor *Position) Here(here *Position) *Position {
 	if here.Module == nil {
 		return &Position{
-			Module:   p.Module,
+			Module:   cursor.Module,
 			BeginRow: here.BeginRow,
 			BeginCol: here.BeginCol,
 			Row:      here.Row,
@@ -70,33 +70,33 @@ func (p *Position) Here(here *Position) *Position {
 	}
 }
 
-func (p *Position) Copy() *Position {
-	if p == nil {
+func (cursor *Position) Copy() *Position {
+	if cursor == nil {
 		return nil
 	}
-	if p.Module == nil {
+	if cursor.Module == nil {
 		return &Position{
-			Row:      p.Row,
-			Col:      p.Col,
-			BeginRow: p.BeginRow,
-			BeginCol: p.BeginCol,
+			Row:      cursor.Row,
+			Col:      cursor.Col,
+			BeginRow: cursor.BeginRow,
+			BeginCol: cursor.BeginCol,
 		}
 	}
-	v := *p.Module
+	v := *cursor.Module
 	return &Position{
 		Module:   &v,
-		Row:      p.Row,
-		Col:      p.Col,
-		BeginRow: p.BeginRow,
-		BeginCol: p.BeginCol,
+		Row:      cursor.Row,
+		Col:      cursor.Col,
+		BeginRow: cursor.BeginRow,
+		BeginCol: cursor.BeginCol,
 	}
 }
 
-func (c *Position) Close(here *Position) *Position {
+func (cursor *Position) Close(here *Position) *Position {
 	return &Position{
-		Module:   c.Module,
-		BeginRow: c.BeginRow,
-		BeginCol: c.BeginCol,
+		Module:   cursor.Module,
+		BeginRow: cursor.BeginRow,
+		BeginCol: cursor.BeginCol,
 		Row:      here.Row,
 		Col:      here.Col,
 	}

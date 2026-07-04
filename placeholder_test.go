@@ -10,7 +10,6 @@ import (
 	"github.com/jig/lisp/env"
 	"github.com/jig/lisp/lib/core"
 	"github.com/jig/lisp/reader"
-	"github.com/jig/lisp/types"
 
 	. "github.com/jig/lisp/lnotation"
 	. "github.com/jig/lisp/types"
@@ -301,39 +300,39 @@ func TestAddPreamblePointers(t *testing.T) {
 	var2 := &var1
 	var3 := (*int)(nil)
 	for _, tc := range []struct {
-		preamble map[string]types.MalType
+		preamble map[string]MalType
 		expected string
 	}{
 		{
-			preamble: map[string]types.MalType{"$ARG": 123},
+			preamble: map[string]MalType{"$ARG": 123},
 			expected: ";; $ARG 123",
 		},
 		{
-			preamble: map[string]types.MalType{"$ARG": var1},
+			preamble: map[string]MalType{"$ARG": var1},
 			expected: ";; $ARG 123",
 		},
 		{
-			preamble: map[string]types.MalType{"$ARG": &var1},
+			preamble: map[string]MalType{"$ARG": &var1},
 			expected: ";; $ARG 123",
 		},
 		{
-			preamble: map[string]types.MalType{"$ARG": var2},
+			preamble: map[string]MalType{"$ARG": var2},
 			expected: ";; $ARG 123",
 		},
 		{
-			preamble: map[string]types.MalType{"$ARG": &var2},
+			preamble: map[string]MalType{"$ARG": &var2},
 			expected: ";; $ARG 123",
 		},
 		{
-			preamble: map[string]types.MalType{"$ARG": var3},
+			preamble: map[string]MalType{"$ARG": var3},
 			expected: ";; $ARG nil",
 		},
 		{
-			preamble: map[string]types.MalType{"$ARG": &var3},
+			preamble: map[string]MalType{"$ARG": &var3},
 			expected: ";; $ARG nil",
 		},
 		{
-			preamble: map[string]types.MalType{"$ARG": nil},
+			preamble: map[string]MalType{"$ARG": nil},
 			expected: ";; $ARG nil",
 		},
 	} {

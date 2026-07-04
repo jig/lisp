@@ -10,7 +10,6 @@ import (
 	"io"
 	"os"
 	"strings"
-	"sync"
 	"sync/atomic"
 	"time"
 
@@ -38,8 +37,6 @@ type Server struct {
 	evalFn   EvalFunc
 	evalEnv  types.EnvType
 	evalDone chan error
-
-	closeOnce sync.Once
 }
 
 // NewServer constructs a server that will drive `eval` once the client

@@ -34,7 +34,7 @@ func Execute(ctx context.Context, repl_env types.EnvType) error {
 	if err != nil {
 		return err
 	}
-	defer l.Close()
+	defer func() { _ = l.Close() }()
 
 	log.SetOutput(l.Stderr())
 	var lines []string

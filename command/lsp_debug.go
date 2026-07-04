@@ -26,13 +26,13 @@ func startLSP(listen string, env types.EnvType) error {
 	if err != nil {
 		return fmt.Errorf("listen %s: %w", listen, err)
 	}
-	defer ln.Close()
+	defer func() { _ = ln.Close() }()
 	fmt.Fprintf(os.Stderr, "LSP server listening on %s\n", listen)
 	conn, err := ln.Accept()
 	if err != nil {
 		return fmt.Errorf("accept: %w", err)
 	}
-	defer conn.Close()
+	defer func() { _ = conn.Close() }()
 	t := lsp.NewTransport(conn, conn, conn)
 	srv := lsp.NewServer(t, env)
 	return srv.Run(context.Background())

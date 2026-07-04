@@ -9,7 +9,6 @@ import (
 	"sync"
 
 	"github.com/jig/lisp/lib/call"
-	"github.com/jig/lisp/types"
 	. "github.com/jig/lisp/types"
 )
 
@@ -18,7 +17,7 @@ var headerConcurrent string
 
 func HeaderConcurrent() string { return headerConcurrent }
 
-func Load(env types.EnvType) {
+func Load(env EnvType) {
 	call.CallOverrideFN(env, "atom", func(a MalType) (MalType, error) { return &Atom{Val: a}, nil })
 	call.CallOverrideFN(env, "new-atom", func(a *Atom) (MalType, error) { return nil, errors.New("atom cannot be deserialized") })
 	call.CallOverrideFN(env, "atom?", func(a MalType) (MalType, error) { return Q[*Atom](a), nil })

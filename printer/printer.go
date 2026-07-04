@@ -75,7 +75,7 @@ func Pr_str(obj types.MalType, print_readably bool) string {
 	case error:
 		return "«go-error " + Pr_str(tobj.Error(), true) + "»"
 	default:
-		if v := reflect.ValueOf(obj); v.Kind() == reflect.Ptr {
+		if v := reflect.ValueOf(obj); v.Kind() == reflect.Pointer {
 			// if the value is a pointer, dereference it to print the value instead of the address
 			if v.IsNil() {
 				return "nil"

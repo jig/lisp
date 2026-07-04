@@ -3,3 +3,25 @@ run:
   # Lint the debugger code too; it only compiles under this build tag.
   build-tags:
     - lispdebug
+linters:
+  settings:
+    staticcheck:
+      checks:
+        - all
+        # Dot-importing the `types` package is a deliberate, pervasive
+        # convention inherited from kanaka/mal; qualifying every reference
+        # would be gratuitous churn.
+        - -ST1001
+        # `Foo_Q` (predicate, mal's "Foo?") and similar underscore names
+        # are the interpreter's naming convention throughout, and part of
+        # its exported API. Renaming them is out of the question.
+        - -ST1003
+        # Doc-comment format checks: this package uses section-header
+        # comments (`// Scalars`, `// Functions`) above groups of exported
+        # declarations rather than per-symbol godoc. Keep them off.
+        - -ST1000
+        - -ST1020
+        - -ST1021
+        # QF* are opt-in "quickfix" style refactors, not correctness
+        # issues. Keep them off for now to keep the signal high.
+        - -QF*

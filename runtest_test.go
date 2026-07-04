@@ -168,7 +168,7 @@ func captureStdout(REPL func() (types.MalType, error)) (result types.MalType, st
 		}
 		outC <- buf.String()
 	}()
-	w.Close()
+	_ = w.Close()
 	os.Stdout = old
 	stdoutResult = <-outC
 	return result, stdoutResult, replError

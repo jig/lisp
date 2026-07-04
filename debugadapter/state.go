@@ -66,7 +66,6 @@ type state struct {
 
 	stopOnEntry bool
 	disconnect  bool
-	exited      bool
 
 	// lastObservedLine is the BeginRow of the cursor seen on the
 	// previous OnEval. matchBreakpoint uses it to skip the cascade of
