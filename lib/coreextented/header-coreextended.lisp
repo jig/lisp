@@ -15,6 +15,13 @@
   ;; Returns the unchanged argument.
   (def identity (fn (x) x))
 
+  ;; Returns the docstring of a function/macro defined with a
+  ;; Clojure-style docstring (see defn), or nil when it has none.
+  (def doc (fn [f]
+    (if (meta f)
+      (get (meta f) :doc)
+      nil)))
+
   ;; Generate a hopefully unique symbol. See section "Plugging the Leaks"
   ;; of http://www.gigamonkeys.com/book/macros-defining-your-own.html
   (def gensym

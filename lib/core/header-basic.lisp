@@ -17,6 +17,16 @@
                         (throw "odd number of forms to cond"))
                     (cons 'cond (rest (rest xs)))))))
 
-    (defmacro defn (fn [name params & body]
-        `(def ~name
-            (fn ~params ~@body)))))
+    ;; (defn name [params] body...)
+    ;; (defn name "docstring" [params] body...)   ; Clojure-style
+    ;; A leading string between the name and the parameter vector is a
+    ;; docstring, stored as {:doc "..."} metadata on the function (read
+    ;; it with (meta f), (doc name), tooling, etc.).
+    (defmacro defn (fn [name & fdecl]
+        (if (string? (first fdecl))
+            `(def ~name
+                (with-meta
+                    (fn ~(first (rest fdecl)) ~@(rest (rest fdecl)))
+                    (hash-map :doc ~(first fdecl))))
+            `(def ~name
+                (fn ~(first fdecl) ~@(rest fdecl)))))))

@@ -357,6 +357,32 @@ func (s *Server) handleSignatureHelp(req *requestMessage) {
 	})
 }
 
+// hoverBody renders a hover: a lisp code block with the signature,
+// followed by an optional markdown body (docstring, source file, …).
+func hoverBody(code, body string) string {
+	out := "```lisp\n" + code + "\n```"
+	if body != "" {
+		out += "\n" + body
+	}
+	return out
+}
+
+// malFuncDoc returns the Clojure-style docstring stored as {:doc "…"}
+// metadata on a lisp-defined function/macro (see defn), or "" when it
+// has none. Keywords are stored with the "ʞ" prefix by the reader.
+func malFuncDoc(fn types.MalFunc) string {
+	hm, ok := fn.Meta.(types.HashMap)
+	if !ok {
+		return ""
+	}
+	if v, ok := hm.Val["ʞdoc"]; ok {
+		if s, ok := v.(string); ok {
+			return s
+		}
+	}
+	return ""
+}
+
 // paramsFor returns the printed parameter vector for a symbol used as a
 // call head. It looks first at document-local definitions, then those
 // imported through require, then the interpreter environment: any
@@ -497,12 +523,12 @@ func (s *Server) handleHover(req *requestMessage) {
 		return
 	}
 
-	// Document-local definition wins: show its header.
+	// Document-local definition wins: show its header (and docstring).
 	for _, d := range doc.analysis.defs {
 		if d.name == sym {
 			s.respond(req, Hover{Contents: MarkupContent{
 				Kind:  "markdown",
-				Value: "```lisp\n" + definitionDetail(d) + "\n```",
+				Value: hoverBody(definitionDetail(d), d.doc),
 			}})
 			return
 		}
@@ -512,9 +538,13 @@ func (s *Server) handleHover(req *requestMessage) {
 	// source file as context.
 	for _, d := range doc.external {
 		if d.name == sym {
+			context := filepath.Base(d.path)
+			if d.doc != "" {
+				context = d.doc + "\n\n" + context
+			}
 			s.respond(req, Hover{Contents: MarkupContent{
 				Kind:  "markdown",
-				Value: "```lisp\n" + definitionDetail(d.definition) + "\n```\n" + filepath.Base(d.path),
+				Value: hoverBody(definitionDetail(d.definition), context),
 			}})
 			return
 		}
@@ -526,12 +556,16 @@ func (s *Server) handleHover(req *requestMessage) {
 	if s.env != nil {
 		if v, err := s.env.Get(types.Symbol{Val: sym}); err == nil {
 			header := sym
+			detail := envValueDetail(v)
 			if fn, ok := v.(types.MalFunc); ok && fn.Params != nil {
 				header = "(" + sym + " " + strings.Join(splitParams(printer.Pr_str(fn.Params, true)), " ") + ")"
+				if d := malFuncDoc(fn); d != "" {
+					detail = d
+				}
 			}
 			s.respond(req, Hover{Contents: MarkupContent{
 				Kind:  "markdown",
-				Value: fmt.Sprintf("```lisp\n%s\n```\n%s", header, envValueDetail(v)),
+				Value: fmt.Sprintf("```lisp\n%s\n```\n%s", header, detail),
 			}})
 			return
 		}

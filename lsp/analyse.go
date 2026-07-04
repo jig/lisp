@@ -15,6 +15,7 @@ type definition struct {
 	name    string
 	kind    string          // "def" | "defn" | "defmacro"
 	params  string          // pr_str of the parameter vector for defn/defmacro
+	doc     string          // Clojure-style docstring, if present
 	namePos *types.Position // position of the name symbol
 	formPos *types.Position // position of the whole form
 }
@@ -322,9 +323,23 @@ func definitionOf(form types.MalType) (definition, bool) {
 		namePos: name.Cursor,
 		formPos: list.Cursor,
 	}
-	if head.Val != "def" && len(list.Val) >= 3 {
-		if params, ok := list.Val[2].(types.Vector); ok {
-			d.params = printer.Pr_str(params, true)
+	if head.Val != "def" {
+		// (defn name [params] …) or, Clojure-style,
+		// (defn name "docstring" [params] …): a leading string before
+		// the parameter vector is the docstring.
+		rest := list.Val[2:]
+		if len(rest) >= 2 {
+			if s, ok := rest[0].(string); ok {
+				if _, isVec := rest[1].(types.Vector); isVec {
+					d.doc = s
+					rest = rest[1:]
+				}
+			}
+		}
+		if len(rest) >= 1 {
+			if params, ok := rest[0].(types.Vector); ok {
+				d.params = printer.Pr_str(params, true)
+			}
 		}
 	}
 	return d, true

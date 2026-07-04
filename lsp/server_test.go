@@ -769,3 +769,60 @@ func TestServer_SignatureHelpBuiltin(t *testing.T) {
 		t.Errorf("expected null for pure Go builtin +, got %v", resp["result"])
 	}
 }
+
+// TestServer_HoverDocstring verifies that a defn docstring (Clojure
+// style, stored as {:doc …} metadata) surfaces in hover for a symbol
+// resolved from the interpreter environment.
+func TestServer_HoverDocstring(t *testing.T) {
+	client, server, closer := pair()
+	ns := testEnv(t)
+	// Define a documented function in the environment the server reads.
+	if _, err := lisp.REPL(context.Background(), ns,
+		`(defn greet "Greets a name warmly." [name] name)`,
+		types.NewCursorFile("preamble")); err != nil {
+		t.Fatalf("defn: %v", err)
+	}
+	srv := NewServer(server, ns)
+	stop := runServer(t, srv, closer)
+	defer stop()
+
+	send(t, client, 1, "initialize", map[string]interface{}{})
+	readUntil(t, client, response(1))
+	send(t, client, 0, "initialized", map[string]interface{}{})
+
+	uri := "file:///doc.lisp"
+	// area is documented and defined in the document itself; greet in
+	// the environment. Both hovers must carry params + docstring.
+	didOpen(t, client, uri,
+		"(defn area \"Rectangle area.\" [w h] (* w h))\n"+
+			"(area 2 3)\n"+
+			"(greet \"world\")\n")
+
+	hover := func(seq, line, char int) string {
+		send(t, client, seq, "textDocument/hover", TextDocumentPositionParams{
+			TextDocument: TextDocumentIdentifier{URI: uri},
+			Position:     Position{Line: line, Character: char},
+		})
+		resp := readUntil(t, client, response(seq))
+		return resp["result"].(map[string]interface{})["contents"].(map[string]interface{})["value"].(string)
+	}
+
+	// document-local documented defn (exercises definitionOf docstring
+	// parsing: params must not be shifted by the docstring)
+	local := hover(2, 1, 2)
+	if !strings.Contains(local, "(defn area [w h])") {
+		t.Errorf("expected local arglist with params, got %q", local)
+	}
+	if !strings.Contains(local, "Rectangle area.") {
+		t.Errorf("expected local docstring, got %q", local)
+	}
+
+	// environment function
+	fromEnv := hover(3, 2, 2)
+	if !strings.Contains(fromEnv, "(greet name)") {
+		t.Errorf("expected env arglist, got %q", fromEnv)
+	}
+	if !strings.Contains(fromEnv, "Greets a name warmly.") {
+		t.Errorf("expected env docstring, got %q", fromEnv)
+	}
+}

@@ -118,6 +118,7 @@ go test -benchmem -benchtime 5s -bench '^.+$' github.com/jig/lisp
 - `go-error`, `unwrap` and `panic` mapping to Go's `errors.New/fmt.Errorf`, `Unwrap` and `panic` respectively
 - `getenv`, `setenv` and `unsetenv` functions for environment variables
 - `defn`, `wait` macros added (see [./tests/stepN_defn.mal.go](./tests/stepN_defn.mal) for an example of `defn` and `wait` macro usage, or go to Clojure documentation)
+- Clojure-style docstrings: `(defn name "docstring" [params] body…)` stores `{:doc "…"}` metadata on the function, readable with `(doc name)`, `(meta f)`, and surfaced by the LSP hover. Backwards compatible — a leading string is a docstring only when a parameter vector follows it
 - `partial` function added (see [./tests/stepN_defn.mal.go](./tests/stepN_defn.mal) for an example of `partial` usage, or go to Clojure documentation)
 
 
