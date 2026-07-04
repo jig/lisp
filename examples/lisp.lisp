@@ -270,5 +270,9 @@
 
 ;; main
 (if (empty? *ARGV*)
-  (repl-loop "(println (str \"jig/lisp [\" *host-language* \"]\"))")
+  (do
+    ;; Print the banner once, directly, so its nil return value is not
+    ;; echoed the way repl-loop would echo every evaluated line.
+    (println (str "jig/lisp [" *host-language* "-jig-lisp]"))
+    (repl-loop (readline "lisp-user> ")))
   (rep (str "(load-file \"" (first *ARGV*) "\")")))
