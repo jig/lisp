@@ -111,6 +111,16 @@ var specialForms = map[string]bool{
 	"fn": true, "unquote": true, "splice-unquote": true, "context": true,
 }
 
+// tail returns vals[n:], or an empty slice when n is past the end.
+// Documents under edit routinely contain incomplete forms (a bare
+// `(fn`, `(let`, …), so slicing must never assume a minimum length.
+func tail(vals []types.MalType, n int) []types.MalType {
+	if n >= len(vals) {
+		return nil
+	}
+	return vals[n:]
+}
+
 // scan walks a form collecting call-head symbol references and every
 // name bound anywhere (def/defn/defmacro names, fn/defn parameters,
 // let bindings, catch variables). Bindings are collected document-wide
@@ -155,14 +165,14 @@ func (a *analysis) scan(form types.MalType) {
 		if head.Val != "def" && len(list.Val) >= 3 {
 			a.bindAll(list.Val[2])
 		}
-		for _, c := range list.Val[2:] {
+		for _, c := range tail(list.Val, 2) {
 			a.scan(c)
 		}
 	case "fn":
 		if len(list.Val) >= 2 {
 			a.bindAll(list.Val[1])
 		}
-		for _, c := range list.Val[2:] {
+		for _, c := range tail(list.Val, 2) {
 			a.scan(c)
 		}
 	case "let":
@@ -179,14 +189,14 @@ func (a *analysis) scan(form types.MalType) {
 				a.scan(binds[i+1])
 			}
 		}
-		for _, c := range list.Val[2:] {
+		for _, c := range tail(list.Val, 2) {
 			a.scan(c)
 		}
 	case "catch":
 		if len(list.Val) >= 2 {
 			a.bindAll(list.Val[1])
 		}
-		for _, c := range list.Val[2:] {
+		for _, c := range tail(list.Val, 2) {
 			a.scan(c)
 		}
 	case "require":
@@ -197,7 +207,7 @@ func (a *analysis) scan(form types.MalType) {
 		if len(list.Val) >= 2 {
 			if mod, ok := list.Val[1].(string); ok {
 				ref := requireRef{module: mod, headPos: head.Cursor}
-				opts := list.Val[2:]
+				opts := tail(list.Val, 2)
 				for i := 0; i+1 < len(opts); i += 2 {
 					key, ok := opts[i].(string)
 					if !ok {
@@ -222,14 +232,14 @@ func (a *analysis) scan(form types.MalType) {
 			}
 		}
 		a.calls = append(a.calls, symbolRef{name: head.Val, pos: head.Cursor})
-		for _, c := range list.Val[1:] {
+		for _, c := range tail(list.Val, 1) {
 			a.scan(c)
 		}
 	default:
 		if !specialForms[head.Val] {
 			a.calls = append(a.calls, symbolRef{name: head.Val, pos: head.Cursor})
 		}
-		for _, c := range list.Val[1:] {
+		for _, c := range tail(list.Val, 1) {
 			a.scan(c)
 		}
 	}
