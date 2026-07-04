@@ -128,9 +128,10 @@ Item-specific notes:
 
 ## Suggested order
 
-1. `LISPPATH` (minutes, immediate quality of life)
-2. Module change watching + signature help (small, round out the LSP)
-3. Find references → rename (the navigation pair)
-4. Conditional breakpoints / logpoints (debugger power)
-5. Exception breakpoints (first invasive one; plan the EVAL hook point)
-6. Multi-thread futures (schedule real time for it)
+All three quick wins above are done (LISPPATH, module-change watching,
+signature help). Remaining, in order:
+
+1. Find references → rename (the navigation pair)
+2. Conditional breakpoints / logpoints (debugger power)
+3. Exception breakpoints (first invasive one; plan the EVAL hook point)
+4. Multi-thread futures (schedule real time for it)
