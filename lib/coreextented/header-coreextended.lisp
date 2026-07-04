@@ -1,105 +1,117 @@
 (do
 ;;; Trivial
-  ;; prerequisites
   ;; Trivial but convenient functions.
 
-  ;; Integer predecessor (number -> number)
-  (def inc (fn [a] (+ a 1)))
+  (defn inc
+    "Returns a + 1 (integer successor)."
+    [a]
+    (+ a 1))
 
-  ;; Integer predecessor (number -> number)
-  (def dec (fn (a) (- a 1)))
+  (defn dec
+    "Returns a - 1 (integer predecessor)."
+    [a]
+    (- a 1))
 
-  ;; Integer nullity test (number -> boolean)
-  (def zero? (fn (n) (= 0 n)))
+  (defn zero?
+    "Whether n equals 0."
+    [n]
+    (= 0 n))
 
-  ;; Returns the unchanged argument.
-  (def identity (fn (x) x))
+  (defn identity
+    "Returns its argument unchanged."
+    [x]
+    x)
 
   ;; Generate a hopefully unique symbol. See section "Plugging the Leaks"
   ;; of http://www.gigamonkeys.com/book/macros-defining-your-own.html
   (def gensym
-    (let [counter (atom 0)]
-      (fn []
-        (symbol (str "G__" (swap! counter inc))))))
+    (with-meta
+      (let [counter (atom 0)]
+        (fn []
+          (symbol (str "G__" (swap! counter inc)))))
+      {:doc "Returns a fresh, hopefully-unique symbol like G__N."}))
 
 ;;; Benchmark
   ;; An alternative approach, to complement perf.mal
   ;; requires Trivial
 
-  (def benchmark* (fn [f n results]
+  (defn benchmark*
+    "Runs f n times, collecting the elapsed milliseconds of each run (helper for benchmark)."
+    [f n results]
     (if (< 0 n)
       (let [start-ms (time-ms)
             _ (f)
             end-ms (time-ms)]
         (benchmark* f (- n 1) (conj results (- end-ms start-ms))))
-      results)))
+      results))
 
-  (defmacro benchmark (fn [expr n]
-    `(benchmark* (fn [] ~expr) ~n [])))
+  (defmacro benchmark
+    (with-meta
+      (fn [expr n]
+        `(benchmark* (fn [] ~expr) ~n []))
+      {:doc "Evaluates expr n times, returning a vector with the elapsed milliseconds of each run."}))
 
 ;;; Reducers
   ;; Left and right folds.
 
-  ;; Left fold (f (.. (f (f init x1) x2) ..) xn)
-  (def reduce
-    (fn (f init xs)
-      ;; f      : Accumulator Element -> Accumulator
-      ;; init   : Accumulator
-      ;; xs     : sequence of Elements x1 x2 .. xn
-      ;; return : Accumulator
-      (if (empty? xs)
-        init
-        (reduce f (f init (first xs)) (rest xs)))))
+  (defn reduce
+    "Left fold: (f (.. (f (f init x1) x2) ..) xn) over the elements of xs."
+    [f init xs]
+    ;; f      : Accumulator Element -> Accumulator
+    ;; init   : Accumulator
+    ;; xs     : sequence of Elements x1 x2 .. xn
+    ;; return : Accumulator
+    (if (empty? xs)
+      init
+      (reduce f (f init (first xs)) (rest xs))))
 
-  ;; Left fold for maps (f (.. (f (f init x1) x2) ..) xn)
-  (def reduce-kv
-    (fn [f init xs]
+  (defn reduce-kv
+    "Left fold over a sequence of key/value pairs: applies (f acc k v) across xs."
+    [f init xs]
     ;; f      : Accumulator Element -> Accumulator
     ;; init   : Accumulator
     ;; xs     : sequence of key-value pairs k1-v1 k2-v2...
     ;; return : Accumulator
     (if (empty? xs)
       init
-      (reduce-kv f (f init (nth xs 0) (nth xs 1)) (rest (rest xs))))))
+      (reduce-kv f (f init (nth xs 0) (nth xs 1)) (rest (rest xs)))))
 
-  ;; Right fold (f x1 (f x2 (.. (f xn init)) ..))
   ;; The natural implementation for 'foldr' is not tail-recursive, and
   ;; the one based on 'reduce' constructs many intermediate functions, so we
   ;; rely on efficient 'nth' and 'count'.
   (def foldr
-    (let [
-      rec (fn [f xs acc index]
-        (if (< index 0)
-          acc
-          (rec f xs (f (nth xs index) acc) (- index 1))))
-      ]
-
-      (fn [f init xs]
-        ;; f      : Element Accumulator -> Accumulator
-        ;; init   : Accumulator
-        ;; xs     : sequence of Elements x1 x2 .. xn
-        ;; return : Accumulator
-        (rec f xs init (- (count xs) 1)))))
+    (with-meta
+      (let [
+        rec (fn [f xs acc index]
+          (if (< index 0)
+            acc
+            (rec f xs (f (nth xs index) acc) (- index 1))))
+        ]
+        (fn [f init xs]
+          ;; f      : Element Accumulator -> Accumulator
+          ;; init   : Accumulator
+          ;; xs     : sequence of Elements x1 x2 .. xn
+          ;; return : Accumulator
+          (rec f xs init (- (count xs) 1))))
+      {:doc "Right fold: (f x1 (f x2 (.. (f xn init)))) over the elements of xs."}))
 
 ;;; Partial Application
   ;; Partial application of functions.
 
-  ;; Takes a function f and fewer than the normal arguments to f, and
-  ;; returns a fn that takes a variable number of additional args. When
-  ;; called, the returned function calls f with args + additional args.
-  (def partial
-    (fn [f & args]
-      (fn [& more-args]
-        (apply f (concat args more-args)))))
+  (defn partial
+    "Returns a function that calls f with the given args plus any it is later called with."
+    [f & args]
+    (fn [& more-args]
+      (apply f (concat args more-args))))
 
 ;;; Control Flow Macros
   ;; Convenient control flow macros.
 
-  ;; Evaluates condition. If true, evaluates all the body forms in an implicit
-  ;; do block and returns the result. Otherwise returns nil.
   (defmacro when
-    (fn [condition & body]
-      `(if ~condition (do ~@body))))
+    (with-meta
+      (fn [condition & body]
+        `(if ~condition (do ~@body)))
+      {:doc "Evaluates body in an implicit do when condition is truthy; otherwise nil."}))
 
 ;;; Threading
   ;; Composition of partially applied functions.
@@ -110,14 +122,17 @@
   ;; replace it with a list with one element, so that "-> x a" is
   ;; equivalent to "-> x (list a)".
   (defmacro ->
-    (fn (x & xs)
-      (reduce _iter-> x xs)))
+    (with-meta
+      (fn [x & xs]
+        (reduce _iter-> x xs))
+      {:doc "Thread-first: inserts each stage's result as the first argument of the next form."}))
 
-  (def _iter->
-    (fn [acc form]
-      (if (list? form)
-        `(~(first form) ~acc ~@(rest form))
-        (list form acc))))
+  (defn _iter->
+    "Threading helper for ->."
+    [acc form]
+    (if (list? form)
+      `(~(first form) ~acc ~@(rest form))
+      (list form acc)))
 
   ;; Like "->", but the arguments describe functions that are partially
   ;; applied with *left* arguments.  The previous result is inserted at
@@ -125,14 +140,17 @@
   ;; Rewrite x ((a a1 a2) .. (b b1 b2)) as
   ;;   (b b1 b2 (.. (a a1 a2 x) ..)).
   (defmacro ->>
-    (fn (x & xs)
-      (reduce _iter->> x xs)))
+    (with-meta
+      (fn [x & xs]
+        (reduce _iter->> x xs))
+      {:doc "Thread-last: inserts each stage's result as the last argument of the next form."}))
 
-  (def _iter->>
-    (fn [acc form]
-      (if (list? form)
-        `(~(first form) ~@(rest form) ~acc)
-        (list form acc))))
+  (defn _iter->>
+    "Threading helper for ->>."
+    [acc form]
+    (if (list? form)
+      `(~(first form) ~@(rest form) ~acc)
+      (list form acc)))
 
 ;;; Equality
   ;;;; This file checks whether the "=" function correctly implements equality of
@@ -214,127 +232,119 @@
 
 
 ;;; Memoize
-  ;; Memoize any function.
-
-  ;; Implement "memoize" using an atom ("mem") which holds the memoized results
-  ;; (hash-map from the arguments to the result). When the function is called,
-  ;; the hash-map is checked to see if the result for the given argument was already
-  ;; calculated and stored. If this is the case, it is returned immediately;
-  ;; otherwise, it is calculated and stored in "mem".
-
   ;; For recursive functions, take care to store the wrapper under the
   ;; same name than the original computation with an assignment like
   ;; "(def f (memoize f))", so that intermediate results are memorized.
-
   ;; Adapted from http://clojure.org/atoms
-
-  (def memoize
-    (fn [f]
-      (let [mem (atom {})]
-        (fn [& args]
-          (let [key (str args)]
-            (if (contains? @mem key)
-              (get @mem key)
-              (let [ret (apply f args)]
-                (do
-                  (swap! mem assoc key ret)
-                  ret))))))))
+  (defn memoize
+    "Returns a caching version of f: results are stored by argument and reused."
+    [f]
+    (let [mem (atom {})]
+      (fn [& args]
+        (let [key (str args)]
+          (if (contains? @mem key)
+            (get @mem key)
+            (let [ret (apply f args)]
+              (do
+                (swap! mem assoc key ret)
+                ret)))))))
 
 ;;; Performance
   ;; Mesure performances.
   ;; requires trivial package
 
-  ;; Evaluate an expression, but report the time spent
   (defmacro time
-    (fn (exp)
-      (let [start (gensym)
-            ret   (gensym)]
-        `(let (~start (time-ms)
-                ~ret   ~exp)
-          (do
-            (println "Elapsed time:" (- (time-ms) ~start) "msecs")
-            ~ret)))))
+    (with-meta
+      (fn [exp]
+        (let [start (gensym)
+              ret   (gensym)]
+          `(let (~start (time-ms)
+                  ~ret   ~exp)
+            (do
+              (println "Elapsed time:" (- (time-ms) ~start) "msecs")
+              ~ret))))
+      {:doc "Evaluates exp, prints the elapsed time, and returns its value."}))
 
   ;; Count evaluations of a function during a given time frame.
   (def run-fn-for
+    (with-meta
+      (let [
+        run-fn-for* (fn [fn max-ms acc-ms last-iters]
+          (let [start (time-ms)
+                _ (fn)
+                elapsed (- (time-ms) start)
+                iters (inc last-iters)
+                new-acc-ms (+ acc-ms elapsed)]
+            (if (>= new-acc-ms max-ms)
+              last-iters
+              (run-fn-for* fn max-ms new-acc-ms iters))))
+        ]
 
-    (let [
-      run-fn-for* (fn [fn max-ms acc-ms last-iters]
-        (let [start (time-ms)
-              _ (fn)
-              elapsed (- (time-ms) start)
-              iters (inc last-iters)
-              new-acc-ms (+ acc-ms elapsed)]
-          ;; (do (prn "new-acc-ms:" new-acc-ms "iters:" iters))
-          (if (>= new-acc-ms max-ms)
-            last-iters
-            (run-fn-for* fn max-ms new-acc-ms iters))))
-      ]
-
-      (fn [fn max-secs]
-        ;; fn       : function without parameters
-        ;; max-secs : number (seconds)
-        ;; return   : number (iterations)
-        (do
-          ;; Warm it up first
-          (run-fn-for* fn 1000 0 0)
-          ;; Now do the test
-          (run-fn-for* fn (* 1000 max-secs) 0 0)))))
+        (fn [fn max-secs]
+          ;; fn       : function without parameters
+          ;; max-secs : number (seconds)
+          ;; return   : number (iterations)
+          (do
+            ;; Warm it up first
+            (run-fn-for* fn 1000 0 0)
+            ;; Now do the test
+            (run-fn-for* fn (* 1000 max-secs) 0 0))))
+      {:doc "Returns how many times the no-arg function fn runs in max-secs seconds (after a warm-up)."}))
 
 ;;; Pretty Print
-;; Pretty printer a MAL object.
   (def pprint
+    (with-meta
+      (let [
 
-    (let [
+        spaces- (fn [indent]
+          (if (> indent 0)
+            (str " " (spaces- (- indent 1)))
+            ""))
 
-      spaces- (fn [indent]
-        (if (> indent 0)
-          (str " " (spaces- (- indent 1)))
-          ""))
+        pp-seq- (fn [obj indent]
+          (let [xindent (+ 1 indent)]
+            (apply str (pp- (first obj) 0)
+                      (map (fn [x] (str "\n" (spaces- xindent)
+                                          (pp- x xindent)))
+                            (rest obj)))))
 
-      pp-seq- (fn [obj indent]
-        (let [xindent (+ 1 indent)]
-          (apply str (pp- (first obj) 0)
-                    (map (fn [x] (str "\n" (spaces- xindent)
-                                        (pp- x xindent)))
-                          (rest obj)))))
+        pp-map- (fn [obj indent]
+          (let [ks (keys obj)
+                kindent (+ 1 indent)
+                kwidth (count (seq (str (first ks))))
+                vindent (+ 1 (+ kwidth kindent))]
+            (apply str (pp- (first ks) 0)
+                      " "
+                      (pp- (get obj (first ks)) 0)
+                      (map (fn [k] (str "\n" (spaces- kindent)
+                                          (pp- k kindent)
+                                          " "
+                                          (pp- (get obj k) vindent)))
+                            (rest ks)))))
 
-      pp-map- (fn [obj indent]
-        (let [ks (keys obj)
-              kindent (+ 1 indent)
-              kwidth (count (seq (str (first ks))))
-              vindent (+ 1 (+ kwidth kindent))]
-          (apply str (pp- (first ks) 0)
-                    " "
-                    (pp- (get obj (first ks)) 0)
-                    (map (fn [k] (str "\n" (spaces- kindent)
-                                        (pp- k kindent)
-                                        " "
-                                        (pp- (get obj k) vindent)))
-                          (rest ks)))))
+        pp- (fn [obj indent]
+          (cond
+            (list? obj)   (str "(" (pp-seq- obj indent) ")")
+            (vector? obj) (str "[" (pp-seq- obj indent) "]")
+            (map? obj)    (str "{" (pp-map- obj indent) "}")
+            :else         (pr-str obj)))
 
-      pp- (fn [obj indent]
-        (cond
-          (list? obj)   (str "(" (pp-seq- obj indent) ")")
-          (vector? obj) (str "[" (pp-seq- obj indent) "]")
-          (map? obj)    (str "{" (pp-map- obj indent) "}")
-          :else         (pr-str obj)))
+        ]
 
-      ]
-
-      (fn [obj]
-          (println (pp- obj 0)))))
+        (fn [obj]
+            (println (pp- obj 0))))
+      {:doc "Pretty-prints a lisp value with indentation."}))
 
 ;;; Protocols
   ;; A sketch of Clojure-like protocols, implemented in Mal
-
   ;; By chouser (Chris Houser)
   ;; Original: https://gist.github.com/Chouser/6081ea66d144d13e56fc
 
-  ;; This function maps a MAL value to a keyword representing its type.
   ;; Most applications will override the default with an explicit value
   ;; for the ":type" key in the metadata.
-  (def find-type (fn [obj]
+  (defn find-type
+    "Returns a keyword naming obj's type (overridable via :type metadata)."
+    [obj]
     (cond
       (symbol?  obj) :mal/symbol
       (keyword? obj) :mal/keyword
@@ -354,7 +364,7 @@
           (vector? obj)   :mal/vector
           (map?    obj)   :mal/map
           (fn?     obj)   :mal/function
-          true            (throw "unknown MAL value in protocols"))))))
+          true            (throw "unknown MAL value in protocols")))))
 
   ;; A protocol (abstract class, interface..) is represented by a symbol.
   ;; It describes methods (abstract functions, contracts, signals..).
@@ -372,32 +382,35 @@
   ;;   (def method2 (fn [this argument]) ..)
   ;;   (def protocol ..)
   ;; The return value is the new protocol.
-  (defmacro defprotocol (fn [proto-name & methods]
-    ;; A protocol is an atom mapping a type extending the protocol to
-    ;; another map from method names as keywords to implementations.
-    (let [
-      drop2 (fn [args]
-        (if (= 2 (count args))
-          ()
-          (cons (first args) (drop2 (rest args)))))
-      rewrite (fn [method]
+  (defmacro defprotocol
+    (with-meta
+      (fn [proto-name & methods]
+        ;; A protocol is an atom mapping a type extending the protocol to
+        ;; another map from method names as keywords to implementations.
         (let [
-          name     (first method)
-          args     (nth method 1)
-          argc     (count args)
-          varargs? (if (<= 2 argc) (= '& (nth args (- argc 2))))
-          dispatch `(get (get @~proto-name
-                              (find-type ~(first args)))
-                        ~(keyword (str name)))
-          body     (if varargs?
-            `(apply ~dispatch ~@(drop2 args) ~(nth args (- argc 1)))
-                    (cons dispatch args))
+          drop2 (fn [args]
+            (if (= 2 (count args))
+              ()
+              (cons (first args) (drop2 (rest args)))))
+          rewrite (fn [method]
+            (let [
+              name     (first method)
+              args     (nth method 1)
+              argc     (count args)
+              varargs? (if (<= 2 argc) (= '& (nth args (- argc 2))))
+              dispatch `(get (get @~proto-name
+                                  (find-type ~(first args)))
+                            ~(keyword (str name)))
+              body     (if varargs?
+                `(apply ~dispatch ~@(drop2 args) ~(nth args (- argc 1)))
+                        (cons dispatch args))
+              ]
+              (list 'def name (list 'fn args body))))
           ]
-          (list 'def name (list 'fn args body))))
-      ]
-        `(do
-        ~@(map rewrite methods)
-        (def ~proto-name (atom {}))))))
+            `(do
+            ~@(map rewrite methods)
+            (def ~proto-name (atom {})))))
+      {:doc "Defines a protocol proto-name and its methods, dispatching on the argument's type."}))
 
   ;; A type (concrete class..) extends (is a subclass of, implements..)
   ;; a protocol when it provides implementations for the required methods.
@@ -406,103 +419,85 @@
   ;;     :method2 (fn [this arg1 arg2])})
   ;; Additionnal protocol/methods pairs are equivalent to successive
   ;; calls with the same type.
-  ;; The return value is "nil".
-  (def extend (fn [type proto methods & more]
+  (defn extend
+    "Registers a type's method implementations for a protocol (return value is nil)."
+    [type proto methods & more]
     (do
       (swap! proto assoc type methods)
       (if (first more)
-        (apply extend type more)))))
+        (apply extend type more))))
 
-  ;; An object satisfies a protocol when its type extends the protocol,
-  ;; that is if the required methods can be applied to the object.
-  (def satisfies? (fn [protocol obj]
-    (contains? @protocol (find-type obj))))
-  ;; If "(satisfies protocol obj)" with the protocol below
-  ;; then "(method1 obj)" and "(method2 obj 1 2)"
-  ;; dispatch to the concrete implementation provided by the exact type.
-  ;; Should the type evolve, the calling code needs not change.
+  (defn satisfies?
+    "Whether obj's type has been extended to protocol."
+    [protocol obj]
+    (contains? @protocol (find-type obj)))
 
 ;;; Test Cascade
   ;; Iteration on evaluations interpreted as boolean values.
-
-  ;; "(cond test1 result1 test2 result2 .. testn resultn)"
-  ;; is rewritten (in the step files) as
-  ;; "(if test1 result1 (if test2 result2 (.. (if testn resultn nil))))"
-  ;; It is common that "testn" is ""else"", ":else", "true" or similar.
 
   ;; "(or x1 x2 .. xn x)"
   ;; is almost rewritten as
   ;; "(if x1 x1 (if x2 x2 (.. (if xn xn x))))"
   ;; except that each argument is evaluated at most once.
   ;; Without arguments, returns "nil".
-  (defmacro or (fn [& xs]
-    (if (< (count xs) 2)
-      (first xs)
-      (let [r (gensym)]
-        `(let (~r ~(first xs)) (if ~r ~r (or ~@(rest xs))))))))
+  (defmacro or
+    (with-meta
+      (fn [& xs]
+        (if (< (count xs) 2)
+          (first xs)
+          (let [r (gensym)]
+            `(let (~r ~(first xs)) (if ~r ~r (or ~@(rest xs)))))))
+      {:doc "Evaluates its arguments in order, returning the first truthy one, or nil."}))
 
-  ;; Conjonction of predicate values (pred x1) and .. and (pred xn)
-  ;; Evaluate "pred x" for each "x" in turn. Return "false" if a result
-  ;; is "nil" or "false", without evaluating the predicate for the
-  ;; remaining elements.  If all test pass, return "true".
-  (def every?
-    (fn (pred xs)
-      ;; pred   : Element -> interpreted as a logical value
-      ;; xs     : sequence of Elements x1 x2 .. xn
-      ;; return : boolean
-      (cond (empty? xs)       true
-            (pred (first xs)) (every? pred (rest xs))
-            true              false)))
+  (defn every?
+    "Whether (pred x) is truthy for every x in xs."
+    [pred xs]
+    ;; pred   : Element -> interpreted as a logical value
+    ;; xs     : sequence of Elements x1 x2 .. xn
+    ;; return : boolean
+    (cond (empty? xs)       true
+          (pred (first xs)) (every? pred (rest xs))
+          true              false))
 
-  ;; Disjonction of predicate values (pred x1) or .. (pred xn)
-  ;; Evaluate "(pred x)" for each "x" in turn. Return the first result
-  ;; that is neither "nil" nor "false", without evaluating the predicate
-  ;; for the remaining elements.  If all tests fail, return nil.
-  (def some
-    (fn (pred xs)
-      ;; pred   : Element -> interpreted as a logical value
-      ;; xs     : sequence of Elements x1 x2 .. xn
-      ;; return : boolean
-      (if (empty? xs)
-        nil
-        (or (pred (first xs))
-            (some pred (rest xs))))))
+  (defn some
+    "Returns the first truthy (pred x) over xs, or nil."
+    [pred xs]
+    ;; pred   : Element -> interpreted as a logical value
+    ;; xs     : sequence of Elements x1 x2 .. xn
+    ;; return : the first truthy result, or nil
+    (if (empty? xs)
+      nil
+      (or (pred (first xs))
+          (some pred (rest xs)))))
 
-  ;; Search for first evaluation returning "nil" or "false".
-  ;; Rewrite "x1 x2 .. xn x" as
-  ;;   (let [r1 x1]
-  ;;     (if r1 test1
-  ;;       (let [r2 x2]
-  ;;         ..
-  ;;         (if rn
-  ;;           x
-  ;;           rn) ..)
-  ;;       r1))
+  ;; "x1 x2 .. xn x" is rewritten so each argument is evaluated at most
+  ;; once and evaluation stops at the first nil/false.
   ;; Without arguments, returns "true".
   (defmacro and
-    (fn (& xs)
-      ;; Arguments and the result are interpreted as boolean values.
-      (cond (empty? xs)      true
-            (= 1 (count xs)) (first xs)
-            true             (let (condvar (gensym))
-                              `(let (~condvar ~(first xs))
-                                (if ~condvar (and ~@(rest xs)) ~condvar))))))
+    (with-meta
+      (fn [& xs]
+        ;; Arguments and the result are interpreted as boolean values.
+        (cond (empty? xs)      true
+              (= 1 (count xs)) (first xs)
+              true             (let (condvar (gensym))
+                                `(let (~condvar ~(first xs))
+                                  (if ~condvar (and ~@(rest xs)) ~condvar)))))
+      {:doc "Evaluates its arguments in order, returning the first falsey one, or the last (true with none)."}))
 
 ;;; Load File Once
-  ;; Like load-file, but will never load the same path twice.
-
   ;; This file is normally loaded with "load-file", so it needs a
   ;; different mechanism to neutralize multiple inclusions of
   ;; itself. Moreover, the file list should never be reset.
-
   (def load-file-once
-    (try
-      load-file-once
-    (catch _
-      (let [seen (atom {"../lib/load-file-once.mal" nil})]
-        (fn [filename]
-          (if (not (contains? @seen filename))
-            (do
-              (swap! seen assoc filename nil)
-              (load-file filename))))))))
+    (with-meta
+      (try
+        load-file-once
+      (catch _
+        (let [seen (atom {"../lib/load-file-once.mal" nil})]
+          (fn [filename]
+            (if (not (contains? @seen filename))
+              (do
+                (swap! seen assoc filename nil)
+                (load-file filename)))))))
+      {:doc "Like load-file, but never loads the same path twice."}))
 )

@@ -2,7 +2,9 @@
 
 ;; this is a simple code to test the lisp-debugger
 
-(defn sqr [x]
+(defn sqr
+    "Returns the square of a number."
+    [x]
     (* x x))
 
 (do
@@ -58,3 +60,6 @@
 ;; :refer imports the listed names unqualified
 (require "testlib" :refer ["cube"])
 (println (cube 5))
+
+;; lisp defined functions within "ns<namespace>.Load" show doc on hover
+(inc 3)

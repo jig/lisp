@@ -9,7 +9,6 @@ import (
 	"github.com/jig/lisp/lib/concurrent"
 	"github.com/jig/lisp/lib/core"
 	"github.com/jig/lisp/lib/coreextented"
-	"github.com/jig/lisp/lib/coreextented/nscoreextended"
 	"github.com/jig/lisp/types"
 )
 
@@ -21,9 +20,6 @@ func docEnv(t *testing.T) types.EnvType {
 	core.Load(ns)
 	core.LoadInput(ns)
 	concurrent.Load(ns)
-	if err := nscoreextended.Load(ns); err != nil {
-		t.Fatalf("nscoreextended.Load: %v", err)
-	}
 	ns.Set(types.Symbol{Val: "eval"}, types.Func{Fn: func(ctx context.Context, a []types.MalType) (types.MalType, error) {
 		return lisp.EVAL(ctx, a[0], ns)
 	}})
