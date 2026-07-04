@@ -640,3 +640,83 @@ func TestServer_ReanalyseOnWatchedFileChange(t *testing.T) {
 		t.Errorf("expected unknown-symbol warning for mod/helper, got %q", msg)
 	}
 }
+
+// TestServer_SignatureHelp checks the parameter list and active
+// parameter for a call surrounding the cursor: local defn, imported
+// definition, and the top-level (no signature).
+func TestServer_SignatureHelp(t *testing.T) {
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, "mathx.lisp"),
+		[]byte("(defn scale [factor x] (* factor x))\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	client, server, closer := pair()
+	ns := testEnv(t)
+	if err := require.LoadWithConfig(require.Config{IncludeDirs: []string{dir}})(ns); err != nil {
+		t.Fatalf("require.LoadWithConfig: %v", err)
+	}
+	srv := NewServer(server, ns)
+	stop := runServer(t, srv, closer)
+	defer stop()
+
+	send(t, client, 1, "initialize", map[string]interface{}{})
+	resp := readUntil(t, client, response(1))
+	caps := resp["result"].(map[string]interface{})["capabilities"].(map[string]interface{})
+	if _, ok := caps["signatureHelpProvider"]; !ok {
+		t.Fatalf("expected signatureHelpProvider capability, got %v", caps)
+	}
+	send(t, client, 0, "initialized", map[string]interface{}{})
+
+	uri := "file:///sig.lisp"
+	// line 0: local def; line 1: import; line 2: call of local with
+	// cursor between the two args; line 3: call of imported.
+	didOpen(t, client, uri,
+		"(defn add [a b] (+ a b))\n"+ // line 0
+			"(require \"mathx\")\n"+ // line 1
+			"(add 1 )\n"+ // line 2 — cursor at char 7 → 2nd param
+			"(mathx/scale 2 3)\n") // line 3
+
+	sig := func(seq, line, char int) map[string]interface{} {
+		send(t, client, seq, "textDocument/signatureHelp", TextDocumentPositionParams{
+			TextDocument: TextDocumentIdentifier{URI: uri},
+			Position:     Position{Line: line, Character: char},
+		})
+		return readUntil(t, client, response(seq))
+	}
+
+	// inside (add 1 |) → second parameter (index 1)
+	resp = sig(2, 2, 7)
+	res := resp["result"].(map[string]interface{})
+	if got := int(res["activeParameter"].(float64)); got != 1 {
+		t.Errorf("expected activeParameter 1, got %d", got)
+	}
+	label := res["signatures"].([]interface{})[0].(map[string]interface{})["label"].(string)
+	if label != "(add a b)" {
+		t.Errorf("expected label (add a b), got %q", label)
+	}
+
+	// inside (add| 1 ) right after the head, char 4 → first param
+	resp = sig(3, 2, 5)
+	res = resp["result"].(map[string]interface{})
+	if got := int(res["activeParameter"].(float64)); got != 0 {
+		t.Errorf("expected activeParameter 0, got %d", got)
+	}
+
+	// imported: (mathx/scale 2 |3) at char 15 → second param (x)
+	resp = sig(4, 3, 15)
+	res = resp["result"].(map[string]interface{})
+	label = res["signatures"].([]interface{})[0].(map[string]interface{})["label"].(string)
+	if label != "(mathx/scale factor x)" {
+		t.Errorf("expected label (mathx/scale factor x), got %q", label)
+	}
+	if got := int(res["activeParameter"].(float64)); got != 1 {
+		t.Errorf("expected activeParameter 1, got %d", got)
+	}
+
+	// at top level (line 1, char 0) there is no enclosing call → null
+	resp = sig(5, 1, 0)
+	if resp["result"] != nil {
+		t.Errorf("expected null signature at top level, got %v", resp["result"])
+	}
+}

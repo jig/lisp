@@ -230,8 +230,9 @@ LSP (Language Server Protocol) server, both enabled with the
 - **Language server (LSP)**: live parse diagnostics while you type,
   symbol completion (core library plus your `def`/`defn`), hover with
   definition signatures, and the document outline (Ctrl+Shift+O,
-  breadcrumbs). `(require "module")` forms are resolved statically, so
-  definitions from required modules are known to completion, hover,
+  breadcrumbs), signature help while typing a call. `(require
+  "module")` forms are resolved statically, so definitions from
+  required modules are known to completion, hover, signature help,
   go-to-definition (F12) and the unknown-symbol check. Extra module
   search directories for the editor can be set with the
   `lisp.languageServer.includeDirs` setting (the editor equivalent of

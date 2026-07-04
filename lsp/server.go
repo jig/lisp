@@ -100,6 +100,10 @@ func (s *Server) dispatch(req *requestMessage) {
 				HoverProvider:          true,
 				DocumentSymbolProvider: true,
 				DefinitionProvider:     true,
+				SignatureHelpProvider: SignatureHelpOptions{
+					TriggerCharacters:   []string{" ", "("},
+					RetriggerCharacters: []string{" "},
+				},
 			},
 			ServerInfo: ServerInfo{Name: "jig-lisp-lsp"},
 		})
@@ -145,6 +149,8 @@ func (s *Server) dispatch(req *requestMessage) {
 		s.handleDocumentSymbol(req)
 	case "textDocument/definition":
 		s.handleDefinition(req)
+	case "textDocument/signatureHelp":
+		s.handleSignatureHelp(req)
 	case "workspace/didChangeWatchedFiles":
 		// A .lisp file on disk changed (possibly a module required by an
 		// open document, and possibly not open itself). Re-analyse every
@@ -298,6 +304,73 @@ func (s *Server) unknownSymbolDiagnostics(anal *analysis, external []externalDef
 		})
 	}
 	return out
+}
+
+// handleSignatureHelp shows the parameter list of the call surrounding
+// the cursor, highlighting the argument being typed. Parameters are
+// known for user-defined defn/defmacro (document-local or imported via
+// require); builtins carry no parameter metadata and yield no
+// signature.
+func (s *Server) handleSignatureHelp(req *requestMessage) {
+	var p TextDocumentPositionParams
+	if err := json.Unmarshal(req.Params, &p); err != nil {
+		s.respondError(req, codeInvalidParams, err.Error())
+		return
+	}
+	s.mu.Lock()
+	doc := s.docs[p.TextDocument.URI]
+	s.mu.Unlock()
+	if doc == nil {
+		s.respond(req, nil)
+		return
+	}
+	head, activeParam, ok := enclosingCall(doc.content, offsetOf(doc.content, p.Position.Line, p.Position.Character))
+	if !ok {
+		s.respond(req, nil)
+		return
+	}
+
+	params, found := s.paramsFor(doc, head)
+	if !found {
+		s.respond(req, nil)
+		return
+	}
+	labels := splitParams(params)
+	label := "(" + head
+	paramInfos := make([]ParameterInformation, 0, len(labels))
+	for _, name := range labels {
+		label += " " + name
+		paramInfos = append(paramInfos, ParameterInformation{Label: name})
+	}
+	label += ")"
+
+	// Clamp the active index to the last parameter (a `& rest` param
+	// then stays highlighted for every trailing argument).
+	if len(paramInfos) > 0 && activeParam >= len(paramInfos) {
+		activeParam = len(paramInfos) - 1
+	}
+	s.respond(req, SignatureHelp{
+		Signatures:      []SignatureInformation{{Label: label, Parameters: paramInfos}},
+		ActiveSignature: 0,
+		ActiveParameter: activeParam,
+	})
+}
+
+// paramsFor returns the printed parameter vector for a symbol used as a
+// call head — a document-local definition or one imported through
+// require. Returns found=false when no parameter info is available.
+func (s *Server) paramsFor(doc *document, head string) (string, bool) {
+	for _, d := range doc.analysis.defs {
+		if d.name == head && d.kind != "def" {
+			return d.params, d.params != ""
+		}
+	}
+	for _, d := range doc.external {
+		if d.name == head && d.kind != "def" {
+			return d.params, d.params != ""
+		}
+	}
+	return "", false
 }
 
 func (s *Server) handleCompletion(req *requestMessage) {

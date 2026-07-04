@@ -14,12 +14,11 @@ OS path-list separated, placed *after* the git-root `.lisp/` so a
 project's own modules always win over the shell env — the conservative
 placement from the compatibility notes below.
 
-### LSP: signature help
-Show the expected parameters while typing a call, current parameter
-highlighted. The definition analysis already extracts parameter vectors
-(`definition.params`); needs the `signatureHelpProvider` capability and
-a `textDocument/signatureHelp` handler. Entry point:
-[lsp/server.go](lsp/server.go). *Effort: small. Impact: medium.*
+### ~~LSP: signature help~~ (done)
+`textDocument/signatureHelp` shows the parameter list of the call
+surrounding the cursor with the active argument highlighted, for
+user-defined defn/defmacro (local or imported via require). Builtins
+carry no parameter metadata and yield no signature.
 
 ### ~~LSP: re-analyse open documents when required modules change~~ (done)
 The server handles `workspace/didChangeWatchedFiles` by re-analysing

@@ -187,11 +187,38 @@ type InitializeResult struct {
 
 // ServerCapabilities declares what this server implements.
 type ServerCapabilities struct {
-	TextDocumentSync       int      `json:"textDocumentSync"` // 1 = full
-	CompletionProvider     struct{} `json:"completionProvider"`
-	HoverProvider          bool     `json:"hoverProvider"`
-	DocumentSymbolProvider bool     `json:"documentSymbolProvider"`
-	DefinitionProvider     bool     `json:"definitionProvider"`
+	TextDocumentSync       int                  `json:"textDocumentSync"` // 1 = full
+	CompletionProvider     struct{}             `json:"completionProvider"`
+	HoverProvider          bool                 `json:"hoverProvider"`
+	DocumentSymbolProvider bool                 `json:"documentSymbolProvider"`
+	DefinitionProvider     bool                 `json:"definitionProvider"`
+	SignatureHelpProvider  SignatureHelpOptions `json:"signatureHelpProvider"`
+}
+
+// SignatureHelpOptions declares the characters that (re)trigger
+// signature help.
+type SignatureHelpOptions struct {
+	TriggerCharacters   []string `json:"triggerCharacters,omitempty"`
+	RetriggerCharacters []string `json:"retriggerCharacters,omitempty"`
+}
+
+// SignatureHelp is the response to textDocument/signatureHelp.
+type SignatureHelp struct {
+	Signatures      []SignatureInformation `json:"signatures"`
+	ActiveSignature int                    `json:"activeSignature"`
+	ActiveParameter int                    `json:"activeParameter"`
+}
+
+// SignatureInformation describes one callable signature.
+type SignatureInformation struct {
+	Label      string                 `json:"label"`
+	Parameters []ParameterInformation `json:"parameters"`
+}
+
+// ParameterInformation labels a single parameter (a substring of the
+// signature label).
+type ParameterInformation struct {
+	Label string `json:"label"`
 }
 
 // ServerInfo identifies the server to the client.

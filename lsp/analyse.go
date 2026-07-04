@@ -446,3 +446,173 @@ func symbolAt(content string, line, char int) string {
 	}
 	return l[start:end]
 }
+
+// offsetOf converts a zero-based line/character to a byte offset into
+// content, clamped to the document.
+func offsetOf(content string, line, char int) int {
+	off := 0
+	cur := 0
+	for cur < line {
+		nl := strings.IndexByte(content[off:], '\n')
+		if nl < 0 {
+			return len(content)
+		}
+		off += nl + 1
+		cur++
+	}
+	off += char
+	if off > len(content) {
+		off = len(content)
+	}
+	return off
+}
+
+// enclosingCall finds the call form surrounding the byte offset: the
+// head symbol of the innermost unmatched `(` and which argument index
+// the offset falls on. It returns ok=false when the cursor is at the
+// top level or the innermost open bracket is a vector/map (`[`/`{`),
+// where no signature applies. Strings ("…" and ¬…¬) and line comments
+// are skipped so their contents do not affect paren/argument counting.
+func enclosingCall(content string, offset int) (head string, activeParam int, ok bool) {
+	if offset > len(content) {
+		offset = len(content)
+	}
+	type frame struct {
+		bracket byte // '(' '[' '{'
+		pos     int  // index just after the bracket
+	}
+	var stack []frame
+	i := 0
+	for i < offset {
+		c := content[i]
+		switch {
+		case c == ';':
+			// line comment to end of line
+			if nl := strings.IndexByte(content[i:], '\n'); nl < 0 {
+				i = offset
+			} else {
+				i += nl + 1
+			}
+			continue
+		case c == '"' || c == '¬':
+			term := c
+			i++
+			for i < offset {
+				if content[i] == '\\' && term == '"' {
+					i += 2
+					continue
+				}
+				if content[i] == term {
+					i++
+					break
+				}
+				i++
+			}
+			continue
+		case c == '(' || c == '[' || c == '{':
+			stack = append(stack, frame{bracket: c, pos: i + 1})
+		case c == ')' || c == ']' || c == '}':
+			if len(stack) > 0 {
+				stack = stack[:len(stack)-1]
+			}
+		}
+		i++
+	}
+	if len(stack) == 0 || stack[len(stack)-1].bracket != '(' {
+		return "", 0, false
+	}
+	open := stack[len(stack)-1].pos
+
+	// Head symbol: first token after the open paren.
+	j := open
+	for j < offset && isSpaceByte(content[j]) {
+		j++
+	}
+	hstart := j
+	for j < offset && !symbolBreak(content[j]) {
+		j++
+	}
+	head = content[hstart:j]
+	if head == "" {
+		return "", 0, false
+	}
+
+	// Active parameter: count argument boundaries between the head and
+	// the cursor, ignoring nested brackets and strings.
+	argIndex := -1
+	inArg := false
+	depth := 0
+	for j < offset {
+		c := content[j]
+		switch {
+		case c == ';' && depth == 0:
+			if nl := strings.IndexByte(content[j:], '\n'); nl < 0 {
+				j = offset
+			} else {
+				j += nl + 1
+			}
+			continue
+		case c == '"' || c == '¬':
+			if depth == 0 && !inArg {
+				argIndex++
+				inArg = true
+			}
+			term := c
+			j++
+			for j < offset {
+				if content[j] == '\\' && term == '"' {
+					j += 2
+					continue
+				}
+				if content[j] == term {
+					j++
+					break
+				}
+				j++
+			}
+			continue
+		case c == '(' || c == '[' || c == '{':
+			if depth == 0 && !inArg {
+				argIndex++
+				inArg = true
+			}
+			depth++
+		case c == ')' || c == ']' || c == '}':
+			if depth > 0 {
+				depth--
+			}
+		case isSpaceByte(c) || c == ',':
+			if depth == 0 {
+				inArg = false
+			}
+		default:
+			if depth == 0 && !inArg {
+				argIndex++
+				inArg = true
+			}
+		}
+		j++
+	}
+	if inArg {
+		activeParam = argIndex
+	} else {
+		activeParam = argIndex + 1
+	}
+	if activeParam < 0 {
+		activeParam = 0
+	}
+	return head, activeParam, true
+}
+
+func isSpaceByte(b byte) bool {
+	return b == ' ' || b == '\t' || b == '\r' || b == '\n'
+}
+
+// splitParams turns a printed parameter vector (`[a b & rest]`) into
+// individual parameter labels.
+func splitParams(params string) []string {
+	params = strings.TrimSpace(params)
+	params = strings.TrimPrefix(params, "[")
+	params = strings.TrimSuffix(params, "]")
+	return strings.Fields(params)
+}

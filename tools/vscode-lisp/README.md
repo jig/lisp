@@ -17,8 +17,8 @@ interpreter.
   definition signatures, and document outline. `(require "module")`
   forms are followed statically, importing the module's definitions.
   Go-to-definition (F12) jumps to local definitions and into require'd
-  module files. Spawned as `lisp-debug --lsp` when a lisp document
-  opens.
+  module files; signature help lists a call's parameters as you type.
+  Spawned as `lisp-debug --lsp` when a lisp document opens.
 
 Find-references and rename are not part of this release.
 
