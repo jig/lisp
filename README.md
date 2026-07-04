@@ -1,61 +1,65 @@
-# lisp
+# jig/lisp
 
-Derived from `kanaka/mal` Go implementation of a Lisp interpreter.
-`kanaka/mal` Lisp is _Clojure inspired_.
+Derived from `kanaka/mal` Go implementation of a Lisp interpreter. It is Clojure _inspired_.
 
-Keeping 100% backwards compatibility with `kanaka/mal`.
-There almost 100 implementations on almost 100 languages available on repository [kanaka/mal](https://github.com/kanaka/mal).
+This implementation is focused on _embeddability_ in Go projects. See [lisp main](./cmd/lisp) for an example on how to embed it in Go code. It includes a REPL and a debugger and a language server for Visual Studio Code.
 
-This derived implementation is focused on _embeddability_ in Go projects.
-See [lisp main](./cmd/lisp) for an example on how to embed it in Go code.
+It requires Go 1.25.
 
-Requires Go 1.25.
+## Install
 
-This implementation uses [chzyer/readline](https://github.com/chzyer/readline) instead of C implented readline or libedit, making this implementation pure Go.
+### Install the interpreter and REPL
 
-## Breaking Changes
+You need to have Go installed and configured. Then run:
 
-### Position Tracking Improvements (2026-01-15)
-
-**Breaking API Changes:**
-
-1. **Constructor signatures changed** for programmatically created data structures:
-   - `types.NewList(cursor *Position, a ...MalType)` - now requires cursor as first parameter
-   - `types.NewHashMap(cursor *Position, seq MalType)` - now requires cursor as first parameter
-   - Pass `nil` for cursor if position tracking is not needed
-
-2. **Error format changed**:
-   - `LispError.Error()` now includes stack trace with multiple lines
-   - Format: `error_message\n  at position1\n  at position2\n...`
-   - Code that parses error messages should use `strings.Contains()` instead of `strings.HasSuffix()`
-
-3. **LispError struct changed**:
-   - Added `Stack []*Position` field for call stack tracking
-   - `NewLispError()` now preserves original cursor instead of overwriting it
-
-**Migration Guide:**
-
-```go
-// Before:
-list := types.NewList(elem1, elem2, elem3)
-hm, _ := types.NewHashMap(listOfKeyValues)
-
-// After:
-list := types.NewList(nil, elem1, elem2, elem3)  // nil if no position tracking needed
-hm, _ := types.NewHashMap(nil, listOfKeyValues)
-
-// Or with position tracking:
-list := types.NewList(currentCursor, elem1, elem2, elem3)
-hm, _ := types.NewHashMap(currentCursor, listOfKeyValues)
+```bash
+go install github.com/jig/lisp/cmd/lisp@latest
 ```
 
-**Benefits:**
-- Improved error messages with full stack traces
-- Better debugging of nested function calls and macro expansions
-- Preserved position information through try/catch blocks
-- More accurate line numbers in quasiquote and generated code
+### Development on Visual Studio Code
 
-# Changes
+`jig/lisp` includes a VSCode extension that provides a debugger and a language server. See [./tools/vscode-lisp/README.md](./tools/vscode-lisp/README.md) for installation and usage instructions.
+
+It provides an LSP (Language Server Protocol) server and a DAP (Debug Adapter Protocol) server, both enabled with the `lispdebug` build tag. The extension spawns a separate binary named `lisp-debug` (the regular `lisp` binary embeds neither the DAP nor the LSP server).
+
+You need to have Go installed and configured, for Linux and MacOS:
+
+```bash
+git clone github.com/jig/lisp/cmd/lisp
+cd lisp
+go build -tags lispdebug -o /tmp/lisp-debug ./cmd/lisp
+sudo install /tmp/lisp-debug /usr/local/bin/
+```
+
+Then build and install the VSCode extension (it is not published in the VSCode marketplace):
+
+```bash
+cd tools/vscode-lisp
+npm install
+npm run compile
+npx @vscode/vsce package
+code --install-extension vscode-lisp-*.vsix
+```
+
+### Test
+
+To test the implementation use:
+
+```bash
+go test ./...
+```
+
+Tests actually validates the `step*.mal` files, from `kanaka/mal` and new tests for added functionality.
+
+There are some benchmarks as well:
+
+```bash
+go test -benchmem -benchtime 5s -bench '^.+$' github.com/jig/lisp
+```
+
+### Changes respect to `kanaka/mal`
+
+There almost 100 implementations on almost 100 languages available on repository [kanaka/mal](https://github.com/kanaka/mal).
 
 Changes respect to [kanaka/mal](https://github.com/kanaka/mal):
 
@@ -74,21 +78,8 @@ Changes respect to [kanaka/mal](https://github.com/kanaka/mal):
 - `reduce-kv` added
 - `take`, `take-last`, `drop`, `drop-last`, `subvec` added
 
-To test the implementation use:
 
-```bash
-go test ./...
-```
-
-`go test` actually validates the `step*.mal` files.
-
-There are some benchmarks as well:
-
-```bash
-go test -benchmem -benchtime 5s -bench '^.+$' github.com/jig/lisp
-```
-
-# Additions
+### Additions respect to `kanaka/mal`
 
 - Errors return line position and stack trace
 - `(range a b)` returns a vector of integers from `a` to `b-1`
@@ -122,10 +113,9 @@ go test -benchmem -benchtime 5s -bench '^.+$' github.com/jig/lisp
 - Go builtins can be documented from the code that registers them with `call.Doc(env, name, arglist, doc)`; the docs travel with the value in the environment, so the LSP and `(doc name)` describe exactly the builtins an interpreter loads — including an embedder's own. Native-function `meta` stays `nil` (kanaka/mal compatible): documentation lives in dedicated fields, not metadata
 - `partial` function added (see [./tests/stepN_defn.mal.go](./tests/stepN_defn.mal) for an example of `partial` usage, or go to Clojure documentation)
 
+## Embed jig/lisp in Go code
 
-# Embed Lisp in Go code
-
-You execute lisp from Go code and get results from it back to Go. Example from [./example_test/example_test.go](./example_test/example_test.go):
+You execute `jig/lisp` from Go code and get results from it back to Go. Example from [./example_test/example_test.go](./example_test/example_test.go):
 
 ```go
 func ExampleEVAL() {
@@ -171,7 +161,9 @@ func ExampleEVAL() {
 }
 ```
 
-# L notation
+### L notation
+
+> TODO(jig): review this section and decide wether the _L notation_ is still relevant or not. It was added to avoid parsing lisp strings, but now the `READ` function is fast enough and the `L` notation is not used in the tests.
 
 You may generate lisp Go structures without having to parse lisp strings, by using Go `L` notation.
 
@@ -189,7 +181,9 @@ EVAL(sampleCode, newTestEnv(), nil)
 
 See [./helloworldlnotationexample_test.go](./helloworldlnotationexample_test.go) and [./lnotation/lnotation_test.go](./lnotation/lnotation_test.go).
 
-# Test file specs
+## Test file specs
+
+> TODO(jig): review if this section is still valid
 
 Execute the testfile with:
 
@@ -199,7 +193,7 @@ $ lisp --test .
 
 And a minimal test example `sample_test.mal`:
 
-```clojure
+```lisp
 (test.suite "complete tests"
     (assert-true "2 + 2 = 4 is true" (= 4 (+ 2 2)))
     (assert-false "2 + 2 = 5 is false" (= 5 (+ 2 2)))
@@ -212,14 +206,7 @@ Some benchmark of the implementations:
 $ go test -bench ".+" -benchtime 2s
 ```
 
-# Install
-
-```bash
-cd cmd/lisp
-go install
-```
-
-# Debug in VSCode
+## Debug in VSCode
 
 The interpreter includes a DAP (Debug Adapter Protocol) server and an
 LSP (Language Server Protocol) server, both enabled with the
@@ -240,31 +227,7 @@ LSP (Language Server Protocol) server, both enabled with the
   `lisp.languageServer.includeDirs` setting (the editor equivalent of
   `-i`).
 
-## 1. Build and install the debug interpreter
-
-The extension spawns a separate binary named `lisp-debug` (the regular
-`lisp` binary embeds neither the DAP nor the LSP server). From the repo
-root:
-
-```bash
-go build -tags lispdebug -o /tmp/lisp-debug ./cmd/lisp
-sudo install /tmp/lisp-debug /usr/local/bin/    # or anywhere on $PATH
-```
-
-> Repeat this step after every change to the interpreter or debugger
-> code: the extension runs the installed binary, not your working tree.
-
-## 2. Build and install the VSCode extension
-
-```bash
-cd tools/vscode-lisp
-npm install
-npm run compile
-npx @vscode/vsce package
-code --install-extension vscode-lisp-*.vsix
-```
-
-## 3. Debug a file
+### Debug a file
 
 Add a launch configuration (`.vscode/launch.json`):
 
@@ -296,7 +259,9 @@ when a `.lisp` file is opened (disable with the
 See [./tools/vscode-lisp/README.md](./tools/vscode-lisp/README.md) for
 extension settings and development notes.
 
-# Execute REPL
+## REPL
+
+Once installed, you can run the REPL with:
 
 ```bash
 lisp
@@ -304,13 +269,13 @@ lisp
 
 Use <kbd>Ctrl</kbd> + <kbd>D</kbd> to exit Lisp REPL.
 
-# Execute lisp program
+### Execute lisp program
 
 ```bash
 lisp helloworld.lisp
 ```
 
-# Execute inline expression
+### Execute inline expression
 
 ```bash
 lisp -e "(+ 1 2)"
@@ -323,18 +288,18 @@ If both a script and `-e` are provided, the script executes first and the `-e` e
 A bit longer example:
 
 ```bash
-lisp helloargs.lisp --eval '(do (println "evaled to" *ARGV*) 42)' ee rr
+lisp helloargs.lisp --eval '(do (println "evaled to" *ARGV*) 42)' first-arg second-arg
 ```
 
-Will print:
+It will print:
 
-```
-Hello Args:  (ee rr)
-evaled to (ee rr)
+```text
+Hello Args:  (first-arg second-arg)
+evaled to (first-arg second-arg)
 42
 ```
 
-# Preamble placeholders (-P/--preamble)
+### Preamble placeholders (-P/--preamble)
 
 Scripts can reference `$NAME` placeholders, filled at read time — the
 same mechanism Go embedders use through `READWithPreamble` (see
@@ -348,7 +313,7 @@ running a script from the CLI, values come from (later sources win):
 lisp -P '$NUMBER 1984' -P '$NAME "world"' script.lisp
 ```
 
-```clojure
+```lisp
 ;; $NUMBER 1                  ; default, overridden by -P
 (println (* $NUMBER 2))
 ```
@@ -362,7 +327,7 @@ under VSCode, assignments can be listed in the launch configuration:
   "preamble": ["$NUMBER 1984"] }
 ```
 
-# Pass script arguments that look like flags
+### Pass script arguments that look like flags
 
 Use `--` to stop flag parsing so script arguments are passed through:
 
@@ -370,7 +335,14 @@ Use `--` to stop flag parsing so script arguments are passed through:
 lisp -- helloworld.lisp --foo --bar
 ```
 
-# Module loading with require
+It will print:
+
+```text
+Hello Args:  (--first-arg --second-arg)
+("--first-arg" "--second-arg")
+```
+
+### Module loading with require
 
 The optional `require` library loads modules by name through a search
 path, independently of the process working directory (unlike
@@ -378,7 +350,7 @@ path, independently of the process working directory (unlike
 is evaluated at most once, in its own environment, and its top-level
 definitions are published under a namespace prefix (Clojure style):
 
-```clojure
+```lisp
 (require "geometry")                    ; loads geometry.lisp (do not add .lisp)
 (geometry/area 2)                       ; definitions are qualified
 
@@ -421,4 +393,4 @@ Notes:
 
 # Licence
 
-This "lisp" implementation is licensed under the MPL 2.0 (Mozilla Public License 2.0). See [LICENCE](./LICENCE) for more details.
+"jig/lisp" implementation is licensed under the MPL 2.0 (Mozilla Public License 2.0). See [LICENCE](./LICENCE) for more details.
