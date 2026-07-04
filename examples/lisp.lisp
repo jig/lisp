@@ -252,6 +252,11 @@
 ;; defn: like def but with an optional leading docstring, mirroring
 ;; jig/lisp's own defn. The docstring is currently discarded.
 (rep "(defmacro defn (fn (name & fdecl) (if (string? (first fdecl)) (list 'def name (cons 'fn (rest fdecl))) (list 'def name (cons 'fn fdecl)))))")
+;; or/and: this interpreter's own main uses (or …), so a self-hosted run
+;; (lisp lisp.lisp -- lisp.lisp …) needs them defined here too. They bind
+;; a temporary to avoid re-evaluating the tested expression.
+(rep "(defmacro or (fn (& xs) (if (empty? xs) nil (if (= 1 (count xs)) (first xs) (list 'let (list 'or_ (first xs)) (list 'if 'or_ 'or_ (cons 'or (rest xs))))))))")
+(rep "(defmacro and (fn (& xs) (if (empty? xs) true (if (= 1 (count xs)) (first xs) (list 'let (list 'and_ (first xs)) (list 'if 'and_ (cons 'and (rest xs)) 'and_))))))")
 
 ;; repl loop
 (defn repl-loop
@@ -269,10 +274,32 @@
       (repl-loop (readline "lisp-user> ")))))
 
 ;; main
-(if (empty? *ARGV*)
-  (do
-    ;; Print the banner once, directly, so its nil return value is not
-    ;; echoed the way repl-loop would echo every evaluated line.
-    (println (str "jig/lisp [" *host-language* "-jig/lisp]"))
-    (repl-loop (readline "lisp-user> ")))
-  (rep (str "(load-file \"" (first *ARGV*) "\")")))
+;;
+;; Modes, chosen from *ARGV*:
+;;   (none)              start the REPL
+;;   -e/--eval EXPR      evaluate EXPR and print the result
+;;   FILE                load FILE
+;;
+;; NOTE: the host `lisp` CLI consumes its own -e/--eval even when they
+;; appear after the script name, so to reach THIS interpreter's options
+;; stop host flag parsing with `--`:
+;;   lisp examples/lisp.lisp -- -e '(+ 1 2)'
+;;   lisp examples/lisp.lisp -- program.lisp arg1 arg2
+(let [a0 (first *ARGV*)]
+  (cond
+    (empty? *ARGV*)
+    (do
+      ;; Print the banner once, directly, so its nil return value is not
+      ;; echoed the way repl-loop would echo every evaluated line.
+      (println (str "jig/lisp [" *host-language* "-jig/lisp]"))
+      (repl-loop (readline "lisp-user> ")))
+
+    (or (= a0 "-e") (= a0 "--eval"))
+    (if (< (count *ARGV*) 2)
+      (println "usage: -- -e EXPRESSION")
+      ;; Return the value (don't print it): the host echoes a script's
+      ;; result, so this prints exactly once, like the host's own -e.
+      (EVAL (READ (nth *ARGV* 1)) repl-env))
+
+    "else"
+    (rep (str "(load-file \"" a0 "\")"))))
