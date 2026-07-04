@@ -10,6 +10,7 @@ import (
 
 	"github.com/alexflint/go-arg"
 	"github.com/jig/lisp"
+	"github.com/jig/lisp/lib/core"
 	"github.com/jig/lisp/repl"
 	"github.com/jig/lisp/types"
 )
@@ -105,12 +106,21 @@ func Execute(cmdArgs []string, repl_env types.EnvType) error {
 
 	// Handle --version
 	if parsedArgs.Version {
+		lispVer, scannerVer, _ := core.Versions()
+		if lispVer == "" {
+			lispVer = "(unknown)"
+		}
+		if scannerVer == "" {
+			scannerVer = "(unknown)"
+		}
+		fmt.Printf("jig/lisp    %s\n", lispVer)
+		fmt.Printf("jig/scanner %s\n", scannerVer)
+
 		versionInfo, ok := debug.ReadBuildInfo()
 		if !ok {
-			fmt.Println("Lisp version information unavailable")
 			return nil
 		}
-		fmt.Printf("Lisp:\n%s\n", versionInfo)
+		fmt.Println(versionInfo)
 		return nil
 	}
 

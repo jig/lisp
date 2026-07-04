@@ -287,6 +287,35 @@ func LoadInput(env EnvType) {
 	loadInputDocs(env)
 }
 
+// moduleVersion returns the version of the module at importPath, looking
+// in both the main module and the dependencies: github.com/jig/lisp is
+// the main module when the binary is built from this repo, but a
+// dependency when jig/lisp is embedded in another Go program.
+func moduleVersion(bi *debug.BuildInfo, importPath string) string {
+	if bi.Main.Path == importPath {
+		return bi.Main.Version
+	}
+	for _, d := range bi.Deps {
+		if d.Path == importPath {
+			return d.Version
+		}
+	}
+	return ""
+}
+
+// Versions returns the jig/lisp, jig/scanner and Go toolchain versions of
+// the running binary, shared by the (version) builtin and --version. Each
+// value is "" when build information is unavailable.
+func Versions() (lispVer, scannerVer, goVer string) {
+	bi, ok := debug.ReadBuildInfo()
+	if !ok {
+		return "", "", ""
+	}
+	return moduleVersion(bi, "github.com/jig/lisp"),
+		moduleVersion(bi, "github.com/jig/scanner"),
+		bi.GoVersion
+}
+
 func version() (HashMap, error) {
 	bi, ok := debug.ReadBuildInfo()
 	if !ok {
