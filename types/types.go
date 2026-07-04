@@ -80,9 +80,15 @@ type ExternalCall func(context.Context, []MalType) (MalType, error)
 // Functions
 type Func struct {
 	// Fn     func(context.Context, []MalType) (MalType, error)
-	Fn     ExternalCall
-	Meta   MalType
-	Cursor *Position
+	Fn   ExternalCall
+	Meta MalType
+	// Doc and Arglist hold documentation attached with call.Doc. They
+	// are deliberately NOT exposed through `meta`, which stays nil for
+	// native functions (kanaka/mal compatibility); tooling reads these
+	// fields directly.
+	Doc     string
+	Arglist string
+	Cursor  *Position
 }
 
 type MalFunc struct {

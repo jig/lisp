@@ -26,6 +26,17 @@ functions/macros are deliberately absent — they are read from the live
 env. Incrementally extendable (a solid common subset is filled in;
 ~106 Go builtins exist).
 
+### Builtin docs live in the environment (done — 2026-07-04)
+Reworked so documentation reflects what an interpreter actually loads,
+per the embeddable design: Go builtins carry their arglist/doc in
+dedicated types.Func fields, attached at registration with call.Doc
+(each namespace documents its own builtins; embedders do the same for
+theirs). `(meta …)` stays nil for native functions (kanaka/mal
+compatible) — the docs are off metadata. The LSP and `(doc …)` read
+from the live env; docmeta now holds only special forms (intrinsic,
+never in the env). A per-namespace consistency test asserts every
+documented name is a registered builtin with nil meta.
+
 ### Docstrings for lisp-defined functions (done — 2026-07-04)
 `(defn name "docstring" [params] …)` stores `{:doc "…"}` metadata on the
 function (Clojure style), read by `(doc name)`, `(meta f)` and the LSP

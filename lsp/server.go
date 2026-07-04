@@ -378,28 +378,50 @@ func sigLabel(name, params string) string {
 	return "(" + name + " " + strings.Join(ps, " ") + ")"
 }
 
-// malFuncDoc returns the Clojure-style docstring stored as {:doc "…"}
-// metadata on a lisp-defined function/macro (see defn), or "" when it
-// has none. Keywords are stored with the "ʞ" prefix by the reader.
-func malFuncDoc(fn types.MalFunc) string {
-	hm, ok := fn.Meta.(types.HashMap)
-	if !ok {
-		return ""
-	}
-	if v, ok := hm.Val["ʞdoc"]; ok {
-		if s, ok := v.(string); ok {
-			return s
+// envArglistDoc reads an environment value's documentation: a Go
+// builtin's Arglist/Doc fields (attached with call.Doc), or a lisp
+// function/macro's {:doc "…"} docstring metadata (its arglist is its
+// MalFunc.Params, read by the caller). Keywords carry the reader's "ʞ"
+// prefix.
+func envArglistDoc(v types.MalType) (arglist, doc string) {
+	switch t := v.(type) {
+	case types.Func:
+		return t.Arglist, t.Doc
+	case types.MalFunc:
+		if hm, ok := t.Meta.(types.HashMap); ok {
+			if s, ok := hm.Val["ʞdoc"].(string); ok {
+				doc = s
+			}
 		}
+		return "", doc
 	}
-	return ""
+	return "", ""
+}
+
+// envSignature returns the arglist for a symbol from the interpreter
+// environment: a lisp function/macro's parameter vector, or a Go
+// builtin's :arglists metadata (from call.Doc).
+func (s *Server) envSignature(name string) (string, bool) {
+	if s.env == nil {
+		return "", false
+	}
+	v, err := s.env.Get(types.Symbol{Val: name})
+	if err != nil {
+		return "", false
+	}
+	if fn, ok := v.(types.MalFunc); ok && fn.Params != nil {
+		return printer.Pr_str(fn.Params, true), true
+	}
+	if arglist, _ := envArglistDoc(v); arglist != "" {
+		return arglist, true
+	}
+	return "", false
 }
 
 // paramsFor returns the printed parameter vector for a symbol used as a
-// call head. It looks first at document-local definitions, then those
-// imported through require, then the interpreter environment: any
-// lisp-defined library function or macro (defn/defmacro) is a MalFunc
-// whose Params vector carries the real parameter names. Pure Go
-// builtins hold no parameter metadata and yield found=false.
+// call head: a document-local definition, one imported through require,
+// a lisp function/macro or documented Go builtin from the environment,
+// or a special form. Undocumented Go builtins yield found=false.
 func (s *Server) paramsFor(doc *document, head string) (string, bool) {
 	for _, d := range doc.analysis.defs {
 		if d.name == head && d.kind != "def" {
@@ -411,15 +433,10 @@ func (s *Server) paramsFor(doc *document, head string) (string, bool) {
 			return d.params, d.params != ""
 		}
 	}
-	if s.env != nil {
-		if v, err := s.env.Get(types.Symbol{Val: head}); err == nil {
-			if fn, ok := v.(types.MalFunc); ok && fn.Params != nil {
-				return printer.Pr_str(fn.Params, true), true
-			}
-		}
+	if p, ok := s.envSignature(head); ok {
+		return p, true
 	}
-	// Curated Go builtins and special forms.
-	if e, ok := docmeta.Builtins[head]; ok {
+	if e, ok := docmeta.SpecialForms[head]; ok {
 		return e.Params, e.Params != ""
 	}
 	return "", false
@@ -491,17 +508,18 @@ func (s *Server) handleCompletion(req *requestMessage) {
 		sort.Strings(names)
 		for _, name := range names {
 			item := CompletionItem{Label: name, Kind: s.envSymbolKind(name)}
-			// Curated arglist/doc for Go builtins, when available.
-			if e, ok := docmeta.Builtins[name]; ok {
-				item.Detail = sigLabel(name, e.Params)
+			// Signature detail from the environment (lisp params or a
+			// documented Go builtin's :arglists).
+			if sig, ok := s.envSignature(name); ok {
+				item.Detail = sigLabel(name, sig)
 			}
 			items = append(items, item)
 		}
 	}
 	// Special forms are not in the environment; offer them from the
 	// curated table so they complete too.
-	for name, e := range docmeta.Builtins {
-		if e.Kind != docmeta.SpecialForm || seen[name] {
+	for name, e := range docmeta.SpecialForms {
+		if seen[name] {
 			continue
 		}
 		seen[name] = true
@@ -580,33 +598,22 @@ func (s *Server) handleHover(req *requestMessage) {
 		}
 	}
 
-	// Curated Go builtins and special forms (special forms are not in
-	// the environment, so this is the only place they resolve).
-	if e, ok := docmeta.Builtins[sym]; ok {
-		body := e.Doc
-		if body != "" {
-			body += "\n\n"
-		}
-		body += "_" + e.Kind.String() + "_"
-		s.respond(req, Hover{Contents: MarkupContent{
-			Kind:  "markdown",
-			Value: hoverBody(sigLabel(sym, e.Params), body),
-		}})
-		return
-	}
-
-	// Otherwise ask the interpreter environment. A lisp-defined
-	// function or macro shows its real parameter list; anything else
-	// shows a short kind description.
+	// Ask the interpreter environment. A lisp function/macro shows its
+	// parameter vector; a Go builtin documented with call.Doc shows its
+	// :arglists and :doc; anything else shows a short kind description.
 	if s.env != nil {
 		if v, err := s.env.Get(types.Symbol{Val: sym}); err == nil {
 			header := sym
 			detail := envValueDetail(v)
+			arglist, docStr := envArglistDoc(v)
 			if fn, ok := v.(types.MalFunc); ok && fn.Params != nil {
-				header = "(" + sym + " " + strings.Join(splitParams(printer.Pr_str(fn.Params, true)), " ") + ")"
-				if d := malFuncDoc(fn); d != "" {
-					detail = d
-				}
+				arglist = printer.Pr_str(fn.Params, true)
+			}
+			if arglist != "" {
+				header = sigLabel(sym, arglist)
+			}
+			if docStr != "" {
+				detail = docStr
 			}
 			s.respond(req, Hover{Contents: MarkupContent{
 				Kind:  "markdown",
@@ -614,6 +621,21 @@ func (s *Server) handleHover(req *requestMessage) {
 			}})
 			return
 		}
+	}
+
+	// Special forms are handled by EVAL and never bound in the
+	// environment, so the curated table is the only place they resolve.
+	if e, ok := docmeta.SpecialForms[sym]; ok {
+		body := e.Doc
+		if body != "" {
+			body += "\n\n"
+		}
+		body += "_" + e.Kind() + "_"
+		s.respond(req, Hover{Contents: MarkupContent{
+			Kind:  "markdown",
+			Value: hoverBody(sigLabel(sym, e.Params), body),
+		}})
+		return
 	}
 	s.respond(req, nil)
 }

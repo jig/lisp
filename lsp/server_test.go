@@ -852,8 +852,9 @@ func TestServer_CuratedBuiltinsAndSpecialForms(t *testing.T) {
 		return r["contents"].(map[string]interface{})["value"].(string)
 	}
 
-	// Go builtin assoc
-	if v := hover(2, 0, 2); !strings.Contains(v, "(assoc map key val kvs)") || !strings.Contains(v, "_function_") {
+	// Go builtin assoc, documented via call.Doc (metadata in the env)
+	if v := hover(2, 0, 2); !strings.Contains(v, "(assoc map key val kvs)") ||
+		!strings.Contains(v, "Copy of map") {
 		t.Errorf("assoc hover: got %q", v)
 	}
 	// special form if (not in the environment at all)

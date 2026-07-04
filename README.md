@@ -118,7 +118,8 @@ go test -benchmem -benchtime 5s -bench '^.+$' github.com/jig/lisp
 - `go-error`, `unwrap` and `panic` mapping to Go's `errors.New/fmt.Errorf`, `Unwrap` and `panic` respectively
 - `getenv`, `setenv` and `unsetenv` functions for environment variables
 - `defn`, `wait` macros added (see [./tests/stepN_defn.mal.go](./tests/stepN_defn.mal) for an example of `defn` and `wait` macro usage, or go to Clojure documentation)
-- Clojure-style docstrings: `(defn name "docstring" [params] body…)` stores `{:doc "…"}` metadata on the function, readable with `(doc name)`, `(meta f)`, and surfaced by the LSP hover. Backwards compatible — a leading string is a docstring only when a parameter vector follows it
+- Clojure-style docstrings: `(defn name "docstring" [params] body…)` attaches a docstring to the function, readable with `(doc name)` and surfaced by the LSP. Backwards compatible — a leading string is a docstring only when a parameter vector follows it
+- Go builtins can be documented from the code that registers them with `call.Doc(env, name, arglist, doc)`; the docs travel with the value in the environment, so the LSP and `(doc name)` describe exactly the builtins an interpreter loads — including an embedder's own. Native-function `meta` stays `nil` (kanaka/mal compatible): documentation lives in dedicated fields, not metadata
 - `partial` function added (see [./tests/stepN_defn.mal.go](./tests/stepN_defn.mal) for an example of `partial` usage, or go to Clojure documentation)
 
 

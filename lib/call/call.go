@@ -19,6 +19,33 @@ func CallOverrideFN(namespace types.EnvType, overrideFN string, fIn types.MalTyp
 	call(&overrideFN, namespace, fIn, args...)
 }
 
+// Doc attaches documentation — an arglist string (Go reflection cannot
+// recover parameter names) and a one-line description — to a Go builtin
+// already registered in namespace under name. It is stored in the
+// value's Doc/Arglist fields, which travel with it in the environment,
+// so tooling (the LSP, (doc …), a documentation generator) reads it
+// from the live namespace and reflects exactly what has been loaded —
+// including an embedder's own builtins documented the same way. The
+// data is intentionally kept off `meta` so native functions keep nil
+// metadata (kanaka/mal compatibility).
+//
+// name must resolve to a types.Func in namespace; a missing or
+// wrongly-typed name is a load-time programming error and panics, as
+// registration mistakes do elsewhere in this package.
+func Doc(namespace types.EnvType, name, arglist, doc string) {
+	v, err := namespace.Get(types.Symbol{Val: name})
+	if err != nil {
+		panic(fmt.Errorf("call.Doc: builtin %q is not registered", name))
+	}
+	fn, ok := v.(types.Func)
+	if !ok {
+		panic(fmt.Errorf("call.Doc: %q is not a Go builtin (%T)", name, v))
+	}
+	fn.Arglist = arglist
+	fn.Doc = doc
+	namespace.Set(types.Symbol{Val: name}, fn)
+}
+
 func call(overrideFN *string, namespace types.EnvType, fIn types.MalType, args ...int) {
 	functionFullName := strings.ToLower(runtime.FuncForPC(reflect.ValueOf(fIn).Pointer()).Name())
 	n := strings.LastIndex(functionFullName, ".")

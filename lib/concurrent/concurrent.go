@@ -30,6 +30,14 @@ func Load(env types.EnvType) {
 	call.CallOverrideFN(env, "future-done?", func(f *Future) (bool, error) { return f.Done, nil })
 	call.CallOverrideFN(env, "future?", func(f MalType) (bool, error) { return Q[*Future](f), nil })
 	call.Call(env, new_future_call)
+
+	// Documentation metadata for the atom builtins (see call.Doc). The
+	// futures are exercised through the lisp-defined future macro, which
+	// carries its own arglist.
+	call.Doc(env, "atom", "[value]", "Creates a mutable, thread-safe atom holding value.")
+	call.Doc(env, "atom?", "[x]", "Whether x is an atom.")
+	call.Doc(env, "reset!", "[atom value]", "Sets the atom to value and returns it.")
+	call.Doc(env, "swap!", "[atom f & args]", "Atomically sets the atom to (f current & args).")
 }
 
 func future_call(ctx context.Context, f MalFunc) (*Future, error) {

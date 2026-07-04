@@ -35,29 +35,17 @@ func fullEnv(t *testing.T) types.EnvType {
 	return ns
 }
 
-// TestBuiltinsAreHonest asserts every documented entry matches reality:
-// Function entries resolve to a Go builtin (types.Func), SpecialForm
-// entries are absent from the environment (handled by EVAL). This
-// catches a renamed/removed builtin or a misclassified entry.
-func TestBuiltinsAreHonest(t *testing.T) {
+// TestSpecialFormsAreNotBound asserts every documented special form is
+// truly a special form: absent from a fully loaded environment (handled
+// by EVAL, not bound as a value). A relocated builtin would resolve and
+// fail here.
+func TestSpecialFormsAreNotBound(t *testing.T) {
 	ns := fullEnv(t)
-	for name, e := range docmeta.Builtins {
-		v, err := ns.Get(types.Symbol{Val: name})
-		switch e.Kind {
-		case docmeta.Function:
-			if err != nil {
-				t.Errorf("%q documented as function but not in env: %v", name, err)
-				continue
-			}
-			if _, ok := v.(types.Func); !ok {
-				t.Errorf("%q documented as Go function but env value is %T (lisp-defined? then remove it — it is covered from the env)", name, v)
-			}
-		case docmeta.SpecialForm:
-			if err == nil {
-				t.Errorf("%q documented as special form but resolves in the env as %T", name, v)
-			}
+	for name, e := range docmeta.SpecialForms {
+		if _, err := ns.Get(types.Symbol{Val: name}); err == nil {
+			t.Errorf("%q documented as a special form but resolves in the env", name)
 		}
-		if e.Params == "" && e.Kind == docmeta.Function {
+		if e.Params == "" {
 			t.Errorf("%q has no arglist", name)
 		}
 		if e.Doc == "" {

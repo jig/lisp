@@ -146,6 +146,9 @@ func Load(env EnvType) {
 	call.Call(env, drop)
 	call.Call(env, drop_last)
 	call.Call(env, subvec, 2, 3)
+	call.CallOverrideFN(env, "doc", docString)
+
+	loadDocs(env)
 }
 
 func subvec(args ...MalType) (MalType, error) {
@@ -279,6 +282,8 @@ func drop_last(n int, arg MalType) (MalType, error) {
 func LoadInput(env EnvType) {
 	call.Call(env, slurp)
 	call.Call(env, readLine)
+
+	loadInputDocs(env)
 }
 
 func version() (HashMap, error) {
@@ -1014,7 +1019,7 @@ func with_meta(obj, meta MalType) (MalType, error) {
 	case Set:
 		return Set{Val: tobj.Val, Meta: meta}, nil
 	case Func:
-		return Func{Fn: tobj.Fn, Meta: meta}, nil
+		return Func{Fn: tobj.Fn, Meta: meta, Doc: tobj.Doc, Arglist: tobj.Arglist, Cursor: tobj.Cursor}, nil
 	case MalFunc:
 		fn := tobj
 		fn.Meta = meta
@@ -1041,6 +1046,27 @@ func meta(meta MalType) (MalType, error) {
 	default:
 		return nil, errors.New("meta not supported on type")
 	}
+}
+
+// docString returns the documentation string of a function or macro:
+// a Go builtin's Doc field (attached with call.Doc), or the {:doc "…"}
+// docstring metadata of a lisp function/macro (see the defn macro).
+// Returns nil when undocumented. Kept off `meta` so native functions
+// keep nil metadata (kanaka/mal compatibility).
+func docString(v MalType) (MalType, error) {
+	switch f := v.(type) {
+	case Func:
+		if f.Doc != "" {
+			return f.Doc, nil
+		}
+	case MalFunc:
+		if hm, ok := f.Meta.(HashMap); ok {
+			if d, ok := hm.Val["ʞdoc"]; ok {
+				return d, nil
+			}
+		}
+	}
+	return nil, nil
 }
 
 func deref(ctx context.Context, ref Dereferable) (MalType, error) {

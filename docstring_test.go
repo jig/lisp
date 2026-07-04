@@ -90,3 +90,20 @@ func TestDefnDocstring(t *testing.T) {
 		t.Errorf("v: expected 1, got %q", got)
 	}
 }
+
+// TestBuiltinDoc verifies (doc name) works for a Go builtin documented
+// via call.Doc (its doc lives in dedicated fields), while its metadata
+// stays nil for kanaka/mal compatibility.
+func TestBuiltinDoc(t *testing.T) {
+	ns := docEnv(t)
+	if got := eval(t, ns, `(doc assoc)`); got != `"Copy of map with the given key/value pairs added or replaced."` {
+		t.Errorf("expected assoc docstring, got %q", got)
+	}
+	// Native function metadata must remain nil.
+	if got := eval(t, ns, `(meta assoc)`); got != "nil" {
+		t.Errorf("expected (meta assoc) to be nil, got %q", got)
+	}
+	if got := eval(t, ns, `(meta +)`); got != "nil" {
+		t.Errorf("expected (meta +) to be nil, got %q", got)
+	}
+}
