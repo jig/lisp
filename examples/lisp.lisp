@@ -83,11 +83,25 @@
   sequential? slurp str string? swap! symbol symbol? throw time-ms
   true? vals vec vector vector? with-meta
 
-  ;; jig/lisp extras
-  range merge get-in rename-keys assoc-in update update-in
-  reduce reduce-kv foldr inc dec identity partial gensym
-  take take-last drop drop-last subvec split uuid sleep spew type?
-  go-error panic getenv setenv unsetenv set set?])
+  ;; --- lib/core extras (Go builtins beyond kanaka/mal) ---
+  range merge get-in rename-keys assoc-in update update-in reduce-kv
+  take take-last drop drop-last subvec split not= hash-set set set?
+  json-encode json-decode hash-map-decode
+  base64 unbase64 str2binary binary2str
+  uuid sleep time-ns spew type? doc version assert
+  go-error new-go-error new-error unwrap-error error-string panic
+
+  ;; --- lib/coreextended (lisp-defined functions; its macros when, ->,
+  ;; ->> and time are defined in the bootstrap below, as `(eval sym)`
+  ;; cannot bind a macro; benchmark and defprotocol are left out) ---
+  reduce foldr inc dec zero? identity partial gensym
+  every? some memoize find-type extend satisfies? pprint
+
+  ;; --- lib/system ---
+  getenv setenv unsetenv
+
+  ;; --- lib/require (resolve-require only; see note in main) ---
+  resolve-require])
 
 ;; EVAL extends this stack trace-atom when propagating exceptions.  If the
 ;; exception reaches the REPL loop, the full trace-atom is printed.
@@ -244,19 +258,87 @@
 (env-set repl-env 'eval (fn [ast] (EVAL ast repl-env)))
 (env-set repl-env '*ARGV* (rest *ARGV*))
 
-;; core.mal: defined using the new language itself
-(rep (str "(def *host-language* \"" *host-language* "-jig/lisp\")"))
-(rep "(def not (fn [a] (if a false true)))")
-(rep ¬(def load-file (fn (f) (eval (read-string (str "(do " (slurp f) "\nnil)")))))¬)
-(rep "(defmacro cond (fn (& xs) (if (> (count xs) 0) (list 'if (first xs) (if (> (count xs) 1) (nth xs 1) (throw \"odd number of forms to cond\")) (cons 'cond (rest (rest xs)))))))")
+;; core.mal: defined using the new language itself. These forms are
+;; evaluated by EVAL in repl-env; passing quoted forms straight to EVAL
+;; (rather than strings through READ) avoids escaping and a redundant
+;; re-parse — READ here is the host reader anyway.
+(defn mal-eval
+  "Evaluate form in the interpreted (repl-env) environment."
+  [form]
+  (EVAL form repl-env))
+
+(env-set repl-env '*host-language* (str *host-language* "-jig/lisp"))
+(mal-eval '(def not (fn [a] (if a false true))))
+(mal-eval '(def load-file
+             (fn [f] (eval (read-string (str "(do " (slurp f) "\nnil)"))))))
+(mal-eval '(defmacro cond
+             (fn [& xs]
+               (if (> (count xs) 0)
+                 (list 'if (first xs)
+                       (if (> (count xs) 1)
+                         (nth xs 1)
+                         (throw "odd number of forms to cond"))
+                       (cons 'cond (rest (rest xs))))))))
 ;; defn: like def but with an optional leading docstring, mirroring
 ;; jig/lisp's own defn. The docstring is currently discarded.
-(rep "(defmacro defn (fn (name & fdecl) (if (string? (first fdecl)) (list 'def name (cons 'fn (rest fdecl))) (list 'def name (cons 'fn fdecl)))))")
+(mal-eval '(defmacro defn
+             (fn [name & fdecl]
+               (if (string? (first fdecl))
+                 (list 'def name (cons 'fn (rest fdecl)))
+                 (list 'def name (cons 'fn fdecl))))))
 ;; or/and: this interpreter's own main uses (or …), so a self-hosted run
 ;; (lisp lisp.lisp -- lisp.lisp …) needs them defined here too. They bind
 ;; a temporary to avoid re-evaluating the tested expression.
-(rep "(defmacro or (fn (& xs) (if (empty? xs) nil (if (= 1 (count xs)) (first xs) (list 'let (list 'or_ (first xs)) (list 'if 'or_ 'or_ (cons 'or (rest xs))))))))")
-(rep "(defmacro and (fn (& xs) (if (empty? xs) true (if (= 1 (count xs)) (first xs) (list 'let (list 'and_ (first xs)) (list 'if 'and_ (cons 'and (rest xs)) 'and_))))))")
+(mal-eval '(defmacro or
+             (fn [& xs]
+               (if (empty? xs)
+                 nil
+                 (if (= 1 (count xs))
+                   (first xs)
+                   (list 'let (list 'or_ (first xs))
+                         (list 'if 'or_ 'or_ (cons 'or (rest xs)))))))))
+(mal-eval '(defmacro and
+             (fn [& xs]
+               (if (empty? xs)
+                 true
+                 (if (= 1 (count xs))
+                   (first xs)
+                   (list 'let (list 'and_ (first xs))
+                         (list 'if 'and_ (cons 'and (rest xs)) 'and_)))))))
+;; when and the threading macros -> / ->> from coreextended. Kept
+;; self-contained (only list/cons/concat) and expanded step by step.
+(mal-eval '(defmacro when
+             (fn [condition & body]
+               (list 'if condition (cons 'do body)))))
+(mal-eval '(defmacro ->
+             (fn [x & forms]
+               (if (empty? forms)
+                 x
+                 (cons '->
+                       (cons (if (list? (first forms))
+                               (cons (first (first forms))
+                                     (cons x (rest (first forms))))
+                               (list (first forms) x))
+                             (rest forms)))))))
+(mal-eval '(defmacro ->>
+             (fn [x & forms]
+               (if (empty? forms)
+                 x
+                 (cons '->>
+                       (cons (if (list? (first forms))
+                               (concat (first forms) (list x))
+                               (list (first forms) x))
+                             (rest forms)))))))
+;; time: evaluate expr, print the elapsed milliseconds, return its value.
+(mal-eval '(defmacro time
+             (fn [expr]
+               (list 'let (list 'start (list 'time-ms)
+                                'ret expr
+                                'end (list 'time-ms))
+                     (list 'do
+                           (list 'println "Elapsed time:"
+                                 (list '- 'end 'start) "msecs")
+                           'ret)))))
 
 ;; repl loop
 (defn repl-loop
