@@ -202,6 +202,38 @@ func TestRequire_NestedModuleName(t *testing.T) {
 	}
 }
 
+func TestResolveRequire_LispPathEnv(t *testing.T) {
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, "envmod.lisp"), []byte("(def x 1)\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	// The env var name derives from the binary; empty binary → "lisp".
+	config = Config{}
+	t.Setenv("LISPPATH", dir)
+
+	abs, err := resolve_require("envmod")
+	if err != nil {
+		t.Fatalf("resolve via LISPPATH: %v", err)
+	}
+	if want := filepath.Join(dir, "envmod.lisp"); abs != want {
+		t.Errorf("expected %q, got %q", want, abs)
+	}
+
+	// -i dirs still take precedence over LISPPATH.
+	pref := t.TempDir()
+	if err := os.WriteFile(filepath.Join(pref, "envmod.lisp"), []byte("(def x 2)\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	config = Config{IncludeDirs: []string{pref}}
+	abs, err = resolve_require("envmod")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if want := filepath.Join(pref, "envmod.lisp"); abs != want {
+		t.Errorf("expected -i dir to win, got %q", abs)
+	}
+}
+
 func TestResolveRequire_RejectsInvalidNames(t *testing.T) {
 	config = Config{IncludeDirs: []string{t.TempDir()}}
 	for _, bad := range []string{

@@ -394,12 +394,18 @@ Resolution order:
 
 1. Directories passed via `-i/--include` (repeatable)
 2. `.<binary>/` under the enclosing Git repository root (for `lisp`: `.lisp/`)
-3. `$HOME/.config/<binary>/`
-4. `/usr/local/share/<binary>/`
+3. Directories in the `<BINARY>PATH` environment variable, OS
+   path-list separated (for `lisp`: `LISPPATH`, `:`-separated on Unix)
+4. `$HOME/.config/<binary>/`
+5. `/usr/local/share/<binary>/`
 
 ```bash
 lisp -i ./lib -i ./vendor -e '(do (require "geometry") (geometry/area 2))'
+LISPPATH=~/lisp-libs:/opt/lisp lisp script.lisp
 ```
+
+`LISPPATH` sits below the project's `.lisp/` on purpose: a project's
+own modules always win over whatever the shell environment points at.
 
 Notes:
 

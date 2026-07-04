@@ -8,12 +8,11 @@ needs care.
 
 ## Quick wins (surgical, pick these first)
 
-### `LISPPATH` environment variable for require
-Search directories via env var (colon-separated), slotted between `-i`
-and the git-root `.lisp/` in the cascade. Entry point:
-`requireRoots()` in [lib/require/require.go](lib/require/require.go).
-*Effort: ~half an hour. Impact: medium — removes the need to pass flags
-in every shell.*
+### ~~`LISPPATH` environment variable for require~~ (done)
+Implemented as `<BINARY>PATH` (`LISPPATH` for the default binary),
+OS path-list separated, placed *after* the git-root `.lisp/` so a
+project's own modules always win over the shell env — the conservative
+placement from the compatibility notes below.
 
 ### LSP: signature help
 Show the expected parameters while typing a call, current parameter
@@ -112,9 +111,9 @@ extension.
 
 Item-specific notes:
 
-- **`LISPPATH`**: if the variable is already set in someone's shell for
-  another tool, require resolution changes silently. Pick a distinctive
-  name and slot it *after* the git-root `.lisp/` in the cascade.
+- **`LISPPATH`** (done): the per-binary name (`<BINARY>PATH`) keeps it
+  distinctive, and it sits after the git-root `.lisp/`, so setting it
+  can never shadow a project's own modules.
 - **Exception breakpoints**: the hook lands on EVAL's error path — the
   same area as the 2026-01-15 breaking changes (LispError format,
   try/catch/finally). It must observe, never wrap or alter propagated

@@ -344,6 +344,21 @@ func requireRoots() []string {
 	if gitRoot, ok := findGitRoot(); ok {
 		roots = append(roots, filepath.Join(gitRoot, "."+binary))
 	}
+
+	// <BINARY>PATH environment variable (LISPPATH for the default
+	// binary), OS path-list separated. Placed after the project's
+	// git-root `.lisp/` so a project's own modules always win over
+	// whatever the shell env points at — the conservative choice for a
+	// variable a user might already have set. The per-binary name keeps
+	// it distinctive.
+	if envPath := os.Getenv(strings.ToUpper(binary) + "PATH"); envPath != "" {
+		for _, dir := range filepath.SplitList(envPath) {
+			if dir = strings.TrimSpace(dir); dir != "" {
+				roots = append(roots, dir)
+			}
+		}
+	}
+
 	if home, err := os.UserHomeDir(); err == nil {
 		roots = append(roots, filepath.Join(home, ".config", binary))
 	}
