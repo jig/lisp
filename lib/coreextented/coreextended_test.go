@@ -85,3 +85,31 @@ func TestPrelude(t *testing.T) {
 		})
 	}
 }
+
+// TestInto covers `into` and the conj map-entry form it relies on. Map and
+// set element order is not stable when printed, so results are probed with
+// get/count rather than compared literally.
+func TestInto(t *testing.T) {
+	ns := newEnv(t)
+	cases := []struct{ src, want string }{
+		// into: result keeps the target's type
+		{"(into [] (list 1 2 3))", "[1 2 3]"},
+		{"(into [0] [1 2])", "[0 1 2]"},
+		{"(into (list) [1 2 3])", "(3 2 1)"}, // list conj prepends
+		{"(get (into {} [[:a 1] [:b 2]]) :b)", "2"},
+		{"(count (into {} [[:a 1] [:b 2]]))", "2"},
+		{"(count (into {:a 1} [{:b 2} {:c 3}]))", "3"}, // map entries merged
+		{"(count (into #{:x} [:a :b :a]))", "3"},       // keyword set, deduped
+		// conj map-entry form added for into, without breaking the flat form
+		{"(get (conj {:a 1} [:b 2]) :b)", "2"},
+		{"(count (conj {:a 1} {:b 2 :c 3}))", "3"},
+		{"(get (conj {:a 1} :b 2) :b)", "2"}, // flat form still works
+	}
+	for _, tc := range cases {
+		t.Run(tc.src, func(t *testing.T) {
+			if got := run(t, ns, tc.src); got != tc.want {
+				t.Errorf("%s = %s, want %s", tc.src, got, tc.want)
+			}
+		})
+	}
+}
