@@ -109,6 +109,7 @@ var specialForms = map[string]bool{
 	"quasiquoteexpand": true, "defmacro": true, "macroexpand": true,
 	"try": true, "catch": true, "finally": true, "do": true, "if": true,
 	"fn": true, "unquote": true, "splice-unquote": true, "context": true,
+	"loop": true, "recur": true,
 }
 
 // tail returns vals[n:], or an empty slice when n is past the end.
