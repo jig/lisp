@@ -484,6 +484,91 @@
                                   (if ~condvar (and ~@(rest xs)) ~condvar)))))
       {:doc "Evaluates its arguments in order, returning the first falsey one, or the last (true with none)."}))
 
+;;; Arithmetic
+  ;; Integer division helpers, absolute value and min/max. Integer `/`
+  ;; already truncates toward zero, so quot is just a named alias.
+
+  (defn quot
+    "Integer quotient of a divided by b, truncated toward zero."
+    [a b]
+    (/ a b))
+
+  (defn rem
+    "Remainder of (quot a b); the sign follows the dividend a."
+    [a b]
+    (- a (* b (/ a b))))
+
+  (defn mod
+    "Modulo of a by b; the sign follows the divisor b."
+    [a b]
+    (let [r (rem a b)]
+      (if (= r 0)
+        0
+        (if (if (< r 0) (< b 0) (> b 0)) ; r and b share sign?
+          r
+          (+ r b)))))
+
+  (defn abs
+    "Absolute value of n."
+    [n]
+    (if (< n 0) (- 0 n) n))
+
+  (defn min
+    "Smallest of one or more numbers."
+    [a & more]
+    (reduce (fn [m x] (if (< x m) x m)) a more))
+
+  (defn max
+    "Largest of one or more numbers."
+    [a & more]
+    (reduce (fn [m x] (if (> x m) x m)) a more))
+
+;;; Numeric Predicates
+
+  (defn pos?
+    "Whether n is greater than 0."
+    [n]
+    (> n 0))
+
+  (defn neg?
+    "Whether n is less than 0."
+    [n]
+    (< n 0))
+
+  (defn even?
+    "Whether n is even."
+    [n]
+    (= 0 (mod n 2)))
+
+  (defn odd?
+    "Whether n is odd."
+    [n]
+    (not (even? n)))
+
+;;; Sequence Filters
+  ;; Eager filtering; the lazy counterparts live in lib/lazy.
+
+  (defn filter
+    "List of the items in xs for which (pred x) is truthy."
+    [pred xs]
+    (cond (empty? xs)       ()
+          (pred (first xs)) (cons (first xs) (filter pred (rest xs)))
+          true              (filter pred (rest xs))))
+
+  (defn remove
+    "List of the items in xs for which (pred x) is falsy."
+    [pred xs]
+    (filter (fn [x] (not (pred x))) xs))
+
+  (defn take-while
+    "Leading items of xs while (pred x) is truthy."
+    [pred xs]
+    (if (empty? xs)
+      ()
+      (if (pred (first xs))
+        (cons (first xs) (take-while pred (rest xs)))
+        ())))
+
 ;;; Load File Once
   ;; This file is normally loaded with "load-file", so it needs a
   ;; different mechanism to neutralize multiple inclusions of
