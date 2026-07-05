@@ -978,10 +978,22 @@ func conj(a ...MalType) (MalType, error) {
 		new_slc := append(seq.Val, a[1:]...)
 		return Vector{Val: new_slc}, nil
 	case HashMap:
+		new_hm := copy_hash_map(seq)
+		// Entry form: each extra argument is a [k v] pair or a whole map —
+		// the shape `into` feeds via `(reduce conj m from)`. Detected from
+		// the first extra argument; otherwise fall back to the flat
+		// key/value form `(conj m k1 v1 …)`.
+		if len(a) > 1 && isMapEntry(a[1]) {
+			for _, entry := range a[1:] {
+				if err := conjMapEntry(new_hm, entry); err != nil {
+					return nil, err
+				}
+			}
+			return new_hm, nil
+		}
 		if len(a)%2 != 1 {
 			return nil, errors.New("conj called with on a hash map requires an odd number of arguments")
 		}
-		new_hm := copy_hash_map(seq)
 		for i := 1; i < len(a); i += 2 {
 			key := a[i]
 			if !Q[string](key) {
@@ -1002,6 +1014,41 @@ func conj(a ...MalType) (MalType, error) {
 	default:
 		return nil, errors.New("conj called on non-hash map and a non-list and a non-set and a non-vector")
 	}
+}
+
+// isMapEntry reports whether v is what conj accepts as a single map entry:
+// a two-element vector/list [k v], or a map to be merged in.
+func isMapEntry(v MalType) bool {
+	switch e := v.(type) {
+	case Vector:
+		return len(e.Val) == 2
+	case List:
+		return len(e.Val) == 2
+	case HashMap:
+		return true
+	}
+	return false
+}
+
+// conjMapEntry adds one entry — a [key value] pair or a whole map — to hm
+// in place. Keys must be strings or keywords, as elsewhere for maps.
+func conjMapEntry(hm HashMap, entry MalType) error {
+	if e, ok := entry.(HashMap); ok {
+		for k, v := range e.Val {
+			hm.Val[k] = v
+		}
+		return nil
+	}
+	slc, err := GetSlice(entry)
+	if err != nil || len(slc) != 2 {
+		return errors.New("conj: map entry must be a [key value] pair or a map")
+	}
+	key := slc[0]
+	if !Q[string](key) {
+		return errors.New("conj called with non-string key")
+	}
+	hm.Val[key.(string)] = slc[1]
+	return nil
 }
 
 func seq(seq MalType) (MalType, error) {

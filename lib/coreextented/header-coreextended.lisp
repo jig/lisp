@@ -569,6 +569,13 @@
         (cons (first xs) (take-while pred (rest xs)))
         ())))
 
+;;; Collections
+
+  (defn into
+    "Pours every item of from into to using conj; the result keeps to's type."
+    [to from]
+    (reduce conj to from))
+
 ;;; Load File Once
   ;; This file is normally loaded with "load-file", so it needs a
   ;; different mechanism to neutralize multiple inclusions of
