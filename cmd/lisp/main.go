@@ -10,6 +10,7 @@ import (
 	"github.com/jig/lisp/lib/concurrent/nsconcurrent"
 	"github.com/jig/lisp/lib/core/nscore"
 	"github.com/jig/lisp/lib/coreextented/nscoreextended"
+	"github.com/jig/lisp/lib/lazy/nslazy"
 	"github.com/jig/lisp/lib/require/nsrequire"
 	"github.com/jig/lisp/lib/system/nssystem"
 	"github.com/jig/lisp/types"
@@ -27,6 +28,7 @@ func main() {
 		{"command line args", nscore.LoadCmdLineArgs(command.PreParseArgs(os.Args))},
 		{"concurrent", nsconcurrent.Load},
 		{"core mal extended", nscoreextended.Load},
+		{"lazy", nslazy.Load},
 		{"require", nsrequire.Load("lisp")},
 		{"assert", nsassert.Load},
 		{"system", nssystem.Load},
