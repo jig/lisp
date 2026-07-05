@@ -393,6 +393,16 @@ func do(ctx context.Context, ast MalType, from, to int, env EnvType) (MalType, e
 	return lst[len(lst)-1], nil
 }
 
+// recurValue is the sentinel `recur` produces: the evaluated rebind values,
+// caught by the nearest enclosing `loop`. Using a distinct value (rather than
+// an error) means a `recur` left in non-tail position reaches a real consumer
+// (e.g. arithmetic) and fails there, instead of silently jumping.
+type recurValue struct {
+	args []MalType
+}
+
+func (recurValue) LispPrint(_ func(MalType, bool) string) string { return "«recur»" }
+
 // EVAL evaluates an Abstract Syntaxt Tree (AST) and returns a result (a reduced AST).
 // It requires a context that might cancel execution, and requires an environment that might
 // be modified.
@@ -533,6 +543,57 @@ func EVAL(ctx context.Context, ast MalType, env EnvType) (res MalType, e error) 
 				return nil, e
 			}
 			env = let_env
+		case "loop":
+			// Like `let`, but a recursion point: `recur` in tail position
+			// rebinds these symbols and jumps back here, in constant stack.
+			arr1, e := GetSlice(a1)
+			if e != nil {
+				return nil, e
+			}
+			if len(arr1)%2 != 0 {
+				return nil, lisperror.NewLispError(errors.New("loop: odd elements on binding vector"), a1)
+			}
+			loop_env := NewSubordinateEnv(env)
+			syms := make([]Symbol, 0, len(arr1)/2)
+			for i := 0; i < len(arr1); i += 2 {
+				if !Q[Symbol](arr1[i]) {
+					return nil, lisperror.NewLispError(errors.New("loop: non-symbol bind value"), a1)
+				}
+				val, e := EVAL(ctx, arr1[i+1], loop_env)
+				if e != nil {
+					return nil, e
+				}
+				loop_env.Set(arr1[i].(Symbol), val)
+				syms = append(syms, arr1[i].(Symbol))
+			}
+			astRef := ast.(List)
+			for {
+				res, e := do(ctx, astRef, 2, 0, loop_env)
+				if e != nil {
+					return nil, e
+				}
+				rv, ok := res.(recurValue)
+				if !ok {
+					return res, nil
+				}
+				if len(rv.args) != len(syms) {
+					return nil, lisperror.NewLispError(fmt.Errorf("recur: got %d arguments but loop has %d bindings", len(rv.args), len(syms)), ast)
+				}
+				for i, sym := range syms {
+					loop_env.Set(sym, rv.args[i])
+				}
+			}
+		case "recur":
+			args := ast.(List).Val[1:]
+			vals := make([]MalType, len(args))
+			for i, arg := range args {
+				v, e := EVAL(ctx, arg, env)
+				if e != nil {
+					return nil, e
+				}
+				vals[i] = v
+			}
+			return recurValue{args: vals}, nil
 		case "quote": // '
 			return a1, nil
 		case "quasiquoteexpand":
