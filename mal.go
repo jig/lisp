@@ -659,9 +659,16 @@ func EVAL(ctx context.Context, ast MalType, env EnvType) (res MalType, e error) 
 				ast = a2
 			}
 		case "fn":
+			// Guard the body slice: `(fn)` has no parameter list, so
+			// Val[2:] would be out of range. Treat it like `(fn nil)` — a
+			// no-op function — instead of panicking.
+			var body []MalType
+			if l := ast.(List).Val; len(l) >= 2 {
+				body = l[2:]
+			}
 			fn := MalFunc{
 				Eval:    EVAL,
-				Exp:     List{Val: append([]MalType{Symbol{Val: "do"}}, ast.(List).Val[2:]...), Cursor: ast.(List).Cursor},
+				Exp:     List{Val: append([]MalType{Symbol{Val: "do"}}, body...), Cursor: ast.(List).Cursor},
 				Env:     env,
 				Params:  a1,
 				IsMacro: false,
