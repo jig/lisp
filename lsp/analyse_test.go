@@ -1,6 +1,10 @@
 package lsp
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/jig/lisp/docmeta"
+)
 
 // TestAnalyseIncompleteForms guards against panics while analysing the
 // half-typed forms that occur constantly during editing. The reader can
@@ -24,5 +28,17 @@ func TestAnalyseIncompleteForms(t *testing.T) {
 			}()
 			analyseDocument("file:///t.lisp", src+"\n")
 		}()
+	}
+}
+
+// TestDocumentedSpecialFormsAreRecognised asserts every special form in the
+// documentation table is also recognised by the analyser, so a documented
+// form is never flagged as an unknown symbol. Guards against the two lists
+// drifting apart.
+func TestDocumentedSpecialFormsAreRecognised(t *testing.T) {
+	for name := range docmeta.SpecialForms {
+		if !specialForms[name] {
+			t.Errorf("%q is documented but not in the analyser's specialForms set", name)
+		}
 	}
 }

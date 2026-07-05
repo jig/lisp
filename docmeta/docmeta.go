@@ -44,4 +44,6 @@ var SpecialForms = map[string]Entry{
 	"catch":       {"[binding & body]", "special-forms", "Inside try: binds the caught error and evaluates body."},
 	"finally":     {"[& body]", "special-forms", "Inside try: body is always evaluated for side effects, error or not."},
 	"context":     {"[& body]", "special-forms", "Provides a Go context to the enclosed forms."},
+	"loop":        {"[bindings & body]", "special-forms", "Like let, but a recursion point: recur in tail position rebinds the bindings and jumps back, in constant stack."},
+	"recur":       {"[& args]", "special-forms", "In tail position, rebinds the nearest loop's bindings to args and iterates."},
 }
