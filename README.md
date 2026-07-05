@@ -1,8 +1,8 @@
 # jig/lisp
 
-Derived from `kanaka/mal` Go implementation of a Lisp interpreter. It is Clojure _inspired_.
+Derived from [kanaka/mal](https://github.com/kanaka/mal) Go implementation of a Lisp interpreter. It is Clojure _inspired_.
 
-This implementation is focused on _embeddability_ in Go projects. See [lisp main](./cmd/lisp) for an example on how to embed it in Go code. It includes a REPL and a debugger and a language server for Visual Studio Code.
+This implementation is focused on _embeddability_ in Go projects. See [lisp main](./cmd/lisp) for an example on how to embed it in Go code. It includes a REPL, a debugger, a language server and a source code formatter for Visual Studio Code.
 
 It requires Go 1.25.
 

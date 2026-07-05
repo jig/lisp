@@ -19,6 +19,9 @@ interpreter.
   Go-to-definition (F12) jumps to local definitions and into require'd
   module files; signature help lists a call's parameters as you type.
   Spawned as `lisp-debug --lsp` when a lisp document opens.
+- Document formatting (a gofmt-style canonical layout, comments
+  preserved) via the language server. Enabled on save by default for
+  lisp files, or run **Format Document** (`⇧⌥F`) manually.
 
 Find-references and rename are not part of this release.
 
@@ -89,6 +92,14 @@ forwarded to the interpreter as `--preamble` flags.
 | `lisp.languageServer.enabled`    | `true`        | Start the LSP client for lisp documents.         |
 | `lisp.languageServer.command`    | `lisp-debug`  | Binary spawned as the LSP server (with `--lsp`). |
 | `lisp.languageServer.includeDirs`| `[]`          | require search dirs for the editor (like `-i`).  |
+
+The extension also sets, as defaults you can override, `editor.formatOnSave`
+and `editor.defaultFormatter` for `[lisp]` documents so files are formatted
+on save. To turn it off, add to your settings:
+
+```json
+"[lisp]": { "editor.formatOnSave": false }
+```
 
 ## Development
 
