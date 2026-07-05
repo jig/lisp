@@ -161,49 +161,19 @@ func ExampleEVAL() {
 }
 ```
 
-### L notation
+### Create new Go builtins
 
-> TODO(jig): review this section and decide wether the _L notation_ is still relevant or not. It was added to avoid parsing lisp strings, but now the `READ` function is fast enough and the `L` notation is not used in the tests.
+You can create new Go builtins and register them in the environment.
 
-You may generate lisp Go structures without having to parse lisp strings, by using Go `L` notation.
+Look at samples under [lib/](./lib/) libraries. In particular, look at [lib/core/](./lib/core) for a full example of a library of Go builtins.
+
+Create a new library and then add it (follow example above):
 
 ```go
-var (
-    prn = S("prn")
-    str = S("str")
-)
-
-// (prn (str "hello" " " "world!"))
-sampleCode := L(prn, L(str, "hello", " ", "world!"))
-
-EVAL(sampleCode, newTestEnv(), nil)
-```
-
-See [./helloworldlnotationexample_test.go](./helloworldlnotationexample_test.go) and [./lnotation/lnotation_test.go](./lnotation/lnotation_test.go).
-
-## Test file specs
-
-> TODO(jig): review if this section is still valid
-
-Execute the testfile with:
-
-```bash
-$ lisp --test .
-```
-
-And a minimal test example `sample_test.mal`:
-
-```lisp
-(test.suite "complete tests"
-    (assert-true "2 + 2 = 4 is true" (= 4 (+ 2 2)))
-    (assert-false "2 + 2 = 5 is false" (= 5 (+ 2 2)))
-    (assert-throws "0 / 0 throws an error" (/ 0 0)))
-```
-
-Some benchmark of the implementations:
-
-```bash
-$ go test -bench ".+" -benchtime 2s
+        ...
+        {"core mal extended", nscoreextended.Load},
+        {"system", nssystem.Load},
+        {"my new library", nsmynewlibrary.Load},
 ```
 
 ## Debug in VSCode
