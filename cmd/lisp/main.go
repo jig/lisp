@@ -29,10 +29,12 @@ func main() {
 		{"command line args", nscore.LoadCmdLineArgs(command.PreParseArgs(os.Args))},
 		{"concurrent", nsconcurrent.Load},
 		{"core mal extended", nscoreextended.Load},
-		{"lazy", nslazy.Load},
-		{"require", nsrequire.Load("lisp")},
 		{"assert", nsassert.Load},
 		{"system", nssystem.Load},
+
+		// new libraries on jig/lisp v0.3.0
+		{"lazy", nslazy.Load},
+		{"require", nsrequire.Load("lisp")},
 		{"sql", nssql.Load},
 	} {
 		if err := library.load(ns); err != nil {
