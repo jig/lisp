@@ -80,8 +80,8 @@ func load(rootEnv types.EnvType, cfg Config) error {
 	loader := &moduleLoader{root: rootEnv, cache: map[string]types.EnvType{}}
 	rootEnv.Set(types.Symbol{Val: "require"}, types.Func{Fn: loader.require})
 
-	call.Doc(rootEnv, "require", `[module & [:as alias] [:refer [names]]]`,
-		"Loads a module once and publishes its definitions as module/name (or alias/name with :as; :refer imports selected names unqualified).")
+	call.Doc(rootEnv, "require", `[module & [:as alias] [:refer [names]|:all]]`,
+		"Loads a module once and publishes its definitions as module/name (or alias/name with :as; :refer imports selected names, or :refer :all imports them all, unqualified).")
 	call.Doc(rootEnv, "resolve-require", "[module]",
 		"Resolves a module name to the absolute path of its file through the search path.")
 	return nil
@@ -113,7 +113,7 @@ func (l *moduleLoader) require(ctx context.Context, args []types.MalType) (types
 	if !ok {
 		return nil, fmt.Errorf("require: module name must be a string (was %T)", args[0])
 	}
-	prefix, refers, err := parseRequireOptions(module, args[1:])
+	prefix, refers, referAll, err := parseRequireOptions(module, args[1:])
 	if err != nil {
 		return nil, err
 	}
@@ -140,6 +140,10 @@ func (l *moduleLoader) require(ctx context.Context, args []types.MalType) (types
 			continue
 		}
 		l.root.Set(types.Symbol{Val: prefix + "/" + name}, v)
+		if referAll {
+			// :refer :all — also publish every definition unqualified
+			l.root.Set(types.Symbol{Val: name}, v)
+		}
 		defined[name] = true
 	}
 	for _, name := range refers {
@@ -190,40 +194,45 @@ func (l *moduleLoader) loadModule(ctx context.Context, absPath string) (types.En
 // parseRequireOptions handles the optional `:as "alias"` and
 // `:refer ["name" …]` argument pairs. Keywords arrive from the reader
 // as strings with the "ʞ" prefix.
-func parseRequireOptions(module string, opts []types.MalType) (prefix string, refers []string, err error) {
+func parseRequireOptions(module string, opts []types.MalType) (prefix string, refers []string, referAll bool, err error) {
 	prefix = module
 	for i := 0; i < len(opts); i += 2 {
 		key, ok := opts[i].(string)
 		if !ok || !strings.HasPrefix(key, "ʞ") {
-			return "", nil, fmt.Errorf("require: expected :as or :refer, got %v", opts[i])
+			return "", nil, false, fmt.Errorf("require: expected :as or :refer, got %v", opts[i])
 		}
 		if i+1 >= len(opts) {
-			return "", nil, fmt.Errorf("require: %s requires a value", ":"+strings.TrimPrefix(key, "ʞ"))
+			return "", nil, false, fmt.Errorf("require: %s requires a value", ":"+strings.TrimPrefix(key, "ʞ"))
 		}
 		switch strings.TrimPrefix(key, "ʞ") {
 		case "as":
 			alias, ok := opts[i+1].(string)
 			if !ok || alias == "" {
-				return "", nil, fmt.Errorf("require: :as expects a non-empty string")
+				return "", nil, false, fmt.Errorf("require: :as expects a non-empty string")
 			}
 			prefix = alias
 		case "refer":
+			// :refer :all imports every definition of the module unqualified.
+			if kw, ok := opts[i+1].(string); ok && kw == types.NewKeyword("all") {
+				referAll = true
+				continue
+			}
 			vec, ok := opts[i+1].(types.Vector)
 			if !ok {
-				return "", nil, fmt.Errorf("require: :refer expects a vector of strings")
+				return "", nil, false, fmt.Errorf("require: :refer expects a vector of strings or :all")
 			}
 			for _, e := range vec.Val {
 				name, ok := e.(string)
 				if !ok {
-					return "", nil, fmt.Errorf("require: :refer expects a vector of strings")
+					return "", nil, false, fmt.Errorf("require: :refer expects a vector of strings or :all")
 				}
 				refers = append(refers, name)
 			}
 		default:
-			return "", nil, fmt.Errorf("require: unknown option :%s", strings.TrimPrefix(key, "ʞ"))
+			return "", nil, false, fmt.Errorf("require: unknown option :%s", strings.TrimPrefix(key, "ʞ"))
 		}
 	}
-	return prefix, refers, nil
+	return prefix, refers, referAll, nil
 }
 
 // parseIncludeArgs extracts -i/--include values from raw command line

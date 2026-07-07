@@ -137,6 +137,25 @@ func TestRequire_Refer(t *testing.T) {
 	}
 }
 
+func TestRequire_ReferAll(t *testing.T) {
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, "greetall.lisp"),
+		[]byte("(def hello \"hola\")\n(defn shout [s] (str s \"!\"))\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	ns := testEnv(t, dir)
+	mustRepl(t, ns, `(require "greetall" :refer :all)`)
+	// every definition is imported unqualified
+	if out := mustRepl(t, ns, `(shout hello)`); out != `"hola!"` {
+		t.Errorf("expected \"hola!\", got %v", out)
+	}
+	// and still available qualified
+	if out := mustRepl(t, ns, `greetall/hello`); out != `"hola"` {
+		t.Errorf("expected \"hola\", got %v", out)
+	}
+}
+
 func TestRequire_LoadsOnlyOnce(t *testing.T) {
 	dir := t.TempDir()
 	// The module bumps a root-env counter on every EVALUATION (eval runs
