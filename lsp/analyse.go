@@ -29,10 +29,11 @@ type symbolRef struct {
 // requireRef is one `(require "module" [:as "a"] [:refer ["n" …]])`
 // occurrence.
 type requireRef struct {
-	module  string
-	alias   string          // :as alias; empty means the module name
-	refers  []string        // :refer names imported unqualified
-	headPos *types.Position // position of the `require` symbol
+	module   string
+	alias    string          // :as alias; empty means the module name
+	refers   []string        // :refer names imported unqualified
+	referAll bool            // :refer :all imports every name unqualified
+	headPos  *types.Position // position of the `require` symbol
 }
 
 // preambleDef is one leading `;; $NAME <expr>` placeholder default.
@@ -220,11 +221,17 @@ func (a *analysis) scan(form types.MalType) {
 							ref.alias = alias
 						}
 					case "ʞrefer": // keyword :refer
-						if vec, ok := opts[i+1].(types.Vector); ok {
-							for _, e := range vec.Val {
+						switch v := opts[i+1].(type) {
+						case types.Vector:
+							for _, e := range v.Val {
 								if name, ok := e.(string); ok {
 									ref.refers = append(ref.refers, name)
 								}
+							}
+						case string:
+							// :refer :all imports every definition unqualified
+							if v == types.NewKeyword("all") {
+								ref.referAll = true
 							}
 						}
 					}

@@ -270,7 +270,7 @@ func resolveRequires(anal *analysis) ([]externalDef, []Diagnostic) {
 				qualified := d
 				qualified.name = prefix + "/" + d.name
 				out = append(out, externalDef{definition: qualified, path: path, localName: d.name})
-				if referred[d.name] {
+				if req.referAll || referred[d.name] {
 					out = append(out, externalDef{definition: d, path: path, localName: d.name})
 				}
 			}

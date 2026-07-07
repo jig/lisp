@@ -430,6 +430,15 @@ func TestServer_RequireImportsSymbols(t *testing.T) {
 		t.Fatalf("expected no diagnostics with :as alias, got %v", list)
 	}
 
+	// :refer :all imports every definition unqualified: `area` used
+	// bare must not be flagged as unknown.
+	diags = didOpen(t, client, "file:///referall.lisp",
+		"(require \"geometry\" :refer :all)\n(println (area 2))\n")
+	list = diags["params"].(map[string]interface{})["diagnostics"].([]interface{})
+	if len(list) != 0 {
+		t.Fatalf("expected no diagnostics with :refer :all, got %v", list)
+	}
+
 	// an unresolvable require warns on the require form
 	diags = didOpen(t, client, "file:///bad.lisp", "(require \"no/such/module\")\n")
 	list = diags["params"].(map[string]interface{})["diagnostics"].([]interface{})
