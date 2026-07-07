@@ -1,5 +1,8 @@
 # Roadmap — pending DAP / LSP / require work
 
+> Interpreter robustness, testing and docs findings from the 2026-07
+> audit live in [ROADMAP-robustness.md](ROADMAP-robustness.md).
+
 Backlog of agreed-but-unscheduled improvements, written down so they are
 not forgotten. Effort and risk are estimates as of 2026-07: **surgical**
 means additive and contained (safe to pick up any time), **invasive**
