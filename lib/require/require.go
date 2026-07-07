@@ -77,7 +77,7 @@ func load(rootEnv types.EnvType, cfg Config) error {
 	// Each loaded module is evaluated once in its own environment
 	// subordinate to rootEnv; the cache lives in this closure so
 	// distinct root environments (e.g. tests) do not share modules.
-	loader := &moduleLoader{root: rootEnv, cache: map[string]types.EnvType{}}
+	loader := &moduleLoader{root: rootEnv, cache: map[string]types.EnvType{}, loading: map[string]bool{}}
 	rootEnv.Set(types.Symbol{Val: "require"}, types.Func{Fn: loader.require})
 
 	call.Doc(rootEnv, "require", `[module & [:as alias] [:refer [names]|:all]]`,
@@ -90,9 +90,10 @@ func load(rootEnv types.EnvType, cfg Config) error {
 // moduleLoader evaluates modules once and exposes their top-level
 // definitions in the root environment under qualified names.
 type moduleLoader struct {
-	mu    sync.Mutex
-	root  types.EnvType
-	cache map[string]types.EnvType // abs path → module env
+	mu      sync.Mutex
+	root    types.EnvType
+	cache   map[string]types.EnvType // abs path → module env
+	loading map[string]bool          // abs paths currently being evaluated
 }
 
 // require implements `(require "module" [:as "alias"] [:refer ["name" …]])`.
@@ -160,12 +161,45 @@ func (l *moduleLoader) require(ctx context.Context, args []types.MalType) (types
 }
 
 // loadModule evaluates the module file once and caches its environment.
+//
+// The mutex guards only the cache and the in-progress set — never the
+// evaluation itself. A module may `require` others, which re-enters
+// loadModule, so holding the lock across EVAL would deadlock (sync.Mutex
+// is not reentrant). The in-progress set turns a circular require into a
+// clear error instead of unbounded recursion.
 func (l *moduleLoader) loadModule(ctx context.Context, absPath string) (types.EnvType, error) {
 	l.mu.Lock()
-	defer l.mu.Unlock()
 	if moduleEnv, ok := l.cache[absPath]; ok {
+		l.mu.Unlock()
 		return moduleEnv, nil
 	}
+	if l.loading[absPath] {
+		l.mu.Unlock()
+		return nil, fmt.Errorf("require: circular dependency loading %q", absPath)
+	}
+	l.loading[absPath] = true
+	l.mu.Unlock()
+
+	moduleEnv, err := l.evalModule(ctx, absPath)
+
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	delete(l.loading, absPath)
+	if err != nil {
+		return nil, err
+	}
+	if existing, ok := l.cache[absPath]; ok {
+		// Another require finished this module while we evaluated it.
+		return existing, nil
+	}
+	l.cache[absPath] = moduleEnv
+	return moduleEnv, nil
+}
+
+// evalModule reads and evaluates a module file into a fresh subordinate
+// environment, without touching the loader's shared state (so it holds no
+// lock and nested requires can proceed).
+func (l *moduleLoader) evalModule(ctx context.Context, absPath string) (types.EnvType, error) {
 	content, err := os.ReadFile(absPath)
 	if err != nil {
 		return nil, fmt.Errorf("require: %w", err)
@@ -187,7 +221,6 @@ func (l *moduleLoader) loadModule(ctx context.Context, absPath string) (types.En
 	if _, err := lisp.EVAL(ctx, ast, moduleEnv); err != nil {
 		return nil, err
 	}
-	l.cache[absPath] = moduleEnv
 	return moduleEnv, nil
 }
 
