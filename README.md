@@ -25,7 +25,7 @@ It provides an LSP (Language Server Protocol) server and a DAP (Debug Adapter Pr
 You need to have Go installed and configured, for Linux and MacOS:
 
 ```bash
-git clone github.com/jig/lisp/cmd/lisp
+git clone github.com/jig/lisp
 cd lisp
 go build -tags lispdebug -o /tmp/lisp-debug ./cmd/lisp
 sudo install /tmp/lisp-debug /usr/local/bin/
