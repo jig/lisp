@@ -156,6 +156,45 @@ func TestRequire_ReferAll(t *testing.T) {
 	}
 }
 
+func TestRequire_Nested(t *testing.T) {
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, "base.lisp"),
+		[]byte("(def answer 42)\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	// mid requires base, then uses its definition: requiring a module that
+	// itself requires another must not deadlock.
+	if err := os.WriteFile(filepath.Join(dir, "mid.lisp"),
+		[]byte("(require \"base\" :refer :all)\n(defn doubled [] (* answer 2))\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	ns := testEnv(t, dir)
+	mustRepl(t, ns, `(require "mid" :refer :all)`)
+	if out := mustRepl(t, ns, `(doubled)`); out != "84" {
+		t.Errorf("expected 84, got %v", out)
+	}
+}
+
+func TestRequire_CircularErrors(t *testing.T) {
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, "a.lisp"),
+		[]byte("(require \"b\" :refer :all)\n(def x 1)\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "b.lisp"),
+		[]byte("(require \"a\" :refer :all)\n(def y 2)\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	ns := testEnv(t, dir)
+	// A circular require must be reported, not hang.
+	if _, err := repl(t, ns, `(require "a" :refer :all)`); err == nil ||
+		!strings.Contains(err.Error(), "circular dependency") {
+		t.Errorf("expected a circular dependency error, got %v", err)
+	}
+}
+
 func TestRequire_LoadsOnlyOnce(t *testing.T) {
 	dir := t.TempDir()
 	// The module bumps a root-env counter on every EVALUATION (eval runs
