@@ -161,6 +161,48 @@ func ExampleEVAL() {
 }
 ```
 
+### Embedding contract
+
+Guarantees an embedder can rely on. The interpreter is meant to run
+untrusted or hand-written Lisp (config files, a transmission format), so
+the boundaries matter.
+
+**Panics vs errors.** `READ`, `EVAL` and the `REPL*` helpers report
+problems by returning an `error` (a `lisperror.LispError` carrying a
+source position and a stack trace). Malformed input — bad syntax, wrong
+arity, ill-formed special forms — returns an error and must never panic
+the host process; if you can make a plain Lisp string panic `EVAL`,
+that is an interpreter bug, please report it. Two things are *not*
+covered by this: a builtin handed a Go value of the wrong dynamic type
+by your own code, and unbounded **non-tail** recursion, which can
+exhaust the Go stack (an unrecoverable fatal error, not a catchable
+panic — `loop`/`recur` and tail calls run in constant stack and are
+safe). The Lisp `(panic x)` builtin is a deliberate feature: it is
+caught by the builtin call boundary and surfaces as an `error`, so it
+does not crash the host either.
+
+**Context.** `EVAL` takes a `context.Context`. Pass one with a deadline
+(`context.WithTimeout`) to bound execution — `try` reserves 80% of the
+remaining time for the body and 20% for `catch`/`finally`, and a
+cancelled context stops evaluation with a timeout error. A `nil`
+context is accepted and simply disables cancellation and timeouts; use
+`context.TODO()` in tests, a real context in production.
+
+**Concurrency.** An `Env` is internally synchronised (an `RWMutex`), so
+concurrent reads and definitions are safe at the structure level. The
+recommended pattern is one shared base env holding the loaded libraries
+plus a per-goroutine child (`env.NewSubordinateEnv(base)`) for each
+`EVAL`, so top-level `def`s don't leak between evaluations. Share
+*mutable* state between goroutines through **atoms** (`atom`, `swap!`,
+`reset!` — thread-safe), not by `def`-ing into a shared env. `future`
+runs its body on its own goroutine; in `lispdebug` builds it detaches
+from the debug session (see the roadmap for multi-thread debugging).
+
+**Matching errors.** Since errors are decorated with a `file:line:`
+prefix and a stack trace, match them with `strings.Contains` (or
+`errors.Is` / `errors.As` against a `lisperror.LispError`), not string
+equality.
+
 ### Create new Go builtins
 
 You can create new Go builtins and register them in the environment.

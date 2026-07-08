@@ -24,7 +24,7 @@ Status summary (tick as you go):
 - [x] 2.7 `malRecover` re-panics on non-error panic values (done 2026-07-08)
 - [x] 3.1 Fuzz tests for READ and EVAL (done 2026-07-08)
 - [ ] 4.1 Honest coverage numbers (`-coverpkg`) + targeted gap tests
-- [ ] 5.1 Document the embedding contract
+- [x] 5.1 Document the embedding contract (done 2026-07-08)
 - [ ] 5.2 `lib/coreextented` typo in the public import path
 - [ ] 5.3 Sweep of commented-out dead code
 - [ ] 5.4 Release notes for tags
@@ -289,7 +289,16 @@ Optional: add the `-coverpkg` run to CI with a soft threshold
 
 ## Phase 5 — maintainability and documentation (pick at leisure)
 
-### 5.1 Document the embedding contract
+### ~~5.1 Document the embedding contract~~ (done 2026-07-08)
+
+**Done 2026-07-08** (branch `docs/embedding-contract`): an "Embedding
+contract" section in the README plus a `# Embedding contract` block in
+the root-package godoc, covering panics-vs-errors (incl. the non-tail
+recursion and `(panic …)` caveats), nil context, the shared-base +
+per-goroutine-child + atoms concurrency pattern, and `strings.Contains`
+error matching. The concurrency claim was checked with a throwaway
+`-race` test (50 concurrent EVALs over a shared base env mutating one
+atom → 50, clean).
 
 The README explains *how* to embed but not the *guarantees*. One
 "Embedding contract" section (README or root-package godoc) stating:
