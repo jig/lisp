@@ -22,7 +22,7 @@ Status summary (tick as you go):
 - [x] 2.5 `recur` outside `loop` silently returns the sentinel (done 2026-07-08)
 - [x] 2.6 nil-context contract: `try` panics where the EVAL loop tolerates nil (done 2026-07-08)
 - [x] 2.7 `malRecover` re-panics on non-error panic values (done 2026-07-08)
-- [ ] 3.1 Fuzz tests for READ and EVAL
+- [x] 3.1 Fuzz tests for READ and EVAL (done 2026-07-08)
 - [ ] 4.1 Honest coverage numbers (`-coverpkg`) + targeted gap tests
 - [ ] 5.1 Document the embedding contract
 - [ ] 5.2 `lib/coreextented` typo in the public import path
@@ -218,7 +218,19 @@ trivial.*
 
 ## Phase 3 — fuzzing (surgical; validates phase 2)
 
-### 3.1 Fuzz tests for READ and EVAL
+**Done 2026-07-08** (branch `feature/fuzzing`): `FuzzReadStr`
+([reader/fuzz_test.go](reader/fuzz_test.go)) and `FuzzEval`
+([fuzz_test.go](fuzz_test.go)), seeded with valid forms + every phase-2
+repro. `FuzzEval` is `package lisp_test` (external) because `nscore`
+imports `lisp`; it reads then evaluates under a 100ms timeout in a
+fresh child of a core-loaded env so top-level defs don't leak. Both ran
+**70s locally with no crasher**. CI gained a `fuzz` job (30s each).
+Known limit documented in the test: deep non-tail Lisp recursion can
+still exhaust the Go stack (unrecoverable) — byte-level fuzzing is very
+unlikely to synthesise it, and a recursion-depth limit is a separate
+item, not covered here.
+
+### ~~3.1 Fuzz tests for READ and EVAL~~ (done 2026-07-08)
 
 Native Go fuzzing would have found every panic in phase 2 unattended.
 Two targets:

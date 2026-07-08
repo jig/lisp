@@ -30,6 +30,20 @@ jobs:
     - run: go test -race ./...
     - run: go test -race -tags lispdebug ./...
 
+  # Smoke-fuzz READ and EVAL: a short run per push that would have caught
+  # the phase-2 panics. It mainly re-runs the committed seed corpus plus a
+  # little exploration; long fuzzing sessions stay manual/local. A crasher
+  # is written under testdata/fuzz/ and committed so it becomes a seed.
+  fuzz:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v5
+    - uses: actions/setup-go@v6
+      with:
+        go-version: 1.25.x
+    - run: go test -run='^$' -fuzz='^FuzzReadStr$' -fuzztime=30s ./reader/
+    - run: go test -run='^$' -fuzz='^FuzzEval$' -fuzztime=30s .
+
   quality:
     runs-on: ubuntu-latest
     steps:
