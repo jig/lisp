@@ -6,6 +6,10 @@ This implementation is focused on _embeddability_ in Go projects. See [lisp main
 
 It requires Go 1.25.
 
+> **Upgrading?** See [CHANGELOG.md](./CHANGELOG.md) for behaviour changes
+> that may need action — notably the error-message format changed since
+> v0.2.24.
+
 ## Install
 
 ### Install the interpreter and REPL
