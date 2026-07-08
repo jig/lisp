@@ -5,10 +5,11 @@ import (
 
 	_ "embed"
 	"errors"
-	"github.com/jig/lisp/runtime"
 	"sync"
+	"sync/atomic"
 
 	"github.com/jig/lisp/lib/call"
+	"github.com/jig/lisp/runtime"
 	. "github.com/jig/lisp/types"
 )
 
@@ -25,8 +26,8 @@ func Load(env EnvType) {
 	call.CallOverrideFN(env, "reset!", reset_BANG)
 	call.Call(env, future_call)
 	call.Call(env, future_cancel)
-	call.CallOverrideFN(env, "future-cancelled?", func(f *Future) (bool, error) { return f.Cancelled, nil })
-	call.CallOverrideFN(env, "future-done?", func(f *Future) (bool, error) { return f.Done, nil })
+	call.CallOverrideFN(env, "future-cancelled?", func(f *Future) (bool, error) { return f.Cancelled.Load(), nil })
+	call.CallOverrideFN(env, "future-done?", func(f *Future) (bool, error) { return f.Done.Load(), nil })
 	call.CallOverrideFN(env, "future?", func(f MalType) (bool, error) { return Q[*Future](f), nil })
 	call.Call(env, new_future_call)
 
@@ -114,8 +115,11 @@ type Future struct {
 	ValChan    chan MalType
 	ErrChan    chan error
 	CancelFunc context.CancelFunc
-	Done       bool
-	Cancelled  bool
+	// Done and Cancelled are read from other goroutines (future-done? /
+	// future-cancelled?) while the future's goroutine and Cancel write
+	// them, so they are atomic. Read with .Load(), not as bare bools.
+	Done      atomic.Bool
+	Cancelled atomic.Bool
 
 	Fn     MalFunc
 	Meta   MalType
@@ -135,7 +139,7 @@ func NewFuture(ctx context.Context, fn MalFunc) *Future {
 		Fn:         fn,
 	}
 	go func() {
-		defer func() { f.Done = true }()
+		defer func() { f.Done.Store(true) }()
 		// The future's goroutine must not share the spawner's debug
 		// thread: see runtime.DetachThread. No-op in release builds.
 		res, err := Apply(runtime.DetachThread(ctx), fn, nil)
@@ -150,12 +154,14 @@ func NewFuture(ctx context.Context, fn MalFunc) *Future {
 }
 
 func (f *Future) Cancel() bool {
-	if !f.Done {
-		f.Cancelled = true
-		f.Done = true
+	// CompareAndSwap makes the check-then-act atomic: whoever flips Done
+	// false→true owns the cancellation. If the goroutine already
+	// finished (Done true), the swap fails and we leave Cancelled false.
+	if f.Done.CompareAndSwap(false, true) {
+		f.Cancelled.Store(true)
 		f.CancelFunc()
 	}
-	return f.Cancelled
+	return f.Cancelled.Load()
 }
 
 func (f *Future) Deref(ctx context.Context) (MalType, error) {
