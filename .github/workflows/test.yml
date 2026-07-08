@@ -44,6 +44,21 @@ jobs:
     - run: go test -run='^$' -fuzz='^FuzzReadStr$' -fuzztime=30s ./reader/
     - run: go test -run='^$' -fuzz='^FuzzEval$' -fuzztime=30s .
 
+  # Honest cross-package coverage (-coverpkg), reported not enforced:
+  # per-package numbers under-count because the root step-tests exercise
+  # lib/core etc. across package boundaries. This just surfaces the trend
+  # in the log; it never fails the build.
+  coverage:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v5
+    - uses: actions/setup-go@v6
+      with:
+        go-version: 1.25.x
+    - run: |
+        go test -coverpkg=./... -coverprofile=cover.out ./...
+        go tool cover -func=cover.out | tail -1
+
   quality:
     runs-on: ubuntu-latest
     steps:
