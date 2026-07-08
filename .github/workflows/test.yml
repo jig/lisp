@@ -17,6 +17,19 @@ jobs:
     # without this second pass its tests never run in CI.
     - run: go test -tags lispdebug ./...
 
+  # The race detector catches data races the plain test job cannot see
+  # (concurrent atoms/futures). Ubuntu-only: it is ~10x slower, and a
+  # data race is a logic bug, not an OS-specific one.
+  race:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v5
+    - uses: actions/setup-go@v6
+      with:
+        go-version: 1.25.x
+    - run: go test -race ./...
+    - run: go test -race -tags lispdebug ./...
+
   quality:
     runs-on: ubuntu-latest
     steps:

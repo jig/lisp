@@ -13,8 +13,8 @@ ROADMAP.md.
 
 Status summary (tick as you go):
 
-- [ ] 1.1 CI: run tests with `-race`
-- [ ] 1.2 Data race in `Future.Done` / `Future.Cancelled`
+- [x] 1.1 CI: run tests with `-race` (done 2026-07-08)
+- [x] 1.2 Data race in `Future.Done` / `Future.Cancelled` (done 2026-07-08)
 - [ ] 2.1 Panic: `(try 1 (catch))` — catch with no binding
 - [ ] 2.2 Panic: `(try ())` — `first()` on empty list
 - [ ] 2.3 Panic: `(fn [&])` called — trailing `&` in binds
@@ -36,7 +36,16 @@ independent and can be picked at leisure.
 
 ## Phase 1 — CI and the confirmed race (surgical, do first)
 
-### 1.1 CI: run tests with `-race`
+**Done 2026-07-08** (branch `fix/future-data-race`): `Future.Done` and
+`Future.Cancelled` are now `atomic.Bool`; `Cancel` uses a
+`CompareAndSwap` to make its check-then-act atomic. CI gained a
+ubuntu-only `race` job (plain + `lispdebug`). Regression test
+`TestFutureConcurrentStateNoRace` in
+[lib/concurrent/future_race_test.go](lib/concurrent/future_race_test.go)
+reproduces the original race (4 reports under `-race` on the old code)
+and passes on the new. `go test -race ./...` is clean.
+
+### ~~1.1 CI: run tests with `-race`~~ (done 2026-07-08)
 
 `.github/workflows/test.yml` runs `go test ./...` without `-race`, so
 the data race in 1.2 was never seen by CI (a local
@@ -46,7 +55,7 @@ matter. The `lispdebug` pass should get it too.
 
 *Effort: trivial. Do together with 1.2 so the new job is born green.*
 
-### 1.2 Data race in `Future.Done` / `Future.Cancelled`
+### ~~1.2 Data race in `Future.Done` / `Future.Cancelled`~~ (done 2026-07-08)
 
 `Future.Done` and `Future.Cancelled` are plain bools
 ([lib/concurrent/concurrent.go](lib/concurrent/concurrent.go)):
