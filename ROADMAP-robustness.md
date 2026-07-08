@@ -19,9 +19,9 @@ Status summary (tick as you go):
 - [x] 2.2 Panic: `(try ())` — `first()` on empty list (done 2026-07-08)
 - [x] 2.3 Panic: `(fn [&])` called — trailing `&` in binds (done 2026-07-08)
 - [x] 2.4 Panic: `(quasiquote (unquote))` — and sibling `splice-unquote` (done 2026-07-08)
-- [ ] 2.5 `recur` outside `loop` silently returns the sentinel
-- [ ] 2.6 nil-context contract: `try` panics where the EVAL loop tolerates nil
-- [ ] 2.7 `malRecover` re-panics on non-error panic values
+- [x] 2.5 `recur` outside `loop` silently returns the sentinel (done 2026-07-08)
+- [x] 2.6 nil-context contract: `try` panics where the EVAL loop tolerates nil (done 2026-07-08)
+- [x] 2.7 `malRecover` re-panics on non-error panic values (done 2026-07-08)
 - [ ] 3.1 Fuzz tests for READ and EVAL
 - [ ] 4.1 Honest coverage numbers (`-coverpkg`) + targeted gap tests
 - [ ] 5.1 Document the embedding contract
@@ -159,7 +159,15 @@ panic: runtime error: index out of range [1] with length 1
 `qq_loop` (~line 171) has the same shape for `splice-unquote`
 (`e.Val[1]`); fix and test both together.
 
-### 2.5 `recur` outside `loop` silently returns the sentinel
+**Done 2026-07-08** (branch `fix/eval-contract`): 2.5–2.7 fixed. EVAL
+is now a thin wrapper over `evalInternal` that rejects a `recurValue`
+escaping every loop; recursive interpreter calls go through
+`evalInternal` so `loop` still receives the sentinel transparently.
+`try` guards its deadline lookup for nil contexts; `malRecover` wraps
+non-error panic values. Tests in
+[eval_contract_test.go](eval_contract_test.go).
+
+### ~~2.5 `recur` outside `loop` silently returns the sentinel~~ (done 2026-07-08)
 
 ```
 $ echo '(recur 1 2)' | lisp /dev/stdin
@@ -178,7 +186,7 @@ at the end of EVAL's outermost return, translate an escaping
 to rebind fn params — out of scope here; jig/lisp only pairs it with
 `loop`).
 
-### 2.6 nil-context contract: `try` panics where the EVAL loop tolerates nil
+### ~~2.6 nil-context contract: `try` panics where the EVAL loop tolerates nil~~ (done 2026-07-08)
 
 EVAL's main loop guards `if ctx != nil` (mal.go ~line 438), which
 reads as "nil context is supported" — but the `try` branch calls
@@ -191,9 +199,14 @@ a nil ctx panics on the first `try`. Pick a side:
   conventions (`context.TODO()` exists for a reason).
 - Or support nil everywhere: guard the `try` branch the same way.
 
-Whichever is picked belongs in the embedding contract doc (5.1).
+**Decision (2026-07-08): support nil everywhere.** The EVAL loop
+already tolerated nil, so guarding the `try` deadline lookup is the
+smaller, non-breaking change — no embedder that passes nil today
+breaks. A nil context simply disables cancellation and try timeouts;
+this is now stated in EVAL's godoc and belongs in the embedding
+contract doc (5.1).
 
-### 2.7 `malRecover` re-panics on non-error panic values
+### ~~2.7 `malRecover` re-panics on non-error panic values~~ (done 2026-07-08)
 
 [mal.go](mal.go) ~line 787: `*err = rerr.(error)` — an unchecked type
 assertion inside a recover. Go builtins are shielded by
