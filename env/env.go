@@ -60,14 +60,25 @@ func _newSubordinateEnvWithBinds(outer *Env, binds_mt types.MalType, exprs_mt ty
 		i := 0
 		for ; i < len(binds); i++ {
 			if types.Q[types.Symbol](binds[i]) && binds[i].(types.Symbol).Val == "&" {
-				env.data[binds[i+1].(types.Symbol).Val] = types.List{Val: exprs[i:]}
+				if i+1 >= len(binds) {
+					return nil, lisperror.NewLispError(errors.New("missing symbol after '&' in binding list"), nil)
+				}
+				rest, ok := binds[i+1].(types.Symbol)
+				if !ok {
+					return nil, lisperror.NewLispError(fmt.Errorf("expected symbol after '&' in binding list, got %T", binds[i+1]), nil)
+				}
+				env.data[rest.Val] = types.List{Val: exprs[i:]}
 				varargs = true
 				break
 			} else {
 				if i == len(exprs) {
 					return nil, lisperror.NewLispError(fmt.Errorf("too few arguments passed (%d binds, %d arguments passed)", len(binds), len(exprs)), nil)
 				}
-				env.data[binds[i].(types.Symbol).Val] = exprs[i]
+				sym, ok := binds[i].(types.Symbol)
+				if !ok {
+					return nil, lisperror.NewLispError(fmt.Errorf("binding list expected symbol, got %T", binds[i]), nil)
+				}
+				env.data[sym.Val] = exprs[i]
 			}
 		}
 		if !varargs && len(exprs) != i {

@@ -161,37 +161,50 @@ func starts_with(xs []MalType, sym string) bool {
 	return false
 }
 
-func qq_loop(xs []MalType) MalType {
+func qq_loop(xs []MalType) (MalType, error) {
 	acc := NewList(nil)
 	for i := len(xs) - 1; 0 <= i; i -= 1 {
 		elt := xs[i]
 		switch e := elt.(type) {
 		case List:
 			if starts_with(e.Val, "splice-unquote") {
+				if len(e.Val) < 2 {
+					return nil, lisperror.NewLispError(errors.New("splice-unquote requires exactly 1 argument"), elt)
+				}
 				acc = NewList(lisperror.GetPosition(elt), Symbol{Val: "concat"}, e.Val[1], acc)
 				continue
 			}
 		default:
 		}
-		acc = NewList(lisperror.GetPosition(elt), Symbol{Val: "cons"}, quasiquote(elt), acc)
+		q, err := quasiquote(elt)
+		if err != nil {
+			return nil, err
+		}
+		acc = NewList(lisperror.GetPosition(elt), Symbol{Val: "cons"}, q, acc)
 	}
-	return acc
+	return acc, nil
 }
 
-func quasiquote(ast MalType) MalType {
+func quasiquote(ast MalType) (MalType, error) {
 	switch a := ast.(type) {
 	case Vector:
-		return NewList(a.Cursor, Symbol{Val: "vec"}, qq_loop(a.Val))
+		inner, err := qq_loop(a.Val)
+		if err != nil {
+			return nil, err
+		}
+		return NewList(a.Cursor, Symbol{Val: "vec"}, inner), nil
 	case HashMap, Symbol:
-		return NewList(lisperror.GetPosition(ast), Symbol{Val: "quote"}, ast)
+		return NewList(lisperror.GetPosition(ast), Symbol{Val: "quote"}, ast), nil
 	case List:
 		if starts_with(a.Val, "unquote") {
-			return a.Val[1]
-		} else {
-			return qq_loop(a.Val)
+			if len(a.Val) < 2 {
+				return nil, lisperror.NewLispError(errors.New("unquote requires exactly 1 argument"), ast)
+			}
+			return a.Val[1], nil
 		}
+		return qq_loop(a.Val)
 	default:
-		return ast
+		return ast, nil
 	}
 }
 
@@ -597,9 +610,13 @@ func EVAL(ctx context.Context, ast MalType, env EnvType) (res MalType, e error) 
 		case "quote": // '
 			return a1, nil
 		case "quasiquoteexpand":
-			return quasiquote(a1), nil
+			return quasiquote(a1)
 		case "quasiquote": // `
-			ast = quasiquote(a1)
+			var e error
+			ast, e = quasiquote(a1)
+			if e != nil {
+				return nil, e
+			}
 		case "defmacro":
 			fn, e := EVAL(ctx, a2, env)
 			if e != nil {
@@ -636,17 +653,20 @@ func EVAL(ctx context.Context, ast MalType, env EnvType) (res MalType, e error) 
 
 			switch first(last) {
 			case "catch":
+				if len(last.(List).Val) < 3 {
+					return nil, lisperror.NewLispError(errors.New("catch must have 2 arguments at least"), last)
+				}
 				finallyDo = nil
 				catchBind = last.(List).Val[1]
 				catchDo = List{Val: last.(List).Val[2:], Cursor: last.(List).Cursor}
 				tryDo = List{Val: lst[1 : len(lst)-1], Cursor: ast.(List).Cursor}
-				if len(catchDo.(List).Val) == 0 {
-					return nil, lisperror.NewLispError(errors.New("catch must have 2 arguments at least"), ast)
-				}
 			case "finally":
 				finallyDo = List{Val: last.(List).Val[1:], Cursor: last.(List).Cursor}
 				switch first(prelast) {
 				case "catch":
+					if len(prelast.(List).Val) < 3 {
+						return nil, lisperror.NewLispError(errors.New("catch must have 2 arguments at least"), prelast)
+					}
 					catchBind = prelast.(List).Val[1]
 					catchDo = List{Val: prelast.(List).Val[2:], Cursor: prelast.(List).Cursor}
 					tryDo = List{Val: lst[1 : len(lst)-2], Cursor: ast.(List).Cursor}
@@ -775,8 +795,11 @@ func EVAL(ctx context.Context, ast MalType, env EnvType) (res MalType, e error) 
 }
 
 func first(list MalType) string {
-	if list != nil && Q[List](list) && Q[Symbol](list.(List).Val[0]) {
-		return list.(List).Val[0].(Symbol).Val
+	if list != nil && Q[List](list) {
+		l := list.(List).Val
+		if len(l) > 0 && Q[Symbol](l[0]) {
+			return l[0].(Symbol).Val
+		}
 	}
 	return ""
 }

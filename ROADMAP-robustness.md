@@ -15,10 +15,10 @@ Status summary (tick as you go):
 
 - [x] 1.1 CI: run tests with `-race` (done 2026-07-08)
 - [x] 1.2 Data race in `Future.Done` / `Future.Cancelled` (done 2026-07-08)
-- [ ] 2.1 Panic: `(try 1 (catch))` — catch with no binding
-- [ ] 2.2 Panic: `(try ())` — `first()` on empty list
-- [ ] 2.3 Panic: `(fn [&])` called — trailing `&` in binds
-- [ ] 2.4 Panic: `(quasiquote (unquote))` — and sibling `splice-unquote`
+- [x] 2.1 Panic: `(try 1 (catch))` — catch with no binding (done 2026-07-08)
+- [x] 2.2 Panic: `(try ())` — `first()` on empty list (done 2026-07-08)
+- [x] 2.3 Panic: `(fn [&])` called — trailing `&` in binds (done 2026-07-08)
+- [x] 2.4 Panic: `(quasiquote (unquote))` — and sibling `splice-unquote` (done 2026-07-08)
 - [ ] 2.5 `recur` outside `loop` silently returns the sentinel
 - [ ] 2.6 nil-context contract: `try` panics where the EVAL loop tolerates nil
 - [ ] 2.7 `malRecover` re-panics on non-error panic values
@@ -102,7 +102,15 @@ The neighbouring forms already do this right — `(defmacro)`, `(def)`,
 `(let [x] x)`, `(1 2 3)` all return clean positioned errors — so this
 is finishing a job, not introducing a new convention.
 
-### 2.1 `(try 1 (catch))` — catch with no binding
+**Done 2026-07-08** (branch `fix/interpreter-panics`): 2.1–2.4 fixed;
+`quasiquote`/`qq_loop` now return `(MalType, error)` instead of
+indexing blindly. Regression table
+[malformed_input_test.go](malformed_input_test.go) asserts *error, not
+panic* for every repro (plus a `(fn [3] …)` non-symbol-binding case
+found while fixing 2.3), and pins two happy-path forms. The `catch`
+arity message is unchanged (compat), just moved before the indexing.
+
+### ~~2.1 `(try 1 (catch))` — catch with no binding~~ (done 2026-07-08)
 
 ```
 $ echo '(try 1 (catch))' | lisp /dev/stdin
@@ -115,7 +123,7 @@ unchecked access in the `finally`→`catch` path a few lines below
 (~line 650). Note there *is* already a "catch must have 2 arguments at
 least" check — it just runs after the indexing.
 
-### 2.2 `(try ())` — `first()` on an empty list
+### ~~2.2 `(try ())` — `first()` on an empty list~~ (done 2026-07-08)
 
 ```
 $ echo '(try ())' | lisp /dev/stdin
@@ -126,7 +134,7 @@ panic: runtime error: index out of range [0] with length 0
 but not that it is non-empty before `list.(List).Val[0]`. One-line
 guard; fixes any caller.
 
-### 2.3 `(fn [&])` called — trailing `&` in the binds vector
+### ~~2.3 `(fn [&])` called — trailing `&` in the binds vector~~ (done 2026-07-08)
 
 ```
 $ echo '(def f (fn [&] 1)) (f)' | lisp /dev/stdin
@@ -139,7 +147,7 @@ line: the `.(types.Symbol)` assertion (a non-symbol after `&`, e.g.
 `(fn [& 3])`, panics too). Guard both; return the same kind of
 positioned error the function already produces for arity mismatches.
 
-### 2.4 `(quasiquote (unquote))` — and the `splice-unquote` sibling
+### ~~2.4 `(quasiquote (unquote))` — and the `splice-unquote` sibling~~ (done 2026-07-08)
 
 ```
 $ echo '(quasiquote (unquote))' | lisp /dev/stdin
