@@ -25,6 +25,27 @@
 // Functions and file directories keep the same structure as original MAL, this is way
 // main functions [READ], [EVAL] and [PRINT] keep its all caps (non Go standard) names.
 //
+// # Embedding contract
+//
+// The interpreter is meant to run untrusted or hand-written Lisp, so a
+// few boundaries are guaranteed:
+//
+//   - [READ] and [EVAL] report problems as an error (a
+//     lisperror.LispError with position and stack trace). Malformed
+//     Lisp input returns an error and never panics the host; a panic
+//     escaping [EVAL] on a plain Lisp string is a bug. Exceptions:
+//     unbounded non-tail recursion can exhaust the Go stack (tail calls
+//     and loop/recur run in constant stack), and a builtin handed a
+//     wrong-typed Go value by embedder code may still panic.
+//   - [EVAL] accepts a nil context (cancellation and try timeouts are
+//     then disabled); pass a context.WithTimeout deadline to bound
+//     execution.
+//   - An env is internally synchronised; share a base env across
+//     goroutines, give each [EVAL] its own child env, and use atoms for
+//     mutable state shared between goroutines.
+//
+// See the README "Embedding contract" section for the full version.
+//
 // [kanaka/mal]: https://github.com/kanaka/mal
 package lisp
 
