@@ -23,7 +23,7 @@ Status summary (tick as you go):
 - [x] 2.6 nil-context contract: `try` panics where the EVAL loop tolerates nil (done 2026-07-08)
 - [x] 2.7 `malRecover` re-panics on non-error panic values (done 2026-07-08)
 - [x] 3.1 Fuzz tests for READ and EVAL (done 2026-07-08)
-- [ ] 4.1 Honest coverage numbers (`-coverpkg`) + targeted gap tests
+- [x] 4.1 Honest coverage numbers (`-coverpkg`) + targeted gap tests (done 2026-07-08)
 - [x] 5.1 Document the embedding contract (done 2026-07-08)
 - [ ] 5.2 `lib/coreextented` typo in the public import path
 - [ ] 5.3 Sweep of commented-out dead code
@@ -257,7 +257,21 @@ or the first minute of fuzzing just rediscovers known crashes.*
 
 ## Phase 4 — test coverage (surgical, ongoing)
 
-### 4.1 Honest coverage numbers + targeted gap tests
+**Done 2026-07-08** (branch `test/coverage-gaps`): honest total via
+`-coverpkg=./...` is 80.2% (per-package numbers under-count). New test
+files where there were none — [printer/printer_test.go](printer/printer_test.go)
+(pins the printed form of every value kind, incl. string escaping, the
+`¬` JSON form, keywords) and
+[lisperror/lisperror_test.go](lisperror/lisperror_test.go) (Error
+format, Unwrap/Is, NewGoError, MarshalHashMap, LispPrint,
+AddStackFrame dedup) — plus env gap tests
+([env/env_extra_test.go](env/env_extra_test.go): Remove/Outer/
+LocalSymbols). printer 0→82%, lisperror 0→70%, env 35→50% own-package.
+CI gained a report-only `coverage` job. `repl`, `marshaler` and the
+release no-op `runtime` shims remain thin — left for later, not a
+compatibility surface.
+
+### ~~4.1 Honest coverage numbers + targeted gap tests~~ (done 2026-07-08)
 
 `go test -cover ./...` under-reports badly: `lib/core` shows 16.5%
 but is exercised constantly by the root step-tests — cross-package
