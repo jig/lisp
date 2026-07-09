@@ -131,7 +131,6 @@ func READWithPreamble(str string, cursor *Position, ns EnvType) (MalType, error)
 	i := 0
 	for ; ; i++ {
 		var line string
-		// line, str, _ = strings.Cut(str, "\n")
 		line, str, _ = strings.Cut(str, "\n")
 		line = strings.Trim(line, " \t\r\n")
 		if len(line) == 0 {
