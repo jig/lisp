@@ -117,6 +117,8 @@ Changes respect to [kanaka/mal](https://github.com/kanaka/mal):
 - Clojure-style docstrings: `(defn name "docstring" [params] body…)` attaches a docstring to the function, readable with `(doc name)` and surfaced by the LSP. Backwards compatible — a leading string is a docstring only when a parameter vector follows it
 - Go builtins can be documented from the code that registers them with `call.Doc(env, name, arglist, doc)`; the docs travel with the value in the environment, so the LSP and `(doc name)` describe exactly the builtins an interpreter loads — including an embedder's own. Native-function `meta` stays `nil` (kanaka/mal compatible): documentation lives in dedicated fields, not metadata
 - `partial` function added (see [./tests/stepN_defn.mal.go](./tests/stepN_defn.mal) for an example of `partial` usage, or go to Clojure documentation)
+- `subs`, `starts-with?` and `ends-with?` string functions (Clojure-style; `subs` counts in Unicode code points)
+- `cli` library for command-line option parsing, modelled on [clojure/tools.cli](https://github.com/clojure/tools.cli) — `(cli/parse-opts *ARGV* specs)`. See [./lib/cli/README.md](./lib/cli/README.md)
 
 ## Embed jig/lisp in Go code
 

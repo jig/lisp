@@ -7,6 +7,7 @@ import (
 	"github.com/jig/lisp/command"
 	"github.com/jig/lisp/env"
 	"github.com/jig/lisp/lib/assert/nsassert"
+	"github.com/jig/lisp/lib/cli/nscli"
 	"github.com/jig/lisp/lib/concurrent/nsconcurrent"
 	"github.com/jig/lisp/lib/core/nscore"
 	"github.com/jig/lisp/lib/coreextended/nscoreextended"
@@ -36,6 +37,7 @@ func main() {
 		{"lazy", nslazy.Load},
 		{"require", nsrequire.Load("lisp")},
 		{"sql", nssql.Load},
+		{"cli", nscli.Load},
 	} {
 		if err := library.load(ns); err != nil {
 			log.Fatalf("Library Load Error: %v\n", err)

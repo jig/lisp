@@ -69,6 +69,9 @@ func Load(env EnvType) {
 	call.Call(env, mErge)
 	call.Call(env, rename_keys)
 	call.Call(env, split)
+	call.Call(env, subs, 2, 3)
+	call.CallOverrideFN(env, "starts-with?", func(s, prefix string) (bool, error) { return strings.HasPrefix(s, prefix), nil })
+	call.CallOverrideFN(env, "ends-with?", func(s, suffix string) (bool, error) { return strings.HasSuffix(s, suffix), nil })
 	call.Call(env, mAp)
 	call.Call(env, throw)
 	call.CallOverrideFN(env, "symbol", func(a string) (Symbol, error) { return Symbol{Val: a}, nil })
@@ -1154,6 +1157,32 @@ func deref(ctx context.Context, ref Dereferable) (MalType, error) {
 
 func uUid() (string, error) {
 	return uuid.New().String(), nil
+}
+
+// subs returns the substring of s from start (inclusive) to end
+// (exclusive), counted in Unicode code points (runes) like Clojure's
+// subs. With two arguments it runs to the end of the string.
+func subs(args ...MalType) (MalType, error) {
+	s, ok := args[0].(string)
+	if !ok {
+		return nil, fmt.Errorf("subs requires a string (it was %T)", args[0])
+	}
+	runes := []rune(s)
+	start, ok := args[1].(int)
+	if !ok {
+		return nil, fmt.Errorf("subs start must be an int (it was %T)", args[1])
+	}
+	end := len(runes)
+	if len(args) == 3 {
+		end, ok = args[2].(int)
+		if !ok {
+			return nil, fmt.Errorf("subs end must be an int (it was %T)", args[2])
+		}
+	}
+	if start < 0 || start > end || end > len(runes) {
+		return nil, fmt.Errorf("subs index out of range (start=%d end=%d len=%d)", start, end, len(runes))
+	}
+	return string(runes[start:end]), nil
 }
 
 func split(str, sep string) (Vector, error) {

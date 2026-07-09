@@ -121,6 +121,9 @@ Non-breaking, for context (see `git log v0.2.24..` for the full list):
   pairs / maps
 - `require` with `:as` / `:refer` / `:refer :all`, a module search path
   and `LISPPATH`
+- `cli` library — command-line option parsing modelled on
+  clojure/tools.cli (`cli/parse-opts`), plus the `subs`, `starts-with?`
+  and `ends-with?` string builtins it builds on
 - LSP/DAP improvements (signature help, hover docs, macro-aware
   stepping) under the `lispdebug` build tag
 - Clojure-style docstrings on `defn`, and `call.Doc` for documenting Go
