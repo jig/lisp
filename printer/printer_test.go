@@ -101,6 +101,28 @@ func TestPrStrStringer(t *testing.T) {
 	}
 }
 
+// TestPrStrNilStringer guards the nil-pointer case of the fmt.Stringer
+// branch: a nil pointer whose String() dereferences its receiver
+// (pointerStringer) must render as "nil", not panic. Before the nil
+// guard the Stringer branch called String() on the nil pointer and
+// crashed, where the default branch had safely printed "nil".
+func TestPrStrNilStringer(t *testing.T) {
+	defer func() {
+		if r := recover(); r != nil {
+			t.Fatalf("Pr_str panicked on a nil Stringer pointer: %v", r)
+		}
+	}()
+
+	var ps *pointerStringer
+	if got := printer.Pr_str(ps, true); got != "nil" {
+		t.Fatalf("nil *pointerStringer = %q, want %q", got, "nil")
+	}
+	var bi *big.Int
+	if got := printer.Pr_str(bi, true); got != "nil" {
+		t.Fatalf("nil *big.Int = %q, want %q", got, "nil")
+	}
+}
+
 // TestPrList covers Pr_list joining directly.
 func TestPrList(t *testing.T) {
 	got := printer.Pr_list([]types.MalType{1, 2, 3}, true, "<", ">", ",")

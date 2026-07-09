@@ -80,6 +80,14 @@ func Pr_str(obj types.MalType, print_readably bool) string {
 		// internal struct layout. This must come before the pointer
 		// dereference below, as many Stringer methods use pointer
 		// receivers and would otherwise be lost on indirection.
+		//
+		// Guard a nil pointer receiver first: the default branch below
+		// renders any nil pointer as "nil", but reaching String() here
+		// short-circuits that, and a String() that dereferences its
+		// receiver would panic. Keep the safe "nil" rendering.
+		if v := reflect.ValueOf(tobj); v.Kind() == reflect.Pointer && v.IsNil() {
+			return "nil"
+		}
 		return tobj.String()
 	default:
 		if v := reflect.ValueOf(obj); v.Kind() == reflect.Pointer {
