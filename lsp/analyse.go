@@ -480,6 +480,35 @@ func symbolAt(content string, line, char int) string {
 	return l[start:end]
 }
 
+// symbolRangeAt returns the LSP range of the symbol-shaped word around
+// the given zero-based line/character, using the same boundaries as
+// symbolAt. Returns a zero Range when the position does not touch a
+// symbol.
+func symbolRangeAt(content string, line, char int) Range {
+	lines := strings.Split(content, "\n")
+	if line < 0 || line >= len(lines) {
+		return Range{}
+	}
+	l := lines[line]
+	if char > len(l) {
+		char = len(l)
+	}
+	start, end := char, char
+	for start > 0 && !symbolBreak(l[start-1]) {
+		start--
+	}
+	for end < len(l) && !symbolBreak(l[end]) {
+		end++
+	}
+	if start == end {
+		return Range{}
+	}
+	return Range{
+		Start: Position{Line: line, Character: start},
+		End:   Position{Line: line, Character: end},
+	}
+}
+
 // offsetOf converts a zero-based line/character to a byte offset into
 // content, clamped to the document.
 func offsetOf(content string, line, char int) int {
