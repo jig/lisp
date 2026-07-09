@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	"github.com/jig/lisp"
-	"github.com/jig/lisp/lib/coreextented"
+	"github.com/jig/lisp/lib/coreextended"
 	"github.com/jig/lisp/types"
 )
 
@@ -19,7 +19,7 @@ var (
 )
 
 func Load(env types.EnvType) error {
-	if _, err := lisp.REPL(context.Background(), env, coreextented.HeaderCoreExtended(), types.NewCursorFile(_package_)); err != nil {
+	if _, err := lisp.REPL(context.Background(), env, coreextended.HeaderCoreExtended(), types.NewCursorFile(_package_)); err != nil {
 		return err
 	}
 	return nil

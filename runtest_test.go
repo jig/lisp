@@ -14,7 +14,7 @@ import (
 	"github.com/jig/lisp/env"
 	"github.com/jig/lisp/lib/concurrent"
 	"github.com/jig/lisp/lib/core"
-	"github.com/jig/lisp/lib/coreextented"
+	"github.com/jig/lisp/lib/coreextended"
 	"github.com/jig/lisp/lib/system"
 	"github.com/jig/lisp/types"
 )
@@ -128,7 +128,7 @@ func newEnv(fileName string) types.EnvType {
 	if _, err := REPL(ctx, newenv, core.HeaderLoadFile(), types.NewCursorFile(fileName)); err != nil {
 		return nil
 	}
-	if _, err := REPL(ctx, newenv, coreextented.HeaderCoreExtended(), types.NewCursorFile(fileName)); err != nil {
+	if _, err := REPL(ctx, newenv, coreextended.HeaderCoreExtended(), types.NewCursorFile(fileName)); err != nil {
 		return nil
 	}
 	if _, err := REPL(ctx, newenv, concurrent.HeaderConcurrent(), types.NewCursorFile(fileName)); err != nil {

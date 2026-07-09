@@ -12,7 +12,7 @@ import (
 	"github.com/jig/lisp/env"
 	"github.com/jig/lisp/lib/concurrent"
 	"github.com/jig/lisp/lib/core"
-	"github.com/jig/lisp/lib/coreextented"
+	"github.com/jig/lisp/lib/coreextended"
 	"github.com/jig/lisp/types"
 )
 
@@ -35,7 +35,7 @@ func testEnv(t *testing.T, includeDirs ...string) types.EnvType {
 		{"basic", core.HeaderBasic()},
 		{"load-file", core.HeaderLoadFile()},
 		{"concurrent", concurrent.HeaderConcurrent()},
-		{"coreextended", coreextented.HeaderCoreExtended()},
+		{"coreextended", coreextended.HeaderCoreExtended()},
 	} {
 		if _, err := lisp.REPL(ctx, ns, header.src, types.NewCursorFile("preamble")); err != nil {
 			t.Fatalf("header %s: %v", header.name, err)

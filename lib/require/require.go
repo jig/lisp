@@ -1,7 +1,7 @@
 // Package require implements a lightweight module loader: the lisp
 // function `(require "name")` resolves a module name to a file through
 // a search-path cascade and loads it once (via load-file-once, so
-// lib/coreextented must be loaded first).
+// lib/coreextended must be loaded first).
 //
 // Resolution order for `(require "a/b")` → `a/b.lisp`:
 //
