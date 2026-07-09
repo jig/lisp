@@ -27,7 +27,7 @@ Status summary (tick as you go):
 - [x] 5.1 Document the embedding contract (done 2026-07-08)
 - [x] 5.2 `lib/coreextented` typo in the public import path (done 2026-07-09)
 - [x] 5.3 Sweep of commented-out dead code (done 2026-07-09)
-- [ ] 5.4 Release notes for tags
+- [x] 5.4 Release notes for tags (done 2026-07-09)
 
 Suggested order: phase 1 first (one real bug + the CI line that would
 have caught it), then phase 2 (all four panics share the same fix
@@ -368,7 +368,16 @@ switch in mal.go (~lines 491–504) collapses to two `if len > n`
 lookups. **Deliberately out of scope: restructuring EVAL's big switch
 — it is the mal/TCO style and churn there is all risk, no payoff.**
 
-### 5.4 Release notes for tags
+### ~~5.4 Release notes for tags~~ (done 2026-07-09)
+
+**Done 2026-07-09** (branch `docs/release-process`): added
+[RELEASING.md](RELEASING.md) documenting the develop→main→tag flow and a
+6-step release procedure (finalise CHANGELOG `Unreleased` → merge to
+main → annotated tag → `gh release create` with the changelog section →
+verify `go install @tag`). No GitHub release is cut here — that is an
+outward-facing action for the maintainer to run at the 0.3 bump. Now
+that `CHANGELOG.md` exists, the notes come from it rather than raw merge
+commits. Backfilling historical tags stays optional.
 
 Tags reach v0.2.24 with no changelog anywhere. Lightest viable
 process: `gh release create` per tag with auto-generated notes from
