@@ -2,6 +2,8 @@ package printer_test
 
 import (
 	"errors"
+	"math/big"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -75,6 +77,27 @@ func TestPrStrPointer(t *testing.T) {
 	var p *int
 	if got := printer.Pr_str(p, true); got != "nil" {
 		t.Fatalf("nil *int = %q, want nil", got)
+	}
+}
+
+// pointerStringer is a helper whose String() has a pointer receiver, so
+// it would be lost if Pr_str dereferenced the value before checking for
+// fmt.Stringer.
+type pointerStringer struct{ n int }
+
+func (p *pointerStringer) String() string { return "stringer:" + strconv.Itoa(p.n) }
+
+// TestPrStrStringer covers the fmt.Stringer branch: Go values with a
+// custom String() must render via that method instead of exposing their
+// internal struct layout. *big.Int is the motivating real-world case
+// (its String() uses a pointer receiver, so it is only reachable before
+// the pointer dereference in the default branch).
+func TestPrStrStringer(t *testing.T) {
+	if got, want := printer.Pr_str(big.NewInt(1234567890), true), "1234567890"; got != want {
+		t.Fatalf("*big.Int = %q, want %q", got, want)
+	}
+	if got, want := printer.Pr_str(&pointerStringer{n: 7}, true), "stringer:7"; got != want {
+		t.Fatalf("*pointerStringer = %q, want %q", got, want)
 	}
 }
 

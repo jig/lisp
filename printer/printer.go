@@ -74,6 +74,13 @@ func Pr_str(obj types.MalType, print_readably bool) string {
 		return fmt.Sprintf("«function %v»", obj)
 	case error:
 		return "«go-error " + Pr_str(tobj.Error(), true) + "»"
+	case fmt.Stringer:
+		// Honour fmt.Stringer so Go values carrying a custom String()
+		// (e.g. *big.Int) render meaningfully instead of exposing their
+		// internal struct layout. This must come before the pointer
+		// dereference below, as many Stringer methods use pointer
+		// receivers and would otherwise be lost on indirection.
+		return tobj.String()
 	default:
 		if v := reflect.ValueOf(obj); v.Kind() == reflect.Pointer {
 			// if the value is a pointer, dereference it to print the value instead of the address
