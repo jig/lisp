@@ -43,6 +43,11 @@ func Load(env EnvType) {
 	call.Doc(env, "future-cancelled?", "[future]", "Whether the future was cancelled.")
 	call.Doc(env, "future-done?", "[future]", "Whether the future has finished.")
 	call.Doc(env, "future?", "[x]", "Whether x is a future.")
+	// new-atom / new-future-call are constructors registered for the
+	// reader; atoms and futures cannot be deserialized, so they only
+	// ever error. Documented so the LSP describes them honestly.
+	call.Doc(env, "new-atom", "[atom]", "Constructor placeholder — atoms cannot be deserialized.")
+	call.Doc(env, "new-future-call", "[fn]", "Constructor placeholder — futures cannot be deserialized.")
 }
 
 func future_call(ctx context.Context, f MalFunc) (*Future, error) {

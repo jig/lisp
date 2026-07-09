@@ -817,9 +817,10 @@ func TestServer_SignatureHelpBuiltin(t *testing.T) {
 
 	uri := "file:///sigb.lisp"
 	// not: (fn [a] …) → named param; cond: (fn [& xs] …) → variadic,
-	// the & is dropped so the label reads (cond xs); new-go-error is an
-	// internal Go builtin left undocumented → no signature.
-	didOpen(t, client, uri, "(not x)\n(cond a b)\n(new-go-error v)\n")
+	// the & is dropped so the label reads (cond xs); new-go-error is a
+	// documented Go builtin → signature from its arglist; an unknown
+	// symbol yields no signature.
+	didOpen(t, client, uri, "(not x)\n(cond a b)\n(new-go-error v)\n(zzz-unknown v)\n")
 
 	// (not |x) → signature from the env MalFunc with the real param name
 	send(t, client, 2, "textDocument/signatureHelp", TextDocumentPositionParams{
@@ -846,14 +847,25 @@ func TestServer_SignatureHelpBuiltin(t *testing.T) {
 		t.Errorf("expected label (cond xs), got %q", label)
 	}
 
-	// undocumented Go builtin (new-go-error) has no signature → null
+	// documented Go builtin (new-go-error) → signature from its arglist
 	send(t, client, 4, "textDocument/signatureHelp", TextDocumentPositionParams{
 		TextDocument: TextDocumentIdentifier{URI: uri},
 		Position:     Position{Line: 2, Character: 14},
 	})
 	resp = readUntil(t, client, response(4))
+	res = resp["result"].(map[string]interface{})
+	if label := res["signatures"].([]interface{})[0].(map[string]interface{})["label"].(string); label != "(new-go-error message)" {
+		t.Errorf("expected label (new-go-error message), got %q", label)
+	}
+
+	// unknown symbol → no signature → null
+	send(t, client, 5, "textDocument/signatureHelp", TextDocumentPositionParams{
+		TextDocument: TextDocumentIdentifier{URI: uri},
+		Position:     Position{Line: 3, Character: 13},
+	})
+	resp = readUntil(t, client, response(5))
 	if resp["result"] != nil {
-		t.Errorf("expected null for undocumented Go builtin, got %v", resp["result"])
+		t.Errorf("expected null for an unknown symbol, got %v", resp["result"])
 	}
 }
 

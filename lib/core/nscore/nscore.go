@@ -6,9 +6,17 @@ import (
 	"strings"
 
 	"github.com/jig/lisp"
+	"github.com/jig/lisp/lib/call"
 	"github.com/jig/lisp/lib/core"
 	. "github.com/jig/lisp/types"
 )
+
+// evalDoc documents the eval builtin, registered directly (not via
+// call.Call) in Load and LoadInput; call.Doc must run after each Set so
+// the doc rides on the current Func value.
+func docEval(env EnvType) {
+	call.Doc(env, "eval", "[form]", "Evaluates a lisp form (AST) and returns its result.")
+}
 
 type Here struct{}
 
@@ -22,6 +30,7 @@ func Load(env EnvType) error {
 	env.Set(Symbol{Val: "eval"}, Func{Fn: func(ctx context.Context, a []MalType) (MalType, error) {
 		return lisp.EVAL(ctx, a[0], env)
 	}})
+	docEval(env)
 
 	if _, err := lisp.REPL(context.Background(), env, core.HeaderBasic(), NewCursorFile(_package_)); err != nil {
 		return err
@@ -34,6 +43,7 @@ func LoadInput(env EnvType) error {
 	env.Set(Symbol{Val: "eval"}, Func{Fn: func(ctx context.Context, a []MalType) (MalType, error) {
 		return lisp.EVAL(ctx, a[0], env)
 	}})
+	docEval(env)
 
 	if _, err := lisp.REPL(context.Background(), env, core.HeaderLoadFile(), NewCursorFile(_package_)); err != nil {
 		return err

@@ -80,6 +80,9 @@ var coreDocs = []struct{ name, arglist, doc string }{
 	{"str", "[& args]", "Concatenates the printed representations of its arguments."},
 	{"pr-str", "[& args]", "Like str but with readable (quoted) representations."},
 	{"split", "[string cutset]", "Splits string on any character of cutset, returning a vector."},
+	{"subs", "[s start end]", "Substring of s from start to end (end optional), counted in Unicode code points."},
+	{"starts-with?", "[s prefix]", "Whether string s starts with prefix."},
+	{"ends-with?", "[s suffix]", "Whether string s ends with suffix."},
 	{"read-string", "[string]", "Reads the first lisp form from string."},
 	{"keyword", "[name]", "Creates a keyword from a string."},
 	{"symbol", "[name]", "Creates a symbol from a string."},
@@ -140,7 +143,9 @@ var coreDocs = []struct{ name, arglist, doc string }{
 
 	// Errors & debugging
 	{"error-string", "[err]", "The message of an error as a string."},
+	{"new-error", "[value & [cursor]]", "Creates a lisp error wrapping value, optionally at a source position."},
 	{"go-error", "[format & args]", "Creates a Go error from a format string and arguments."},
+	{"new-go-error", "[message]", "Creates a Go error with the given message."},
 	{"unwrap-error", "[err]", "The error wrapped inside err (Go's errors.Unwrap)."},
 	{"panic", "[value]", "Raises value as a Go panic."},
 	{"spew", "[x]", "Dumps x to stderr in Go syntax for debugging; returns nil."},
