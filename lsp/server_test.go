@@ -301,6 +301,45 @@ func TestServer_Hover(t *testing.T) {
 	}
 }
 
+// TestServer_HoverRange verifies that the hover response carries a range
+// covering the whole symbol under the cursor, including hyphens, so the
+// editor highlights the entire token instead of the segment between
+// hyphens.
+func TestServer_HoverRange(t *testing.T) {
+	client, stop := startSession(t)
+	defer stop()
+
+	uri := "file:///hoverrange.lisp"
+	didOpen(t, client, uri, "(defn my-func [x] x)\n(my-func 1)\n")
+
+	// Hover inside the "func" segment of `my-func` (past the hyphen) on
+	// the call on line 2 (zero-based 1). `my-func` spans characters 1..8.
+	send(t, client, 4, "textDocument/hover", TextDocumentPositionParams{
+		TextDocument: TextDocumentIdentifier{URI: uri},
+		Position:     Position{Line: 1, Character: 5},
+	})
+	resp := readUntil(t, client, response(4))
+	result, ok := resp["result"].(map[string]interface{})
+	if !ok {
+		t.Fatalf("expected hover result, got %v", resp["result"])
+	}
+	rng, ok := result["range"].(map[string]interface{})
+	if !ok {
+		t.Fatalf("expected hover range, got %v", result["range"])
+	}
+	start := rng["start"].(map[string]interface{})
+	end := rng["end"].(map[string]interface{})
+	if got := start["line"].(float64); got != 1 {
+		t.Errorf("range start line = %v, want 1", got)
+	}
+	if got := start["character"].(float64); got != 1 {
+		t.Errorf("range start character = %v, want 1", got)
+	}
+	if got := end["character"].(float64); got != 8 {
+		t.Errorf("range end character = %v, want 8", got)
+	}
+}
+
 func TestServer_UnknownMethod(t *testing.T) {
 	client, stop := startSession(t)
 	defer stop()

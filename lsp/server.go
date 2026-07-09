@@ -555,34 +555,36 @@ func (s *Server) handleHover(req *requestMessage) {
 		s.respond(req, nil)
 		return
 	}
+	// Range of the whole symbol under the cursor, so the editor
+	// highlights the entire token (including hyphens and other symbol
+	// characters) rather than falling back to its word pattern, which
+	// would only cover the segment between hyphens.
+	rng := symbolRangeAt(doc.content, p.Position.Line, p.Position.Character)
+	hover := func(value string) {
+		s.respond(req, Hover{
+			Contents: MarkupContent{Kind: "markdown", Value: value},
+			Range:    &rng,
+		})
+	}
 
 	// Preamble placeholders are read-time substitutions, not variables:
 	// show the in-file default (if any) and where values come from.
 	if strings.HasPrefix(sym, "$") {
 		for _, pre := range doc.analysis.preambles {
 			if pre.name == sym {
-				s.respond(req, Hover{Contents: MarkupContent{
-					Kind: "markdown",
-					Value: fmt.Sprintf("```lisp\n;; %s %s\n```\npreamble placeholder — in-file default (line %d); may be overridden at run time (--preamble / launch.json)",
-						pre.name, pre.expr, pre.line+1),
-				}})
+				hover(fmt.Sprintf("```lisp\n;; %s %s\n```\npreamble placeholder — in-file default (line %d); may be overridden at run time (--preamble / launch.json)",
+					pre.name, pre.expr, pre.line+1))
 				return
 			}
 		}
-		s.respond(req, Hover{Contents: MarkupContent{
-			Kind:  "markdown",
-			Value: "```lisp\n" + sym + "\n```\npreamble placeholder — value provided at run time (--preamble, launch.json or Go embedding); reads as nil when absent",
-		}})
+		hover("```lisp\n" + sym + "\n```\npreamble placeholder — value provided at run time (--preamble, launch.json or Go embedding); reads as nil when absent")
 		return
 	}
 
 	// Document-local definition wins: show its header (and docstring).
 	for _, d := range doc.analysis.defs {
 		if d.name == sym {
-			s.respond(req, Hover{Contents: MarkupContent{
-				Kind:  "markdown",
-				Value: hoverBody(definitionDetail(d), d.doc),
-			}})
+			hover(hoverBody(definitionDetail(d), d.doc))
 			return
 		}
 	}
@@ -595,10 +597,7 @@ func (s *Server) handleHover(req *requestMessage) {
 			if d.doc != "" {
 				context = d.doc + "\n\n" + context
 			}
-			s.respond(req, Hover{Contents: MarkupContent{
-				Kind:  "markdown",
-				Value: hoverBody(definitionDetail(d.definition), context),
-			}})
+			hover(hoverBody(definitionDetail(d.definition), context))
 			return
 		}
 	}
@@ -620,10 +619,7 @@ func (s *Server) handleHover(req *requestMessage) {
 			if docStr != "" {
 				detail = docStr
 			}
-			s.respond(req, Hover{Contents: MarkupContent{
-				Kind:  "markdown",
-				Value: fmt.Sprintf("```lisp\n%s\n```\n%s", header, detail),
-			}})
+			hover(fmt.Sprintf("```lisp\n%s\n```\n%s", header, detail))
 			return
 		}
 	}
@@ -636,10 +632,7 @@ func (s *Server) handleHover(req *requestMessage) {
 			body += "\n\n"
 		}
 		body += "_" + e.Kind() + "_"
-		s.respond(req, Hover{Contents: MarkupContent{
-			Kind:  "markdown",
-			Value: hoverBody(sigLabel(sym, e.Params), body),
-		}})
+		hover(hoverBody(sigLabel(sym, e.Params), body))
 		return
 	}
 	s.respond(req, nil)
