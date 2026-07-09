@@ -8,7 +8,8 @@ It requires Go 1.25.
 
 > **Upgrading?** See [CHANGELOG.md](./CHANGELOG.md) for behaviour changes
 > that may need action — notably the error-message format changed since
-> v0.2.24.
+> v0.2.24. Maintainers: see [RELEASING.md](./RELEASING.md) for how a tag
+> is cut.
 
 ## Install
 
