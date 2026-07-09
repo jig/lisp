@@ -26,7 +26,7 @@ Status summary (tick as you go):
 - [x] 4.1 Honest coverage numbers (`-coverpkg`) + targeted gap tests (done 2026-07-08)
 - [x] 5.1 Document the embedding contract (done 2026-07-08)
 - [x] 5.2 `lib/coreextented` typo in the public import path (done 2026-07-09)
-- [ ] 5.3 Sweep of commented-out dead code
+- [x] 5.3 Sweep of commented-out dead code (done 2026-07-09)
 - [x] 5.4 Release notes for tags (done 2026-07-09)
 
 Suggested order: phase 1 first (one real bug + the CI line that would
@@ -349,7 +349,16 @@ Related memory note: stdlib functions live in
 directory carries the typo. Decide, then either do 2/3 or strike this
 item as "documented, won't fix".
 
-### 5.3 Sweep of commented-out dead code
+### ~~5.3 Sweep of commented-out dead code~~ (done 2026-07-09)
+
+**Done 2026-07-09** (branch `chore/remove-dead-code`): removed the dead
+commented-out lines in [env/env.go](env/env.go) (four), [mal.go](mal.go)
+(the duplicated `strings.Cut` line) and a stale `// type Here` /
+`// var (…)` block in
+[lib/system/nssystem/nssystem.go](lib/system/nssystem/nssystem.go).
+Pure deletion, 12 lines, tests unchanged. Left as agreed: the intentional
+`do-not-use-GetNT-here` markers, and EVAL's big switch (the `a1`/`a2`
+extraction and mal/TCO structure) — churn there is all risk, no payoff.
 
 Leftover commented code confuses later readers into thinking there is
 a pending decision: [env/env.go](env/env.go) lines ~74, ~78, ~191,

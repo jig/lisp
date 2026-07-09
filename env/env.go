@@ -82,11 +82,9 @@ func _newSubordinateEnvWithBinds(outer *Env, binds_mt types.MalType, exprs_mt ty
 			}
 		}
 		if !varargs && len(exprs) != i {
-			// return nil, fmt.Errorf("too many arguments passed (%d binds, %d arguments passed)", len(binds), len(exprs))
 			return nil, lisperror.NewLispError(fmt.Errorf("too many arguments passed (%d binds, %d arguments passed)", len(binds), len(exprs)), nil)
 		}
 	}
-	//return &et, nil
 	return env, nil
 }
 
@@ -199,14 +197,12 @@ func (e *Env) GetNT(key types.Symbol) (types.MalType, error) {
 		// do-not-use-GetNT-here
 		return e.outer.Get(key)
 	} else {
-		// return nil, errors.New("'" + key.Val + "' not found")
 		return nil, lisperror.NewLispError(fmt.Errorf("symbol '%w' not found", errors.New(key.Val)), key)
 	}
 }
 
 func (e *Env) RemoveNT(key types.Symbol) error {
 	if _, ok := e.data[key.Val]; !ok {
-		// return errors.New("types.symbol not found")
 		return lisperror.NewLispError(fmt.Errorf("symbol '%w' not found", errors.New(key.Val)), key)
 	}
 	delete(e.data, key.Val)
