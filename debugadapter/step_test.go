@@ -15,8 +15,8 @@ import (
 	"github.com/jig/lisp/env"
 	"github.com/jig/lisp/lib/concurrent"
 	"github.com/jig/lisp/lib/core"
-	"github.com/jig/lisp/lib/coreextented"
-	"github.com/jig/lisp/lib/coreextented/nscoreextended"
+	"github.com/jig/lisp/lib/coreextended"
+	"github.com/jig/lisp/lib/coreextended/nscoreextended"
 	"github.com/jig/lisp/runtime"
 	"github.com/jig/lisp/types"
 )
@@ -565,7 +565,7 @@ func TestStepInto_ThreadingMacro(t *testing.T) {
 	if err := nscoreextended.Load(ns); err != nil {
 		t.Fatalf("nscoreextended.Load: %v", err)
 	}
-	if _, err := lisp.REPL(context.Background(), ns, coreextented.HeaderCoreExtended(), types.NewCursorFile("preamble")); err != nil {
+	if _, err := lisp.REPL(context.Background(), ns, coreextended.HeaderCoreExtended(), types.NewCursorFile("preamble")); err != nil {
 		t.Fatalf("HeaderCoreExtended: %v", err)
 	}
 	done := make(chan error, 1)

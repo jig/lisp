@@ -25,7 +25,7 @@ Status summary (tick as you go):
 - [x] 3.1 Fuzz tests for READ and EVAL (done 2026-07-08)
 - [x] 4.1 Honest coverage numbers (`-coverpkg`) + targeted gap tests (done 2026-07-08)
 - [x] 5.1 Document the embedding contract (done 2026-07-08)
-- [ ] 5.2 `lib/coreextented` typo in the public import path
+- [x] 5.2 `lib/coreextented` typo in the public import path (done 2026-07-09)
 - [ ] 5.3 Sweep of commented-out dead code
 - [ ] 5.4 Release notes for tags
 
@@ -328,7 +328,13 @@ The README explains *how* to embed but not the *guarantees*. One
 
 *Effort: small. Do after 2.6 so the ctx statement is true.*
 
-### 5.2 `lib/coreextented` typo in the public import path
+### ~~5.2 `lib/coreextented` typo in the public import path~~ (done 2026-07-09)
+
+**Done 2026-07-09** (branch `refactor/rename-coreextended`): chose
+option 3 — renamed outright to `lib/coreextended`, no back-compat shim,
+documented as a breaking change in [CHANGELOG.md](CHANGELOG.md) for the
+0.3 bump. The Go package *name* (not just the directory) carried the
+typo too; both fixed. `go test ./...` and `-tags lispdebug` clean.
 
 "coreextented" (sic) is imported by every embedder, so a rename is an
 API break. Options, in increasing ambition:

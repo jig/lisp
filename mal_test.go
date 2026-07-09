@@ -8,7 +8,7 @@ import (
 	. "github.com/jig/lisp/env"
 	"github.com/jig/lisp/lib/concurrent"
 	"github.com/jig/lisp/lib/core"
-	"github.com/jig/lisp/lib/coreextented"
+	"github.com/jig/lisp/lib/coreextended"
 	. "github.com/jig/lisp/types"
 )
 
@@ -36,7 +36,7 @@ func BenchmarkMAL1(b *testing.B) {
 		if _, err := REPL(ctx, repl_env, core.HeaderLoadFile(), NewCursorFile(b.Name())); err != nil {
 			b.Fatal(err)
 		}
-		if _, err := REPL(ctx, repl_env, coreextented.HeaderCoreExtended(), NewCursorFile(b.Name())); err != nil {
+		if _, err := REPL(ctx, repl_env, coreextended.HeaderCoreExtended(), NewCursorFile(b.Name())); err != nil {
 			b.Fatal(err)
 		}
 		if _, err := REPL(ctx, repl_env, concurrent.HeaderConcurrent(), NewCursorFile(b.Name())); err != nil {
@@ -167,7 +167,7 @@ func TestAtomParallel(t *testing.T) {
 	if _, err := REPL(ctx, repl_env, core.HeaderLoadFile(), NewCursorFile(t.Name())); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := REPL(ctx, repl_env, coreextented.HeaderCoreExtended(), NewCursorFile(t.Name())); err != nil {
+	if _, err := REPL(ctx, repl_env, coreextended.HeaderCoreExtended(), NewCursorFile(t.Name())); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := REPL(ctx, repl_env, concurrent.HeaderConcurrent(), NewCursorFile(t.Name())); err != nil {
@@ -216,7 +216,7 @@ func BenchmarkAtomParallel(b *testing.B) {
 	if _, err := REPL(ctx, repl_env, core.HeaderLoadFile(), NewCursorFile(b.Name())); err != nil {
 		b.Fatal(err)
 	}
-	if _, err := REPL(ctx, repl_env, coreextented.HeaderCoreExtended(), NewCursorFile(b.Name())); err != nil {
+	if _, err := REPL(ctx, repl_env, coreextended.HeaderCoreExtended(), NewCursorFile(b.Name())); err != nil {
 		b.Fatal(err)
 	}
 	if _, err := REPL(ctx, repl_env, concurrent.HeaderConcurrent(), NewCursorFile(b.Name())); err != nil {

@@ -1,4 +1,4 @@
-package coreextented
+package coreextended
 
 import _ "embed"
 

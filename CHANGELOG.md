@@ -89,6 +89,30 @@ range`) are unchanged.
 See the "Embedding contract" section of the [README](./README.md#embedding-contract)
 for the general error-matching guidance.
 
+### ⚠️ Changed — `coreextented` package renamed to `coreextended`
+
+The misspelled package `lib/coreextented` (missing a `d`) is renamed to
+`lib/coreextended`. Both the import path and the Go package identifier
+change; the files inside (`coreextended.go`, `header-coreextended.lisp`)
+and the child package `nscoreextended` were already spelled correctly.
+
+There is **no back-compat shim** — this is a clean break for 0.3.
+Embedders must update their imports:
+
+```go
+// before
+import "github.com/jig/lisp/lib/coreextented"
+import "github.com/jig/lisp/lib/coreextented/nscoreextended"
+// after
+import "github.com/jig/lisp/lib/coreextended"
+import "github.com/jig/lisp/lib/coreextended/nscoreextended"
+```
+
+The `nscoreextended` subpackage path (`.../lib/coreextended/nscoreextended`)
+and every identifier under it are unchanged apart from the parent
+segment; a find-and-replace of `coreextented` → `coreextended` across
+your code covers it.
+
 ### Other notable additions since v0.2.24
 
 Non-breaking, for context (see `git log v0.2.24..` for the full list):

@@ -1,4 +1,4 @@
-package coreextented_test
+package coreextended_test
 
 import (
 	"context"
@@ -8,7 +8,7 @@ import (
 	"github.com/jig/lisp/env"
 	"github.com/jig/lisp/lib/concurrent/nsconcurrent"
 	"github.com/jig/lisp/lib/core/nscore"
-	"github.com/jig/lisp/lib/coreextented/nscoreextended"
+	"github.com/jig/lisp/lib/coreextended/nscoreextended"
 	"github.com/jig/lisp/types"
 )
 

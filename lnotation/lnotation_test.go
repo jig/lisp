@@ -10,7 +10,7 @@ import (
 	"github.com/jig/lisp/lib/assert/nsassert"
 	"github.com/jig/lisp/lib/concurrent/nsconcurrent"
 	"github.com/jig/lisp/lib/core/nscore"
-	"github.com/jig/lisp/lib/coreextented/nscoreextended"
+	"github.com/jig/lisp/lib/coreextended/nscoreextended"
 	. "github.com/jig/lisp/types"
 )
 
