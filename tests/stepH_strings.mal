@@ -20,3 +20,25 @@
 ;; compatible with first
 (first (split "abc-abc" "-"))
 ;=>"abc"
+
+;; Testing "subs" function (counted in Unicode code points)
+(subs "hello" 1 3)
+;=>"el"
+(subs "hello" 2)
+;=>"llo"
+(subs "héllo" 1 3)
+;=>"él"
+(subs "hello" 0 0)
+;=>""
+(subs "hello" 5)
+;=>""
+
+;; Testing "starts-with?" and "ends-with?"
+(starts-with? "--foo" "--")
+;=>true
+(starts-with? "-f" "--")
+;=>false
+(ends-with? "file.txt" ".txt")
+;=>true
+(ends-with? "file.txt" ".md")
+;=>false
