@@ -18,16 +18,19 @@ import (
 	"github.com/jig/lisp/types"
 )
 
-func main() {
-	ns := env.NewEnv()
+type library struct {
+	name string
+	load func(ns types.EnvType) error
+}
 
-	for _, library := range []struct {
-		name string
-		load func(ns types.EnvType) error
-	}{
+// libraries lists every namespace loaded into the interpreter, in order.
+// It is the single source of truth shared by main and the docs-coverage
+// test (docs_test.go), so the test checks exactly what the binary ships.
+func libraries(scriptArgs []string) []library {
+	return []library{
 		{"core mal", nscore.Load},
 		{"core mal with input", nscore.LoadInput},
-		{"command line args", nscore.LoadCmdLineArgs(command.PreParseArgs(os.Args))},
+		{"command line args", nscore.LoadCmdLineArgs(scriptArgs)},
 		{"concurrent", nsconcurrent.Load},
 		{"core mal extended", nscoreextended.Load},
 		{"assert", nsassert.Load},
@@ -38,7 +41,13 @@ func main() {
 		{"require", nsrequire.Load("lisp")},
 		{"sql", nssql.Load},
 		{"cli", nscli.Load},
-	} {
+	}
+}
+
+func main() {
+	ns := env.NewEnv()
+
+	for _, library := range libraries(command.PreParseArgs(os.Args)) {
 		if err := library.load(ns); err != nil {
 			log.Fatalf("Library Load Error: %v\n", err)
 		}
