@@ -17,8 +17,15 @@ import "github.com/jig/lisp/lib/cli/nscli"
 nscli.Load(ns) // evaluates the pure-Lisp header into the environment
 ```
 
-It depends on core and the extended core (`reduce`, `filter`, `map`,
-`keyword`, `subs`, `starts-with?`, …), so load those first.
+Its primitives come almost entirely from **core** — `subs`,
+`starts-with?`, `ends-with?`, `split`, `keyword`, `map`, `assoc`,
+`get`, `conj`, `nth`, `hash-map`, `str`, … are Go builtins there, and
+`defn`/`cond` come from core's basic header. The only functions it
+needs from the **extended core** are `reduce` and `filter`.
+
+So the minimal load sequence is `nscore.Load`, `nsconcurrent.Load`
+(the extended core needs `atom`), `nscoreextended.Load`, then
+`nscli.Load`. `cmd/lisp` already loads all of these.
 
 ## Usage
 
