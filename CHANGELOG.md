@@ -127,6 +127,8 @@ Non-breaking, for context (see `git log v0.2.24..` for the full list):
 - `integrity` library — attest and verify lisp source: `fmt` (canonical
   formatting, as `lisp --fmt`), `sha2-256`, and deterministic Ed25519
   signatures (`ed25519-generate`, `ed25519-sign`, `ed25519-verify`)
+- `spit` — the write counterpart of `slurp`, Clojure-style, with
+  `:append true` support
 - LSP/DAP improvements (signature help, hover docs, macro-aware
   stepping) under the `lispdebug` build tag
 - Clojure-style docstrings on `defn`, and `call.Doc` for documenting Go
