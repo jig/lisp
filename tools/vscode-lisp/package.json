@@ -152,7 +152,8 @@
     "configurationDefaults": {
       "[lisp]": {
         "editor.formatOnSave": true,
-        "editor.defaultFormatter": "jig.vscode-lisp"
+        "editor.defaultFormatter": "jig.vscode-lisp",
+        "editor.wordSeparators": "()[]{}\"'`~@^;,"
       }
     }
   },
