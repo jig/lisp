@@ -74,6 +74,13 @@ func runScript(ctx context.Context, env types.EnvType, fileName string, preamble
 	}
 	registerModule(fileName, abs)
 
+	// *FILE* is the absolute path of the script being executed — the
+	// self-referential counterpart of *ARGV* (cf. Clojure's *file*) —
+	// so a script can slurp or spit its own source. Defined for script
+	// runs only; the REPL and -e leave it unset. load-file does not
+	// rebind it: it always names the top-level script.
+	env.Set(types.Symbol{Val: "*FILE*"}, abs)
+
 	contentBytes, err := os.ReadFile(fileName)
 	if err != nil {
 		return nil, err
