@@ -194,6 +194,47 @@ func (h *StepHook) OnEval(ctx context.Context, ev runtime.EvalEvent) error {
 	return nil
 }
 
+// exceptionFilterAll is the id of the single exception-breakpoint filter
+// the server offers: stop wherever any Lisp error is raised.
+const exceptionFilterAll = "all"
+
+// OnError implements runtime.ErrorHook: it pauses the session at the
+// point a Lisp error is raised when exception breakpoints are enabled.
+// EVAL calls it at the innermost frame the error passes through, so the
+// live stack still describes the raise site.
+func (h *StepHook) OnError(ctx context.Context, ev runtime.ErrorEvent) {
+	s := h.st
+
+	// Errors thrown while the hook itself is evaluating a breakpoint
+	// condition or logpoint message must not pause (and would dead-lock
+	// on s.mu, which the evaluating goroutine already holds).
+	if s.evalGuard.Load() {
+		return
+	}
+
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if s.disconnect || !s.stopOnException {
+		return
+	}
+	// Only the goroutine carrying this session's Thread participates:
+	// futures run detached and console evaluations carry no thread.
+	if runtime.ThreadFromContext(ctx) != s.thread {
+		return
+	}
+	s.pauseAndWait("exception", exceptionMessage(ev.Err))
+}
+
+// exceptionMessage renders a short description of a raised error for the
+// stopped event: the thrown Lisp value when available, else the Go error.
+func exceptionMessage(err error) string {
+	if le, ok := err.(lisperror.LispError); ok {
+		return printer.Pr_str(le.ErrorValue(), true)
+	}
+	return err.Error()
+}
+
 // isDoForm reports whether ast is a `(do …)` special form.
 func isDoForm(ast types.List) bool {
 	if len(ast.Val) == 0 {

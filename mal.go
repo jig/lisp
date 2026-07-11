@@ -478,10 +478,21 @@ func evalInternal(ctx context.Context, ast MalType, env EnvType) (res MalType, e
 		}
 	}
 
-	// Add stack frame to any error that propagates out of this EVAL call
+	// Add stack frame to any error that propagates out of this EVAL call.
+	// In debug builds, first let an installed hook observe the error at
+	// its raise point — detected by the stack still being empty, which is
+	// true only at the innermost frame the error passes through — so
+	// exception breakpoints can stop with the full call stack intact,
+	// before it unwinds. The hook only observes; it must never wrap or
+	// alter the propagating error (external catch / error-parsing code
+	// depends on the format). In release builds runtime.Enabled is the
+	// constant false and the whole DispatchError branch is dead code.
 	defer func() {
 		if e != nil {
 			if lispErr, ok := e.(lisperror.LispError); ok {
+				if runtime.Enabled && len(lispErr.Stack) == 0 {
+					runtime.DispatchError(ctx, lispErr, ast, env, lisperror.GetPosition(ast), functionName)
+				}
 				e = lispErr.AddStackFrame(lisperror.GetPosition(ast), functionName)
 			}
 		}

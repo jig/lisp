@@ -41,3 +41,24 @@ type EvalEvent struct {
 type EvalHook interface {
 	OnEval(ctx context.Context, ev EvalEvent) error
 }
+
+// ErrorEvent describes a Lisp error at the moment it is first raised,
+// before it unwinds the call stack.
+type ErrorEvent struct {
+	Err          error
+	AST          types.MalType
+	Env          types.EnvType
+	Cursor       *types.Position
+	FunctionName string
+}
+
+// ErrorHook is an optional interface an installed EvalHook may also
+// implement to observe errors. EVAL invokes it (via DispatchError) at the
+// deepest frame the error passes through — where the stack is still
+// intact — so a debugger can stop at the raise point. The hook must only
+// observe: it cannot alter or suppress the propagating error.
+//
+// Only meaningful in `lispdebug` builds; see package doc.
+type ErrorHook interface {
+	OnError(ctx context.Context, ev ErrorEvent)
+}

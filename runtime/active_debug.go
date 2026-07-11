@@ -32,6 +32,24 @@ func Dispatch(ctx context.Context, ast types.MalType, env types.EnvType, cursor 
 	return h.OnEval(ctx, EvalEvent{AST: ast, Env: env, Cursor: cursor})
 }
 
+// DispatchError notifies the active hook of an error at its raise point,
+// if the hook implements ErrorHook. EVAL calls this from the innermost
+// frame the error passes through (stack still intact). Returns nothing:
+// an ErrorHook observes, it does not change the propagating error.
+func DispatchError(ctx context.Context, err error, ast types.MalType, env types.EnvType, cursor *types.Position, functionName string) {
+	eh, ok := Hook.(ErrorHook)
+	if !ok {
+		return
+	}
+	eh.OnError(ctx, ErrorEvent{
+		Err:          err,
+		AST:          ast,
+		Env:          env,
+		Cursor:       cursor,
+		FunctionName: functionName,
+	})
+}
+
 // PrintEvalHook reproduces the legacy DEBUG-EVAL printing behaviour:
 // when the symbol DEBUG-EVAL is bound to true in the active env, it prints
 // the source position followed by the form being evaluated.

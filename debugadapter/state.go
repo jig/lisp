@@ -90,6 +90,11 @@ type state struct {
 	stopOnEntry bool
 	disconnect  bool
 
+	// stopOnException is set by setExceptionBreakpoints when the client
+	// enables the "all" filter: the session then pauses at the point any
+	// Lisp error is raised.
+	stopOnException bool
+
 	// lastObservedLine is the BeginRow of the cursor seen on the
 	// previous OnEval. matchBreakpoint uses it to skip the cascade of
 	// matches that would otherwise fire on every sub-form sharing the
@@ -132,6 +137,19 @@ func (s *state) setBreakpoints(src Source, requested []SourceBreakpoint) []Break
 	}
 	s.breakpoints[abs] = lines
 	return out
+}
+
+// setExceptionBreakpoints enables pausing on raised errors when the
+// client turns on the "all" filter. Unknown filter ids are ignored.
+func (s *state) setExceptionBreakpoints(filters []string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.stopOnException = false
+	for _, f := range filters {
+		if f == exceptionFilterAll {
+			s.stopOnException = true
+		}
+	}
 }
 
 // isUserCode reports whether the cursor points at a file the client

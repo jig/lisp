@@ -19,6 +19,12 @@ func Dispatch(_ context.Context, _ types.MalType, _ types.EnvType, _ *types.Posi
 	return nil
 }
 
+// DispatchError is a no-op in release builds. The constant `Enabled =
+// false` guarantees the call site is dead code and the compiler removes
+// it.
+func DispatchError(_ context.Context, _ error, _ types.MalType, _ types.EnvType, _ *types.Position, _ string) {
+}
+
 // Frame is a stub in release builds. The Frame contents only exist in
 // `lispdebug` builds; this empty struct keeps consumer code (mal.go,
 // debugadapter) compilable when wrapped in `if runtime.Enabled { ... }`.

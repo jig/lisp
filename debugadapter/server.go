@@ -160,6 +160,10 @@ func (s *Server) dispatch(_ context.Context, req *Request) {
 			SupportsEvaluateForHovers:        true,
 			SupportsConditionalBreakpoints:   true,
 			SupportsLogPoints:                true,
+			SupportsSetVariable:              true,
+			ExceptionBreakpointFilters: []ExceptionBreakpointsFilter{
+				{Filter: exceptionFilterAll, Label: "All raised errors"},
+			},
 		})
 		s.sendEvent("initialized", struct{}{})
 	case "launch":
@@ -183,6 +187,11 @@ func (s *Server) dispatch(_ context.Context, req *Request) {
 		_ = json.Unmarshal(req.Arguments, &args)
 		bps := s.state.setBreakpoints(args.Source, args.Breakpoints)
 		s.respond(req, true, "", map[string]interface{}{"breakpoints": bps})
+	case "setExceptionBreakpoints":
+		var args SetExceptionBreakpointsArguments
+		_ = json.Unmarshal(req.Arguments, &args)
+		s.state.setExceptionBreakpoints(args.Filters)
+		s.respond(req, true, "", nil)
 	case "configurationDone":
 		s.respond(req, true, "", nil)
 		select {

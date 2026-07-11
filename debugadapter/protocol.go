@@ -52,6 +52,18 @@ type Capabilities struct {
 	SupportsEvaluateForHovers        bool `json:"supportsEvaluateForHovers"`
 	SupportsConditionalBreakpoints   bool `json:"supportsConditionalBreakpoints"`
 	SupportsLogPoints                bool `json:"supportsLogPoints"`
+	SupportsSetVariable              bool `json:"supportsSetVariable"`
+
+	ExceptionBreakpointFilters []ExceptionBreakpointsFilter `json:"exceptionBreakpointFilters,omitempty"`
+}
+
+// ExceptionBreakpointsFilter is one selectable exception category the
+// client can toggle (advertised in `initialize`, toggled via
+// `setExceptionBreakpoints`).
+type ExceptionBreakpointsFilter struct {
+	Filter  string `json:"filter"`
+	Label   string `json:"label"`
+	Default bool   `json:"default,omitempty"`
 }
 
 // EvaluateArguments is the payload of an `evaluate` request (Debug
@@ -136,6 +148,12 @@ type LaunchArguments struct {
 type SetBreakpointsArguments struct {
 	Source      Source             `json:"source"`
 	Breakpoints []SourceBreakpoint `json:"breakpoints"`
+}
+
+// SetExceptionBreakpointsArguments lists the exception filters the client
+// wants active (by their advertised filter id).
+type SetExceptionBreakpointsArguments struct {
+	Filters []string `json:"filters"`
 }
 
 // StackTraceArguments selects a thread and a window of frames.
