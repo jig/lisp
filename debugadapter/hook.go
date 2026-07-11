@@ -36,6 +36,16 @@ type StepHook struct {
 // OnEval implements runtime.EvalHook.
 func (h *StepHook) OnEval(ctx context.Context, ev runtime.EvalEvent) error {
 	s := h.st
+
+	// Re-entrancy guard: evaluating a breakpoint condition or logpoint
+	// message runs EVAL, which calls back into OnEval on this same
+	// goroutine while we already hold s.mu. Bail out before touching the
+	// mutex so that nested evaluation cannot deadlock (and is never
+	// itself paused or stepped).
+	if s.evalGuard.Load() {
+		return nil
+	}
+
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -97,9 +107,24 @@ func (h *StepHook) OnEval(ctx context.Context, ev runtime.EvalEvent) error {
 	}
 
 	// Breakpoint check first: a breakpoint always wins over step mode.
-	if s.matchBreakpoint(ev.Cursor, prevLine) {
-		s.pauseAndWait("breakpoint", "")
-		return nil
+	if bp, ok := s.matchBreakpoint(ev.Cursor, prevLine); ok {
+		switch {
+		case bp.logMessage != "":
+			// Logpoint: never pauses. Honour a condition if present.
+			if bp.condition == "" || s.evalCondition(ctx, bp.condition, ev.Env) {
+				s.emitLog(ctx, bp.logMessage, ev.Env)
+			}
+			// fall through to step handling below
+		case bp.condition != "":
+			if s.evalCondition(ctx, bp.condition, ev.Env) {
+				s.pauseAndWait("breakpoint", "")
+				return nil
+			}
+			// condition false: not a stop; fall through to step handling
+		default:
+			s.pauseAndWait("breakpoint", "")
+			return nil
+		}
 	}
 
 	// Don't pause inside library code: stop-on-entry and step modes
@@ -152,10 +177,12 @@ func (h *StepHook) OnEval(ctx context.Context, ev runtime.EvalEvent) error {
 			break
 		}
 		if depth <= s.targetDepth {
+			s.captureStepResult()
 			s.pauseAndWait("step", "")
 		}
 	case modeStepOut:
 		if depth < s.targetDepth {
+			s.captureStepResult()
 			s.pauseAndWait("step", "")
 		}
 	default:
@@ -167,6 +194,57 @@ func (h *StepHook) OnEval(ctx context.Context, ev runtime.EvalEvent) error {
 		return errDisconnected
 	}
 	return nil
+}
+
+// exceptionFilterAll is the id of the single exception-breakpoint filter
+// the server offers: stop wherever any Lisp error is raised.
+const exceptionFilterAll = "all"
+
+// OnError implements runtime.ErrorHook: it pauses the session at the
+// point a Lisp error is raised when exception breakpoints are enabled.
+// EVAL calls it at the innermost frame the error passes through, so the
+// live stack still describes the raise site.
+func (h *StepHook) OnError(ctx context.Context, ev runtime.ErrorEvent) {
+	s := h.st
+
+	// Errors thrown while the hook itself is evaluating a breakpoint
+	// condition or logpoint message must not pause (and would dead-lock
+	// on s.mu, which the evaluating goroutine already holds).
+	if s.evalGuard.Load() {
+		return
+	}
+
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if s.disconnect || !s.stopOnException {
+		return
+	}
+	// Only the goroutine carrying this session's Thread participates:
+	// futures run detached and console evaluations carry no thread.
+	if runtime.ThreadFromContext(ctx) != s.thread {
+		return
+	}
+	s.pauseAndWait("exception", exceptionMessage(ev.Err))
+}
+
+// exceptionMessage renders a short description of a raised error for the
+// stopped event: the thrown Lisp value when available, else the Go error.
+func exceptionMessage(err error) string {
+	if le, ok := err.(lisperror.LispError); ok {
+		return printer.Pr_str(le.ErrorValue(), true)
+	}
+	return err.Error()
+}
+
+// captureStepResult records the value the completing step produced (read
+// from the thread's recorder) so the next pause can surface it as the
+// "Return value" scope. Caller holds s.mu.
+func (s *state) captureStepResult() {
+	if v, ok := s.thread.LastResult(); ok {
+		s.stepResult = v
+		s.hasStepResult = true
+	}
 }
 
 // isDoForm reports whether ast is a `(do …)` special form.

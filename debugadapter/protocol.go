@@ -50,6 +50,20 @@ type Capabilities struct {
 	SupportsTerminateRequest         bool `json:"supportsTerminateRequest"`
 	SupportsStepInTargetsRequest     bool `json:"supportsStepInTargetsRequest"`
 	SupportsEvaluateForHovers        bool `json:"supportsEvaluateForHovers"`
+	SupportsConditionalBreakpoints   bool `json:"supportsConditionalBreakpoints"`
+	SupportsLogPoints                bool `json:"supportsLogPoints"`
+	SupportsSetVariable              bool `json:"supportsSetVariable"`
+
+	ExceptionBreakpointFilters []ExceptionBreakpointsFilter `json:"exceptionBreakpointFilters,omitempty"`
+}
+
+// ExceptionBreakpointsFilter is one selectable exception category the
+// client can toggle (advertised in `initialize`, toggled via
+// `setExceptionBreakpoints`).
+type ExceptionBreakpointsFilter struct {
+	Filter  string `json:"filter"`
+	Label   string `json:"label"`
+	Default bool   `json:"default,omitempty"`
 }
 
 // EvaluateArguments is the payload of an `evaluate` request (Debug
@@ -69,6 +83,13 @@ type Source struct {
 // SourceBreakpoint is a breakpoint requested by the client.
 type SourceBreakpoint struct {
 	Line int `json:"line"`
+	// Condition is a lisp expression; the breakpoint fires only when it
+	// evaluates to a truthy value in the paused frame's environment.
+	Condition string `json:"condition,omitempty"`
+	// LogMessage turns the breakpoint into a logpoint: rather than
+	// pausing, its text is emitted as output with `{expr}` placeholders
+	// interpolated.
+	LogMessage string `json:"logMessage,omitempty"`
 }
 
 // Breakpoint is the server's confirmation back to the client.
@@ -129,6 +150,12 @@ type SetBreakpointsArguments struct {
 	Breakpoints []SourceBreakpoint `json:"breakpoints"`
 }
 
+// SetExceptionBreakpointsArguments lists the exception filters the client
+// wants active (by their advertised filter id).
+type SetExceptionBreakpointsArguments struct {
+	Filters []string `json:"filters"`
+}
+
 // StackTraceArguments selects a thread and a window of frames.
 type StackTraceArguments struct {
 	ThreadID   int `json:"threadId"`
@@ -145,6 +172,14 @@ type ScopesArguments struct {
 // composite value previously returned to the client).
 type VariablesArguments struct {
 	VariablesReference int `json:"variablesReference"`
+}
+
+// SetVariableArguments sets a variable within a scope (identified by the
+// scope's variablesReference) to the result of evaluating Value.
+type SetVariableArguments struct {
+	VariablesReference int    `json:"variablesReference"`
+	Name               string `json:"name"`
+	Value              string `json:"value"`
 }
 
 // ContinueArguments selects a thread.

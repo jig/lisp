@@ -32,6 +32,24 @@ func Dispatch(ctx context.Context, ast types.MalType, env types.EnvType, cursor 
 	return h.OnEval(ctx, EvalEvent{AST: ast, Env: env, Cursor: cursor})
 }
 
+// DispatchError notifies the active hook of an error at its raise point,
+// if the hook implements ErrorHook. EVAL calls this from the innermost
+// frame the error passes through (stack still intact). Returns nothing:
+// an ErrorHook observes, it does not change the propagating error.
+func DispatchError(ctx context.Context, err error, ast types.MalType, env types.EnvType, cursor *types.Position, functionName string) {
+	eh, ok := Hook.(ErrorHook)
+	if !ok {
+		return
+	}
+	eh.OnError(ctx, ErrorEvent{
+		Err:          err,
+		AST:          ast,
+		Env:          env,
+		Cursor:       cursor,
+		FunctionName: functionName,
+	})
+}
+
 // PrintEvalHook reproduces the legacy DEBUG-EVAL printing behaviour:
 // when the symbol DEBUG-EVAL is bound to true in the active env, it prints
 // the source position followed by the form being evaluated.
@@ -83,6 +101,14 @@ var nextFrameID atomic.Int64
 type Thread struct {
 	mu     sync.Mutex
 	frames []*Frame
+
+	// lastResult holds the value of the most recently completed EVAL
+	// frame on this thread. The debugger reads it after a step-over or
+	// step-out to show the stepped form's return value: because a form's
+	// own EVAL returns after all its sub-forms, the outermost stepped
+	// form is the last to record, so this is exactly its result.
+	lastResult    types.MalType
+	hasLastResult bool
 }
 
 // NewThread returns an empty Thread.
@@ -190,6 +216,39 @@ func (t *Thread) Snapshot() []Frame {
 		out[i] = *f
 	}
 	return out
+}
+
+// RecordResult stores res as the thread's most-recently-completed value.
+func (t *Thread) RecordResult(res types.MalType) {
+	t.mu.Lock()
+	t.lastResult = res
+	t.hasLastResult = true
+	t.mu.Unlock()
+}
+
+// LastResult returns the most-recently-recorded value and whether one is
+// available.
+func (t *Thread) LastResult() (types.MalType, bool) {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	return t.lastResult, t.hasLastResult
+}
+
+// ResetLastResult forgets any recorded result. The debugger calls it when
+// resuming so a stale value is not shown at the next stop.
+func (t *Thread) ResetLastResult() {
+	t.mu.Lock()
+	t.lastResult = nil
+	t.hasLastResult = false
+	t.mu.Unlock()
+}
+
+// RecordResult stores res on the Thread carried by ctx, if any. EVAL
+// calls it as each frame completes successfully.
+func RecordResult(ctx context.Context, res types.MalType) {
+	if t := ThreadFromContext(ctx); t != nil {
+		t.RecordResult(res)
+	}
 }
 
 type ctxKey struct{}

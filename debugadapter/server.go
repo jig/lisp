@@ -158,6 +158,12 @@ func (s *Server) dispatch(_ context.Context, req *Request) {
 			SupportsConfigurationDoneRequest: true,
 			SupportsTerminateRequest:         true,
 			SupportsEvaluateForHovers:        true,
+			SupportsConditionalBreakpoints:   true,
+			SupportsLogPoints:                true,
+			SupportsSetVariable:              true,
+			ExceptionBreakpointFilters: []ExceptionBreakpointsFilter{
+				{Filter: exceptionFilterAll, Label: "All raised errors"},
+			},
 		})
 		s.sendEvent("initialized", struct{}{})
 	case "launch":
@@ -181,6 +187,11 @@ func (s *Server) dispatch(_ context.Context, req *Request) {
 		_ = json.Unmarshal(req.Arguments, &args)
 		bps := s.state.setBreakpoints(args.Source, args.Breakpoints)
 		s.respond(req, true, "", map[string]interface{}{"breakpoints": bps})
+	case "setExceptionBreakpoints":
+		var args SetExceptionBreakpointsArguments
+		_ = json.Unmarshal(req.Arguments, &args)
+		s.state.setExceptionBreakpoints(args.Filters)
+		s.respond(req, true, "", nil)
 	case "configurationDone":
 		s.respond(req, true, "", nil)
 		select {
@@ -198,6 +209,8 @@ func (s *Server) dispatch(_ context.Context, req *Request) {
 		s.handleScopes(req)
 	case "variables":
 		s.handleVariables(req)
+	case "setVariable":
+		s.handleSetVariable(req)
 	case "evaluate":
 		s.handleEvaluate(req)
 	// For the four resume-style requests the response is written while
@@ -366,6 +379,12 @@ func (s *Server) handleScopes(req *Request) {
 	// ("Globals" — everything the session loaded, builtins included;
 	// marked expensive so the client keeps it collapsed by default).
 	scopes := []Scope{}
+	// After a step-over/step-out, surface the value the stepped form
+	// produced as a synthetic scope on the top frame.
+	if args.FrameID == 0 && s.state.hasStepResult {
+		ref := s.state.registerVarRef(varRef{kind: varRefReturn, value: s.state.stepResult})
+		scopes = append(scopes, Scope{Name: "Return value", VariablesReference: ref, Expensive: false})
+	}
 	level := 0
 	for e := frames[idx].Env; e != nil; level++ {
 		chain, ok := e.(envChain)
@@ -410,8 +429,69 @@ func (s *Server) handleVariables(req *Request) {
 		vars = s.varsForEnvLevel(entry.env)
 	case varRefValue:
 		vars = s.childrenOf(entry.value)
+	case varRefReturn:
+		vars = []Variable{s.formatVariable("(return)", entry.value)}
 	}
 	s.respond(req, true, "", map[string]interface{}{"variables": vars})
+}
+
+// handleSetVariable serves `setVariable`: it evaluates the client's
+// expression and rebinds the named symbol in the scope's environment.
+// Only environment scopes (Locals / Closure / Globals) are writable —
+// the children of a composite value are immutable, so those references
+// are rejected.
+//
+// Like handleEvaluate, the expression runs on the server goroutine with a
+// detached background context while the debuggee is paused, so it pushes
+// no frames and the module-less cursor is ignored by the hook;
+// lastObservedLine is saved and restored so breakpoint line-transition
+// detection is unaffected.
+func (s *Server) handleSetVariable(req *Request) {
+	var args SetVariableArguments
+	_ = json.Unmarshal(req.Arguments, &args)
+
+	s.state.mu.Lock()
+	entry, ok := s.state.varRefs[args.VariablesReference]
+	if !ok || entry.kind != varRefScopeLocals || entry.env == nil {
+		s.state.mu.Unlock()
+		s.respond(req, false, "this variable cannot be edited", nil)
+		return
+	}
+	env := entry.env
+	savedLine := s.state.lastObservedLine
+	s.state.mu.Unlock()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	var val types.MalType
+	ast, err := lisp.READ(args.Value, types.NewAnonymousCursorHere(1, 1), env)
+	if err == nil {
+		val, err = lisp.EVAL(ctx, ast, env)
+	}
+
+	s.state.mu.Lock()
+	s.state.lastObservedLine = savedLine
+	s.state.mu.Unlock()
+
+	if err != nil {
+		s.respond(req, false, err.Error(), nil)
+		return
+	}
+	env.Set(types.Symbol{Val: args.Name}, val)
+
+	s.state.mu.Lock()
+	ref := 0
+	switch val.(type) {
+	case types.List, types.Vector, types.HashMap, types.Set:
+		ref = s.state.registerVarRef(varRef{kind: varRefValue, value: val})
+	}
+	s.state.mu.Unlock()
+
+	s.respond(req, true, "", map[string]interface{}{
+		"value":              printer.Pr_str(val, true),
+		"type":               fmt.Sprintf("%T", val),
+		"variablesReference": ref,
+	})
 }
 
 // varsForEnvLevel returns the bindings of a single level of the

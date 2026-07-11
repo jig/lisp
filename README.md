@@ -240,9 +240,11 @@ LSP (Language Server Protocol) server, both enabled with the
 `lispdebug` build tag, plus a VSCode extension in
 [./tools/vscode-lisp](./tools/vscode-lisp). Together they provide:
 
-- **Debugger (DAP)**: breakpoints, step over / in / out, call stack,
-  locals, Debug Console evaluation (with watch and hover) and program
-  output.
+- **Debugger (DAP)**: breakpoints (including conditional breakpoints and
+  logpoints), exception breakpoints (stop where an error is raised),
+  step over / in / out, call stack, locals, editing variables while
+  paused, the return value of a stepped form, Debug Console evaluation
+  (with watch and hover) and program output.
 - **Language server (LSP)**: live parse diagnostics while you type,
   symbol completion (core library plus your `def`/`defn`), hover with
   definition signatures, and the document outline (Ctrl+Shift+O,
