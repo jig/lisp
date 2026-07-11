@@ -3,6 +3,7 @@ package lsp
 import (
 	"regexp"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/jig/lisp/lisperror"
 	"github.com/jig/lisp/printer"
@@ -507,6 +508,125 @@ func symbolRangeAt(content string, line, char int) Range {
 		Start: Position{Line: line, Character: start},
 		End:   Position{Line: line, Character: end},
 	}
+}
+
+// symbolBreakRune is the rune-level counterpart of symbolBreak. Every
+// break character is ASCII, so a non-ASCII rune is never a break.
+func symbolBreakRune(r rune) bool {
+	return r < utf8.RuneSelf && symbolBreak(byte(r))
+}
+
+// validSymbolName reports whether name is a single lisp symbol token: it
+// must be non-empty and contain no character that would break it into
+// pieces. It guards a rename's new name so a rename cannot inject
+// whitespace or delimiters.
+func validSymbolName(name string) bool {
+	if name == "" {
+		return false
+	}
+	for _, r := range name {
+		if symbolBreakRune(r) || r == '¬' {
+			return false
+		}
+	}
+	return true
+}
+
+// symbolOccurrences returns the ranges of every whole-token occurrence of
+// sym in content, skipping string literals ("…" and multi-line ¬…¬) and
+// line comments so a rename never rewrites data or prose. Columns are
+// byte offsets within the line, matching symbolRangeAt and the rest of
+// the server. Symbol tokens never span a newline, so each range is on a
+// single line.
+func symbolOccurrences(content, sym string) []Range {
+	var out []Range
+	line, col := 0, 0
+	i := 0
+	for i < len(content) {
+		r, w := utf8.DecodeRuneInString(content[i:])
+		switch {
+		case r == '\n':
+			line++
+			col = 0
+			i += w
+		case r == ';':
+			// Line comment: skip to (but not past) the newline.
+			for i < len(content) && content[i] != '\n' {
+				i++
+				col++
+			}
+		case r == '"':
+			// Single-line string with backslash escapes.
+			i += w
+			col += w
+			for i < len(content) {
+				cr, cw := utf8.DecodeRuneInString(content[i:])
+				if cr == '\n' {
+					break
+				}
+				if cr == '\\' && i+cw < len(content) {
+					_, nw := utf8.DecodeRuneInString(content[i+cw:])
+					i += cw + nw
+					col += cw + nw
+					continue
+				}
+				i += cw
+				col += cw
+				if cr == '"' {
+					break
+				}
+			}
+		case r == '¬':
+			// Multi-line string; ¬¬ is an escaped ¬.
+			i += w
+			col += w
+			for i < len(content) {
+				cr, cw := utf8.DecodeRuneInString(content[i:])
+				if cr == '¬' {
+					if i+cw < len(content) {
+						if nr, nw := utf8.DecodeRuneInString(content[i+cw:]); nr == '¬' {
+							i += cw + nw
+							col += cw + nw
+							continue
+						}
+					}
+					i += cw
+					col += cw
+					break
+				}
+				if cr == '\n' {
+					line++
+					col = 0
+					i += cw
+					continue
+				}
+				i += cw
+				col += cw
+			}
+		case symbolBreakRune(r):
+			i += w
+			col += w
+		default:
+			// Start of a symbol token.
+			startCol := col
+			startI := i
+			for i < len(content) {
+				tr, tw := utf8.DecodeRuneInString(content[i:])
+				if tr == '¬' || symbolBreakRune(tr) {
+					break
+				}
+				i += tw
+				col += tw
+			}
+			if content[startI:i] == sym {
+				out = append(out, Range{
+					Start: Position{Line: line, Character: startCol},
+					End:   Position{Line: line, Character: col},
+				})
+			}
+		}
+	}
+	return out
 }
 
 // offsetOf converts a zero-based line/character to a byte offset into

@@ -194,6 +194,27 @@ type ServerCapabilities struct {
 	DefinitionProvider         bool                 `json:"definitionProvider"`
 	SignatureHelpProvider      SignatureHelpOptions `json:"signatureHelpProvider"`
 	DocumentFormattingProvider bool                 `json:"documentFormattingProvider"`
+	RenameProvider             RenameOptions        `json:"renameProvider"`
+}
+
+// RenameOptions declares rename support, including the prepare step that
+// lets the server define the exact range being renamed (so hyphenated
+// symbols are selected whole) and reject symbols it cannot safely rename.
+type RenameOptions struct {
+	PrepareProvider bool `json:"prepareProvider"`
+}
+
+// RenameParams is the payload of textDocument/rename.
+type RenameParams struct {
+	TextDocument TextDocumentIdentifier `json:"textDocument"`
+	Position     Position               `json:"position"`
+	NewName      string                 `json:"newName"`
+}
+
+// WorkspaceEdit is the response to textDocument/rename: edits grouped by
+// document URI.
+type WorkspaceEdit struct {
+	Changes map[string][]TextEdit `json:"changes"`
 }
 
 // DocumentFormattingParams is the payload of textDocument/formatting. The

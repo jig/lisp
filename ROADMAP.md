@@ -73,13 +73,16 @@ it needs to also record non-head symbol occurrences with positions, and
 a `textDocument/references` handler. *Effort: medium. Impact: high —
 the most requested navigation feature after go-to-definition.*
 
-### LSP: rename (F2)
-Consistent rename across all uses. Builds directly on find references
-(produce a `WorkspaceEdit` instead of a location list). **Less
-innocuous than the rest of the LSP items: it edits user code, so wrong
-matches corrupt sources** — needs conservative scope rules and tests
-around shadowing (`let`/`fn` params). *Effort: medium (after
-references). Impact: high.*
+### ~~LSP: rename (F2)~~ (done, conservatively)
+Rename a symbol and every use in the file. Implemented conservatively,
+given the edits-user-code risk: only symbols **defined in the document**
+(def/defn/defmacro) are renameable — builtins, require-imported and
+qualified names and preamble placeholders are refused via
+`prepareRename`. The rename is a whole-file, whole-token textual
+replacement that skips strings and comments. It is lexical, not
+scope-aware, so a shadowing `let`/`fn` local of the same name is also
+renamed; a future refinement could use scope analysis to narrow it. See
+`symbolOccurrences` / `handleRename` in [lsp](lsp/).
 
 ### ~~DAP: conditional breakpoints and logpoints~~ (done)
 Breakpoints firing only when a condition holds, or logging without
@@ -168,10 +171,11 @@ Item-specific notes:
 ## Suggested order
 
 Done: the three quick wins (LISPPATH, module-change watching, signature
-help) and the debugger-power set (conditional breakpoints / logpoints,
-exception breakpoints, setVariable, return value after step). Remaining,
-in order:
+help), the debugger-power set (conditional breakpoints / logpoints,
+exception breakpoints, setVariable, return value after step), and a
+conservative rename (F2). Remaining, in order:
 
-1. Find references → rename (the navigation pair)
+1. Find references (Shift-F12) — and, with the non-head occurrences it
+   records, upgrade rename to be scope-aware
 2. Multi-thread futures (schedule real time for it)
 3. Semantic tokens / formatting (cosmetic)
