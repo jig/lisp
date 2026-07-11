@@ -124,6 +124,9 @@ Non-breaking, for context (see `git log v0.2.24..` for the full list):
 - `cli` library — command-line option parsing modelled on
   clojure/tools.cli (`cli/parse-opts`), plus the `subs`, `starts-with?`
   and `ends-with?` string builtins it builds on
+- `integrity` library — attest and verify lisp source: `fmt` (canonical
+  formatting, as `lisp --fmt`), `sha2-256`, and deterministic Ed25519
+  signatures (`ed25519-generate`, `ed25519-sign`, `ed25519-verify`)
 - LSP/DAP improvements (signature help, hover docs, macro-aware
   stepping) under the `lispdebug` build tag
 - Clojure-style docstrings on `defn`, and `call.Doc` for documenting Go
