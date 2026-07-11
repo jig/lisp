@@ -521,11 +521,12 @@ func spit(fileName, contents string, opts ...MalType) error {
 	if err != nil {
 		return err
 	}
-	if _, err := f.WriteString(contents); err != nil {
-		f.Close()
-		return err
+	_, werr := f.WriteString(contents)
+	cerr := f.Close()
+	if werr != nil {
+		return werr
 	}
-	return f.Close()
+	return cerr
 }
 
 // Number functions
