@@ -44,6 +44,16 @@ type preambleDef struct {
 	line int    // zero-based line of the preamble entry
 }
 
+// scopeBinding is one lexical binding (a fn/defn parameter, a let/loop
+// binding, or a catch variable) and the source range over which it is
+// visible. The range is the whole enclosing binding form — a safe
+// over-approximation of the body the binding governs, which is all that
+// scope-aware reference resolution needs.
+type scopeBinding struct {
+	name  string
+	scope Range
+}
+
 // analysis is the result of parsing one document.
 type analysis struct {
 	diagnostics []Diagnostic
@@ -52,6 +62,7 @@ type analysis struct {
 
 	calls     []symbolRef     // symbols used as the head of a call form
 	bound     map[string]bool // every name bound anywhere in the document
+	locals    []scopeBinding  // lexical bindings with their visibility range
 	requires  []requireRef    // require'd module names (string literals)
 	preambles []preambleDef   // in-file placeholder defaults
 }
@@ -167,6 +178,7 @@ func (a *analysis) scan(form types.MalType) {
 		}
 		if head.Val != "def" && len(list.Val) >= 3 {
 			a.bindAll(list.Val[2])
+			a.bindLocals(list.Val[2], rangeOf(list.Cursor))
 		}
 		for _, c := range tail(list.Val, 2) {
 			a.scan(c)
@@ -174,11 +186,13 @@ func (a *analysis) scan(form types.MalType) {
 	case "fn":
 		if len(list.Val) >= 2 {
 			a.bindAll(list.Val[1])
+			a.bindLocals(list.Val[1], rangeOf(list.Cursor))
 		}
 		for _, c := range tail(list.Val, 2) {
 			a.scan(c)
 		}
-	case "let":
+	case "let", "loop":
+		scope := rangeOf(list.Cursor)
 		if len(list.Val) >= 2 {
 			var binds []types.MalType
 			switch b := list.Val[1].(type) {
@@ -189,6 +203,7 @@ func (a *analysis) scan(form types.MalType) {
 			}
 			for i := 0; i+1 < len(binds); i += 2 {
 				a.bindAll(binds[i])
+				a.bindLocals(binds[i], scope)
 				a.scan(binds[i+1])
 			}
 		}
@@ -198,6 +213,7 @@ func (a *analysis) scan(form types.MalType) {
 	case "catch":
 		if len(list.Val) >= 2 {
 			a.bindAll(list.Val[1])
+			a.bindLocals(list.Val[1], rangeOf(list.Cursor))
 		}
 		for _, c := range tail(list.Val, 2) {
 			a.scan(c)
@@ -268,6 +284,111 @@ func (a *analysis) bindAll(form types.MalType) {
 		for _, c := range n.Val {
 			a.bindAll(c)
 		}
+	}
+}
+
+// bindLocals records every symbol inside a binding form (a parameter
+// vector, possibly with `&`, or a plain symbol) as a lexical binding
+// visible over scope. It mirrors bindAll but keeps the visibility range.
+func (a *analysis) bindLocals(form types.MalType, scope Range) {
+	switch n := form.(type) {
+	case types.Symbol:
+		if n.Val != "&" {
+			a.locals = append(a.locals, scopeBinding{name: n.Val, scope: scope})
+		}
+	case types.Vector:
+		for _, c := range n.Val {
+			a.bindLocals(c, scope)
+		}
+	case types.List:
+		for _, c := range n.Val {
+			a.bindLocals(c, scope)
+		}
+	}
+}
+
+// posLess reports whether a is strictly before b.
+func posLess(a, b Position) bool {
+	return a.Line < b.Line || (a.Line == b.Line && a.Character < b.Character)
+}
+
+// rangeContains reports whether p lies within [r.Start, r.End).
+func rangeContains(r Range, p Position) bool {
+	return !posLess(p, r.Start) && posLess(p, r.End)
+}
+
+// rangeInside reports whether inner is fully contained in outer and is
+// not the same range — i.e. a strictly nested scope.
+func rangeInside(inner, outer Range) bool {
+	if inner == outer {
+		return false
+	}
+	return !posLess(inner.Start, outer.Start) && !posLess(outer.End, inner.End)
+}
+
+// resolveScope determines which binding the symbol sym refers to at pos.
+// It returns the visibility range of the innermost lexical binding of sym
+// enclosing pos (isLocal=true); when none encloses pos the symbol refers
+// to a top-level/free binding and the whole-document range is returned
+// (isLocal=false).
+func (a *analysis) resolveScope(sym string, pos Position, docScope Range) (scope Range, isLocal bool) {
+	best := docScope
+	found := false
+	for _, b := range a.locals {
+		if b.name != sym || !rangeContains(b.scope, pos) {
+			continue
+		}
+		// Innermost wins: for properly nested scopes the one with the
+		// latest start is the most deeply nested.
+		if !found || posLess(best.Start, b.scope.Start) {
+			best = b.scope
+			found = true
+		}
+	}
+	return best, found
+}
+
+// occurrencesInScope returns the ranges of every occurrence of sym that
+// resolves to the same binding as the one under pos. It starts from the
+// complete lexical occurrences (so nothing that must change is missed)
+// and drops those inside a nested rebinding of the same name (shadowing).
+func (a *analysis) occurrencesInScope(content, sym string, pos Position) []Range {
+	docScope := wholeContentRange(content)
+	target, _ := a.resolveScope(sym, pos, docScope)
+
+	// Nested same-name bindings whose scope shadows part of the target.
+	var shadows []Range
+	for _, b := range a.locals {
+		if b.name == sym && rangeInside(b.scope, target) {
+			shadows = append(shadows, b.scope)
+		}
+	}
+
+	var out []Range
+	for _, occ := range symbolOccurrences(content, sym) {
+		if !rangeContains(target, occ.Start) {
+			continue
+		}
+		shadowed := false
+		for _, s := range shadows {
+			if rangeContains(s, occ.Start) {
+				shadowed = true
+				break
+			}
+		}
+		if !shadowed {
+			out = append(out, occ)
+		}
+	}
+	return out
+}
+
+// wholeContentRange spans the entire document.
+func wholeContentRange(content string) Range {
+	lines := strings.Count(content, "\n")
+	return Range{
+		Start: Position{Line: 0, Character: 0},
+		End:   Position{Line: lines + 1, Character: 0},
 	}
 }
 
