@@ -285,6 +285,7 @@ func drop_last(n int, arg MalType) (MalType, error) {
 
 func LoadInput(env EnvType) {
 	call.Call(env, slurp)
+	call.Call(env, spit, 2, 4)
 	call.Call(env, readLine)
 
 	loadInputDocs(env)
@@ -488,6 +489,43 @@ func slurp(fileName string) (MalType, error) {
 		}
 	}
 	return string(b), nil
+}
+
+// spit is the write counterpart of slurp, following Clojure's:
+// (spit filename s) creates or truncates the file, and
+// (spit filename s :append true) appends instead.
+func spit(fileName, contents string, opts ...MalType) error {
+	if len(opts)%2 != 0 {
+		return fmt.Errorf("spit: options must be keyword value pairs")
+	}
+	appendMode := false
+	for i := 0; i < len(opts); i += 2 {
+		switch opts[i] {
+		case NewKeyword("append"):
+			b, ok := opts[i+1].(bool)
+			if !ok {
+				return fmt.Errorf("spit: :append expects a boolean (it was %T)", opts[i+1])
+			}
+			appendMode = b
+		default:
+			return fmt.Errorf("spit: unknown option %s", printer.Pr_str(opts[i], true))
+		}
+	}
+	flags := os.O_WRONLY | os.O_CREATE
+	if appendMode {
+		flags |= os.O_APPEND
+	} else {
+		flags |= os.O_TRUNC
+	}
+	f, err := os.OpenFile(fileName, flags, 0o644)
+	if err != nil {
+		return err
+	}
+	if _, err := f.WriteString(contents); err != nil {
+		f.Close()
+		return err
+	}
+	return f.Close()
 }
 
 // Number functions
