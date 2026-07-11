@@ -36,6 +36,16 @@ type StepHook struct {
 // OnEval implements runtime.EvalHook.
 func (h *StepHook) OnEval(ctx context.Context, ev runtime.EvalEvent) error {
 	s := h.st
+
+	// Re-entrancy guard: evaluating a breakpoint condition or logpoint
+	// message runs EVAL, which calls back into OnEval on this same
+	// goroutine while we already hold s.mu. Bail out before touching the
+	// mutex so that nested evaluation cannot deadlock (and is never
+	// itself paused or stepped).
+	if s.evalGuard.Load() {
+		return nil
+	}
+
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -97,9 +107,24 @@ func (h *StepHook) OnEval(ctx context.Context, ev runtime.EvalEvent) error {
 	}
 
 	// Breakpoint check first: a breakpoint always wins over step mode.
-	if s.matchBreakpoint(ev.Cursor, prevLine) {
-		s.pauseAndWait("breakpoint", "")
-		return nil
+	if bp, ok := s.matchBreakpoint(ev.Cursor, prevLine); ok {
+		switch {
+		case bp.logMessage != "":
+			// Logpoint: never pauses. Honour a condition if present.
+			if bp.condition == "" || s.evalCondition(ctx, bp.condition, ev.Env) {
+				s.emitLog(ctx, bp.logMessage, ev.Env)
+			}
+			// fall through to step handling below
+		case bp.condition != "":
+			if s.evalCondition(ctx, bp.condition, ev.Env) {
+				s.pauseAndWait("breakpoint", "")
+				return nil
+			}
+			// condition false: not a stop; fall through to step handling
+		default:
+			s.pauseAndWait("breakpoint", "")
+			return nil
+		}
 	}
 
 	// Don't pause inside library code: stop-on-entry and step modes

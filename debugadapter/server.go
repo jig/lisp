@@ -158,6 +158,8 @@ func (s *Server) dispatch(_ context.Context, req *Request) {
 			SupportsConfigurationDoneRequest: true,
 			SupportsTerminateRequest:         true,
 			SupportsEvaluateForHovers:        true,
+			SupportsConditionalBreakpoints:   true,
+			SupportsLogPoints:                true,
 		})
 		s.sendEvent("initialized", struct{}{})
 	case "launch":

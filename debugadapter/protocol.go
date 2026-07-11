@@ -50,6 +50,8 @@ type Capabilities struct {
 	SupportsTerminateRequest         bool `json:"supportsTerminateRequest"`
 	SupportsStepInTargetsRequest     bool `json:"supportsStepInTargetsRequest"`
 	SupportsEvaluateForHovers        bool `json:"supportsEvaluateForHovers"`
+	SupportsConditionalBreakpoints   bool `json:"supportsConditionalBreakpoints"`
+	SupportsLogPoints                bool `json:"supportsLogPoints"`
 }
 
 // EvaluateArguments is the payload of an `evaluate` request (Debug
@@ -69,6 +71,13 @@ type Source struct {
 // SourceBreakpoint is a breakpoint requested by the client.
 type SourceBreakpoint struct {
 	Line int `json:"line"`
+	// Condition is a lisp expression; the breakpoint fires only when it
+	// evaluates to a truthy value in the paused frame's environment.
+	Condition string `json:"condition,omitempty"`
+	// LogMessage turns the breakpoint into a logpoint: rather than
+	// pausing, its text is emitted as output with `{expr}` placeholders
+	// interpolated.
+	LogMessage string `json:"logMessage,omitempty"`
 }
 
 // Breakpoint is the server's confirmation back to the client.
