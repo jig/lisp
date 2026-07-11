@@ -392,6 +392,232 @@ func wholeContentRange(content string) Range {
 	}
 }
 
+// Semantic token types, in the order of the legend advertised to the
+// client (SemanticTokensLegend.TokenTypes). The integers a token carries
+// index into that list.
+const (
+	tokNamespace = iota
+	tokFunction
+	tokMacro
+	tokVariable
+	tokParameter
+	tokKeyword
+)
+
+// semanticTokenTypes / semanticTokenModifiers are the legend. Modifier
+// values are a bitset over this list.
+var semanticTokenTypes = []string{"namespace", "function", "macro", "variable", "parameter", "keyword"}
+var semanticTokenModifiers = []string{"declaration"}
+
+const tokModDeclaration = 1 << 0
+
+// semTok is one classified token before delta-encoding.
+type semTok struct {
+	rng  Range
+	typ  int
+	mods int
+}
+
+// semanticTokens classifies every symbol in the document for semantic
+// highlighting: special forms as keywords, definition names as
+// function/macro/variable, binding sites and local uses as parameters,
+// qualified ns/name references as namespaces, and call heads as
+// function/macro. It walks the parsed AST; quoted data is not descended
+// into. Tokens are returned in document order.
+func (a *analysis) semanticTokens(content string) []semTok {
+	b := &semBuilder{a: a, docScope: wholeContentRange(content)}
+	for _, f := range a.forms {
+		b.walk(f)
+	}
+	return b.toks
+}
+
+type semBuilder struct {
+	a        *analysis
+	docScope Range
+	toks     []semTok
+}
+
+func (b *semBuilder) emit(sym types.Symbol, typ, mods int) {
+	if sym.Cursor == nil {
+		return
+	}
+	b.toks = append(b.toks, semTok{rng: symbolRange(sym.Cursor, sym.Val), typ: typ, mods: mods})
+}
+
+// binding emits every symbol in a binding form as a parameter declaration.
+func (b *semBuilder) binding(form types.MalType) {
+	switch n := form.(type) {
+	case types.Symbol:
+		if n.Val != "&" {
+			b.emit(n, tokParameter, tokModDeclaration)
+		}
+	case types.Vector:
+		for _, c := range n.Val {
+			b.binding(c)
+		}
+	case types.List:
+		for _, c := range n.Val {
+			b.binding(c)
+		}
+	}
+}
+
+func (b *semBuilder) walk(form types.MalType) {
+	switch n := form.(type) {
+	case types.Symbol:
+		b.ref(n)
+	case types.Vector:
+		for _, c := range n.Val {
+			b.walk(c)
+		}
+	case types.HashMap:
+		for _, v := range n.Val {
+			b.walk(v)
+		}
+	case types.List:
+		b.list(n)
+	}
+}
+
+func (b *semBuilder) list(n types.List) {
+	if len(n.Val) == 0 {
+		return
+	}
+	head, ok := n.Val[0].(types.Symbol)
+	if !ok {
+		for _, c := range n.Val {
+			b.walk(c)
+		}
+		return
+	}
+	switch head.Val {
+	case "quote", "quasiquote", "quasiquoteexpand":
+		b.emit(head, tokKeyword, 0) // data, not code: do not descend
+	case "def", "defn", "defmacro":
+		b.emit(head, tokKeyword, 0)
+		if len(n.Val) >= 2 {
+			if name, ok := n.Val[1].(types.Symbol); ok {
+				typ := tokVariable
+				switch head.Val {
+				case "defn":
+					typ = tokFunction
+				case "defmacro":
+					typ = tokMacro
+				}
+				b.emit(name, typ, tokModDeclaration)
+			}
+		}
+		if head.Val == "def" {
+			for _, c := range tail(n.Val, 2) {
+				b.walk(c)
+			}
+		} else {
+			if len(n.Val) >= 3 {
+				b.binding(n.Val[2])
+			}
+			// Body starts after the parameter vector (index 3), so the
+			// parameters are not re-emitted as value references.
+			for _, c := range tail(n.Val, 3) {
+				b.walk(c)
+			}
+		}
+	case "fn":
+		b.emit(head, tokKeyword, 0)
+		if len(n.Val) >= 2 {
+			b.binding(n.Val[1])
+		}
+		for _, c := range tail(n.Val, 2) {
+			b.walk(c)
+		}
+	case "let", "loop":
+		b.emit(head, tokKeyword, 0)
+		if len(n.Val) >= 2 {
+			var binds []types.MalType
+			switch bb := n.Val[1].(type) {
+			case types.Vector:
+				binds = bb.Val
+			case types.List:
+				binds = bb.Val
+			}
+			for i := 0; i+1 < len(binds); i += 2 {
+				b.binding(binds[i])
+				b.walk(binds[i+1])
+			}
+		}
+		for _, c := range tail(n.Val, 2) {
+			b.walk(c)
+		}
+	case "catch":
+		b.emit(head, tokKeyword, 0)
+		if len(n.Val) >= 2 {
+			b.binding(n.Val[1])
+		}
+		for _, c := range tail(n.Val, 2) {
+			b.walk(c)
+		}
+	default:
+		if specialForms[head.Val] {
+			b.emit(head, tokKeyword, 0)
+		} else {
+			b.emit(head, b.headType(head.Val), 0)
+		}
+		for _, c := range tail(n.Val, 1) {
+			b.walk(c)
+		}
+	}
+}
+
+// headType classifies a call head: a document-local macro reads as macro,
+// anything else (a defn, a builtin, an imported name) as a function.
+func (b *semBuilder) headType(name string) int {
+	if strings.Contains(name, "/") {
+		return tokFunction // a qualified call is still a call
+	}
+	for _, d := range b.a.defs {
+		if d.name == name {
+			if d.kind == "defmacro" {
+				return tokMacro
+			}
+			return tokFunction
+		}
+	}
+	return tokFunction
+}
+
+// ref classifies a symbol used in value position (not a call head).
+func (b *semBuilder) ref(sym types.Symbol) {
+	name := sym.Val
+	switch {
+	case specialForms[name]:
+		b.emit(sym, tokKeyword, 0)
+	case strings.Contains(name, "/"):
+		b.emit(sym, tokNamespace, 0)
+	default:
+		if sym.Cursor != nil {
+			pos := symbolRange(sym.Cursor, name).Start
+			if _, isLocal := b.a.resolveScope(name, pos, b.docScope); isLocal {
+				b.emit(sym, tokParameter, 0)
+				return
+			}
+		}
+		for _, d := range b.a.defs {
+			if d.name == name {
+				switch d.kind {
+				case "defmacro":
+					b.emit(sym, tokMacro, 0)
+				case "defn":
+					b.emit(sym, tokFunction, 0)
+				default:
+					b.emit(sym, tokVariable, 0)
+				}
+				return
+			}
+		}
+		b.emit(sym, tokVariable, 0)
+	}
+}
+
 // diagnosticFromError converts a reader error into an LSP diagnostic.
 // Rows are shifted by -1 to undo the `(do\n` wrapper line; LSP positions
 // are zero-based while the reader's are one-based.

@@ -249,8 +249,8 @@ LSP (Language Server Protocol) server, both enabled with the
   symbol completion (core library plus your `def`/`defn`), hover with
   definition signatures, the document outline (Ctrl+Shift+O,
   breadcrumbs), signature help while typing a call, find all references
-  (Shift+F12), and scope-aware rename (F2) of a symbol defined in the
-  file or a local binding. `(require
+  (Shift+F12), scope-aware rename (F2) of a symbol defined in the
+  file or a local binding, and semantic highlighting. `(require
   "module")` forms are resolved statically, so definitions from
   required modules are known to completion, hover, signature help,
   go-to-definition (F12) and the unknown-symbol check. Extra module

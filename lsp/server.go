@@ -111,6 +111,13 @@ func (s *Server) dispatch(req *requestMessage) {
 				DocumentFormattingProvider: true,
 				RenameProvider:             RenameOptions{PrepareProvider: true},
 				ReferencesProvider:         true,
+				SemanticTokensProvider: SemanticTokensOptions{
+					Legend: SemanticTokensLegend{
+						TokenTypes:     semanticTokenTypes,
+						TokenModifiers: semanticTokenModifiers,
+					},
+					Full: true,
+				},
 			},
 			ServerInfo: ServerInfo{Name: "jig-lisp-lsp"},
 		})
@@ -162,6 +169,8 @@ func (s *Server) dispatch(req *requestMessage) {
 		s.handleFormatting(req)
 	case "textDocument/references":
 		s.handleReferences(req)
+	case "textDocument/semanticTokens/full":
+		s.handleSemanticTokens(req)
 	case "textDocument/prepareRename":
 		s.handlePrepareRename(req)
 	case "textDocument/rename":
@@ -702,6 +711,53 @@ func (s *Server) handleDefinition(req *requestMessage) {
 		}
 	}
 	s.respond(req, nil)
+}
+
+// handleSemanticTokens answers textDocument/semanticTokens/full: it
+// classifies every symbol (see analysis.semanticTokens) and returns them
+// delta-encoded per the LSP wire format — each token is five integers
+// relative to the previous one: line delta, start-char delta (from the
+// previous token when on the same line, else absolute), length, type
+// index and modifier bitset.
+func (s *Server) handleSemanticTokens(req *requestMessage) {
+	var p SemanticTokensParams
+	if err := json.Unmarshal(req.Params, &p); err != nil {
+		s.respondError(req, codeInvalidParams, err.Error())
+		return
+	}
+	s.mu.Lock()
+	doc := s.docs[p.TextDocument.URI]
+	s.mu.Unlock()
+	if doc == nil {
+		s.respond(req, SemanticTokens{Data: []int{}})
+		return
+	}
+
+	toks := doc.analysis.semanticTokens(doc.content)
+	sort.Slice(toks, func(i, j int) bool {
+		a, b := toks[i].rng.Start, toks[j].rng.Start
+		if a.Line != b.Line {
+			return a.Line < b.Line
+		}
+		return a.Character < b.Character
+	})
+
+	data := make([]int, 0, len(toks)*5)
+	prevLine, prevChar := 0, 0
+	for _, t := range toks {
+		line, char := t.rng.Start.Line, t.rng.Start.Character
+		length := t.rng.End.Character - t.rng.Start.Character
+		if length <= 0 {
+			continue
+		}
+		deltaChar := char
+		if line == prevLine {
+			deltaChar = char - prevChar
+		}
+		data = append(data, line-prevLine, deltaChar, length, t.typ, t.mods)
+		prevLine, prevChar = line, char
+	}
+	s.respond(req, SemanticTokens{Data: data})
 }
 
 // handleReferences answers textDocument/references (Shift-F12): every

@@ -187,15 +187,43 @@ type InitializeResult struct {
 
 // ServerCapabilities declares what this server implements.
 type ServerCapabilities struct {
-	TextDocumentSync           int                  `json:"textDocumentSync"` // 1 = full
-	CompletionProvider         struct{}             `json:"completionProvider"`
-	HoverProvider              bool                 `json:"hoverProvider"`
-	DocumentSymbolProvider     bool                 `json:"documentSymbolProvider"`
-	DefinitionProvider         bool                 `json:"definitionProvider"`
-	SignatureHelpProvider      SignatureHelpOptions `json:"signatureHelpProvider"`
-	DocumentFormattingProvider bool                 `json:"documentFormattingProvider"`
-	RenameProvider             RenameOptions        `json:"renameProvider"`
-	ReferencesProvider         bool                 `json:"referencesProvider"`
+	TextDocumentSync           int                   `json:"textDocumentSync"` // 1 = full
+	CompletionProvider         struct{}              `json:"completionProvider"`
+	HoverProvider              bool                  `json:"hoverProvider"`
+	DocumentSymbolProvider     bool                  `json:"documentSymbolProvider"`
+	DefinitionProvider         bool                  `json:"definitionProvider"`
+	SignatureHelpProvider      SignatureHelpOptions  `json:"signatureHelpProvider"`
+	DocumentFormattingProvider bool                  `json:"documentFormattingProvider"`
+	RenameProvider             RenameOptions         `json:"renameProvider"`
+	ReferencesProvider         bool                  `json:"referencesProvider"`
+	SemanticTokensProvider     SemanticTokensOptions `json:"semanticTokensProvider"`
+}
+
+// SemanticTokensOptions declares semantic-highlighting support and the
+// legend (the ordered token-type / modifier names the encoded token
+// integers index into).
+type SemanticTokensOptions struct {
+	Legend SemanticTokensLegend `json:"legend"`
+	Full   bool                 `json:"full"`
+}
+
+// SemanticTokensLegend names the token types and modifiers, in the order
+// their indices refer to.
+type SemanticTokensLegend struct {
+	TokenTypes     []string `json:"tokenTypes"`
+	TokenModifiers []string `json:"tokenModifiers"`
+}
+
+// SemanticTokensParams is the payload of textDocument/semanticTokens/full.
+type SemanticTokensParams struct {
+	TextDocument TextDocumentIdentifier `json:"textDocument"`
+}
+
+// SemanticTokens is the response: a flat array of 5-tuples
+// (deltaLine, deltaStartChar, length, tokenType, tokenModifiers),
+// each token delta-encoded relative to the previous one.
+type SemanticTokens struct {
+	Data []int `json:"data"`
 }
 
 // ReferenceParams is the payload of textDocument/references.
