@@ -187,16 +187,16 @@ type InitializeResult struct {
 
 // ServerCapabilities declares what this server implements.
 type ServerCapabilities struct {
-	TextDocumentSync           int                  `json:"textDocumentSync"` // 1 = full
-	CompletionProvider         struct{}             `json:"completionProvider"`
-	HoverProvider              bool                 `json:"hoverProvider"`
-	DocumentSymbolProvider     bool                 `json:"documentSymbolProvider"`
-	DefinitionProvider         bool                 `json:"definitionProvider"`
-	SignatureHelpProvider      SignatureHelpOptions `json:"signatureHelpProvider"`
-	DocumentFormattingProvider bool                 `json:"documentFormattingProvider"`
-	RenameProvider             RenameOptions          `json:"renameProvider"`
-	ReferencesProvider         bool                   `json:"referencesProvider"`
-	SemanticTokensProvider     SemanticTokensOptions  `json:"semanticTokensProvider"`
+	TextDocumentSync           int                   `json:"textDocumentSync"` // 1 = full
+	CompletionProvider         struct{}              `json:"completionProvider"`
+	HoverProvider              bool                  `json:"hoverProvider"`
+	DocumentSymbolProvider     bool                  `json:"documentSymbolProvider"`
+	DefinitionProvider         bool                  `json:"definitionProvider"`
+	SignatureHelpProvider      SignatureHelpOptions  `json:"signatureHelpProvider"`
+	DocumentFormattingProvider bool                  `json:"documentFormattingProvider"`
+	RenameProvider             RenameOptions         `json:"renameProvider"`
+	ReferencesProvider         bool                  `json:"referencesProvider"`
+	SemanticTokensProvider     SemanticTokensOptions `json:"semanticTokensProvider"`
 }
 
 // SemanticTokensOptions declares semantic-highlighting support and the

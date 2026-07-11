@@ -26,11 +26,11 @@ func TestSemanticTokens_Classification(t *testing.T) {
 	}
 
 	want := map[int]tk{
-		1:  {tokKeyword, 0},                    // defn
-		6:  {tokFunction, tokModDeclaration},   // my-func (declaration)
-		15: {tokParameter, tokModDeclaration},  // x (binding)
-		19: {tokFunction, 0},                   // + (builtin call head)
-		21: {tokParameter, 0},                  // x (use)
+		1:  {tokKeyword, 0},                   // defn
+		6:  {tokFunction, tokModDeclaration},  // my-func (declaration)
+		15: {tokParameter, tokModDeclaration}, // x (binding)
+		19: {tokFunction, 0},                  // + (builtin call head)
+		21: {tokParameter, 0},                 // x (use)
 	}
 	if len(got) != len(want) {
 		t.Fatalf("expected %d tokens, got %d: %v", len(want), len(got), got)
