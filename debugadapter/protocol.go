@@ -174,6 +174,14 @@ type VariablesArguments struct {
 	VariablesReference int `json:"variablesReference"`
 }
 
+// SetVariableArguments sets a variable within a scope (identified by the
+// scope's variablesReference) to the result of evaluating Value.
+type SetVariableArguments struct {
+	VariablesReference int    `json:"variablesReference"`
+	Name               string `json:"name"`
+	Value              string `json:"value"`
+}
+
 // ContinueArguments selects a thread.
 type ContinueArguments struct {
 	ThreadID int `json:"threadId"`
