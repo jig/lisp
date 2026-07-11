@@ -195,6 +195,20 @@ type ServerCapabilities struct {
 	SignatureHelpProvider      SignatureHelpOptions `json:"signatureHelpProvider"`
 	DocumentFormattingProvider bool                 `json:"documentFormattingProvider"`
 	RenameProvider             RenameOptions        `json:"renameProvider"`
+	ReferencesProvider         bool                 `json:"referencesProvider"`
+}
+
+// ReferenceParams is the payload of textDocument/references.
+type ReferenceParams struct {
+	TextDocument TextDocumentIdentifier `json:"textDocument"`
+	Position     Position               `json:"position"`
+	Context      ReferenceContext       `json:"context"`
+}
+
+// ReferenceContext controls whether the symbol's own declaration is
+// included in the results.
+type ReferenceContext struct {
+	IncludeDeclaration bool `json:"includeDeclaration"`
 }
 
 // RenameOptions declares rename support, including the prepare step that

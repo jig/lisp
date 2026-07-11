@@ -110,6 +110,7 @@ func (s *Server) dispatch(req *requestMessage) {
 				},
 				DocumentFormattingProvider: true,
 				RenameProvider:             RenameOptions{PrepareProvider: true},
+				ReferencesProvider:         true,
 			},
 			ServerInfo: ServerInfo{Name: "jig-lisp-lsp"},
 		})
@@ -159,6 +160,8 @@ func (s *Server) dispatch(req *requestMessage) {
 		s.handleSignatureHelp(req)
 	case "textDocument/formatting":
 		s.handleFormatting(req)
+	case "textDocument/references":
+		s.handleReferences(req)
 	case "textDocument/prepareRename":
 		s.handlePrepareRename(req)
 	case "textDocument/rename":
@@ -699,6 +702,51 @@ func (s *Server) handleDefinition(req *requestMessage) {
 		}
 	}
 	s.respond(req, nil)
+}
+
+// handleReferences answers textDocument/references (Shift-F12): every
+// whole-token occurrence of the symbol under the cursor in the document,
+// skipping strings and comments (via symbolOccurrences). Unlike rename it
+// is read-only, so it is offered for any symbol — including builtins and
+// imported names. When the client sets includeDeclaration to false, the
+// symbol's own definition sites are dropped.
+func (s *Server) handleReferences(req *requestMessage) {
+	var p ReferenceParams
+	if err := json.Unmarshal(req.Params, &p); err != nil {
+		s.respondError(req, codeInvalidParams, err.Error())
+		return
+	}
+	s.mu.Lock()
+	doc := s.docs[p.TextDocument.URI]
+	s.mu.Unlock()
+	if doc == nil {
+		s.respond(req, []Location{})
+		return
+	}
+	sym := symbolAt(doc.content, p.Position.Line, p.Position.Character)
+	if sym == "" {
+		s.respond(req, []Location{})
+		return
+	}
+
+	// Declaration ranges to drop when the client does not want them.
+	declStarts := map[Position]bool{}
+	if !p.Context.IncludeDeclaration {
+		for _, d := range doc.analysis.defs {
+			if d.name == sym {
+				declStarts[symbolRange(d.namePos, d.name).Start] = true
+			}
+		}
+	}
+
+	locations := []Location{}
+	for _, r := range symbolOccurrences(doc.content, sym) {
+		if declStarts[r.Start] {
+			continue
+		}
+		locations = append(locations, Location{URI: p.TextDocument.URI, Range: r})
+	}
+	s.respond(req, locations)
 }
 
 // renameableSymbol reports whether sym (the token under the cursor) may

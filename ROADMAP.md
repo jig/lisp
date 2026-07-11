@@ -66,12 +66,15 @@ editor.
 
 ## High value, moderate effort (still surgical)
 
-### LSP: find references (Shift-F12)
-List every use of a symbol. The scan in
-[lsp/analyse.go](lsp/analyse.go) already collects call-head references;
-it needs to also record non-head symbol occurrences with positions, and
-a `textDocument/references` handler. *Effort: medium. Impact: high —
-the most requested navigation feature after go-to-definition.*
+### ~~LSP: find references (Shift-F12)~~ (done, lexical)
+List every use of a symbol. Implemented with the same whole-token,
+strings-and-comments-skipping scan as rename (`symbolOccurrences`), via a
+`textDocument/references` handler; `includeDeclaration=false` drops the
+definition sites. Read-only, so it is offered for any symbol (builtins
+and imported names included), unlike rename. Like rename it is lexical,
+not scope-aware — a shadowing local of the same name is listed too. A
+future scope-aware pass (an analysis that records each occurrence's
+binding) would sharpen both this and rename.
 
 ### ~~LSP: rename (F2)~~ (done, conservatively)
 Rename a symbol and every use in the file. Implemented conservatively,
@@ -172,10 +175,11 @@ Item-specific notes:
 
 Done: the three quick wins (LISPPATH, module-change watching, signature
 help), the debugger-power set (conditional breakpoints / logpoints,
-exception breakpoints, setVariable, return value after step), and a
-conservative rename (F2). Remaining, in order:
+exception breakpoints, setVariable, return value after step), and the
+navigation pair — find references (Shift-F12) and rename (F2), both
+lexical. Remaining, in order:
 
-1. Find references (Shift-F12) — and, with the non-head occurrences it
-   records, upgrade rename to be scope-aware
+1. Scope-aware analysis (bind each occurrence to its declaration) to
+   sharpen find-references and rename around shadowing locals
 2. Multi-thread futures (schedule real time for it)
 3. Semantic tokens / formatting (cosmetic)
