@@ -119,6 +119,7 @@ Changes respect to [kanaka/mal](https://github.com/kanaka/mal):
 - `partial` function added (see [./tests/stepN_defn.mal.go](./tests/stepN_defn.mal) for an example of `partial` usage, or go to Clojure documentation)
 - `subs`, `starts-with?` and `ends-with?` string functions (Clojure-style; `subs` counts in Unicode code points)
 - `cli` library for command-line option parsing, modelled on [clojure/tools.cli](https://github.com/clojure/tools.cli) — `(cli/parse-opts *ARGV* specs)`. See [./lib/cli/README.md](./lib/cli/README.md)
+- `integrity` library to attest and verify lisp source: `fmt` (canonical formatting, as `lisp --fmt`), `sha2-256`, and deterministic Ed25519 signatures (`ed25519-generate`, `ed25519-sign`, `ed25519-verify`). See [./lib/integrity/README.md](./lib/integrity/README.md)
 
 ## Embed jig/lisp in Go code
 
