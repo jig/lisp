@@ -66,26 +66,31 @@ editor.
 
 ## High value, moderate effort (still surgical)
 
-### ~~LSP: find references (Shift-F12)~~ (done, lexical)
-List every use of a symbol. Implemented with the same whole-token,
-strings-and-comments-skipping scan as rename (`symbolOccurrences`), via a
-`textDocument/references` handler; `includeDeclaration=false` drops the
-definition sites. Read-only, so it is offered for any symbol (builtins
-and imported names included), unlike rename. Like rename it is lexical,
-not scope-aware — a shadowing local of the same name is listed too. A
-future scope-aware pass (an analysis that records each occurrence's
-binding) would sharpen both this and rename.
+### ~~LSP: find references (Shift-F12)~~ (done, scope-aware)
+List every use of a symbol, via a `textDocument/references` handler;
+`includeDeclaration=false` drops the definition sites. Read-only, so it
+is offered for any symbol (builtins and imported names included), unlike
+rename. Scope-aware (see below): find-references on a local lists only
+that binding's uses.
 
-### ~~LSP: rename (F2)~~ (done, conservatively)
-Rename a symbol and every use in the file. Implemented conservatively,
-given the edits-user-code risk: only symbols **defined in the document**
-(def/defn/defmacro) are renameable — builtins, require-imported and
-qualified names and preamble placeholders are refused via
-`prepareRename`. The rename is a whole-file, whole-token textual
-replacement that skips strings and comments. It is lexical, not
-scope-aware, so a shadowing `let`/`fn` local of the same name is also
-renamed; a future refinement could use scope analysis to narrow it. See
-`symbolOccurrences` / `handleRename` in [lsp](lsp/).
+### ~~LSP: rename (F2)~~ (done, scope-aware)
+Rename a symbol and every use in the file. A top-level definition
+(def/defn/defmacro) **or a lexical binding under the cursor** (fn/defn
+parameter, let/loop binding, catch variable) is renameable; builtins,
+require-imported and qualified names, and preamble placeholders are
+refused via `prepareRename`.
+
+### ~~LSP: scope-aware find-references / rename~~ (done)
+Both start from the complete lexical occurrences (`symbolOccurrences`,
+which skips strings and comments, so nothing that must change is missed)
+and filter by scope: `analysis.locals` records every lexical binding
+with its visibility range, and `occurrencesInScope` keeps the
+occurrences enclosed by the target binding's scope while dropping those
+inside a nested rebinding of the same name. So renaming a top-level def
+skips a shadowing local, renaming a local touches only its own scope, and
+a local can now be renamed at all. Scopes are a safe over-approximation
+(the whole enclosing form). Still lexical inside a scope — it does not
+follow a value through higher-order calls — but shadowing is handled.
 
 ### ~~DAP: conditional breakpoints and logpoints~~ (done)
 Breakpoints firing only when a condition holds, or logging without
@@ -139,11 +144,12 @@ qualified symbol) instead of the TextMate grammar. Additive, but the
 token-encoding protocol is fiddly. *Effort: medium-large. Impact:
 cosmetic.*
 
-### LSP: formatting
-Canonical lisp indentation for Format Document. Needs a pretty-printer
-with per-form indentation rules (`defn` vs `let` vs plain calls) —
-opinionated and easy to get wrong against existing code styles.
-*Effort: large. Impact: nice-to-have.*
+### ~~LSP: formatting~~ (done)
+Canonical lisp formatting for Format Document, shared with the `--fmt`
+CLI: the `format` package parses and re-prints the source, and
+`textDocument/formatting` returns a whole-document edit (a document that
+does not parse is left untouched). See [format](format/) and
+`handleFormatting`.
 
 ## Backward compatibility (vital)
 
@@ -175,11 +181,9 @@ Item-specific notes:
 
 Done: the three quick wins (LISPPATH, module-change watching, signature
 help), the debugger-power set (conditional breakpoints / logpoints,
-exception breakpoints, setVariable, return value after step), and the
-navigation pair — find references (Shift-F12) and rename (F2), both
-lexical. Remaining, in order:
+exception breakpoints, setVariable, return value after step), the
+scope-aware navigation pair (find references / rename), and formatting.
+Remaining:
 
-1. Scope-aware analysis (bind each occurrence to its declaration) to
-   sharpen find-references and rename around shadowing locals
-2. Multi-thread futures (schedule real time for it)
-3. Semantic tokens / formatting (cosmetic)
+1. Semantic tokens (cosmetic)
+2. Multi-thread futures (the DAP big one — schedule real time for it)

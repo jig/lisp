@@ -740,7 +740,7 @@ func (s *Server) handleReferences(req *requestMessage) {
 	}
 
 	locations := []Location{}
-	for _, r := range symbolOccurrences(doc.content, sym) {
+	for _, r := range doc.analysis.occurrencesInScope(doc.content, sym, p.Position) {
 		if declStarts[r.Start] {
 			continue
 		}
@@ -749,13 +749,14 @@ func (s *Server) handleReferences(req *requestMessage) {
 	s.respond(req, locations)
 }
 
-// renameableSymbol reports whether sym (the token under the cursor) may
-// be renamed, and returns it. Rename is deliberately conservative: only
-// symbols defined in this document (def / defn / defmacro) qualify.
-// Builtins, names imported through require (and any qualified ns/name),
-// preamble placeholders and unresolved symbols are refused, because a
-// document-scoped textual rename could not update them correctly.
-func renameableSymbol(doc *document, sym string) bool {
+// renameableAt reports whether sym (the token under the cursor at pos)
+// may be renamed. Two kinds of symbol qualify, both resolvable within the
+// file: a top-level definition (def / defn / defmacro), or a lexical
+// binding (fn/defn parameter, let/loop binding, catch variable) enclosing
+// the cursor. Builtins, names imported through require, any qualified
+// ns/name, preamble placeholders and unresolved symbols are refused,
+// because the rename could not update them correctly.
+func renameableAt(doc *document, sym string, pos Position) bool {
 	if sym == "" || strings.HasPrefix(sym, "$") || strings.Contains(sym, "/") {
 		return false
 	}
@@ -764,7 +765,8 @@ func renameableSymbol(doc *document, sym string) bool {
 			return true
 		}
 	}
-	return false
+	_, isLocal := doc.analysis.resolveScope(sym, pos, wholeContentRange(doc.content))
+	return isLocal
 }
 
 // handlePrepareRename answers textDocument/prepareRename: it returns the
@@ -785,7 +787,7 @@ func (s *Server) handlePrepareRename(req *requestMessage) {
 		return
 	}
 	sym := symbolAt(doc.content, p.Position.Line, p.Position.Character)
-	if !renameableSymbol(doc, sym) {
+	if !renameableAt(doc, sym, p.Position) {
 		s.respond(req, nil)
 		return
 	}
@@ -812,15 +814,15 @@ func (s *Server) handleRename(req *requestMessage) {
 		return
 	}
 	sym := symbolAt(doc.content, p.Position.Line, p.Position.Character)
-	if !renameableSymbol(doc, sym) {
-		s.respondError(req, codeInvalidParams, "this symbol cannot be renamed (only symbols defined in this file can be)")
+	if !renameableAt(doc, sym, p.Position) {
+		s.respondError(req, codeInvalidParams, "this symbol cannot be renamed (only symbols defined in this file, or a local binding, can be)")
 		return
 	}
 	if !validSymbolName(p.NewName) {
 		s.respondError(req, codeInvalidParams, "invalid new name: a symbol may not contain whitespace or delimiters")
 		return
 	}
-	ranges := symbolOccurrences(doc.content, sym)
+	ranges := doc.analysis.occurrencesInScope(doc.content, sym, p.Position)
 	edits := make([]TextEdit, len(ranges))
 	for i, r := range ranges {
 		edits[i] = TextEdit{Range: r, NewText: p.NewName}
