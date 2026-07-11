@@ -3,35 +3,43 @@
 ;; assert macros
 (do
     (defmacro assert-true
-        (fn [name expr]
-            (list
-                'if (try expr (catch err err))
-                    nil
-                    {   :failed true
-                        :name name
-                        :expr (str expr)})))
+        (with-meta
+            (fn [name expr]
+                (list
+                    'if (try expr (catch err err))
+                        nil
+                        {   :failed true
+                            :name name
+                            :expr (str expr)}))
+            {:doc "Test case (for test-suite): passes when expr is truthy and does not throw."}))
 
     (defmacro assert-false
-        (fn [name expr]
-            (list
-                'if (try expr (catch err err))
-                    {   :failed true
-                        :name name
-                        :expr (str expr)}
-                    nil)))
+        (with-meta
+            (fn [name expr]
+                (list
+                    'if (try expr (catch err err))
+                        {   :failed true
+                            :name name
+                            :expr (str expr)}
+                        nil))
+            {:doc "Test case (for test-suite): passes when expr is falsey."}))
 
     (defmacro assert-throws
-        (fn [name expr]
-            (let [failureError {   :failed true
-                                    :name (str name)
-                                    :expr (str expr)}]
-            `(try
-                (do
-                    ~expr
-                    ~failureError)
-                (catch err nil)))))
+        (with-meta
+            (fn [name expr]
+                (let [failureError {   :failed true
+                                        :name (str name)
+                                        :expr (str expr)}]
+                `(try
+                    (do
+                        ~expr
+                        ~failureError)
+                    (catch err nil))))
+            {:doc "Test case (for test-suite): passes when evaluating expr raises an error."}))
 
-    (defn test-suite [name & assert-cases]
+    (defn test-suite
+        "Runs assert-* cases and prints PASS/FAIL for the named suite."
+        [name & assert-cases]
         (if
             (reduce and true
                 (map

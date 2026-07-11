@@ -1,10 +1,6 @@
-package main
+package docgen
 
 import (
-	"log"
-	"os"
-
-	"github.com/jig/lisp/command"
 	"github.com/jig/lisp/env"
 	"github.com/jig/lisp/lib/assert/nsassert"
 	"github.com/jig/lisp/lib/cli/nscli"
@@ -19,27 +15,27 @@ import (
 	"github.com/jig/lisp/types"
 )
 
+// library is one namespace to document: its display name and its loader.
 type library struct {
 	name string
 	load func(ns types.EnvType) error
 }
 
-// libraries lists every namespace loaded into the interpreter, in order.
-// It is the single source of truth shared by main and the docs-coverage
-// test (docs_test.go). The docgen package keeps its own copy of this
-// list (it is not in an importable package); TestDocgenLibrariesInSync
-// guards the two against drift.
-func libraries(scriptArgs []string) []library {
+// standardLibraries lists the namespaces documented in LANGUAGE.md, in
+// load order. It deliberately mirrors cmd/lisp's own libraries() list so
+// the reference describes exactly what the binary ships; the two lists
+// live in different packages (cmd/lisp is package main and cannot be
+// imported), and TestDocgenLibrariesInSync (in cmd/lisp) fails if they
+// drift apart.
+func standardLibraries() []library {
 	return []library{
 		{"core mal", nscore.Load},
 		{"core mal with input", nscore.LoadInput},
-		{"command line args", nscore.LoadCmdLineArgs(scriptArgs)},
+		{"command line args", nscore.LoadCmdLineArgs(nil)},
 		{"concurrent", nsconcurrent.Load},
 		{"core mal extended", nscoreextended.Load},
 		{"assert", nsassert.Load},
 		{"system", nssystem.Load},
-
-		// new libraries on jig/lisp v0.3.0
 		{"lazy", nslazy.Load},
 		{"require", nsrequire.Load("lisp")},
 		{"sql", nssql.Load},
@@ -48,16 +44,16 @@ func libraries(scriptArgs []string) []library {
 	}
 }
 
-func main() {
+// StandardSymbols loads every documented library and returns the sorted
+// names bound in the resulting environment. It exists so a test in the
+// cmd/lisp package can assert docgen documents exactly the environment
+// the binary builds.
+func StandardSymbols() ([]string, error) {
 	ns := env.NewEnv()
-
-	for _, library := range libraries(command.PreParseArgs(os.Args)) {
-		if err := library.load(ns); err != nil {
-			log.Fatalf("Library Load Error: %v\n", err)
+	for _, lib := range standardLibraries() {
+		if err := lib.load(ns); err != nil {
+			return nil, err
 		}
 	}
-
-	if err := command.Execute(os.Args, ns); err != nil {
-		log.Fatalf("Error: %v\n", err)
-	}
+	return ns.(*env.Env).LocalSymbols(), nil
 }
