@@ -109,6 +109,7 @@ func (s *Server) dispatch(req *requestMessage) {
 					RetriggerCharacters: []string{" "},
 				},
 				DocumentFormattingProvider: true,
+				RenameProvider:             RenameOptions{PrepareProvider: true},
 			},
 			ServerInfo: ServerInfo{Name: "jig-lisp-lsp"},
 		})
@@ -158,6 +159,10 @@ func (s *Server) dispatch(req *requestMessage) {
 		s.handleSignatureHelp(req)
 	case "textDocument/formatting":
 		s.handleFormatting(req)
+	case "textDocument/prepareRename":
+		s.handlePrepareRename(req)
+	case "textDocument/rename":
+		s.handleRename(req)
 	case "workspace/didChangeWatchedFiles":
 		// A .lisp file on disk changed (possibly a module required by an
 		// open document, and possibly not open itself). Re-analyse every
@@ -694,6 +699,85 @@ func (s *Server) handleDefinition(req *requestMessage) {
 		}
 	}
 	s.respond(req, nil)
+}
+
+// renameableSymbol reports whether sym (the token under the cursor) may
+// be renamed, and returns it. Rename is deliberately conservative: only
+// symbols defined in this document (def / defn / defmacro) qualify.
+// Builtins, names imported through require (and any qualified ns/name),
+// preamble placeholders and unresolved symbols are refused, because a
+// document-scoped textual rename could not update them correctly.
+func renameableSymbol(doc *document, sym string) bool {
+	if sym == "" || strings.HasPrefix(sym, "$") || strings.Contains(sym, "/") {
+		return false
+	}
+	for _, d := range doc.analysis.defs {
+		if d.name == sym {
+			return true
+		}
+	}
+	return false
+}
+
+// handlePrepareRename answers textDocument/prepareRename: it returns the
+// range of the whole symbol under the cursor (so hyphenated symbols are
+// selected as one token) when the symbol is renameable, or null so the
+// editor reports that the symbol cannot be renamed.
+func (s *Server) handlePrepareRename(req *requestMessage) {
+	var p TextDocumentPositionParams
+	if err := json.Unmarshal(req.Params, &p); err != nil {
+		s.respondError(req, codeInvalidParams, err.Error())
+		return
+	}
+	s.mu.Lock()
+	doc := s.docs[p.TextDocument.URI]
+	s.mu.Unlock()
+	if doc == nil {
+		s.respond(req, nil)
+		return
+	}
+	sym := symbolAt(doc.content, p.Position.Line, p.Position.Character)
+	if !renameableSymbol(doc, sym) {
+		s.respond(req, nil)
+		return
+	}
+	s.respond(req, symbolRangeAt(doc.content, p.Position.Line, p.Position.Character))
+}
+
+// handleRename answers textDocument/rename by replacing every whole-token
+// occurrence of the symbol in the document (outside strings and comments)
+// with the new name. The rename is document-scoped and lexical: it
+// rewrites every occurrence of the exact name, which is correct for a
+// file-level definition but does not distinguish a shadowing local of the
+// same name.
+func (s *Server) handleRename(req *requestMessage) {
+	var p RenameParams
+	if err := json.Unmarshal(req.Params, &p); err != nil {
+		s.respondError(req, codeInvalidParams, err.Error())
+		return
+	}
+	s.mu.Lock()
+	doc := s.docs[p.TextDocument.URI]
+	s.mu.Unlock()
+	if doc == nil {
+		s.respond(req, nil)
+		return
+	}
+	sym := symbolAt(doc.content, p.Position.Line, p.Position.Character)
+	if !renameableSymbol(doc, sym) {
+		s.respondError(req, codeInvalidParams, "this symbol cannot be renamed (only symbols defined in this file can be)")
+		return
+	}
+	if !validSymbolName(p.NewName) {
+		s.respondError(req, codeInvalidParams, "invalid new name: a symbol may not contain whitespace or delimiters")
+		return
+	}
+	ranges := symbolOccurrences(doc.content, sym)
+	edits := make([]TextEdit, len(ranges))
+	for i, r := range ranges {
+		edits[i] = TextEdit{Range: r, NewText: p.NewName}
+	}
+	s.respond(req, WorkspaceEdit{Changes: map[string][]TextEdit{p.TextDocument.URI: edits}})
 }
 
 func (s *Server) handleDocumentSymbol(req *requestMessage) {

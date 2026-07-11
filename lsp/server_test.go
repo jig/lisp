@@ -344,7 +344,7 @@ func TestServer_UnknownMethod(t *testing.T) {
 	client, stop := startSession(t)
 	defer stop()
 
-	send(t, client, 6, "textDocument/rename", map[string]interface{}{})
+	send(t, client, 6, "textDocument/thisMethodDoesNotExist", map[string]interface{}{})
 	resp := readUntil(t, client, response(6))
 	if resp["error"] == nil {
 		t.Fatalf("expected MethodNotFound error, got %v", resp)
