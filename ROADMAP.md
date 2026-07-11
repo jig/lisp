@@ -138,11 +138,16 @@ Impact: high for concurrent programs; zero for sequential scripts.*
 
 ## Cosmetic / large
 
-### LSP: semantic tokens
-Real semantic highlighting (macro vs function vs local binding vs
-qualified symbol) instead of the TextMate grammar. Additive, but the
-token-encoding protocol is fiddly. *Effort: medium-large. Impact:
-cosmetic.*
+### ~~LSP: semantic tokens~~ (done)
+Semantic highlighting on top of the TextMate grammar:
+`textDocument/semanticTokens/full` classifies every symbol from the
+parsed AST — special forms as keywords, def/defn/defmacro names as
+variable/function/macro declarations, fn/defn/let/loop/catch bindings and
+their local uses as parameters, qualified `ns/name` references as
+namespaces, and call heads as function/macro (a document-local macro
+reads as a macro). All standard LSP token types, so themes colour them
+without extra configuration. See `analysis.semanticTokens` /
+`handleSemanticTokens`.
 
 ### ~~LSP: formatting~~ (done)
 Canonical lisp formatting for Format Document, shared with the `--fmt`
@@ -182,8 +187,7 @@ Item-specific notes:
 Done: the three quick wins (LISPPATH, module-change watching, signature
 help), the debugger-power set (conditional breakpoints / logpoints,
 exception breakpoints, setVariable, return value after step), the
-scope-aware navigation pair (find references / rename), and formatting.
-Remaining:
+scope-aware navigation pair (find references / rename), formatting, and
+semantic tokens. Remaining:
 
-1. Semantic tokens (cosmetic)
-2. Multi-thread futures (the DAP big one — schedule real time for it)
+1. Multi-thread futures (the DAP big one — schedule real time for it)
