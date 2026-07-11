@@ -177,10 +177,12 @@ func (h *StepHook) OnEval(ctx context.Context, ev runtime.EvalEvent) error {
 			break
 		}
 		if depth <= s.targetDepth {
+			s.captureStepResult()
 			s.pauseAndWait("step", "")
 		}
 	case modeStepOut:
 		if depth < s.targetDepth {
+			s.captureStepResult()
 			s.pauseAndWait("step", "")
 		}
 	default:
@@ -233,6 +235,16 @@ func exceptionMessage(err error) string {
 		return printer.Pr_str(le.ErrorValue(), true)
 	}
 	return err.Error()
+}
+
+// captureStepResult records the value the completing step produced (read
+// from the thread's recorder) so the next pause can surface it as the
+// "Return value" scope. Caller holds s.mu.
+func (s *state) captureStepResult() {
+	if v, ok := s.thread.LastResult(); ok {
+		s.stepResult = v
+		s.hasStepResult = true
+	}
 }
 
 // isDoForm reports whether ast is a `(do …)` special form.

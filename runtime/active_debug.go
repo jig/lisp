@@ -101,6 +101,14 @@ var nextFrameID atomic.Int64
 type Thread struct {
 	mu     sync.Mutex
 	frames []*Frame
+
+	// lastResult holds the value of the most recently completed EVAL
+	// frame on this thread. The debugger reads it after a step-over or
+	// step-out to show the stepped form's return value: because a form's
+	// own EVAL returns after all its sub-forms, the outermost stepped
+	// form is the last to record, so this is exactly its result.
+	lastResult    types.MalType
+	hasLastResult bool
 }
 
 // NewThread returns an empty Thread.
@@ -208,6 +216,39 @@ func (t *Thread) Snapshot() []Frame {
 		out[i] = *f
 	}
 	return out
+}
+
+// RecordResult stores res as the thread's most-recently-completed value.
+func (t *Thread) RecordResult(res types.MalType) {
+	t.mu.Lock()
+	t.lastResult = res
+	t.hasLastResult = true
+	t.mu.Unlock()
+}
+
+// LastResult returns the most-recently-recorded value and whether one is
+// available.
+func (t *Thread) LastResult() (types.MalType, bool) {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	return t.lastResult, t.hasLastResult
+}
+
+// ResetLastResult forgets any recorded result. The debugger calls it when
+// resuming so a stale value is not shown at the next stop.
+func (t *Thread) ResetLastResult() {
+	t.mu.Lock()
+	t.lastResult = nil
+	t.hasLastResult = false
+	t.mu.Unlock()
+}
+
+// RecordResult stores res on the Thread carried by ctx, if any. EVAL
+// calls it as each frame completes successfully.
+func RecordResult(ctx context.Context, res types.MalType) {
+	if t := ThreadFromContext(ctx); t != nil {
+		t.RecordResult(res)
+	}
 }
 
 type ctxKey struct{}

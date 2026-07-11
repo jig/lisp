@@ -476,6 +476,17 @@ func evalInternal(ctx context.Context, ast MalType, env EnvType) (res MalType, e
 		} else {
 			frame = nil
 		}
+		// Record this frame's result as it completes, so the debugger can
+		// show the return value after a step. A form's own EVAL returns
+		// after its sub-forms, so the outermost stepped form records last.
+		// recurValue is an internal loop sentinel, not a user value.
+		defer func() {
+			if e == nil {
+				if _, isRecur := res.(recurValue); !isRecur {
+					runtime.RecordResult(ctx, res)
+				}
+			}
+		}()
 	}
 
 	// Add stack frame to any error that propagates out of this EVAL call.

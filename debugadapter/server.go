@@ -379,6 +379,12 @@ func (s *Server) handleScopes(req *Request) {
 	// ("Globals" — everything the session loaded, builtins included;
 	// marked expensive so the client keeps it collapsed by default).
 	scopes := []Scope{}
+	// After a step-over/step-out, surface the value the stepped form
+	// produced as a synthetic scope on the top frame.
+	if args.FrameID == 0 && s.state.hasStepResult {
+		ref := s.state.registerVarRef(varRef{kind: varRefReturn, value: s.state.stepResult})
+		scopes = append(scopes, Scope{Name: "Return value", VariablesReference: ref, Expensive: false})
+	}
 	level := 0
 	for e := frames[idx].Env; e != nil; level++ {
 		chain, ok := e.(envChain)
@@ -423,6 +429,8 @@ func (s *Server) handleVariables(req *Request) {
 		vars = s.varsForEnvLevel(entry.env)
 	case varRefValue:
 		vars = s.childrenOf(entry.value)
+	case varRefReturn:
+		vars = []Variable{s.formatVariable("(return)", entry.value)}
 	}
 	s.respond(req, true, "", map[string]interface{}{"variables": vars})
 }

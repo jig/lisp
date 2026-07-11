@@ -42,12 +42,13 @@ type varRefKind int
 const (
 	varRefScopeLocals varRefKind = iota
 	varRefValue
+	varRefReturn // the single synthetic "(return)" variable
 )
 
 type varRef struct {
 	kind  varRefKind
 	env   types.EnvType // for scope-locals: one level of the env chain
-	value types.MalType // for value
+	value types.MalType // for value / return
 }
 
 // state holds the live debug session: mode, breakpoints, the thread
@@ -94,6 +95,12 @@ type state struct {
 	// enables the "all" filter: the session then pauses at the point any
 	// Lisp error is raised.
 	stopOnException bool
+
+	// stepResult holds the value of the form just completed by a
+	// step-over/step-out, surfaced as a synthetic "Return value" scope
+	// while paused. hasStepResult guards it (nil is a legitimate value).
+	stepResult    types.MalType
+	hasStepResult bool
 
 	// lastObservedLine is the BeginRow of the cursor seen on the
 	// previous OnEval. matchBreakpoint uses it to skip the cascade of
@@ -226,6 +233,11 @@ func (s *state) resume(m mode, depth int) {
 	s.mode = m
 	s.targetDepth = depth
 	s.stepFrameID = runtime.FrameID(s.thread.Top())
+	// Forget any step return value: it belongs to the pause we are
+	// leaving, and the thread's recorder starts fresh for the next step.
+	s.hasStepResult = false
+	s.stepResult = nil
+	s.thread.ResetLastResult()
 	tracef("resume mode=%d targetDepth=%d stepFrameID=%d (thread.Depth=%d)",
 		m, depth, s.stepFrameID, s.thread.Depth())
 	s.cond.Signal()
