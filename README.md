@@ -4,6 +4,11 @@ Derived from [kanaka/mal](https://github.com/kanaka/mal) Go implementation of a 
 
 This implementation is focused on _embeddability_ in Go projects. See [lisp main](./cmd/lisp) for an example on how to embed it in Go code. It includes a REPL, a debugger, a language server and a source code formatter for Visual Studio Code.
 
+> **Learning the language?** [LANGUAGE.md](./LANGUAGE.md) is a single-file
+> reference to the syntax and every builtin library, meant to be read
+> whole (by a person or an LLM). The builtin reference there is generated
+> from the interpreter itself, so it never drifts from the code.
+
 It requires Go 1.25.
 
 > **Upgrading?** See [CHANGELOG.md](./CHANGELOG.md) for behaviour changes
