@@ -81,36 +81,37 @@ matches corrupt sources** — needs conservative scope rules and tests
 around shadowing (`let`/`fn` params). *Effort: medium (after
 references). Impact: high.*
 
-### DAP: conditional breakpoints and logpoints
+### ~~DAP: conditional breakpoints and logpoints~~ (done)
 Breakpoints firing only when a condition holds, or logging without
-stopping. VSCode already sends `condition`/`logMessage` in
-`setBreakpoints`; the server must evaluate the condition in the paused
-frame's env — the `evaluate` machinery in
-[debugadapter/server.go](debugadapter/server.go) is reusable, but the
-evaluation happens inside the hook (debuggee goroutine), so watch for
-re-entrancy. *Effort: medium. Impact: high for real debugging
-sessions.*
+stopping. The condition/message is evaluated in the paused frame's env
+from inside the hook; an atomic `evalGuard` checked before `s.mu` is
+taken makes the nested EVAL return immediately instead of dead-locking.
+See [debugadapter/condeval.go](debugadapter/condeval.go).
 
 ## Invasive (plan before starting)
 
-### DAP: exception breakpoints
-Stop automatically where a lisp error is raised, before it unwinds.
-Needs a hook point in EVAL's error path ([mal.go](mal.go)) and the
-`exceptionBreakpointFilters` capability. **Touches the interpreter
-error path.** *Effort: medium. Impact: high — today errors just print
-after the fact.*
+### ~~DAP: exception breakpoints~~ (done)
+Stop automatically where a lisp error is raised, before it unwinds. A
+new optional `runtime.ErrorHook` (`OnError`) is dispatched from
+evalInternal's error-decoration defer, but only at the innermost frame
+the error passes through — detected by its stack still being empty
+before the first `AddStackFrame` — so it fires once, at the raise site,
+with the stack intact. The hook only observes; it never wraps or alters
+the propagating error. Offered as the single "All raised errors" filter.
 
-### DAP: `setVariable`
-Edit a variable from the Variables pane while paused. Mutating the
-paused env is easy (`env.Set`); the risk is semantic (shadowed scopes,
-values shared through closures). *Effort: small-medium. Impact:
-medium.*
+### ~~DAP: `setVariable`~~ (done)
+Edit a variable from the Variables pane while paused. The value
+expression is evaluated in the scope's env and rebound with `env.Set`.
+Only environment scopes (Locals / Closure / Globals) are writable; the
+immutable children of a composite value are rejected.
 
-### DAP: return value after step
-Show the result of the just-executed form as a synthetic `(result)`
-variable after F10/Shift-F11. Requires capturing EVAL results at frame
-pop — **hot-path change in [mal.go](mal.go)** (currently results are
-not recorded anywhere). *Effort: medium. Impact: medium.*
+### ~~DAP: return value after step~~ (done)
+Shows the result of the just-executed form as a synthetic "Return
+value" scope (a `(return)` variable) after F10/Shift-F11. The runtime's
+Thread records each frame's result as it completes; because a form's
+EVAL returns after its sub-forms, the outermost stepped form is the
+last to record. The recording is behind `runtime.Enabled`, so release
+builds are unaffected.
 
 ### DAP: multi-thread debugging (futures)
 The big one, tracked since 2026-07-03: breakpoints and stepping inside
@@ -166,10 +167,11 @@ Item-specific notes:
 
 ## Suggested order
 
-All three quick wins above are done (LISPPATH, module-change watching,
-signature help). Remaining, in order:
+Done: the three quick wins (LISPPATH, module-change watching, signature
+help) and the debugger-power set (conditional breakpoints / logpoints,
+exception breakpoints, setVariable, return value after step). Remaining,
+in order:
 
 1. Find references → rename (the navigation pair)
-2. Conditional breakpoints / logpoints (debugger power)
-3. Exception breakpoints (first invasive one; plan the EVAL hook point)
-4. Multi-thread futures (schedule real time for it)
+2. Multi-thread futures (schedule real time for it)
+3. Semantic tokens / formatting (cosmetic)
