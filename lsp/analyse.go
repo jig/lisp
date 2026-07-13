@@ -425,7 +425,7 @@ type semTok struct {
 // function/macro. It walks the parsed AST; quoted data is not descended
 // into. Tokens are returned in document order.
 func (a *analysis) semanticTokens(content string) []semTok {
-	b := &semBuilder{a: a, docScope: wholeContentRange(content)}
+	b := &semBuilder{a: a, docScope: wholeContentRange(content), lines: strings.Split(content, "\n")}
 	for _, f := range a.forms {
 		b.walk(f)
 	}
@@ -435,6 +435,7 @@ func (a *analysis) semanticTokens(content string) []semTok {
 type semBuilder struct {
 	a        *analysis
 	docScope Range
+	lines    []string
 	toks     []semTok
 }
 
@@ -442,7 +443,31 @@ func (b *semBuilder) emit(sym types.Symbol, typ, mods int) {
 	if sym.Cursor == nil {
 		return
 	}
-	b.toks = append(b.toks, semTok{rng: symbolRange(sym.Cursor, sym.Val), typ: typ, mods: mods})
+	rng := symbolRange(sym.Cursor, sym.Val)
+	// Reader macros ('x, `x, ~x, ~@x) synthesise head symbols whose Val
+	// ("quote", "unquote", …) is longer than their one-character source
+	// sigil, so symbolRange back-computes a range that is both mis-sized and
+	// shifted onto the preceding tokens. Emit only when the document text at
+	// the range actually spells the symbol; this also guards any other
+	// position/length mismatch (e.g. read-time $NAME placeholders).
+	if b.textAt(rng) != sym.Val {
+		return
+	}
+	b.toks = append(b.toks, semTok{rng: rng, typ: typ, mods: mods})
+}
+
+// textAt returns the document text covered by rng, or "" when rng is empty,
+// spans lines, or falls outside the document.
+func (b *semBuilder) textAt(rng Range) string {
+	if rng.Start.Line != rng.End.Line || rng.Start.Line < 0 || rng.Start.Line >= len(b.lines) {
+		return ""
+	}
+	line := b.lines[rng.Start.Line]
+	s, e := rng.Start.Character, rng.End.Character
+	if s < 0 || e > len(line) || s >= e {
+		return ""
+	}
+	return line[s:e]
 }
 
 // binding emits every symbol in a binding form as a parameter declaration.

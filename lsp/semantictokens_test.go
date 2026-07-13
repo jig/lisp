@@ -94,3 +94,30 @@ func TestSemanticTokens_WireFormat(t *testing.T) {
 		t.Fatalf("expected a non-empty multiple-of-5 token array, got %d ints", len(data))
 	}
 }
+
+// TestSemanticTokens_ReaderMacroNoGhostToken guards against reader macros
+// ('x, `x, ~x) leaking a mis-placed "quote"/"unquote" keyword token onto the
+// preceding text: the synthesised head symbol's Val is longer than its
+// one-character sigil, so its range would slide backwards. An explicit
+// (quote …) must still be classified. See the emit text guard in analyse.go.
+func TestSemanticTokens_ReaderMacroNoGhostToken(t *testing.T) {
+	// The ' sigil in `{:op '()}` must not colour the :op key.
+	a := analyseDocument("t.lisp", "[{:op '()}]\n")
+	for _, s := range a.semanticTokens("[{:op '()}]\n") {
+		t.Errorf("unexpected token at char %d..%d (type %d) for reader-macro quote",
+			s.rng.Start.Character, s.rng.End.Character, s.typ)
+	}
+
+	// An explicit (quote …) still yields a keyword token over "quote".
+	src := "(quote (a b))\n"
+	a = analyseDocument("t.lisp", src)
+	var gotKeyword bool
+	for _, s := range a.semanticTokens(src) {
+		if s.typ == tokKeyword && s.rng.Start.Character == 1 && s.rng.End.Character == 6 {
+			gotKeyword = true
+		}
+	}
+	if !gotKeyword {
+		t.Errorf("explicit (quote …) should emit a keyword token over chars 1..6")
+	}
+}
