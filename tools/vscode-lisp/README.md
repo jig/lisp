@@ -22,6 +22,12 @@ interpreter.
 - Document formatting (a gofmt-style canonical layout, comments
   preserved) via the language server. Enabled on save by default for
   lisp files, or run **Format Document** (`⇧⌥F`) manually.
+- A pastel-green parenthesis `()` icon for the `lisp` language. Under a
+  typical file icon theme (Seti, Material, …) this shows on editor tabs
+  but not in the Explorer, because those themes already claim `.lisp`.
+  For the icon in the Explorer as well, select **File Icon Theme →
+  jig/lisp icons** (a minimal theme that only styles `.lisp`/`.mal` and
+  leaves every other file's icon blank).
 
 Find-references and rename are not part of this release.
 
