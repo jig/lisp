@@ -1,0 +1,15 @@
+{
+  "$comment": "Minimal file icon theme: it only styles jig/lisp files. Every other file and folder falls back to the generic (blank) icon, so selecting this theme replaces whatever icon set was active. Use it only if you want the pastel-green () icon on .lisp/.mal guaranteed in the Explorer regardless of your usual theme.",
+  "iconDefinitions": {
+    "lisp-parens": {
+      "iconPath": "./lisp.svg"
+    }
+  },
+  "fileExtensions": {
+    "lisp": "lisp-parens",
+    "mal": "lisp-parens"
+  },
+  "languageIds": {
+    "lisp": "lisp-parens"
+  }
+}
