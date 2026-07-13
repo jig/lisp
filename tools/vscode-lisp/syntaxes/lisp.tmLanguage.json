@@ -60,8 +60,9 @@
       "match": "(?<![\\w-])-?\\d+(\\.\\d+)?(?![\\w-])"
     },
     "keyword": {
-      "name": "constant.other.keyword.lisp",
-      "match": ":[\\w\\-?!*+<>=/]+"
+      "comment": "`:keyword` literals. Scope base is `support.type` because the generic `constant.other.*` family is left uncoloured by the default Dark+/Light+ themes, whereas `support.type` gives the distinct teal most themes use for Clojure-style keywords.",
+      "name": "support.type.keyword.lisp",
+      "match": "::?[\\w.\\-?!*+<>=/]+"
     },
     "special-form": {
       "name": "keyword.control.lisp",
