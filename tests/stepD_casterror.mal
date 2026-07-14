@@ -1,26 +1,26 @@
 (/ 0 0)
-;/.*runtime error: integer divide by zero"»
+;/.*division by zero"»
 ;=>nil
 
 (/ 1 0)
-;/^.*integer divide by zero.*$
+;/^.*division by zero.*$
 ;=>nil
 
 (+ 1 :hello)
-;/^.*using string as type int"
+;/^.*not a number \(was of type string\)"
 ;=>nil
 
 (+ 1 "hello")
-;/^.*using string as type int"
+;/^.*not a number \(was of type string\)"
 ;=>nil
 
 (try (/ 1 0))
-;/.*runtime error: integer divide by zero"»
+;/.*division by zero"»
 ;=>nil
 
 (try (/ 1 0) (catch e e))
 ;/^$
-;=>«go-error "github.com/jig/lisp/lib/core[/]: runtime error: integer divide by zero"»
+;=>«go-error "division by zero"»
 
 «go-error "simple error"»
 ;=>«go-error "simple error"»

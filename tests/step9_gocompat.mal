@@ -16,7 +16,7 @@
 (try (a) (catch err (str err)))
 ;=>"«go-error \"wrapped sample\"»"
 (try (/ 0 0) (catch err err))
-;=>«go-error "github.com/jig/lisp/lib/core[/]: runtime error: integer divide by zero"»
+;=>«go-error "division by zero"»
 (type? (try (a) (catch err err)))
 ;=>"go-error"
 (def b (fn [] (a)))

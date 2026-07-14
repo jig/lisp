@@ -444,4 +444,4 @@
 
 (try (/ 0 0) (catch e (prn e)))
 ;=>nil
-;/^.*integer divide by zero.*
+;/^.*division by zero.*

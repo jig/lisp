@@ -143,6 +143,15 @@ Non-breaking, for context (see `git log v0.2.24..` for the full list):
   `«recur»` sentinel as a value
 - multi-line `"…"` strings (Clojure-style): a literal newline is kept
   verbatim; `¬…¬` remains for JSON and other escape-heavy content
+- Clojure-style arithmetic: `+ - * /` are variadic — `(+)`→0, `(*)`→1,
+  `(+ x)`→x, `(- x)`→negation, `(/ x)`→1/x, `(- a b c)` folds left —
+  and the ordering builtins `< <= > >=` chain (`(< 1 2 3)`). The
+  numeric tower now spans machine ints, floats and big ints with
+  Clojure-style contagion (int→float, int→big); big ints and floats do
+  not mix. Floats previously had **no** arithmetic at all. Division by
+  zero on ints/bigs is a catchable `"division by zero"` error (was a
+  wrapped Go runtime panic); non-numbers report
+  `"not a number (was of type T)"`
 - `time-format` / `time-parse` — RFC 3339 UTC timestamps to and from
   the epoch milliseconds of `time-ms`
 - printer: dedicated renderings for Go values — `time.Time` and

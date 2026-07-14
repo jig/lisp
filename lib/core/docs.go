@@ -37,15 +37,15 @@ var coreDocs = []struct{ name, arglist, doc string }{
 	{"+", "[& numbers]", "Sum of its arguments (0 with none)."},
 	{"-", "[x & more]", "Subtracts the remaining arguments from x; negates x when alone."},
 	{"*", "[& numbers]", "Product of its arguments (1 with none)."},
-	{"/", "[x & more]", "Divides x by the remaining arguments."},
+	{"/", "[x & more]", "Divides x by the remaining arguments; (/ x) is the inverse 1/x."},
 
 	// Comparison
 	{"=", "[a b]", "Value equality."},
 	{"not=", "[a b]", "Logical negation of =."},
-	{"<", "[a b]", "Less-than."},
-	{"<=", "[a b]", "Less-than-or-equal."},
-	{">", "[a b]", "Greater-than."},
-	{">=", "[a b]", "Greater-than-or-equal."},
+	{"<", "[x & more]", "True when the arguments are monotonically increasing."},
+	{"<=", "[x & more]", "True when the arguments are monotonically non-decreasing."},
+	{">", "[x & more]", "True when the arguments are monotonically decreasing."},
+	{">=", "[x & more]", "True when the arguments are monotonically non-increasing."},
 
 	// Collections
 	{"list", "[& items]", "Creates a list of the given items."},

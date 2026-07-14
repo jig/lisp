@@ -15,6 +15,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math/big"
 	"os"
 	"path/filepath"
 	"runtime/debug"
@@ -47,14 +48,14 @@ func Load(env EnvType) {
 	call.Call(env, assoc_in)
 	call.Call(env, update)
 	call.Call(env, update_in)
-	call.CallOverrideFN(env, "<", func(a, b int) (bool, error) { return a < b, nil })
-	call.CallOverrideFN(env, "<=", func(a, b int) (bool, error) { return a <= b, nil })
-	call.CallOverrideFN(env, ">", func(a, b int) (bool, error) { return a > b, nil })
-	call.CallOverrideFN(env, ">=", func(a, b int) (bool, error) { return a >= b, nil })
-	call.CallOverrideFN(env, "+", func(a, b int) (int, error) { return a + b, nil })
-	call.CallOverrideFN(env, "-", func(a, b int) (int, error) { return a - b, nil })
-	call.CallOverrideFN(env, "*", func(a, b int) (int, error) { return a * b, nil })
-	call.CallOverrideFN(env, "/", func(a, b int) (int, error) { return a / b, nil })
+	call.CallOverrideFN(env, "<", ltN, 1)
+	call.CallOverrideFN(env, "<=", leN, 1)
+	call.CallOverrideFN(env, ">", gtN, 1)
+	call.CallOverrideFN(env, ">=", geN, 1)
+	call.CallOverrideFN(env, "+", addN)
+	call.CallOverrideFN(env, "-", subN, 1)
+	call.CallOverrideFN(env, "*", mulN)
+	call.CallOverrideFN(env, "/", divN, 1)
 	call.CallOverrideFN(env, "=", func(a, b MalType) (MalType, error) { return Equal_Q(a, b), nil })
 	call.CallOverrideFN(env, "not=", func(a, b MalType) (MalType, error) { return !Equal_Q(a, b), nil })
 	call.Call(env, get)
@@ -539,6 +540,234 @@ func time_ms() (int, error) {
 func time_ns() (int, error) {
 	return int(time.Now().UnixNano()), nil
 }
+
+// Numeric tower for the arithmetic and ordering builtins: machine ints,
+// floats and *big.Int, folded variadically with Clojure-style contagion —
+// int∘int stays int, a float makes the result float, a big int makes it
+// big. Big ints and floats do not mix (no unambiguous conversion). The
+// lisp float type is float32 (as read); folds run in float64 and convert
+// back on return.
+
+type number struct {
+	f     float64
+	b     *big.Int
+	isBig bool
+	isFlt bool
+	i     int
+}
+
+func toNumber(v MalType) (number, error) {
+	switch v := v.(type) {
+	case int:
+		return number{i: v}, nil
+	case float32:
+		return number{f: float64(v), isFlt: true}, nil
+	case float64:
+		return number{f: v, isFlt: true}, nil
+	case *big.Int:
+		return number{b: v, isBig: true}, nil
+	default:
+		return number{}, fmt.Errorf("not a number (was of type %T)", v)
+	}
+}
+
+func (n number) toMal() MalType {
+	switch {
+	case n.isBig:
+		return n.b
+	case n.isFlt:
+		return float32(n.f)
+	default:
+		return n.i
+	}
+}
+
+// promote lifts a pair of numbers to their common kind.
+func promote(a, b number) (number, number, error) {
+	if a.isBig || b.isBig {
+		if a.isFlt || b.isFlt {
+			return a, b, errors.New("cannot mix a big int and a float")
+		}
+		if !a.isBig {
+			a = number{b: big.NewInt(int64(a.i)), isBig: true}
+		}
+		if !b.isBig {
+			b = number{b: big.NewInt(int64(b.i)), isBig: true}
+		}
+		return a, b, nil
+	}
+	if a.isFlt || b.isFlt {
+		if !a.isFlt {
+			a = number{f: float64(a.i), isFlt: true}
+		}
+		if !b.isFlt {
+			b = number{f: float64(b.i), isFlt: true}
+		}
+		return a, b, nil
+	}
+	return a, b, nil
+}
+
+type numOp struct {
+	onInt   func(a, b int) (int, error)
+	onFloat func(a, b float64) (float64, error)
+	onBig   func(a, b *big.Int) (*big.Int, error)
+}
+
+func (op numOp) apply(a, b number) (number, error) {
+	a, b, err := promote(a, b)
+	if err != nil {
+		return number{}, err
+	}
+	switch {
+	case a.isBig:
+		r, err := op.onBig(a.b, b.b)
+		return number{b: r, isBig: true}, err
+	case a.isFlt:
+		r, err := op.onFloat(a.f, b.f)
+		return number{f: r, isFlt: true}, err
+	default:
+		r, err := op.onInt(a.i, b.i)
+		return number{i: r}, err
+	}
+}
+
+// fold reduces args with op starting from identity; with a single
+// argument and unary set, it applies op to (unary, arg) instead — the
+// Clojure shapes (- x) → negation and (/ x) → inverse.
+func numFold(op numOp, identity number, unary *number, args []MalType) (MalType, error) {
+	acc := identity
+	if len(args) == 1 && unary != nil {
+		n, err := toNumber(args[0])
+		if err != nil {
+			return nil, err
+		}
+		r, err := op.apply(*unary, n)
+		if err != nil {
+			return nil, err
+		}
+		return r.toMal(), nil
+	}
+	for i, arg := range args {
+		n, err := toNumber(arg)
+		if err != nil {
+			return nil, err
+		}
+		if i == 0 && unary != nil {
+			acc = n // subtraction/division fold from the first argument
+			continue
+		}
+		acc, err = op.apply(acc, n)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return acc.toMal(), nil
+}
+
+var (
+	addOp = numOp{
+		onInt:   func(a, b int) (int, error) { return a + b, nil },
+		onFloat: func(a, b float64) (float64, error) { return a + b, nil },
+		onBig:   func(a, b *big.Int) (*big.Int, error) { return new(big.Int).Add(a, b), nil },
+	}
+	subOp = numOp{
+		onInt:   func(a, b int) (int, error) { return a - b, nil },
+		onFloat: func(a, b float64) (float64, error) { return a - b, nil },
+		onBig:   func(a, b *big.Int) (*big.Int, error) { return new(big.Int).Sub(a, b), nil },
+	}
+	mulOp = numOp{
+		onInt:   func(a, b int) (int, error) { return a * b, nil },
+		onFloat: func(a, b float64) (float64, error) { return a * b, nil },
+		onBig:   func(a, b *big.Int) (*big.Int, error) { return new(big.Int).Mul(a, b), nil },
+	}
+	divOp = numOp{
+		onInt: func(a, b int) (int, error) {
+			if b == 0 {
+				return 0, errors.New("division by zero")
+			}
+			return a / b, nil
+		},
+		// float division by zero yields ±Inf, as in Go and Clojure
+		onFloat: func(a, b float64) (float64, error) { return a / b, nil },
+		onBig: func(a, b *big.Int) (*big.Int, error) {
+			if b.Sign() == 0 {
+				return nil, errors.New("division by zero")
+			}
+			return new(big.Int).Quo(a, b), nil
+		},
+	}
+)
+
+func addN(xs ...MalType) (MalType, error) { return numFold(addOp, number{i: 0}, nil, xs) }
+func mulN(xs ...MalType) (MalType, error) { return numFold(mulOp, number{i: 1}, nil, xs) }
+func subN(xs ...MalType) (MalType, error) {
+	zero := number{i: 0}
+	return numFold(subOp, number{}, &zero, xs)
+}
+func divN(xs ...MalType) (MalType, error) {
+	one := number{i: 1}
+	return numFold(divOp, number{}, &one, xs)
+}
+
+// numCmp orders two numbers after promotion (big∘float does not mix).
+func numCmp(a, b number) (int, error) {
+	a, b, err := promote(a, b)
+	if err != nil {
+		return 0, err
+	}
+	switch {
+	case a.isBig:
+		return a.b.Cmp(b.b), nil
+	case a.isFlt:
+		switch {
+		case a.f < b.f:
+			return -1, nil
+		case a.f > b.f:
+			return 1, nil
+		default:
+			return 0, nil
+		}
+	default:
+		switch {
+		case a.i < b.i:
+			return -1, nil
+		case a.i > b.i:
+			return 1, nil
+		default:
+			return 0, nil
+		}
+	}
+}
+
+// chainCmp implements the variadic ordering builtins: true when every
+// adjacent pair satisfies ok, as in Clojure ((< 1 2 3), (< x) → true).
+func chainCmp(ok func(int) bool, xs []MalType) (MalType, error) {
+	prev, err := toNumber(xs[0])
+	if err != nil {
+		return nil, err
+	}
+	for _, x := range xs[1:] {
+		n, err := toNumber(x)
+		if err != nil {
+			return nil, err
+		}
+		c, err := numCmp(prev, n)
+		if err != nil {
+			return nil, err
+		}
+		if !ok(c) {
+			return false, nil
+		}
+		prev = n
+	}
+	return true, nil
+}
+
+func ltN(xs ...MalType) (MalType, error) { return chainCmp(func(c int) bool { return c < 0 }, xs) }
+func leN(xs ...MalType) (MalType, error) { return chainCmp(func(c int) bool { return c <= 0 }, xs) }
+func gtN(xs ...MalType) (MalType, error) { return chainCmp(func(c int) bool { return c > 0 }, xs) }
+func geN(xs ...MalType) (MalType, error) { return chainCmp(func(c int) bool { return c >= 0 }, xs) }
 
 // rfc3339Milli is time.RFC3339 with fixed millisecond precision, matching
 // the resolution of time-ms (a variable-width fraction would not sort
