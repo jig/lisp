@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/jig/lisp/printer"
 	"github.com/jig/lisp/types"
@@ -89,15 +90,44 @@ func (p *pointerStringer) String() string { return "stringer:" + strconv.Itoa(p.
 
 // TestPrStrStringer covers the fmt.Stringer branch: Go values with a
 // custom String() must render via that method instead of exposing their
-// internal struct layout. *big.Int is the motivating real-world case
-// (its String() uses a pointer receiver, so it is only reachable before
-// the pointer dereference in the default branch).
+// internal struct layout (String() methods often use pointer receivers,
+// so the branch must come before the pointer dereference in the default
+// branch).
 func TestPrStrStringer(t *testing.T) {
-	if got, want := printer.Pr_str(big.NewInt(1234567890), true), "1234567890"; got != want {
-		t.Fatalf("*big.Int = %q, want %q", got, want)
-	}
 	if got, want := printer.Pr_str(&pointerStringer{n: 7}, true), "stringer:7"; got != want {
 		t.Fatalf("*pointerStringer = %q, want %q", got, want)
+	}
+}
+
+// TestPrStrBigInt covers the dedicated *big.Int case: a 0x-prefixed
+// uppercase hex literal padded to whole octets — the same form the
+// reader accepts — plus a sign prefix for (Go-side) negatives and nil
+// safety.
+func TestPrStrBigInt(t *testing.T) {
+	for _, tc := range []struct {
+		in   *big.Int
+		want string
+	}{
+		{big.NewInt(1234567890), "0x499602D2"},
+		{big.NewInt(15), "0x0F"},
+		{big.NewInt(-1234567890), "-0x499602D2"},
+		{big.NewInt(0), "0x00"},
+		{nil, "nil"},
+	} {
+		if got := printer.Pr_str(tc.in, true); got != tc.want {
+			t.Fatalf("*big.Int %v = %q, want %q", tc.in, got, tc.want)
+		}
+	}
+}
+
+// TestPrStrTime covers the time.Time and time.Duration cases: both
+// render as their millisecond count, matching time-ms.
+func TestPrStrTime(t *testing.T) {
+	if got, want := printer.Pr_str(time.UnixMilli(1234567890123).UTC(), true), "1234567890123"; got != want {
+		t.Fatalf("time.Time = %q, want %q", got, want)
+	}
+	if got, want := printer.Pr_str(1500*time.Millisecond, true), "1500"; got != want {
+		t.Fatalf("time.Duration = %q, want %q", got, want)
 	}
 }
 
