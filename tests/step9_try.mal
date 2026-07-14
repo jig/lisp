@@ -445,3 +445,21 @@
 (try (/ 0 0) (catch e (prn e)))
 ;=>nil
 ;/^.*integer divide by zero.*
+
+;; The catch result is a value, not code: it must not be evaluated a second
+;; time (issue #87). A form carried as data inside the result stays data.
+(try (throw "x") (catch e {:v (quote (+ 1 2))}))
+;=>{:v (+ 1 2)}
+(try (throw "x") (catch e (quote (str "hi"))))
+;=>(str "hi")
+
+;; A quoted throw form inside the catch result must not re-raise (issue #87).
+;; (values extracted with get: multi-key hash-map print order is not stable)
+(get (try (throw "boom") (catch e {:op (quote (throw "boom")) :error (str e)})) :error)
+;=>"boom"
+(get (try (throw "boom") (catch e {:op (quote (throw "boom")) :error (str e)})) :op)
+;=>(throw "boom")
+
+;; recur in catch tail position jumps back to the enclosing loop
+(loop [i 0] (try (if (< i 3) (throw "again") i) (catch e (recur (inc i)))))
+;=>3
