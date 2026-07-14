@@ -131,6 +131,8 @@ var coreDocs = []struct{ name, arglist, doc string }{
 	// Time & version
 	{"time-ms", "[]", "Current time in milliseconds since the epoch."},
 	{"time-ns", "[]", "Current time in nanoseconds since the epoch."},
+	{"time-format", "[ms]", "Formats epoch milliseconds (as of time-ms) as an RFC 3339 UTC timestamp with millisecond precision."},
+	{"time-parse", "[string]", "Parses an RFC 3339 timestamp and returns epoch milliseconds (as of time-ms)."},
 	{"version", "[]", "Interpreter build information as a hash-map."},
 
 	// Bytes, base64 & JSON

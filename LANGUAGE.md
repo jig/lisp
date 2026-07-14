@@ -252,8 +252,10 @@ Arithmetic, collections, predicates, strings, JSON, errors — always loaded.
 | `take` | `[n coll]` | First n elements of coll. |
 | `take-last` | `[n coll]` | Last n elements of coll. |
 | `throw` | `[value]` | Raises value as an error. |
+| `time-format` | `[ms]` | Formats epoch milliseconds (as of time-ms) as an RFC 3339 UTC timestamp with millisecond precision. |
 | `time-ms` | `[]` | Current time in milliseconds since the epoch. |
 | `time-ns` | `[]` | Current time in nanoseconds since the epoch. |
+| `time-parse` | `[string]` | Parses an RFC 3339 timestamp and returns epoch milliseconds (as of time-ms). |
 | `true?` | `[x]` | Whether x is boolean true. |
 | `type?` | `[x]` | Type name of x as a string. |
 | `unbase64` | `[string]` | Decodes a base64 string to a byte string. |

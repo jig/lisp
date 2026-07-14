@@ -102,6 +102,8 @@ func Load(env EnvType) {
 	call.Call(env, sleep)
 	call.Call(env, time_ms)
 	call.Call(env, time_ns)
+	call.Call(env, time_format)
+	call.Call(env, time_parse)
 	call.Call(env, uUid)
 	call.Call(env, pr_str)
 	call.Call(env, str)
@@ -536,6 +538,23 @@ func time_ms() (int, error) {
 
 func time_ns() (int, error) {
 	return int(time.Now().UnixNano()), nil
+}
+
+// rfc3339Milli is time.RFC3339 with fixed millisecond precision, matching
+// the resolution of time-ms (a variable-width fraction would not sort
+// lexicographically).
+const rfc3339Milli = "2006-01-02T15:04:05.000Z07:00"
+
+func time_format(ms int) (string, error) {
+	return time.UnixMilli(int64(ms)).UTC().Format(rfc3339Milli), nil
+}
+
+func time_parse(s string) (int, error) {
+	t, err := time.Parse(time.RFC3339, s)
+	if err != nil {
+		return 0, err
+	}
+	return int(t.UnixMilli()), nil
 }
 
 // Hash Map, Set, Vector functions
