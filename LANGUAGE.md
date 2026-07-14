@@ -170,12 +170,12 @@ Arithmetic, collections, predicates, strings, JSON, errors — always loaded.
 | `*` | `[& numbers]` | Product of its arguments (1 with none). |
 | `+` | `[& numbers]` | Sum of its arguments (0 with none). |
 | `-` | `[x & more]` | Subtracts the remaining arguments from x; negates x when alone. |
-| `/` | `[x & more]` | Divides x by the remaining arguments. |
-| `<` | `[a b]` | Less-than. |
-| `<=` | `[a b]` | Less-than-or-equal. |
+| `/` | `[x & more]` | Divides x by the remaining arguments; (/ x) is the inverse 1/x. |
+| `<` | `[x & more]` | True when the arguments are monotonically increasing. |
+| `<=` | `[x & more]` | True when the arguments are monotonically non-decreasing. |
 | `=` | `[a b]` | Value equality. |
-| `>` | `[a b]` | Greater-than. |
-| `>=` | `[a b]` | Greater-than-or-equal. |
+| `>` | `[x & more]` | True when the arguments are monotonically decreasing. |
+| `>=` | `[x & more]` | True when the arguments are monotonically non-increasing. |
 | `apply` | `[f & args]` | Calls f with args, the last of which is a sequence spread as arguments. |
 | `assert` | `[expr & error]` | Returns nil when expr is truthy, otherwise raises error (or a default). |
 | `assoc` | `[map key val & kvs]` | Copy of map with the given key/value pairs added or replaced. |
