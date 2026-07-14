@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math/big"
 	"reflect"
 	"strings"
 )
@@ -291,6 +292,14 @@ func Equal_Q(a, b MalType) bool {
 			}
 		}
 		return true
+	case *big.Int:
+		// Pointer values: compare numerically, not by identity.
+		ab := a.(*big.Int)
+		bb, _ := b.(*big.Int)
+		if ab == nil || bb == nil {
+			return ab == bb
+		}
+		return ab.Cmp(bb) == 0
 	default:
 		return a == b
 	}

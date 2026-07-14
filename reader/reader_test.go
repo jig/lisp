@@ -1,6 +1,8 @@
 package reader_test
 
 import (
+	"math/big"
+	"strings"
 	"testing"
 
 	"github.com/jig/lisp/env"
@@ -125,6 +127,52 @@ func TestAdHocReaders(t *testing.T) {
 			t.Fatal()
 		}
 	})
+}
+
+// TestRadixLiterals checks that 0x/0o/0b literals (optionally signed)
+// read as *big.Int and round-trip through the printer, and that decimal
+// stays a machine int while legacy leading-zero octal is rejected.
+func TestRadixLiterals(t *testing.T) {
+	for _, tc := range []struct {
+		src  string
+		want string // via printer round-trip
+	}{
+		{`0x0`, "0x00"},
+		{`0xCAFE_CAFE`, "0xCAFECAFE"},
+		{`0o17`, "0x0F"},
+		{`0b101`, "0x05"},
+		{`0xFFFF_FFFF_FFFF_FFFF_FFFF`, "0xFFFFFFFFFFFFFFFFFFFF"}, // > 64 bits
+		{`-0x01`, "-0x01"},
+		{`-0xCAFE_CAFE`, "-0xCAFECAFE"},
+	} {
+		ast, err := reader.Read_str(tc.src, types.NewCursorFile(t.Name()), nil)
+		if err != nil {
+			t.Fatalf("%s: %v", tc.src, err)
+		}
+		if _, ok := ast.(*big.Int); !ok {
+			t.Fatalf("%s: got %T, want *big.Int", tc.src, ast)
+		}
+		if got := printer.Pr_str(ast, true); got != tc.want {
+			t.Fatalf("%s: printed %s, want %s", tc.src, got, tc.want)
+		}
+	}
+
+	for _, src := range []string{`0`, `42`, `-42`} {
+		ast, err := reader.Read_str(src, types.NewCursorFile(t.Name()), nil)
+		if err != nil {
+			t.Fatalf("%s: %v", src, err)
+		}
+		if _, ok := ast.(int); !ok {
+			t.Fatalf("%s: got %T, want int", src, ast)
+		}
+	}
+
+	// leading-zero octal is error-prone and rejected
+	for _, src := range []string{`042`, `00`, `-042`} {
+		if _, err := reader.Read_str(src, types.NewCursorFile(t.Name()), nil); err == nil || !strings.Contains(err.Error(), "leading-zero octal literal not supported") {
+			t.Fatalf("%s: got %v, want leading-zero octal error", src, err)
+		}
+	}
 }
 
 // TestMultilineString checks that a "…" literal may span physical lines

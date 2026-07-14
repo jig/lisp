@@ -2,6 +2,7 @@ package lisp_test
 
 import (
 	"context"
+	"math/big"
 	"testing"
 
 	"github.com/jig/lisp"
@@ -45,20 +46,22 @@ func TestFloat(t *testing.T) {
 	}
 }
 
+// Radix-prefixed literals read as unsigned arbitrary-precision data
+// numbers (*big.Int) and are self-evaluating.
 func TestHexa(t *testing.T) {
 	ast, err := lisp.READ("0xCAFE", nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if ast.(int) != 0xCAFE {
-		t.Fatal(`ast.(int) != 0XCAFE`)
+	if ast.(*big.Int).Cmp(big.NewInt(0xCAFE)) != 0 {
+		t.Fatal(`ast.(*big.Int) != 0xCAFE`)
 	}
 	res, err := lisp.EVAL(context.Background(), ast, env.NewEnv())
 	if err != nil {
 		t.Fatal(err)
 	}
-	if res.(int) != 0xCAFE {
-		t.Fatal(`ast.(int) != 0XCAFE`)
+	if res.(*big.Int).Cmp(big.NewInt(0xCAFE)) != 0 {
+		t.Fatal(`res.(*big.Int) != 0xCAFE`)
 	}
 }
 
@@ -67,15 +70,15 @@ func TestOctal(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if ast.(int) != 0o7777 {
-		t.Fatal(`ast.(int) != 0o7777`)
+	if ast.(*big.Int).Cmp(big.NewInt(0o7777)) != 0 {
+		t.Fatal(`ast.(*big.Int) != 0o7777`)
 	}
 	res, err := lisp.EVAL(context.Background(), ast, env.NewEnv())
 	if err != nil {
 		t.Fatal(err)
 	}
-	if res.(int) != 0o7777 {
-		t.Fatal(`ast.(int) != 0o7777`)
+	if res.(*big.Int).Cmp(big.NewInt(0o7777)) != 0 {
+		t.Fatal(`res.(*big.Int) != 0o7777`)
 	}
 }
 
@@ -84,14 +87,14 @@ func TestBinary(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if ast.(int) != 0b1100 {
-		t.Fatal(`ast.(int) != 0b1100`)
+	if ast.(*big.Int).Cmp(big.NewInt(0b1100)) != 0 {
+		t.Fatal(`ast.(*big.Int) != 0b1100`)
 	}
 	res, err := lisp.EVAL(context.Background(), ast, env.NewEnv())
 	if err != nil {
 		t.Fatal(err)
 	}
-	if res.(int) != 0b1100 {
-		t.Fatal(`ast.(int) != 0b1100`)
+	if res.(*big.Int).Cmp(big.NewInt(0b1100)) != 0 {
+		t.Fatal(`res.(*big.Int) != 0b1100`)
 	}
 }

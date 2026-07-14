@@ -9,9 +9,9 @@
 3.1416
 ;=>3.1416
 0xCAFE_CAFE
-;=>3405695742
+;=>0xCAFECAFE
 0xCA_FE_CA_FE
-;=>3405695742
+;=>0xCAFECAFE
 
 ;; tests from Go package text/scanner
 
@@ -27,29 +27,46 @@
 1234567890
 ;=>1234567890
 
-;; octal ints
-00
-;=>0
-01
-;=>1
-07
-;=>7
+;; leading-zero octal is error-prone and rejected: use 0o instead
 042
-;=>34
-01234567
-;=>342391
+;/.*leading-zero octal literal not supported.*
+;=>nil
+00
+;/.*leading-zero octal literal not supported.*
+;=>nil
 
-;; hexadecimal ints
+;; Radix-prefixed literals (0x, 0o, 0b, optionally signed) are
+;; arbitrary-precision integers: they read as big ints and print back as
+;; 0x… hex padded to whole octets. Decimal literals stay machine ints.
 0x0
-;=>0
+;=>0x00
 0x1
-;=>1
+;=>0x01
 0xf
-;=>15
+;=>0x0F
 0x42
-;=>66
+;=>0x42
 0x123456789abcDEF
-;=>81985529216486895
+;=>0x0123456789ABCDEF
+0o17
+;=>0x0F
+0b101
+;=>0x05
+;; they exceed the machine word without overflow
+0xFFFF_FFFF_FFFF_FFFF_FFFF
+;=>0xFFFFFFFFFFFFFFFFFFFF
+;; numeric equality, not pointer identity; and distinct from ints
+(= 0x0A 0x0A)
+;=>true
+(= 0x0A 10)
+;=>false
+;; signed radix literals round-trip too
+-0x01
+;=>-0x01
+-0xCAFE_CAFE
+;=>-0xCAFECAFE
+(= -0x01 -0x01)
+;=>true
 
 0.
 ;=>0

@@ -113,6 +113,23 @@ and every identifier under it are unchanged apart from the parent
 segment; a find-and-replace of `coreextented` → `coreextended` across
 your code covers it.
 
+### ⚠️ Changed — radix literals are arbitrary-precision big ints
+
+`0x…`, `0o…` and `0b…` literals (optionally signed) now read as
+**arbitrary-precision integers** (`*big.Int`) — the natural type for
+serial numbers, hashes and masks — and print back as `(-)0x…`
+uppercase hex padded to whole octets (`0xf` → `0x0F`, zero → `0x00`,
+`-0x01` → `-0x01`), so they round-trip through the printer. They
+compare numerically with `=` against other big ints, but are
+**distinct from machine ints** (`(= 0x0A 10)` is `false`) and do not
+participate in arithmetic (`(+ 0x01 1)` errors). Decimal literals keep
+reading as signed machine ints, unchanged; legacy leading-zero octal
+(`042`, `00`) is error-prone and now a read error — use `0o…`.
+
+Migration: hex/octal/binary literals used *arithmetically* must become
+decimal (or be wrapped in your own conversion); literals used as
+identifiers or bit patterns keep working and now survive any width.
+
 ### Other notable additions since v0.2.24
 
 Non-breaking, for context (see `git log v0.2.24..` for the full list):
@@ -126,6 +143,11 @@ Non-breaking, for context (see `git log v0.2.24..` for the full list):
   `«recur»` sentinel as a value
 - multi-line `"…"` strings (Clojure-style): a literal newline is kept
   verbatim; `¬…¬` remains for JSON and other escape-heavy content
+- `time-format` / `time-parse` — RFC 3339 UTC timestamps to and from
+  the epoch milliseconds of `time-ms`
+- printer: dedicated renderings for Go values — `time.Time` and
+  `time.Duration` as milliseconds (matching `time-ms`), `*big.Int` as
+  `0x…` hex
 - fixed: the result of a `catch` body was evaluated twice, re-raising
   `throw` forms carried as data (issue #87)
 - `require` with `:as` / `:refer` / `:refer :all`, a module search path
