@@ -8,7 +8,7 @@ require (
 	github.com/davecgh/go-spew v1.1.1
 	github.com/google/uuid v1.6.0
 	github.com/jackc/pgx/v5 v5.10.0
-	github.com/jig/scanner v1.2.0
+	github.com/jig/scanner v1.3.0
 	modernc.org/sqlite v1.53.0
 )
 

@@ -7,6 +7,7 @@ import (
 	"github.com/jig/lisp/lib/call"
 	"github.com/jig/lisp/lib/core/nscore"
 	"github.com/jig/lisp/lisperror"
+	"github.com/jig/lisp/printer"
 	"github.com/jig/lisp/reader"
 	"github.com/jig/lisp/types"
 )
@@ -122,6 +123,35 @@ func TestAdHocReaders(t *testing.T) {
 			t.Fatal()
 		default:
 			t.Fatal()
+		}
+	})
+}
+
+// TestMultilineString checks that a "…" literal may span physical lines
+// (Clojure-style): the literal newline is kept verbatim in the string value,
+// and an unterminated literal still errors at EOF.
+func TestMultilineString(t *testing.T) {
+	t.Run("literal newline is kept", func(t *testing.T) {
+		ast, err := reader.Read_str("\"line1\nline2\"", types.NewCursorFile(t.Name()), nil)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if s, ok := ast.(string); !ok || s != "line1\nline2" {
+			t.Fatalf("got %#v, want %q", ast, "line1\nline2")
+		}
+	})
+	t.Run("printed back as a single escaped line", func(t *testing.T) {
+		ast, err := reader.Read_str("\"a\nb\"", types.NewCursorFile(t.Name()), nil)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if got := printer.Pr_str(ast, true); got != `"a\nb"` {
+			t.Fatalf("Pr_str = %s, want %q", got, `"a\nb"`)
+		}
+	})
+	t.Run("unterminated still errors", func(t *testing.T) {
+		if _, err := reader.Read_str("\"abc\n", types.NewCursorFile(t.Name()), nil); err == nil {
+			t.Fatal("expected an error for an unterminated string")
 		}
 	})
 }
