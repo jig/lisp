@@ -15,10 +15,10 @@
 (read-string "(+ 2 3)")
 ;=>(+ 2 3)
 
-;; TODO(jig): remove this test
-;; This is an invalid test
-;; (read-string "\"\n\"")
-;; ;=>"\n"
+;; A "…" string may contain a literal newline (Clojure-style), so read-string
+;; parses a source string whose only content is a newline.
+(read-string "\"\n\"")
+;=>"\n"
 
 (read-string "7 ;; comment")
 ;=>7
