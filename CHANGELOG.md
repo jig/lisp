@@ -119,6 +119,15 @@ Non-breaking, for context (see `git log v0.2.24..` for the full list):
 
 - `loop`/`recur` special forms; `into`, and `conj` accepting `[k v]`
   pairs / maps
+- `recur` in a function's tail position (Clojure semantics): the
+  function is a recursion point — `recur` rebinds its parameters and
+  restarts the body in constant stack, on both direct calls and the
+  `apply`/`map`/`swap!` paths. Previously it leaked the internal
+  `«recur»` sentinel as a value
+- multi-line `"…"` strings (Clojure-style): a literal newline is kept
+  verbatim; `¬…¬` remains for JSON and other escape-heavy content
+- fixed: the result of a `catch` body was evaluated twice, re-raising
+  `throw` forms carried as data (issue #87)
 - `require` with `:as` / `:refer` / `:refer :all`, a module search path
   and `LISPPATH`
 - `cli` library — command-line option parsing modelled on

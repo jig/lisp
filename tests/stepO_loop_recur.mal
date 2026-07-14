@@ -73,6 +73,59 @@ shadowed
 ;=>nil
 
 ;;
+;; Testing recur in function tail position (the function is the recursion point)
+
+(defn count-up [x] (if (> x 3) x (recur (inc x))))
+(count-up 0)
+;=>4
+(count-up 10)
+;=>10
+
+;; anonymous function
+((fn [i acc] (if (= i 0) acc (recur (- i 1) (+ acc i)))) 5 0)
+;=>15
+
+;; fn recur is TCO: deep self-recursion runs in constant stack
+(defn spin [i] (if (< i 100000) (recur (inc i)) i))
+(spin 0)
+;=>100000
+
+;; recur binds to the nearest recursion point: a loop inside a fn wins
+(defn sum-below [n] (loop [i 0 acc 0] (if (< i n) (recur (inc i) (+ acc i)) acc)))
+(sum-below 4)
+;=>6
+
+;; a function called from a loop body recurs to itself, not the caller's loop
+(loop [i 0] (if (< i 2) (recur (inc i)) (count-up 0)))
+;=>4
+
+;; a tail call moves the recursion point to the called function
+(defn pong [x] (if (> x 2) :pong-done (recur (+ x 1))))
+(defn ping [x] (pong x))
+(ping 0)
+;=>:pong-done
+
+;; fn recur through the Go application path: apply, map and swap!
+(apply count-up [0])
+;=>4
+(map count-up [0 10])
+;=>(4 10)
+(def counter (atom 0))
+(swap! counter (fn [v] (if (< v 5) (recur (inc v)) v)))
+;=>5
+
+;; recur from the try body's tail position restarts the function
+(defn retry [x] (try (if (< x 3) (recur (inc x)) x) (catch e :nope)))
+(retry 0)
+;=>3
+
+;; recur arity must match the function parameters
+(defn bad-arity [x] (if false x (recur 1 2)))
+(bad-arity 0)
+;/.*recur: too many arguments passed.*
+;=>nil
+
+;;
 ;; Testing loop/recur with try/catch
 
 ;; recur in catch tail position jumps back to the enclosing loop

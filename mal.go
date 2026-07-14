@@ -427,9 +427,12 @@ func do(ctx context.Context, ast MalType, from, to int, env EnvType) (MalType, e
 }
 
 // recurValue is the sentinel `recur` produces: the evaluated rebind values,
-// caught by the nearest enclosing `loop`. Using a distinct value (rather than
-// an error) means a `recur` left in non-tail position reaches a real consumer
-// (e.g. arithmetic) and fails there, instead of silently jumping.
+// caught by the nearest enclosing recursion point — a `loop`, or the function
+// whose body is being evaluated (which consumes it inside the trampoline or,
+// on the Go application path, in the MalFunc Eval closure). Using a distinct
+// value (rather than an error) means a `recur` left in non-tail position
+// reaches a real consumer (e.g. arithmetic) and fails there, instead of
+// silently jumping.
 type recurValue struct {
 	args []MalType
 }
@@ -446,12 +449,13 @@ func EVAL(ctx context.Context, ast MalType, env EnvType) (MalType, error) {
 	if err != nil {
 		return nil, err
 	}
-	// A recurValue reaching here means no enclosing `loop` consumed it:
-	// `recur` was used outside any loop (top level, or a bare function
-	// body). Surface it as an error rather than leaking the internal
-	// sentinel — which otherwise prints as «recur» with a zero exit.
+	// A recurValue reaching here means no recursion point consumed it:
+	// `recur` was used outside any loop or function body (top level, or
+	// smuggled through a non-tail position). Surface it as an error rather
+	// than leaking the internal sentinel — which otherwise prints as
+	// «recur» with a zero exit.
 	if _, ok := res.(recurValue); ok {
-		return nil, lisperror.NewLispError(errors.New("recur used outside of a loop"), ast)
+		return nil, lisperror.NewLispError(errors.New("recur used outside of a loop or function"), ast)
 	}
 	return res, nil
 }
@@ -508,6 +512,15 @@ func evalInternal(ctx context.Context, ast MalType, env EnvType) (res MalType, e
 			}
 		}
 	}()
+
+	// Current function recursion point (Clojure fn-recur). Set when a
+	// MalFunc is applied in this trampoline: every tail form after that
+	// belongs to its body, so a tail `recur` rebinds recurParams over
+	// recurEnv and restarts recurExp, in constant stack. Loop bodies are
+	// evaluated in nested calls where these stay nil, so a `recur` that
+	// belongs to a `loop` still reaches it as the sentinel value.
+	var recurExp, recurParams MalType
+	var recurEnv EnvType
 
 	for {
 		if ctx != nil {
@@ -668,6 +681,18 @@ func evalInternal(ctx context.Context, ast MalType, env EnvType) (res MalType, e
 				}
 				vals[i] = v
 			}
+			// Inside a function body the function itself is the nearest
+			// recursion point: rebind its parameters and restart the body.
+			// (Same routing as the try-tail sentinel below.)
+			if recurExp != nil {
+				new_env, e := NewSubordinateEnvWithBinds(recurEnv, recurParams, List{Val: vals, Cursor: ast.(List).Cursor})
+				if e != nil {
+					return nil, lisperror.NewLispError(fmt.Errorf("recur: %s", e), ast)
+				}
+				ast = recurExp
+				env = new_env
+				continue
+			}
 			return recurValue{args: vals}, nil
 		case "quote": // '
 			return a1, nil
@@ -763,6 +788,19 @@ func evalInternal(ctx context.Context, ast MalType, env EnvType) (res MalType, e
 			defer func() { _, _ = do(ctx, finallyDo, 0, 0, env) }()
 
 			if e == nil {
+				// The try body is evaluated in a nested call, so a `recur` in
+				// its tail position surfaces here as the sentinel. Rebind the
+				// enclosing function's recursion point (as in case "recur");
+				// with no function active, return it for an enclosing loop.
+				if rv, ok := exp.(recurValue); ok && recurExp != nil {
+					new_env, err := NewSubordinateEnvWithBinds(recurEnv, recurParams, List{Val: rv.args, Cursor: ast.(List).Cursor})
+					if err != nil {
+						return nil, lisperror.NewLispError(fmt.Errorf("recur: %s", err), ast)
+					}
+					ast = recurExp
+					env = new_env
+					continue
+				}
 				return exp, nil
 			} else {
 				if catchDo != nil {
@@ -820,7 +858,6 @@ func evalInternal(ctx context.Context, ast MalType, env EnvType) (res MalType, e
 				body = l[2:]
 			}
 			fn := MalFunc{
-				Eval:    EVAL,
 				Exp:     List{Val: append([]MalType{Symbol{Val: "do"}}, body...), Cursor: ast.(List).Cursor},
 				Env:     env,
 				Params:  a1,
@@ -828,6 +865,27 @@ func evalInternal(ctx context.Context, ast MalType, env EnvType) (res MalType, e
 				GenEnv:  NewSubordinateEnvWithBinds,
 				Meta:    nil,
 				Cursor:  ast.(List).Cursor,
+			}
+			// Go-side application (types.Apply: apply, map, swap!, …) goes
+			// through Eval, which is the function's recursion point there: a
+			// tail `recur` escaping the body as the sentinel rebinds the
+			// parameters and restarts, exactly as a direct lisp call does in
+			// the trampoline.
+			fn.Eval = func(ctx context.Context, exp MalType, fenv EnvType) (MalType, error) {
+				for {
+					res, err := evalInternal(ctx, exp, fenv)
+					if err != nil {
+						return nil, err
+					}
+					rv, ok := res.(recurValue)
+					if !ok {
+						return res, nil
+					}
+					fenv, err = NewSubordinateEnvWithBinds(fn.Env, fn.Params, List{Val: rv.args})
+					if err != nil {
+						return nil, lisperror.NewLispError(fmt.Errorf("recur: %s", err), exp)
+					}
+				}
 			}
 			return fn, nil
 		default:
@@ -851,6 +909,10 @@ func evalInternal(ctx context.Context, ast MalType, env EnvType) (res MalType, e
 						return nil, lisperror.NewLispError(e, ast)
 					}
 				}
+				// The applied function is now the recursion point for any
+				// tail `recur` reached through this trampoline; a tail call
+				// to another function moves the point to that function.
+				recurExp, recurParams, recurEnv = fn.Exp, fn.Params, fn.Env
 			} else {
 				fn, ok := f.(Func)
 				if !ok {

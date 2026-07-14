@@ -158,7 +158,7 @@ Handled directly by the evaluator (they control when their arguments are evaluat
 | `catch` | `[binding & body]` | Inside try: binds the caught error and evaluates body. |
 | `finally` | `[& body]` | Inside try: body is always evaluated for side effects, error or not. |
 | `loop` | `[bindings & body]` | Like let, but a recursion point: recur in tail position rebinds the bindings and jumps back, in constant stack. |
-| `recur` | `[& args]` | In tail position, rebinds the nearest loop's bindings to args and iterates. |
+| `recur` | `[& args]` | In tail position, rebinds the nearest recursion point — the enclosing loop's bindings, or the enclosing function's parameters — to args and iterates. |
 | `context` | `[& body]` | Provides a Go context to the enclosed forms. |
 
 ### core
