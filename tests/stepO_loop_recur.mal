@@ -1,0 +1,110 @@
+;;
+;; Testing loop (without recur it behaves like let)
+
+(loop [] 7)
+;=>7
+(loop [a 11] a)
+;=>11
+(loop [a 3 b 4] (+ a b))
+;=>7
+
+;; bindings evaluate sequentially, like let
+(loop [a 2 b (* a 3)] (+ a b))
+;=>8
+
+;; list-style binding form is also accepted
+(loop (a 5 b 6) (* a b))
+;=>30
+
+;; the loop body is an implicit do
+(loop [i 0] 1 2 3)
+;=>3
+
+;; loop bindings shadow outer bindings, and the outer ones survive
+(def shadowed 99)
+(loop [shadowed 1] shadowed)
+;=>1
+shadowed
+;=>99
+(let [x 1] (loop [x 2] x))
+;=>2
+
+;;
+;; Testing recur
+
+;; countdown and accumulation
+(loop [i 5 acc 0] (if (= i 0) acc (recur (- i 1) (+ acc i))))
+;=>15
+
+;; recur rebinds all bindings positionally
+(loop [a 0 b 10] (if (= a 3) b (recur (inc a) (inc b))))
+;=>13
+
+;; recur is TCO: deep iteration runs in constant stack
+(loop [i 0] (if (< i 100000) (recur (inc i)) i))
+;=>100000
+
+;; nested loops: recur binds to the nearest enclosing loop
+(loop [i 0 total 0] (if (= i 3) total (recur (inc i) (+ total (loop [j 0 s 0] (if (= j 2) s (recur (inc j) (+ s 1))))))))
+;=>6
+
+;; a loop may compute another loop's initial binding
+(loop [v (loop [j 0 acc []] (if (< j 3) (recur (inc j) (conj acc j)) acc))] v)
+;=>[0 1 2]
+
+;; loop/recur inside a function, called more than once
+(defn sum-to [n] (loop [i 0 acc 0] (if (> i n) acc (recur (inc i) (+ acc i)))))
+(sum-to 4)
+;=>10
+(sum-to 100)
+;=>5050
+
+;;
+;; Testing recur errors
+
+;; recur arity must match the loop bindings
+(loop [i 0] (if (< i 1) (recur 1 2) i))
+;/.*recur: got 2 arguments but loop has 1 bindings.*
+;=>nil
+
+;; recur outside any loop is an error
+(recur 1)
+;/.*recur used outside of a loop.*
+;=>nil
+
+;;
+;; Testing loop/recur with try/catch
+
+;; recur in catch tail position jumps back to the enclosing loop
+(loop [i 0] (try (if (< i 3) (throw "again") i) (catch e (recur (inc i)))))
+;=>3
+
+;; The catch result is a value, not code: it must not be evaluated a second
+;; time (issue #87). A form carried as data inside the result stays data.
+(try (throw "x") (catch e {:v (quote (+ 1 2))}))
+;=>{:v (+ 1 2)}
+(try (throw "x") (catch e (quote (str "hi"))))
+;=>(str "hi")
+
+;; A quoted throw form inside the catch result must not re-raise (issue #87).
+;; (values extracted with get: multi-key hash-map print order is not stable)
+(get (try (throw "boom") (catch e {:op (quote (throw "boom")) :error (str e)})) :error)
+;=>"boom"
+(get (try (throw "boom") (catch e {:op (quote (throw "boom")) :error (str e)})) :op)
+;=>(throw "boom")
+
+;; issue #87 shape: loop + try + eval + recur; the eval'd operation throws on
+;; the first iteration, and the catch must return its value, not re-raise it
+(def ops [{:op (quote (throw "boom-first"))} {:op (quote (+ 1 2))}])
+(loop [pend [0 1] done 0] (if (empty? pend) {:executed done} (let [entry (nth ops (first pend))] (try (let [result (eval (get entry :op))] (recur (rest pend) (inc done))) (catch e {:error (str e)})))))
+;=>{:error "boom-first"}
+
+;; the same with the throw on the second iteration (after one recur)
+(def ops [{:op (quote 1)} {:op (quote (throw "boom-second"))}])
+(loop [pend [0 1] done 0] (if (empty? pend) {:executed done} (let [entry (nth ops (first pend))] (try (let [result (eval (get entry :op))] (recur (rest pend) (inc done))) (catch e {:error (str e)})))))
+;=>{:error "boom-second"}
+
+;; and with no throw at all
+(def ops [{:op (quote 1)} {:op (quote (+ 1 2))}])
+(loop [pend [0 1] done 0] (if (empty? pend) {:executed done} (let [entry (nth ops (first pend))] (try (let [result (eval (get entry :op))] (recur (rest pend) (inc done))) (catch e {:error (str e)})))))
+;=>{:executed 2}
