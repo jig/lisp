@@ -777,7 +777,12 @@ func evalInternal(ctx context.Context, ast MalType, env EnvType) (res MalType, e
 					if err != nil {
 						return nil, err
 					}
-					ast, err = do(ctx, catchDo, 0, 0, new_env)
+					// TCO like `let`: evaluate all but the last catch form and
+					// hand the last one to the trampoline. Fully evaluating
+					// here (to == 0) and then continuing would evaluate the
+					// catch result a second time, re-raising any `throw` form
+					// carried inside it as data (issue #87).
+					ast, err = do(ctx, catchDo, 0, -1, new_env)
 					if err != nil {
 						return nil, err
 					}

@@ -539,3 +539,66 @@ func TestMacroWithQuasiquoteError(t *testing.T) {
 	t.Logf("Total stack frames from macro+quasiquote: %d", atCount)
 	t.Logf("✓ Macro with quasiquote error stack trace validated")
 }
+
+// TestCatchResultNotReEvaluated guards against issue #87: the catch body's
+// result is a value and must not be fed back through the evaluator. When the
+// result carried a (throw …) form as data — e.g. a state vector holding
+// not-yet-executed operations — the second evaluation re-raised it, and the
+// throw appeared to escape the catch.
+func TestCatchResultNotReEvaluated(t *testing.T) {
+	ns := newEnv(t.Name())
+	ctx := context.Background()
+
+	// A form quoted inside the catch result must come back as data.
+	res, err := REPL(ctx, ns, `(try (throw "x") (catch e {:v (quote (+ 1 2))}))`, types.NewCursorFile(t.Name()))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res != `{:v (+ 1 2)}` {
+		t.Fatalf("catch result was re-evaluated: %s", res)
+	}
+
+	// The issue's shape: a loop whose try body evals operations from a state
+	// vector and recurs; the first operation throws. The catch must run and
+	// return the state — which still carries the (throw …) form as data.
+	src := `(defn advance [state]
+  (loop [st state
+         pend (loop [i 0 acc []]
+                (if (< i (count state))
+                  (recur (inc i) (if (contains? (nth state i) :result) acc (conj acc i)))
+                  acc))
+         done 0]
+    (if (empty? pend)
+      {:executed done :error nil}
+      (let [i (first pend)
+            entry (nth st i)]
+        (try
+          (let [result (eval (get entry :op))]
+            (recur (assoc st i (assoc entry :result result)) (rest pend) (inc done)))
+          (catch e {:executed done :error (str e)}))))))`
+	if _, err := REPL(ctx, ns, src, types.NewCursorFile(t.Name())); err != nil {
+		t.Fatal(err)
+	}
+	for name, tc := range map[string]struct{ call, want string }{
+		"throw on first iteration": {
+			call: `(get (advance [{:op (quote (throw "boom-first"))} {:op (quote (+ 1 2))}]) :error)`,
+			want: `"boom-first"`,
+		},
+		"throw on second iteration": {
+			call: `(get (advance [{:op (quote 1)} {:op (quote (throw "boom-second"))}]) :error)`,
+			want: `"boom-second"`,
+		},
+		"no throw": {
+			call: `(get (advance [{:op (quote 1)} {:op (quote (+ 1 2))}]) :executed)`,
+			want: `2`,
+		},
+	} {
+		res, err := REPL(ctx, ns, tc.call, types.NewCursorFile(t.Name()))
+		if err != nil {
+			t.Fatalf("%s: the throw escaped the catch: %v", name, err)
+		}
+		if res != tc.want {
+			t.Fatalf("%s: got %s, want %s", name, res, tc.want)
+		}
+	}
+}
