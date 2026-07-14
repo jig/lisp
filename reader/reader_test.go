@@ -129,9 +129,9 @@ func TestAdHocReaders(t *testing.T) {
 	})
 }
 
-// TestRadixLiterals checks that 0x/0o/0b literals read as unsigned
-// *big.Int data numbers, that decimal and legacy leading-zero octal stay
-// machine ints, and that a signed radix literal is rejected.
+// TestRadixLiterals checks that 0x/0o/0b literals (optionally signed)
+// read as *big.Int and round-trip through the printer, and that decimal
+// stays a machine int while legacy leading-zero octal is rejected.
 func TestRadixLiterals(t *testing.T) {
 	for _, tc := range []struct {
 		src  string
@@ -142,6 +142,8 @@ func TestRadixLiterals(t *testing.T) {
 		{`0o17`, "0x0F"},
 		{`0b101`, "0x05"},
 		{`0xFFFF_FFFF_FFFF_FFFF_FFFF`, "0xFFFFFFFFFFFFFFFFFFFF"}, // > 64 bits
+		{`-0x01`, "-0x01"},
+		{`-0xCAFE_CAFE`, "-0xCAFECAFE"},
 	} {
 		ast, err := reader.Read_str(tc.src, types.NewCursorFile(t.Name()), nil)
 		if err != nil {
@@ -163,10 +165,6 @@ func TestRadixLiterals(t *testing.T) {
 		if _, ok := ast.(int); !ok {
 			t.Fatalf("%s: got %T, want int", src, ast)
 		}
-	}
-
-	if _, err := reader.Read_str(`-0x01`, types.NewCursorFile(t.Name()), nil); err == nil || !strings.Contains(err.Error(), "sign not allowed in radix literal") {
-		t.Fatalf("-0x01: got %v, want sign error", err)
 	}
 
 	// leading-zero octal is error-prone and rejected

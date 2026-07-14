@@ -102,16 +102,12 @@ func read_atom(rdr *tokenReader) (MalType, error) {
 	token := &tokenStruct.Value
 	switch tokenStruct.Type {
 	case scanner.Int:
-		// Radix-prefixed literals (0x…, 0o…, 0b…) denote unsigned
-		// arbitrary-precision data numbers — serial numbers, hashes,
-		// masks — and read as *big.Int (printed back as 0x…). They carry
-		// no sign: -0x01 is an error. Decimal literals remain machine
-		// ints, signed as usual; legacy leading-zero octal (042) is
-		// error-prone and rejected.
+		// Radix-prefixed literals (0x…, 0o…, 0b…, optionally signed)
+		// denote arbitrary-precision integers — serial numbers, hashes,
+		// masks — and read as *big.Int, printed back as (-)0x… so they
+		// round-trip. Decimal literals remain machine ints; legacy
+		// leading-zero octal (042) is error-prone and rejected.
 		if isRadixLiteral(*token) {
-			if (*token)[0] == '-' || (*token)[0] == '+' {
-				return nil, lisperror.NewLispError(errors.New("sign not allowed in radix literal"), tokenStruct.GetPosition())
-			}
 			b, ok := new(big.Int).SetString(*token, 0)
 			if !ok {
 				return nil, lisperror.NewLispError(errors.New("integer parse error"), tokenStruct.GetPosition())

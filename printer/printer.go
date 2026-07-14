@@ -120,9 +120,8 @@ func Pr_str(obj types.MalType, print_readably bool) string {
 
 // bigIntToHex formats a big.Int the way the reader accepts it back: a
 // 0x-prefixed uppercase hex literal, zero-padded to whole octets (e.g.
-// "0x0A1B2C", zero is "0x00"). Radix literals carry no sign, so a negative
-// value — only reachable from Go code — renders with a leading "-" and is
-// not re-readable.
+// "0x0A1B2C", zero is "0x00") with a leading "-" for negatives, so big
+// ints round-trip through print and read.
 func bigIntToHex(i *big.Int) string {
 	b := i.Bytes()
 	if len(b) == 0 {

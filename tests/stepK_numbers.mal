@@ -35,9 +35,9 @@
 ;/.*leading-zero octal literal not supported.*
 ;=>nil
 
-;; Radix-prefixed literals (0x, 0o, 0b) are unsigned arbitrary-precision
-;; data numbers: they read as big ints and print back as 0x… hex padded
-;; to whole octets. Decimal literals stay machine ints.
+;; Radix-prefixed literals (0x, 0o, 0b, optionally signed) are
+;; arbitrary-precision integers: they read as big ints and print back as
+;; 0x… hex padded to whole octets. Decimal literals stay machine ints.
 0x0
 ;=>0x00
 0x1
@@ -60,10 +60,13 @@
 ;=>true
 (= 0x0A 10)
 ;=>false
-;; radix literals carry no sign
+;; signed radix literals round-trip too
 -0x01
-;/.*sign not allowed in radix literal.*
-;=>nil
+;=>-0x01
+-0xCAFE_CAFE
+;=>-0xCAFECAFE
+(= -0x01 -0x01)
+;=>true
 
 0.
 ;=>0
