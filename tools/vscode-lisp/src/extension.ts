@@ -96,6 +96,11 @@ class LispDebugAdapterDescriptorFactory
         }
       }
     }
+    // Debug Test: run just the named deftest after the script loads.
+    const runTest = session.configuration.runTest;
+    if (typeof runTest === "string" && runTest.length > 0) {
+      args.push("--run-test", runTest);
+    }
     args.push("--dap", program);
     const cfgEnv = session.configuration.env;
     const options: vscode.DebugAdapterExecutableOptions = {};

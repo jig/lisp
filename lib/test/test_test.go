@@ -107,3 +107,27 @@ func TestRunTestsFromLisp(t *testing.T) {
 		t.Fatalf("unexpected run-tests! output: %s", printed)
 	}
 }
+
+func TestRunOneByName(t *testing.T) {
+	ns := newEnv(t)
+	run(t, ns, `(deftest alpha (is (= 1 1)))`)
+	run(t, ns, `(deftest beta (is (= 2 (+ 1 1))))`)
+
+	// test/run-test! runs exactly one test by name.
+	printed := printer.Pr_str(run(t, ns, `(test/run-test! "beta")`), true)
+	if !strings.Contains(printed, `:name "beta"`) || strings.Contains(printed, `:name "alpha"`) {
+		t.Fatalf("run-test! should run only beta: %s", printed)
+	}
+
+	// The registry helper agrees, and an unknown name errors.
+	reg := test.FromEnv(ns)
+	if got := reg.RunOne(context.Background(), "alpha"); got == nil || !got.OK() {
+		t.Fatalf("RunOne(alpha) = %v", got)
+	}
+	if got := reg.RunOne(context.Background(), "nope"); got != nil {
+		t.Fatalf("RunOne(nope) should be nil, got %v", got)
+	}
+	if _, err := lisp.REPL(context.Background(), ns, `(test/run-test! "nope")`, types.NewCursorFile(t.Name())); err == nil {
+		t.Fatal("test/run-test! on an unknown name should error")
+	}
+}

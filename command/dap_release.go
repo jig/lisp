@@ -11,6 +11,6 @@ import (
 // startDAP fails in release builds. The DAP server is gated behind the
 // `lispdebug` build tag for the same reasons --debug is: zero hot-path
 // overhead and no in-process surface to install a hook.
-func startDAP(_ string, _ string, _ []string, _ types.EnvType) error {
+func startDAP(_ string, _ string, _ []string, _ string, _ types.EnvType) error {
 	return errors.New("--dap requires a debug build: rebuild with -tags lispdebug")
 }

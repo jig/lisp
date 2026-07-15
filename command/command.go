@@ -28,6 +28,7 @@ type args struct {
 	Preamble  []string `arg:"-P,--preamble,separate" help:"define a preamble placeholder for the script, e.g. -P '$NAME <expr>'" placeholder:"ASSIGN"`
 	DAP       bool     `arg:"--dap" help:"start a Debug Adapter Protocol server on stdio (requires lispdebug build)"`
 	DAPListen string   `arg:"--dap-listen" help:"start a DAP server on the given TCP address (requires lispdebug build)" placeholder:"HOST:PORT"`
+	RunTest   string   `arg:"--run-test" help:"with --dap, run the named deftest after loading the script (used by the editor's Debug Test)" placeholder:"NAME"`
 	LSP       bool     `arg:"--lsp" help:"start a Language Server Protocol server on stdio (requires lispdebug build)"`
 	LSPListen string   `arg:"--lsp-listen" help:"start an LSP server on the given TCP address (requires lispdebug build)" placeholder:"HOST:PORT"`
 	Script    string   `arg:"positional" help:"lisp script to execute"`
@@ -110,7 +111,7 @@ func Execute(cmdArgs []string, repl_env types.EnvType) error {
 
 	// DAP server takes precedence over the rest of the modes when set.
 	if parsedArgs.DAP || parsedArgs.DAPListen != "" {
-		return startDAP(parsedArgs.DAPListen, parsedArgs.Script, parsedArgs.Preamble, repl_env)
+		return startDAP(parsedArgs.DAPListen, parsedArgs.Script, parsedArgs.Preamble, parsedArgs.RunTest, repl_env)
 	}
 
 	// LSP server likewise runs instead of the normal modes.
