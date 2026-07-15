@@ -155,6 +155,12 @@ Non-breaking, for context (see `git log v0.2.24..` for the full list):
   Testing panel with per-test run buttons and failure diffs, and a
   **Coverage** profile that paints covered/uncovered lisp lines through
   VS Code's native coverage view
+- `deftests/` — a deftest replica of the historical `tests/step*.mal`
+  suites (208 tests, 1200+ value-based checks), run by `TestDeftests`
+  and by `lisp --test deftests/`; the originals stay untouched under
+  the line-based harness. The replica also pins a documented
+  divergence: commas are not whitespace in jig/lisp (they read as a
+  `,` symbol), unlike kanaka/mal and Clojure
 - core promotions: `and`, `or`, `when`, `inc`, `dec`, `gensym` moved
   from `coreextended` into the core header (their Clojure counterparts
   live in clojure.core), and `load-file-once` sits next to `load-file`
