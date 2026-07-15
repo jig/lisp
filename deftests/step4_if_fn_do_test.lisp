@@ -1,6 +1,6 @@
 ;; Replica of tests/step4_if_fn_do.mal: lists, if, conditionals,
 ;; equality, fn/closures, do, recursion, strings, varargs, keywords and
-;; vectors. The prn/println stdout sections stay in the legacy harness.
+;; vectors. The prn/println sections are replicated with with-out-str.
 
 (deftest list-functions
   (is (= () (list)))
@@ -181,6 +181,33 @@
     "abc\\def\\ghi" (str "abc\\def\\ghi")
     "(1 2 abc \")def" (str (list 1 2 "abc" "\"") "def")
     "()"            (str (list))))
+
+(deftest prn-output
+  (are [expected expr] (= expected expr)
+    "\n"                  (with-out-str (prn))
+    "\"\"\n"              (with-out-str (prn ""))
+    "\"abc\"\n"           (with-out-str (prn "abc"))
+    "\"abc  def\" \"ghi jkl\"\n" (with-out-str (prn "abc  def" "ghi jkl"))
+    "\"\\\"\"\n"          (with-out-str (prn "\""))
+    "\"abc\\ndef\\nghi\"\n"   (with-out-str (prn "abc\ndef\nghi"))
+    "\"abc\\\\def\\\\ghi\"\n" (with-out-str (prn "abc\\def\\ghi"))
+    "(1 2 \"abc\" \"\\\"\") \"def\"\n" (with-out-str (prn (list 1 2 "abc" "\"") "def"))))
+
+(deftest println-output
+  (are [expected expr] (= expected expr)
+    "\n"                (with-out-str (println))
+    "\n"                (with-out-str (println ""))
+    "abc\n"             (with-out-str (println "abc"))
+    "abc  def ghi jkl\n" (with-out-str (println "abc  def" "ghi jkl"))
+    "\"\n"              (with-out-str (println "\""))
+    "abc\ndef\nghi\n"   (with-out-str (println "abc\ndef\nghi"))
+    "abc\\def\\ghi\n"   (with-out-str (println "abc\\def\\ghi"))
+    "(1 2 abc \") def\n" (with-out-str (println (list 1 2 "abc" "\"") "def"))))
+
+(deftest do-prints-in-order
+  (is (= "101\n" (with-out-str (do (prn 101)))))
+  (is (= "102\n" (with-out-str (do (prn 102) 7))))
+  (is (= "101\n102\n" (with-out-str (do (prn 101) (prn 102) (+ 1 2))))))
 
 (deftest keywords-equality
   (are [expected expr] (= expected expr)

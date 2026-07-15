@@ -8,9 +8,12 @@
 package test
 
 import (
+	"bytes"
 	"context"
 	_ "embed"
 	"fmt"
+	"io"
+	"os"
 	"sync"
 
 	"github.com/jig/lisp/lib/call"
@@ -299,7 +302,52 @@ func Load(env EnvType) error {
 	call.CallOverrideFN(env, "test/expand-are", expandAre)
 	call.Doc(env, "test/expand-are", "[argv expr rows]", "Macro helper: expands an (are …) template into a do of is forms.")
 
+	withOut := func(ctx context.Context, thunk MalType) (MalType, error) {
+		return withOutStr(ctx, thunk)
+	}
+	call.CallOverrideFN(env, "test/with-out-str*", withOut)
+	call.Doc(env, "test/with-out-str*", "[thunk]", "Runs thunk capturing standard output and returns it as a string; (with-out-str …) expands to this.")
+
 	return nil
+}
+
+// withOutMu serialises stdout capture: os.Stdout is process-global, so
+// two concurrent with-out-str calls would steal each other's output.
+var withOutMu sync.Mutex
+
+// withOutStr evaluates thunk with os.Stdout redirected to a pipe and
+// returns everything printed as a string. Output from other goroutines
+// (e.g. futures printing concurrently) is captured too — this is a
+// testing aid, not an output-redirection facility.
+func withOutStr(ctx context.Context, thunk MalType) (result MalType, err error) {
+	withOutMu.Lock()
+	defer withOutMu.Unlock()
+
+	r, w, err := os.Pipe()
+	if err != nil {
+		return nil, err
+	}
+	orig := os.Stdout
+	os.Stdout = w
+
+	captured := make(chan string)
+	go func() {
+		var buf bytes.Buffer
+		_, _ = io.Copy(&buf, r)
+		captured <- buf.String()
+	}()
+
+	_, evalErr := Apply(ctx, thunk, nil)
+
+	os.Stdout = orig
+	_ = w.Close()
+	out := <-captured
+	_ = r.Close()
+
+	if evalErr != nil {
+		return nil, evalErr
+	}
+	return out, nil
 }
 
 // ExpandAre expands an (are argv expr & rows) template: rows are consumed

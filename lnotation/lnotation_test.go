@@ -7,7 +7,6 @@ import (
 
 	"github.com/jig/lisp"
 	. "github.com/jig/lisp/env"
-	"github.com/jig/lisp/lib/assert/nsassert"
 	"github.com/jig/lisp/lib/concurrent/nsconcurrent"
 	"github.com/jig/lisp/lib/core/nscore"
 	"github.com/jig/lisp/lib/coreextended/nscoreextended"
@@ -103,7 +102,6 @@ func NewTestEnv() EnvType {
 		// {"command line args", nscore.LoadCmdLineArgs(command.PreParseArgs(os.Args))} // if needed
 		{"concurrent", nsconcurrent.Load},
 		{"core mal extended", nscoreextended.Load},
-		{"assert", nsassert.Load},
 	} {
 		if err := library.load(repl_env); err != nil {
 			log.Fatalf("Library Load Error: %v\n", err)

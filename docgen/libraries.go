@@ -2,7 +2,6 @@ package docgen
 
 import (
 	"github.com/jig/lisp/env"
-	"github.com/jig/lisp/lib/assert/nsassert"
 	"github.com/jig/lisp/lib/cli/nscli"
 	"github.com/jig/lisp/lib/concurrent/nsconcurrent"
 	"github.com/jig/lisp/lib/core/nscore"
@@ -35,7 +34,6 @@ func standardLibraries() []library {
 		{"command line args", nscore.LoadCmdLineArgs(nil)},
 		{"concurrent", nsconcurrent.Load},
 		{"core mal extended", nscoreextended.Load},
-		{"assert", nsassert.Load},
 		{"system", nssystem.Load},
 		{"lazy", nslazy.Load},
 		{"require", nsrequire.Load("lisp")},

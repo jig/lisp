@@ -175,6 +175,28 @@ func TestRadixLiterals(t *testing.T) {
 	}
 }
 
+// TestCommasAreWhitespace checks that commas separate tokens exactly
+// like spaces, as in Clojure and kanaka/mal.
+func TestCommasAreWhitespace(t *testing.T) {
+	for src, want := range map[string]string{
+		"(1 2, 3,,,,)": "(1 2 3)",
+		"[1, 2, 3]":    "[1 2 3]",
+		"{:a 1, :b 2}": "",  // multi-key print order unstable: parse-only
+		",,,7,,,":      "7", // leading and trailing commas
+	} {
+		ast, err := reader.Read_str(src, types.NewCursorFile(t.Name()), nil)
+		if err != nil {
+			t.Fatalf("%s: %v", src, err)
+		}
+		if want == "" {
+			continue
+		}
+		if got := printer.Pr_str(ast, true); got != want {
+			t.Fatalf("%s: printed %s, want %s", src, got, want)
+		}
+	}
+}
+
 // TestMultilineString checks that a "…" literal may span physical lines
 // (Clojure-style): the literal newline is kept verbatim in the string value,
 // and an unterminated literal still errors at EOF.
