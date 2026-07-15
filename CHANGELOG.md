@@ -159,6 +159,16 @@ Non-breaking, for context (see `git log v0.2.24..` for the full list):
   suites (200+ tests, 1300 value-based checks), run by `TestDeftests`
   and by `lisp --test deftests/`; the originals stay untouched under
   the line-based harness
+- shebang scripts: a leading `#!/usr/bin/env lisp` line reads as a
+  comment (the two bytes become `;;` in place, so positions stay
+  exact), `lisp --fmt` preserves it verbatim, and the VS Code
+  extension (0.9.1) recognises extensionless files by their first line
+- `read-program` builtin and `reader.Read_program`: read a whole file
+  — any number of top-level forms — into one `(do …)` AST with
+  positions matching the source exactly. `load-file`, script
+  execution, the LSP analyser and the coverage universe now build on
+  it, retiring the textual `"(do …)"` wrapping, the `;; $MODULE`
+  prefix line and every row-shift correction that came with them
 - commas are whitespace, as in Clojure and kanaka/mal: `(1 2, 3)`
   reads as `(1 2 3)` (previously a comma silently read as a `,`
   symbol; the formatter already treated commas as whitespace)

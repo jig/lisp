@@ -23,6 +23,11 @@ func TestSource(t *testing.T) {
 			want: "(+ 1 2 3)\n",
 		},
 		{
+			name: "shebang preserved verbatim",
+			in:   "#!/usr/bin/env lisp\n(println   1)\n",
+			want: "#!/usr/bin/env lisp\n(println 1)\n",
+		},
+		{
 			name: "vector aligns to first element",
 			in:   "(let [a 1\n   b 2]\n  a)\n",
 			want: "(let [a 1\n      b 2]\n  a)\n",

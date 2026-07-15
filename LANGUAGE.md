@@ -236,6 +236,7 @@ Arithmetic, collections, predicates, strings, JSON, errors — always loaded.
 | `println` | `[& args]` | Prints its arguments (unquoted) separated by spaces, then a newline. |
 | `prn` | `[& args]` | Prints its arguments (readable) separated by spaces, then a newline. |
 | `range` | `[start end]` | Vector of integers from start to end-1. |
+| `read-program` | `[src module]` | Reads every form in src as one (do …) AST with positions attributed to module; load-file builds on it. |
 | `read-string` | `[string]` | Reads the first lisp form from string. |
 | `rename-keys` | `[map keymap]` | Copy of map with keys renamed according to keymap. |
 | `rest` | `[coll]` | All but the first element of coll, as a list. |

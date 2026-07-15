@@ -86,6 +86,12 @@ func Load(env EnvType) {
 	})
 	call.Call(env, sPew)
 	call.CallOverrideFN(env, "read-string", func(a MalType) (MalType, error) { return reader.Read_str(a.(string), nil, nil) })
+	// read-program reads a whole file's worth of forms into one (do …)
+	// AST with positions attributed to module; like read-string it runs
+	// without an environment («…» constructors are not resolved).
+	call.CallOverrideFN(env, "read-program", func(src, module string) (MalType, error) {
+		return reader.Read_program(src, NewCursorFile(module), nil)
+	})
 	call.CallOverrideFN(env, "set", func(a MalType) (Set, error) { return NewSet(a) })
 	call.Call(env, keys)
 	call.Call(env, vals)

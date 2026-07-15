@@ -197,6 +197,67 @@ func TestCommasAreWhitespace(t *testing.T) {
 	}
 }
 
+// TestShebang checks that a leading #! line reads as a comment without
+// disturbing positions, and that #! anywhere else stays an error.
+func TestShebang(t *testing.T) {
+	ast, err := reader.Read_str("#!/usr/bin/env lisp\n7", types.NewCursorFile(t.Name()), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if ast != 7 {
+		t.Fatalf("got %v, want 7", ast)
+	}
+	if _, err := reader.Read_str("7\n#!/usr/bin/env lisp", types.NewCursorFile(t.Name()), nil); err == nil {
+		t.Fatal("a mid-file #! must remain an error")
+	}
+}
+
+// TestReadProgram checks the multi-form reader: every top-level form in
+// one synthesized (do …), exact positions, nil for an empty program.
+func TestReadProgram(t *testing.T) {
+	ast, err := reader.Read_program("(def a 1)\n(def b 2)\nb", types.NewCursorFile(t.Name()), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	prog, ok := ast.(types.List)
+	if !ok || len(prog.Val) != 4 {
+		t.Fatalf("expected (do f1 f2 f3), got %s", printer.Pr_str(ast, true))
+	}
+	if head, ok := prog.Val[0].(types.Symbol); !ok || head.Val != "do" {
+		t.Fatalf("expected do head, got %s", printer.Pr_str(prog.Val[0], true))
+	}
+	// positions match the source exactly: (def b 2) starts on row 2
+	second, ok := prog.Val[2].(types.List)
+	if !ok || second.Cursor == nil || second.Cursor.BeginRow != 2 {
+		t.Fatalf("expected second form on row 2, got %+v", second.Cursor)
+	}
+
+	// empty programs (blank or comment-only) read as nil
+	for _, src := range []string{"", "   \n", ";; only a comment\n", "#!/usr/bin/env lisp\n"} {
+		ast, err := reader.Read_program(src, types.NewCursorFile(t.Name()), nil)
+		if err != nil {
+			t.Fatalf("%q: %v", src, err)
+		}
+		if ast != nil {
+			t.Fatalf("%q: expected nil, got %s", src, printer.Pr_str(ast, true))
+		}
+	}
+
+	// a single form still comes wrapped, for a uniform shape
+	ast, err = reader.Read_program("42", types.NewCursorFile(t.Name()), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := printer.Pr_str(ast, true); got != "(do 42)" {
+		t.Fatalf("got %s, want (do 42)", got)
+	}
+
+	// malformed input errors
+	if _, err := reader.Read_program("(1 2", types.NewCursorFile(t.Name()), nil); err == nil {
+		t.Fatal("expected an error for an unbalanced form")
+	}
+}
+
 // TestMultilineString checks that a "…" literal may span physical lines
 // (Clojure-style): the literal newline is kept verbatim in the string value,
 // and an unterminated literal still errors at EOF.

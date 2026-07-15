@@ -61,17 +61,15 @@ func coverableLines(path string) (map[int]bool, error) {
 	if err != nil {
 		return nil, err
 	}
-	// Files hold many top-level forms; wrap in (do …) like the LSP does
-	// and shift rows back by the extra first line.
-	ast, err := reader.Read_str("(do\n"+string(src)+"\n)", types.NewCursorFile(path), nil)
+	ast, err := reader.Read_program(string(src), types.NewCursorFile(path), nil)
 	if err != nil {
 		return nil, err
 	}
 	lines := map[int]bool{}
 	var walk func(form types.MalType)
 	mark := func(cur *types.Position) {
-		if cur != nil && cur.BeginRow > 1 {
-			lines[cur.BeginRow-1] = true
+		if cur != nil && cur.BeginRow > 0 {
+			lines[cur.BeginRow] = true
 		}
 	}
 	walk = func(form types.MalType) {

@@ -353,6 +353,22 @@ Use <kbd>Ctrl</kbd> + <kbd>D</kbd> to exit Lisp REPL.
 lisp helloworld.lisp
 ```
 
+Scripts can also be directly executable: a leading shebang line reads
+as a comment (positions in error messages are unaffected, and
+`lisp --fmt` preserves it verbatim). Use the portable `env` form:
+
+```bash
+cat > hello <<'EOF'
+#!/usr/bin/env lisp
+(println "hello" (first *ARGV*))
+EOF
+chmod +x hello
+./hello world
+```
+
+In VS Code, extensionless files with a lisp shebang are recognised by
+their first line and get highlighting, LSP and the debugger as usual.
+
 ### Execute inline expression
 
 ```bash
