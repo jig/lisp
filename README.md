@@ -149,6 +149,8 @@ Changes respect to [kanaka/mal](https://github.com/kanaka/mal):
 - `(hash-map-decode (new-go-object) ¬{"key": "value"}¬)` to decode hash map to a Go struct if that struct has the appropiate Go marshaler
 - `(context (do ...))` provides a Go context. Context contents depend on Go, and might be passed to specific functions context compatible
 - Unit-testing library (`deftest`, `is`, `are`, `with-out-str`) run with `lisp --test DIR`, which loads every `*_test.lisp` / `*_test.mal` file in `DIR` and runs the registered tests. See "Testing lisp code" below
+- `web` library — a Ring-style HTTP/HTTPS server (`web/serve`, `web/router`, response helpers, middleware) with TLS, mTLS and Keycloak-compatible JWT verification. See [lib/web/README.md](./lib/web/README.md)
+- `(read-password prompt)` reads a line from stdin with terminal echo disabled (for secrets); prompt goes to stderr
 - Project compatible with GitHub CodeSpaces. Press `.` on your keyboard and you are ready to deploy a CodeSpace with mal in it
 - `(assert expr & optional-error)` asserts expression is not `nil` nor `false`, otherwise it success returning `nil`
 - Errors are decorated with line numbers
