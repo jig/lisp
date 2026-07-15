@@ -26,4 +26,10 @@
         (with-meta
             (fn [argv expr & rows]
                 (test/expand-are argv expr rows))
-            {:doc "Template assertion: substitutes each row of values for argv in expr and asserts every instance, e.g. (are [x y] (= x y) 2 (+ 1 1) 4 (* 2 2))."})))
+            {:doc "Template assertion: substitutes each row of values for argv in expr and asserts every instance, e.g. (are [x y] (= x y) 2 (+ 1 1) 4 (* 2 2))."}))
+
+    (defmacro with-out-str
+        (with-meta
+            (fn [& body]
+                `(test/with-out-str* (fn [] ~@body)))
+            {:doc "Evaluates body capturing standard output and returns it as a string (Clojure-style); output from concurrent goroutines is captured too."})))

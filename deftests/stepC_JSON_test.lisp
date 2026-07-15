@@ -1,6 +1,6 @@
 ;; Replica of tests/stepC_JSON.mal: range, base64 round-trip, ¬…¬ raw
-;; strings and str. The prn/println sections assert stdout and stay in
-;; the legacy harness only.
+;; strings and str. The prn/println sections are replicated with
+;; with-out-str.
 
 (deftest range-basics
   (are [expected expr] (= expected expr)
@@ -41,3 +41,28 @@
   ;; strings that look like JSON print with ¬…¬, others with quotes
   (is (= "¬{\"hello\"}¬" (pr-str "{\"hello\"}")))
   (is (= "\"{hello}\"" (pr-str "{hello}"))))
+
+(deftest prn-with-raw-strings
+  (are [expected expr] (= expected expr)
+    "\n"        (with-out-str (prn))
+    "\"\"\n"    (with-out-str (prn ¬¬))
+    "\"abc\"\n" (with-out-str (prn ¬abc¬))
+    "\"abc  def\" \"ghi jkl\"\n" (with-out-str (prn ¬abc  def¬ ¬ghi jkl¬))
+    "\"\\\"\"\n" (with-out-str (prn ¬"¬))
+    "\"¬\"\n"   (with-out-str (prn ¬¬¬¬))
+    "\"¬\"\n"   (with-out-str (prn "¬"))
+    "\"abc\\\\ndef\\\\nghi\"\n"         (with-out-str (prn ¬abc\ndef\nghi¬))
+    "\"abc\\\\\\\\def\\\\\\\\ghi\"\n"   (with-out-str (prn ¬abc\\def\\ghi¬))
+    "(1 2 \"abc\" \"\\\"\") \"def\"\n"  (with-out-str (prn (list 1 2 ¬abc¬ ¬"¬) ¬def¬))
+    "(1 2 \"abc\" \"¬\") \"def\"\n"     (with-out-str (prn (list 1 2 ¬abc¬ ¬¬¬¬) ¬def¬))
+    "¬{\"hello\"}¬\n"  (with-out-str (prn "{\"hello\"}"))
+    "\"{hello}\"\n"    (with-out-str (prn "{hello}"))))
+
+(deftest println-with-raw-strings
+  (are [expected expr] (= expected expr)
+    "\n"    (with-out-str (println))
+    "\n"    (with-out-str (println ¬¬))
+    "abc\n" (with-out-str (println ¬abc¬))
+    "abc  def ghi jkl\n" (with-out-str (println ¬abc  def¬ ¬ghi jkl¬))
+    "¬\n"   (with-out-str (println ¬¬¬¬))
+    "abc\\ndef\\nghi\n" (with-out-str (println ¬abc\ndef\nghi¬))))
