@@ -147,6 +147,11 @@ Non-breaking, for context (see `git log v0.2.24..` for the full list):
   `«recur»` sentinel as a value
 - multi-line `"…"` strings (Clojure-style): a literal newline is kept
   verbatim; `¬…¬` remains for JSON and other escape-heavy content
+- `read-password` — reads a line from stdin with terminal echo
+  disabled (via `golang.org/x/term`), for passwords and secrets; the
+  prompt goes to stderr, and non-terminal input (pipes, tests) falls
+  back to a plain line read. Returns nil on end of input, like
+  `readline`
 - `test` library — Clojure-style unit testing for lisp code: `deftest`,
   `is` (with expected/actual reporting for `(is (= …))`), `are`
   templates and `test/run-tests!`. The CLI runner grew with it:
