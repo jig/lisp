@@ -26,7 +26,6 @@ func TestDoLessFunction(t *testing.T) {
 		// {"command line args", nscore.LoadCmdLineArgs},
 		// {"concurrent", nsconcurrent.Load},
 		// {"core mal extended", nscoreextended.Load},
-		// {"assert", nsassert.Load},
 	} {
 		if err := library.load(ns); err != nil {
 			log.Fatalf("Library Load Error: %v\n", err)

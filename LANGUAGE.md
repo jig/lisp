@@ -357,17 +357,6 @@ Higher-order helpers written in lisp (the prelude): reduce, map, partial, protoc
 | `time ⁽ᵐ⁾` | `[exp]` | Evaluates exp, prints the elapsed time, and returns its value. |
 | `zero?` | `[n]` | Whether n equals 0. |
 
-### assert
-
-Minimal test library (run with `lisp --test DIR`).
-
-| Name | Arguments | Description |
-| ---- | --------- | ----------- |
-| `assert-false ⁽ᵐ⁾` | `[name expr]` | Test case (for test-suite): passes when expr is falsey. |
-| `assert-throws ⁽ᵐ⁾` | `[name expr]` | Test case (for test-suite): passes when evaluating expr raises an error. |
-| `assert-true ⁽ᵐ⁾` | `[name expr]` | Test case (for test-suite): passes when expr is truthy and does not throw. |
-| `test-suite` | `[name & assert-cases]` | Runs assert-* cases and prints PASS/FAIL for the named suite. |
-
 ### system
 
 Access to the host environment (env vars, …).
@@ -462,6 +451,8 @@ Attest and verify lisp source (formatting, hashing, Ed25519 signatures).
 | `test/expand-are` | `[argv expr rows]` | Macro helper: expands an (are …) template into a do of is forms. |
 | `test/register!` | `[name fn]` | Registers fn as the test named name; deftest expands to this. |
 | `test/run-tests!` | `[]` | Runs every registered test and returns the results as data. |
+| `test/with-out-str*` | `[thunk]` | Runs thunk capturing standard output and returns it as a string; (with-out-str …) expands to this. |
+| `with-out-str ⁽ᵐ⁾` | `[& body]` | Evaluates body capturing standard output and returns it as a string (Clojure-style); output from concurrent goroutines is captured too. |
 
 ⁽ᵐ⁾ = macro (arguments are not evaluated before the call).
 
