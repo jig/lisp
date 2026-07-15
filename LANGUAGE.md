@@ -70,13 +70,19 @@ stop flag parsing, and `-P '$NAME value'` to fill `$NAME` placeholders
 
 ## Lexical syntax
 
+Whitespace separates tokens; commas are whitespace too, as in Clojure
+(`[1, 2, 3]` ≡ `[1 2 3]`). Comments run from `;` to end of line, and a
+leading `#!` shebang line reads as a comment, so scripts can be
+directly executable.
+
 ### Atoms
 
 | Kind | Examples | Notes |
 | ---- | -------- | ----- |
-| Integer | `42`, `-7`, `0x2a`, `0o52`, `0b101010` | The working numeric type. Parsed with Go's base-`0` rules. |
-| Float | `1.5`, `-0.25` | Read as 32-bit floats, but the core arithmetic builtins (`+ - * /`) operate on **integers** — floats are second-class. |
-| String | `"hello"`, `"tab\there"` | Double-quoted, C-style escapes. **May not contain a literal newline** — use `¬…¬` (below) for multi-line text. |
+| Integer | `42`, `-7`, `1_000` | The working numeric type: a signed machine int. Decimal only; leading-zero octal (`042`) is a read error. |
+| Big int | `0x2a`, `0o52`, `0b101010`, `-0x01`, `0xFFFF_FFFF_FFFF_FFFF_FFFF` | Radix-prefixed literals read as **arbitrary-precision integers** — the natural type for serial numbers, hashes and masks. They print back as `0x…` hex padded to whole octets and round-trip through the reader. |
+| Float | `1.5`, `-0.25` | Read as 32-bit floats. |
+| String | `"hello"`, `"tab\there"` | Double-quoted, C-style escapes. May span several lines (a literal newline is kept verbatim, as in Clojure); `¬…¬` (below) remains ideal for escape-heavy text. |
 | Keyword | `:name`, `:http/get` | Interned constant, commonly used as a map key. |
 | Symbol | `foo`, `+`, `my-fn`, `map?` | A name; evaluates to whatever it is bound to. |
 | Boolean | `true`, `false` | |
@@ -508,9 +514,13 @@ reserves 80% of the remaining time for its body and 20% for
 Mostly for readers coming from Clojure or from other mal implementations:
 
 - **Names:** `def`, `try`, `catch` (not `def!`, `try*`). `defn`, `defmacro`, `fn`.
-- **Numbers are integers.** `+ - * /` are integer operations; float
-  literals are read but not first-class in arithmetic. There are no
-  ratios or bignums.
+- **Three numeric kinds, no ratios.** Machine ints (decimal literals),
+  32-bit floats, and arbitrary-precision big ints (radix literals:
+  `0x…`, `0o…`, `0b…`). `+ - * /` are variadic with Clojure-style
+  contagion — int∘int stays int, a float makes the result float, a big
+  int makes it big — but big ints and floats do not mix, machine-int
+  overflow wraps (no auto-promotion), and `(= 0x0A 10)` is `false`
+  (distinct types).
 - **Sets are limited:** only strings and keywords as members.
 - **`let` returns its last body form** (Clojure-like) and evaluates
   every body form; `(do)` returns `nil` (it does not error).
@@ -518,7 +528,8 @@ Mostly for readers coming from Clojure or from other mal implementations:
 - **Only `nil` and `false` are falsey** — `0` and `""` are truthy.
 - **Non-tail recursion** can exhaust the Go stack; use `loop`/`recur`
   for unbounded iteration (it runs in constant stack).
-- **Strings can't span lines** with `"…"`; use `¬…¬`.
+- **Multi-line `"…"` strings are fine** (Clojure-style); `¬…¬` is for
+  escape-heavy text such as embedded JSON.
 - `hash-map` also converts a Go object to a map when a marshaler is
   registered for it; JSON always encodes both lists and vectors as
   arrays, and decodes arrays into vectors.
