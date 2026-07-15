@@ -294,6 +294,7 @@ Reading and writing files and stdin.
 | `exit` | `([] [status])` | Terminates the process with status (an integer, 0 when omitted). Does not return. |
 | `load-file` | `[file-path]` | Reads and evaluates the lisp file at file-path in the current environment; returns the value of its last form. |
 | `load-file-once` | `[file-path]` | Like load-file, but never loads the same path twice. |
+| `read-password` | `[prompt]` | Prints prompt (to stderr) and reads a line with terminal echo disabled; falls back to a plain read when input is not a terminal. Returns nil on end of input. |
 | `readline` | `[prompt]` | Prints prompt and reads a line from input. |
 | `slurp` | `[filename]` | Reads a file and returns its contents as a string. |
 | `spit` | `[filename s & opts]` | Writes string s to a file, creating or truncating it; with :append true, appends instead. |

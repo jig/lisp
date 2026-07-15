@@ -24,6 +24,8 @@ import (
 	"sync/atomic"
 	"time"
 
+	"golang.org/x/term"
+
 	spew "github.com/davecgh/go-spew/spew"
 	"github.com/google/uuid"
 	"github.com/jig/lisp/lib/call"
@@ -298,6 +300,7 @@ func LoadInput(env EnvType) {
 	call.Call(env, slurp)
 	call.Call(env, spit, 2, 4)
 	call.Call(env, readLine)
+	call.CallOverrideFN(env, "read-password", readPassword)
 	call.Call(env, exit, 0, 1)
 
 	loadInputDocs(env)
@@ -1759,6 +1762,32 @@ func readLine(prompt string) (MalType, error) {
 		stdinScanner = bufio.NewScanner(os.Stdin)
 	})
 	fmt.Print(prompt)
+	if !stdinScanner.Scan() {
+		return nil, nil
+	}
+	return stdinScanner.Text(), nil
+}
+
+// readPassword prints prompt and reads one line from stdin with terminal
+// echo disabled, returning the text without the trailing newline (nil on
+// EOF/error, like readLine). When stdin is not a terminal (piped input,
+// tests, CI) there is no echo to suppress, so it falls back to a normal
+// line read. The prompt goes to stderr so capturing stdout (e.g.
+// `pw=$(lisp get-secret.lisp)`) does not swallow it.
+func readPassword(prompt string) (MalType, error) {
+	fd := int(os.Stdin.Fd())
+	fmt.Fprint(os.Stderr, prompt)
+	if term.IsTerminal(fd) {
+		b, err := term.ReadPassword(fd)
+		fmt.Fprintln(os.Stderr) // the user's Enter was not echoed
+		if err != nil {
+			return nil, nil
+		}
+		return string(b), nil
+	}
+	stdinScannerOnce.Do(func() {
+		stdinScanner = bufio.NewScanner(os.Stdin)
+	})
 	if !stdinScanner.Scan() {
 		return nil, nil
 	}
