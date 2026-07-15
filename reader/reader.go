@@ -47,6 +47,9 @@ func tokenize(sourceCode string, cursor *Position) ([]Token, error) {
 
 	var s scanner.Scanner
 	s.Init(strings.NewReader(sourceCode))
+	// Commas are whitespace, as in Clojure and kanaka/mal (the formatter's
+	// lexer already treats them so): (1 2, 3) reads as (1 2 3).
+	s.Whitespace |= 1 << ','
 	if cursor.Module != nil {
 		s.Filename = *cursor.Module
 	}

@@ -35,12 +35,10 @@
     "(* -3 6)"      "(* -3 6)"
     "(() ())"       "(()())"))
 
-;; DIVERGENCE from kanaka/mal and Clojure: commas are NOT whitespace in
-;; jig/lisp — they read as a `,` symbol. The original expected
-;; (1 2, 3,,,,) to read as (1 2 3); this pins the current behaviour so a
-;; future change (comma-as-whitespace, Clojure parity) shows up here.
-(deftest read-commas-are-not-whitespace
-  (is (= "(1 2 , 3)" (pr-str (read-string "(1 2, 3)")))))
+;; Commas are whitespace, as in kanaka/mal and Clojure
+(deftest read-commas-as-whitespace
+  (is (= "(1 2 3)" (pr-str (read-string "(1 2, 3,,,,)"))))
+  (is (= [1 2 3] [1, 2, 3])))
 
 ;; -------- Deferrable Functionality --------
 

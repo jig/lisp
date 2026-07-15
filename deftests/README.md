@@ -34,6 +34,3 @@ each other.
   harness.
 - `tests/stepI_marshaling copy.mal` — depends on example marshal types
   registered only by the Go test harness, not by the `lisp` binary.
-- Documented divergence pinned in `step1_read_print_test.lisp`: commas
-  are **not** whitespace in jig/lisp (they read as a `,` symbol), unlike
-  kanaka/mal and Clojure.
