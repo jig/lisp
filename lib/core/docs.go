@@ -92,6 +92,7 @@ var coreDocs = []struct{ name, arglist, doc string }{
 	{"println", "[& args]", "Prints its arguments (unquoted) separated by spaces, then a newline."},
 	{"prn", "[& args]", "Prints its arguments (readable) separated by spaces, then a newline."},
 	{"sleep", "[ms]", "Sleeps for ms milliseconds."},
+	{"gensym", "[]", "Returns a fresh, hopefully-unique symbol like G__N (for writing hygienic macros)."},
 
 	// Predicates
 	{"nil?", "[x]", "Whether x is nil."},

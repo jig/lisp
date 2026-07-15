@@ -21,6 +21,7 @@ import (
 	"runtime/debug"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	spew "github.com/davecgh/go-spew/spew"
@@ -101,6 +102,7 @@ func Load(env EnvType) {
 	call.Call(env, binary2str)
 	call.Call(env, json_encode)
 	call.Call(env, sleep)
+	call.Call(env, gensym)
 	call.Call(env, time_ms)
 	call.Call(env, time_ns)
 	call.Call(env, time_format)
@@ -530,6 +532,17 @@ func spit(fileName, contents string, opts ...MalType) error {
 		return werr
 	}
 	return cerr
+}
+
+// gensymCounter feeds gensym; a Go atomic (rather than a lisp atom in
+// the header) so the macro-writing primitive is available with only
+// core loaded, before the concurrent library provides atoms.
+var gensymCounter atomic.Int64
+
+// gensym returns a fresh, hopefully-unique symbol (see "Plugging the
+// Leaks", http://www.gigamonkeys.com/book/macros-defining-your-own.html).
+func gensym() (Symbol, error) {
+	return Symbol{Val: fmt.Sprintf("G__%d", gensymCounter.Add(1))}, nil
 }
 
 // Number functions

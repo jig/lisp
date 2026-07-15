@@ -1,16 +1,10 @@
 (do
 ;;; Trivial
   ;; Trivial but convenient functions.
-
-  (defn inc
-    "Returns a + 1 (integer successor)."
-    [a]
-    (+ a 1))
-
-  (defn dec
-    "Returns a - 1 (integer predecessor)."
-    [a]
-    (- a 1))
+  ;; NOTE: inc, dec, gensym — and the when/and/or macros and
+  ;; load-file-once below — moved to the core headers (header-basic,
+  ;; header-load-file) so every library header can rely on them with
+  ;; only core loaded.
 
   (defn zero?
     "Whether n equals 0."
@@ -21,15 +15,6 @@
     "Returns its argument unchanged."
     [x]
     x)
-
-  ;; Generate a hopefully unique symbol. See section "Plugging the Leaks"
-  ;; of http://www.gigamonkeys.com/book/macros-defining-your-own.html
-  (def gensym
-    (with-meta
-      (let [counter (atom 0)]
-        (fn []
-          (symbol (str "G__" (swap! counter inc)))))
-      {:doc "Returns a fresh, hopefully-unique symbol like G__N."}))
 
 ;;; Benchmark
   ;; An alternative approach, to complement perf.mal
@@ -103,15 +88,6 @@
     [f & args]
     (fn [& more-args]
       (apply f (concat args more-args))))
-
-;;; Control Flow Macros
-  ;; Convenient control flow macros.
-
-  (defmacro when
-    (with-meta
-      (fn [condition & body]
-        `(if ~condition (do ~@body)))
-      {:doc "Evaluates body in an implicit do when condition is truthy; otherwise nil."}))
 
 ;;; Threading
   ;; Composition of partially applied functions.
@@ -357,19 +333,6 @@
   ;; Iteration on evaluations interpreted as boolean values.
 
   ;; "(or x1 x2 .. xn x)"
-  ;; is almost rewritten as
-  ;; "(if x1 x1 (if x2 x2 (.. (if xn xn x))))"
-  ;; except that each argument is evaluated at most once.
-  ;; Without arguments, returns "nil".
-  (defmacro or
-    (with-meta
-      (fn [& xs]
-        (if (< (count xs) 2)
-          (first xs)
-          (let [r (gensym)]
-            `(let (~r ~(first xs)) (if ~r ~r (or ~@(rest xs)))))))
-      {:doc "Evaluates its arguments in order, returning the first truthy one, or nil."}))
-
   (defn every?
     "Whether (pred x) is truthy for every x in xs."
     [pred xs]
@@ -390,20 +353,6 @@
       nil
       (or (pred (first xs))
           (some pred (rest xs)))))
-
-  ;; "x1 x2 .. xn x" is rewritten so each argument is evaluated at most
-  ;; once and evaluation stops at the first nil/false.
-  ;; Without arguments, returns "true".
-  (defmacro and
-    (with-meta
-      (fn [& xs]
-        ;; Arguments and the result are interpreted as boolean values.
-        (cond (empty? xs)      true
-              (= 1 (count xs)) (first xs)
-              true             (let (condvar (gensym))
-                                `(let (~condvar ~(first xs))
-                                  (if ~condvar (and ~@(rest xs)) ~condvar)))))
-      {:doc "Evaluates its arguments in order, returning the first falsey one, or the last (true with none)."}))
 
 ;;; Arithmetic
   ;; Integer division helpers, absolute value and min/max. Integer `/`
@@ -497,20 +446,4 @@
     [to from]
     (reduce conj to from))
 
-;;; Load File Once
-  ;; This file is normally loaded with "load-file", so it needs a
-  ;; different mechanism to neutralize multiple inclusions of
-  ;; itself. Moreover, the file list should never be reset.
-  (def load-file-once
-    (with-meta
-      (try
-        load-file-once
-      (catch _
-        (let [seen (atom {"../lib/load-file-once.mal" nil})]
-          (fn [filename]
-            (if (not (contains? @seen filename))
-              (do
-                (swap! seen assoc filename nil)
-                (load-file filename)))))))
-      {:doc "Like load-file, but never loads the same path twice."}))
 )

@@ -155,6 +155,12 @@ Non-breaking, for context (see `git log v0.2.24..` for the full list):
   Testing panel with per-test run buttons and failure diffs, and a
   **Coverage** profile that paints covered/uncovered lisp lines through
   VS Code's native coverage view
+- core promotions: `and`, `or`, `when`, `inc`, `dec`, `gensym` moved
+  from `coreextended` into the core header (their Clojure counterparts
+  live in clojure.core), and `load-file-once` sits next to `load-file`
+  (as a Go builtin: its seen-set needs mutable state and atoms belong
+  to the concurrent library). Library headers can now rely on all of
+  them with only core loaded; loading `coreextended` behaves as before
 - Clojure-style arithmetic: `+ - * /` are variadic — `(+)`→0, `(*)`→1,
   `(+ x)`→x, `(- x)`→negation, `(/ x)`→1/x, `(- a b c)` folds left —
   and the ordering builtins `< <= > >=` chain (`(< 1 2 3)`). The

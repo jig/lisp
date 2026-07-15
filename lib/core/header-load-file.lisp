@@ -8,3 +8,7 @@
             (str
                 ";; $MODULE " file-path "\n"
                 "(do " (slurp file-path) "\n)"))))
+
+;; load-file-once is registered in Go by nscore.LoadInput: its seen-set
+;; needs mutable state, and atoms live in the concurrent library, which
+;; is not available at core-load time.
