@@ -448,6 +448,28 @@ Attest and verify lisp source (formatting, hashing, Ed25519 signatures).
 | `fmt` | `[s]` | Formats lisp source s into its canonical form (as lisp --fmt does); errors if s does not parse. |
 | `sha2-256` | `[s]` | SHA2-256 digest of string s, as lowercase hex. |
 
+### web
+
+| Name | Arguments | Description |
+| ---- | --------- | ----------- |
+| `web/bad-request` | `[& msg]` | A 400 JSON response. |
+| `web/encode-json` | `[value]` | Encodes Lisp data as JSON for an HTTP response: keyword keys and values become plain strings (:id → "id"), unlike core json-encode. |
+| `web/json` | `[status-or-body & maybe-body]` | A JSON response: encodes body and sets content-type. (web/json data) is 200; (web/json status data) sets the status. |
+| `web/log` | `[level msg & kv]` | Emits a structured JSON log line to stderr at level (:debug/:info/:warn/:error) with alternating key/value attributes. |
+| `web/not-found` | `[& msg]` | A 404 JSON response. |
+| `web/redirect` | `[location & status]` | A redirect response (status 302 unless given as the second arg). |
+| `web/response` | `[status body & headers]` | Builds a response map with the given status and body, plus optional header pairs. |
+| `web/router` | `[routes]` | Returns a Ring handler that dispatches on method and path. routes is a vector of ["/path/:param" {:get handler :post handler}] pairs; matched params appear under the request's :path-params. |
+| `web/serve` | `[config]` | Starts an HTTP(S) server and blocks until interrupted. config is a hash-map: :handler (a Ring handler fn), :port or :addr, and optional :tls {:cert :key :client-ca :client-auth} for HTTPS/mTLS. |
+| `web/text` | `[body & status]` | A text/plain response (status 200 unless given). |
+| `web/unauthorized` | `[& msg]` | A 401 JSON response. |
+| `web/verify-jwt` | `[token config]` | Verifies a JWT against a JWKS and returns its claims as a hash-map. config: :jwks-uri (required), :issuer, :audience, :algorithms (defaults to Keycloak's RS/ES set). |
+| `web/wrap-identity` | `[handler]` | Middleware: promotes a verified mTLS client certificate to :identity {:kind :mtls :subject cn}. |
+| `web/wrap-json-body` | `[handler]` | Middleware: when the request body is a non-empty JSON object, decodes it under :json (nil on parse error). |
+| `web/wrap-jwt` | `[config handler]` | Middleware: verifies a Bearer JWT against config (see web/verify-jwt) and sets :identity {:kind :jwt :claims …}; responds 401 when missing or invalid. config is the JWKS/issuer map. |
+| `web/wrap-log` | `[handler]` | Middleware: logs one structured JSON line per request with method, uri, status and elapsed ms. |
+| `web/wrap-recover` | `[handler]` | Middleware: turns any error escaping the handler into a 500 JSON response instead of dropping the connection. |
+
 ### test
 
 | Name | Arguments | Description |

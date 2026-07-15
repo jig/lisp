@@ -147,6 +147,17 @@ Non-breaking, for context (see `git log v0.2.24..` for the full list):
   `«recur»` sentinel as a value
 - multi-line `"…"` strings (Clojure-style): a literal newline is kept
   verbatim; `¬…¬` remains for JSON and other escape-heavy content
+- `web` library — a Ring-style HTTP/HTTPS server: request and response
+  are hash-maps, handlers are `(fn [req] resp)`, middleware is
+  `handler → handler`. `web/serve` (TLS, mTLS, graceful shutdown),
+  `web/router` (data-driven routes with path params), response helpers
+  (`web/json` with clean keys, `web/text`, `web/not-found`, …), and
+  middleware (`web/wrap-recover`, `web/wrap-log` as structured slog
+  JSON, `web/wrap-json-body`, `web/wrap-identity` for mTLS,
+  `web/wrap-jwt`). JWT verification (`web/verify-jwt`) validates against
+  a JWKS with issuer/audience checks — Keycloak-compatible (RS/ES).
+  Client-side and streaming are planned separately. See
+  `lib/web/README.md`
 - `read-password` — reads a line from stdin with terminal echo
   disabled (via `golang.org/x/term`), for passwords and secrets; the
   prompt goes to stderr, and non-terminal input (pipes, tests) falls
