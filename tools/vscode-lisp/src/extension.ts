@@ -4,6 +4,7 @@ import {
   LanguageClientOptions,
   ServerOptions,
 } from "vscode-languageclient/node";
+import { activateTesting } from "./tests";
 
 let client: LanguageClient | undefined;
 
@@ -27,6 +28,8 @@ export function activate(context: vscode.ExtensionContext): void {
       new LispDebugConfigurationProvider(),
     ),
   );
+
+  activateTesting(context);
 
   const cfg = vscode.workspace.getConfiguration("lisp");
   if (cfg.get<boolean>("languageServer.enabled", true)) {
