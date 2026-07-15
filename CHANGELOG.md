@@ -134,6 +134,10 @@ identifiers or bit patterns keep working and now survive any width.
 
 Non-breaking, for context (see `git log v0.2.24..` for the full list):
 
+- `exit` builtin: `(exit)` / `(exit status)` ends the process with the
+  given status (`0` by default), like Clojure's `System/exit`. It stops
+  before the interpreter echoes a script's final value, so a program run
+  as a file can set a real exit code without printing a trailing result
 - `loop`/`recur` special forms; `into`, and `conj` accepting `[k v]`
   pairs / maps
 - `recur` in a function's tail position (Clojure semantics): the

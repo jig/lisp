@@ -30,6 +30,7 @@ var inputDocs = []struct{ name, arglist, doc string }{
 	{"slurp", "[filename]", "Reads a file and returns its contents as a string."},
 	{"spit", "[filename s & opts]", "Writes string s to a file, creating or truncating it; with :append true, appends instead."},
 	{"readline", "[prompt]", "Prints prompt and reads a line from input."},
+	{"exit", "([] [status])", "Terminates the process with status (an integer, 0 when omitted). Does not return."},
 }
 
 var coreDocs = []struct{ name, arglist, doc string }{

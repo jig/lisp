@@ -298,6 +298,7 @@ func LoadInput(env EnvType) {
 	call.Call(env, slurp)
 	call.Call(env, spit, 2, 4)
 	call.Call(env, readLine)
+	call.Call(env, exit, 0, 1)
 
 	loadInputDocs(env)
 }
@@ -538,6 +539,26 @@ func spit(fileName, contents string, opts ...MalType) error {
 		return werr
 	}
 	return cerr
+}
+
+// osExit is the process-exit hook, indirected so tests can observe the
+// requested status instead of terminating the test binary.
+var osExit = os.Exit
+
+// exit terminates the process with the given status code (0 when omitted),
+// like Clojure's System/exit. It does not return; stdout is unbuffered (fmt
+// writes straight to os.Stdout), so any preceding output is not lost.
+func exit(args ...MalType) (MalType, error) {
+	code := 0
+	if len(args) == 1 {
+		n, ok := args[0].(int)
+		if !ok {
+			return nil, fmt.Errorf("exit: status must be an integer, got %T", args[0])
+		}
+		code = n
+	}
+	osExit(code)
+	return nil, nil
 }
 
 // gensymCounter feeds gensym; a Go atomic (rather than a lisp atom in
