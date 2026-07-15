@@ -22,6 +22,14 @@ interpreter.
 - Document formatting (a gofmt-style canonical layout, comments
   preserved) via the language server. Enabled on save by default for
   lisp files, or run **Format Document** (`⇧⌥F`) manually.
+- Testing panel integration: `(deftest …)` tests in `*_test.lisp` /
+  `*_test.mal` files appear in the Test Explorer with run buttons and
+  inline failure messages (expected/actual diffs from `(is (= … …))`).
+  The **Coverage** run profile executes the suite under
+  `--coverage` and feeds VS Code's native test coverage view, painting
+  covered/uncovered lisp lines in the editor gutter — Go-style. Both
+  profiles spawn the `lisp-debug` binary (`lisp.testRunner.command`
+  overrides which one).
 - A pastel-green parenthesis `()` icon for the `lisp` language. Under a
   typical file icon theme (Seti, Material, …) this shows on editor tabs
   but not in the Explorer, because those themes already claim `.lisp`.

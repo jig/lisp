@@ -176,6 +176,7 @@ Arithmetic, collections, predicates, strings, JSON, errors — always loaded.
 | `=` | `[a b]` | Value equality. |
 | `>` | `[x & more]` | True when the arguments are monotonically decreasing. |
 | `>=` | `[x & more]` | True when the arguments are monotonically non-increasing. |
+| `and ⁽ᵐ⁾` | `[& xs]` | Evaluates its arguments in order, returning the first falsey one, or the last (true with none). |
 | `apply` | `[f & args]` | Calls f with args, the last of which is a sequence spread as arguments. |
 | `assert` | `[expr & error]` | Returns nil when expr is truthy, otherwise raises error (or a default). |
 | `assoc` | `[map key val & kvs]` | Copy of map with the given key/value pairs added or replaced. |
@@ -188,6 +189,7 @@ Arithmetic, collections, predicates, strings, JSON, errors — always loaded.
 | `cons` | `[x seq]` | Prepends x to seq. |
 | `contains?` | `[coll key]` | Whether coll has the given key/index. |
 | `count` | `[coll]` | Number of elements in coll. |
+| `dec` | `[x]` | Returns x - 1. |
 | `defn ⁽ᵐ⁾` | `[name & fdecl]` | Defines a named function (defn name [params] body…); an optional docstring may follow name. |
 | `deref` | `[ref]` | Current value of an atom or other dereferenceable (also @ref). |
 | `dissoc` | `[map & keys]` | Copy of map without the given keys. |
@@ -201,12 +203,14 @@ Arithmetic, collections, predicates, strings, JSON, errors — always loaded.
 | `false?` | `[x]` | Whether x is boolean false. |
 | `first` | `[coll]` | First element of coll, or nil. |
 | `fn?` | `[x]` | Whether x is callable. |
+| `gensym` | `[]` | Returns a fresh, hopefully-unique symbol like G__N (for writing hygienic macros). |
 | `get` | `[coll key]` | Value at key in a map/vector, or nil. |
 | `get-in` | `[coll keys]` | Nested value reached by following the vector of keys. |
 | `go-error` | `[format & args]` | Creates a Go error from a format string and arguments. |
 | `hash-map` | `[& kvs]` | Creates a hash-map from alternating key/value arguments. |
 | `hash-map-decode` | `[factory json]` | Decodes JSON into a Go-backed hash-map. |
 | `hash-set` | `[& items]` | Creates a set of the given items. |
+| `inc` | `[x]` | Returns x + 1. |
 | `json-decode` | `[factory json]` | Decodes a JSON string into a lisp value. |
 | `json-encode` | `[obj]` | Encodes a lisp value (or Go object) to a JSON string. |
 | `keys` | `[map]` | Vector of the map's keys. |
@@ -226,6 +230,7 @@ Arithmetic, collections, predicates, strings, JSON, errors — always loaded.
 | `not=` | `[a b]` | Logical negation of =. |
 | `nth` | `[coll n]` | The element of coll at zero-based index n. |
 | `number?` | `[x]` | Whether x is a number. |
+| `or ⁽ᵐ⁾` | `[& xs]` | Evaluates its arguments in order, returning the first truthy one, or nil. |
 | `panic` | `[value]` | Raises value as a Go panic. |
 | `pr-str` | `[& args]` | Like str but with readable (quoted) representations. |
 | `println` | `[& args]` | Prints its arguments (unquoted) separated by spaces, then a newline. |
@@ -268,6 +273,7 @@ Arithmetic, collections, predicates, strings, JSON, errors — always loaded.
 | `vector` | `[& items]` | Creates a vector of the given items. |
 | `vector?` | `[x]` | Whether x is a vector. |
 | `version` | `[]` | Interpreter build information as a hash-map. |
+| `when ⁽ᵐ⁾` | `[condition & body]` | Evaluates body in an implicit do when condition is truthy; otherwise nil. |
 | `with-meta` | `[obj m]` | Copy of obj with metadata m. |
 
 Runtime variables: `*host-language*`
@@ -279,6 +285,7 @@ Reading and writing files and stdin.
 | Name | Arguments | Description |
 | ---- | --------- | ----------- |
 | `load-file` | `[file-path]` | Reads and evaluates the lisp file at file-path in the current environment; returns the value of its last form. |
+| `load-file-once` | `[file-path]` | Like load-file, but never loads the same path twice. |
 | `readline` | `[prompt]` | Prints prompt and reads a line from input. |
 | `slurp` | `[filename]` | Reads a file and returns its contents as a string. |
 | `spit` | `[filename s & opts]` | Writes string s to a file, creating or truncating it; with :append true, appends instead. |
@@ -318,10 +325,8 @@ Higher-order helpers written in lisp (the prelude): reduce, map, partial, protoc
 | `-> ⁽ᵐ⁾` | `[x & xs]` | Thread-first: inserts each stage's result as the first argument of the next form. |
 | `->> ⁽ᵐ⁾` | `[x & xs]` | Thread-last: inserts each stage's result as the last argument of the next form. |
 | `abs` | `[n]` | Absolute value of n. |
-| `and ⁽ᵐ⁾` | `[& xs]` | Evaluates its arguments in order, returning the first falsey one, or the last (true with none). |
 | `benchmark ⁽ᵐ⁾` | `[expr n]` | Evaluates expr n times, returning a vector with the elapsed milliseconds of each run. |
 | `benchmark*` | `[f n results]` | Runs f n times, collecting the elapsed milliseconds of each run (helper for benchmark). |
-| `dec` | `[a]` | Returns a - 1 (integer predecessor). |
 | `defprotocol ⁽ᵐ⁾` | `[proto-name & methods]` | Defines a protocol proto-name and its methods, dispatching on the argument's type. |
 | `even?` | `[n]` | Whether n is even. |
 | `every?` | `[pred xs]` | Whether (pred x) is truthy for every x in xs. |
@@ -329,18 +334,14 @@ Higher-order helpers written in lisp (the prelude): reduce, map, partial, protoc
 | `filter` | `[pred xs]` | List of the items in xs for which (pred x) is truthy. |
 | `find-type` | `[obj]` | Returns a keyword naming obj's type (overridable via :type metadata). |
 | `foldr` | `[f init xs]` | Right fold: (f x1 (f x2 (.. (f xn init)))) over the elements of xs. |
-| `gensym` | `[]` | Returns a fresh, hopefully-unique symbol like G__N. |
 | `identity` | `[x]` | Returns its argument unchanged. |
-| `inc` | `[a]` | Returns a + 1 (integer successor). |
 | `into` | `[to from]` | Pours every item of from into to using conj; the result keeps to's type. |
-| `load-file-once` | `[filename]` | Like load-file, but never loads the same path twice. |
 | `max` | `[a & more]` | Largest of one or more numbers. |
 | `memoize` | `[f]` | Returns a caching version of f: results are stored by argument and reused. |
 | `min` | `[a & more]` | Smallest of one or more numbers. |
 | `mod` | `[a b]` | Modulo of a by b; the sign follows the divisor b. |
 | `neg?` | `[n]` | Whether n is less than 0. |
 | `odd?` | `[n]` | Whether n is odd. |
-| `or ⁽ᵐ⁾` | `[& xs]` | Evaluates its arguments in order, returning the first truthy one, or nil. |
 | `partial` | `[f & args]` | Returns a function that calls f with the given args plus any it is later called with. |
 | `pos?` | `[n]` | Whether n is greater than 0. |
 | `pprint` | `[obj]` | Pretty-prints a lisp value with indentation. |
@@ -354,7 +355,6 @@ Higher-order helpers written in lisp (the prelude): reduce, map, partial, protoc
 | `some` | `[pred xs]` | Returns the first truthy (pred x) over xs, or nil. |
 | `take-while` | `[pred xs]` | Leading items of xs while (pred x) is truthy. |
 | `time ⁽ᵐ⁾` | `[exp]` | Evaluates exp, prints the elapsed time, and returns its value. |
-| `when ⁽ᵐ⁾` | `[condition & body]` | Evaluates body in an implicit do when condition is truthy; otherwise nil. |
 | `zero?` | `[n]` | Whether n equals 0. |
 
 ### assert
@@ -449,6 +449,19 @@ Attest and verify lisp source (formatting, hashing, Ed25519 signatures).
 | `ed25519-verify` | `[public s signature]` | Reports whether the base64 signature of string s verifies against the base64 Ed25519 public key. |
 | `fmt` | `[s]` | Formats lisp source s into its canonical form (as lisp --fmt does); errors if s does not parse. |
 | `sha2-256` | `[s]` | SHA2-256 digest of string s, as lowercase hex. |
+
+### test
+
+| Name | Arguments | Description |
+| ---- | --------- | ----------- |
+| `are ⁽ᵐ⁾` | `[argv expr & rows]` | Template assertion: substitutes each row of values for argv in expr and asserts every instance, e.g. (are [x y] (= x y) 2 (+ 1 1) 4 (* 2 2)). |
+| `deftest ⁽ᵐ⁾` | `[name & body]` | Registers body as the test named name; run with the --test runner or (test/run-tests!). |
+| `is ⁽ᵐ⁾` | `[form & msg]` | Asserts form is truthy; inside deftest it records the outcome, outside it throws on failure. (is (= expected actual)) reports both values. |
+| `test/check!` | `[form thunk & msg]` | Records form's outcome in the running test; (is …) expands to this. |
+| `test/check-eq!` | `[form expected-thunk actual-thunk & msg]` | Records an equality check with expected/actual reporting; (is (= a b)) expands to this. |
+| `test/expand-are` | `[argv expr rows]` | Macro helper: expands an (are …) template into a do of is forms. |
+| `test/register!` | `[name fn]` | Registers fn as the test named name; deftest expands to this. |
+| `test/run-tests!` | `[]` | Runs every registered test and returns the results as data. |
 
 ⁽ᵐ⁾ = macro (arguments are not evaluated before the call).
 

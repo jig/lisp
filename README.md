@@ -67,6 +67,44 @@ There are some benchmarks as well:
 go test -benchmem -benchtime 5s -bench '^.+$' github.com/jig/lisp
 ```
 
+### Testing lisp code (deftest/is/are)
+
+The `test` library provides Clojure-style unit testing for lisp code
+itself. Tests live in `*_test.lisp` files:
+
+```clojure
+(load-file "mylib.lisp")
+
+(deftest double-works
+  (is (= 4 (double 2)))
+  (are [in out] (= out (double in))
+    0 0
+    5 10))
+```
+
+Run a directory (or a single file) with the CLI runner, which exits
+non-zero on failure:
+
+```bash
+lisp --test ./tests               # human summary
+lisp --test ./tests --test-json report.json
+```
+
+`(is (= expected actual))` reports both values on failure; a failing
+`is` outside `deftest` throws, so it also works in plain scripts. With
+the debug build, add `--coverage cov.lcov` to write an lcov report of
+the lisp lines executed (test files excluded), consumable by any lcov
+tool and by the VS Code extension's **Coverage** test profile, which
+paints covered/uncovered lines in the editor:
+
+```bash
+lisp-debug --test ./tests --coverage cov.lcov
+```
+
+Coverage is recorded per form and mapped to lines; lines holding only
+literal atoms (e.g. a lone keyword in an `if` branch) carry no source
+position and are not counted as coverable.
+
 ### Changes respect to `kanaka/mal`
 
 There almost 100 implementations on almost 100 languages available on repository [kanaka/mal](https://github.com/kanaka/mal).
