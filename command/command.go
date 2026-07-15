@@ -6,7 +6,6 @@ import (
 	"os"
 	"path/filepath"
 	"runtime/debug"
-	"strings"
 
 	"github.com/alexflint/go-arg"
 	"github.com/jig/lisp"
@@ -18,7 +17,9 @@ import (
 // args represents command line arguments for the Lisp interpreter
 type args struct {
 	Version   bool     `arg:"-v,--version" help:"show version information"`
-	Test      string   `arg:"-t,--test" help:"run test suite from directory" placeholder:"DIR"`
+	Test      string   `arg:"-t,--test" help:"run the test suite from a directory or a single test file" placeholder:"DIR|FILE"`
+	TestJSON  string   `arg:"--test-json" help:"with --test, also write a JSON report to the given file" placeholder:"FILE"`
+	Coverage  string   `arg:"--coverage" help:"write an lcov coverage report of the executed lisp code (requires lispdebug build)" placeholder:"FILE"`
 	Debug     bool     `arg:"--debug" help:"enable DEBUG-EVAL support (requires lispdebug build)"`
 	Eval      string   `arg:"-e,--eval" help:"evaluate expression and exit" placeholder:"EXPR"`
 	Fmt       bool     `arg:"--fmt" help:"format lisp source (files given as arguments, or stdin) and print the result"`
@@ -137,9 +138,24 @@ func Execute(cmdArgs []string, repl_env types.EnvType) error {
 		return nil
 	}
 
+	// Coverage collection wraps the evaluating modes (--test and script
+	// execution). In release builds startCoverage returns an error when a
+	// coverage file is requested.
+	stopCoverage := func() error { return nil }
+	if parsedArgs.Coverage != "" {
+		stopCoverage, err = startCoverage(parsedArgs.Coverage)
+		if err != nil {
+			return err
+		}
+	}
+
 	// Handle --test
 	if parsedArgs.Test != "" {
-		return runTests(parsedArgs.Test, repl_env)
+		testErr := runTests(parsedArgs.Test, parsedArgs.TestJSON, repl_env)
+		if err := stopCoverage(); err != nil {
+			return err
+		}
+		return testErr
 	}
 
 	// Handle file execution or stdin
@@ -159,6 +175,9 @@ func Execute(cmdArgs []string, repl_env types.EnvType) error {
 			result, err := runScript(context.Background(), repl_env, parsedArgs.Script, parsedArgs.Preamble,
 				types.NewCursorHere(parsedArgs.Script, -3, 1))
 			if err != nil {
+				return err
+			}
+			if err := stopCoverage(); err != nil {
 				return err
 			}
 			if parsedArgs.Eval == "" {
@@ -187,27 +206,6 @@ func Execute(cmdArgs []string, repl_env types.EnvType) error {
 		return fmt.Errorf("internal error: %s", err)
 	}
 	return repl.Execute(ctx, repl_env)
-}
-
-// runTests executes all *_test.mal files in the given directory
-func runTests(dir string, repl_env types.EnvType) error {
-	return filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			return err
-		}
-		if !info.IsDir() && strings.HasSuffix(info.Name(), "_test.mal") {
-			testParams := fmt.Sprintf(`(def *test-params* {:test-file %q :test-absolute-path %q})`, info.Name(), path)
-
-			ctx := context.Background()
-			if _, err := lisp.REPL(ctx, repl_env, testParams, types.NewCursorFile(info.Name())); err != nil {
-				return err
-			}
-			if _, err := lisp.REPL(ctx, repl_env, `(load-file "`+path+`")`, types.NewCursorHere(path, -3, 1)); err != nil {
-				return err
-			}
-		}
-		return nil
-	})
 }
 
 // ExecuteFile executes a file on the given path

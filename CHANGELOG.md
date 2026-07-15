@@ -143,6 +143,18 @@ Non-breaking, for context (see `git log v0.2.24..` for the full list):
   `«recur»` sentinel as a value
 - multi-line `"…"` strings (Clojure-style): a literal newline is kept
   verbatim; `¬…¬` remains for JSON and other escape-heavy content
+- `test` library — Clojure-style unit testing for lisp code: `deftest`,
+  `is` (with expected/actual reporting for `(is (= …))`), `are`
+  templates and `test/run-tests!`. The CLI runner grew with it:
+  `--test` now also accepts a single file, runs registered tests after
+  loading (legacy `*_test.mal` suites keep working), reports Go-style
+  failures, exits non-zero, and `--test-json FILE` writes a machine
+  report. In `lispdebug` builds, `--coverage FILE` records per-line
+  execution of the lisp sources (lcov; test files excluded) for any run
+  or test suite. The VS Code extension (0.9.0) integrates both: a
+  Testing panel with per-test run buttons and failure diffs, and a
+  **Coverage** profile that paints covered/uncovered lisp lines through
+  VS Code's native coverage view
 - Clojure-style arithmetic: `+ - * /` are variadic — `(+)`→0, `(*)`→1,
   `(+ x)`→x, `(- x)`→negation, `(/ x)`→1/x, `(- a b c)` folds left —
   and the ordering builtins `< <= > >=` chain (`(< 1 2 3)`). The

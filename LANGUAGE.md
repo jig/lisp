@@ -450,6 +450,19 @@ Attest and verify lisp source (formatting, hashing, Ed25519 signatures).
 | `fmt` | `[s]` | Formats lisp source s into its canonical form (as lisp --fmt does); errors if s does not parse. |
 | `sha2-256` | `[s]` | SHA2-256 digest of string s, as lowercase hex. |
 
+### test
+
+| Name | Arguments | Description |
+| ---- | --------- | ----------- |
+| `are ⁽ᵐ⁾` | `[argv expr & rows]` | Template assertion: substitutes each row of values for argv in expr and asserts every instance, e.g. (are [x y] (= x y) 2 (+ 1 1) 4 (* 2 2)). |
+| `deftest ⁽ᵐ⁾` | `[name & body]` | Registers body as the test named name; run with the --test runner or (test/run-tests!). |
+| `is ⁽ᵐ⁾` | `[form & msg]` | Asserts form is truthy; inside deftest it records the outcome, outside it throws on failure. (is (= expected actual)) reports both values. |
+| `test/check!` | `[form thunk & msg]` | Records form's outcome in the running test; (is …) expands to this. |
+| `test/check-eq!` | `[form expected-thunk actual-thunk & msg]` | Records an equality check with expected/actual reporting; (is (= a b)) expands to this. |
+| `test/expand-are` | `[argv expr rows]` | Macro helper: expands an (are …) template into a do of is forms. |
+| `test/register!` | `[name fn]` | Registers fn as the test named name; deftest expands to this. |
+| `test/run-tests!` | `[]` | Runs every registered test and returns the results as data. |
+
 ⁽ᵐ⁾ = macro (arguments are not evaluated before the call).
 
 <!-- END GENERATED BUILTINS -->
