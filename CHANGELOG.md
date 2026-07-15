@@ -163,6 +163,14 @@ Non-breaking, for context (see `git log v0.2.24..` for the full list):
   suites (200+ tests, 1300 value-based checks), run by `TestDeftests`
   and by `lisp --test deftests/`; the originals stay untouched under
   the line-based harness
+- Debug Test: the VS Code extension (0.9.2) gains a **Debug** run
+  profile and Go-style **Run Test | Debug Test** CodeLens above each
+  `deftest`. Debugging launches a DAP session that loads the file and
+  runs just that test (new `test/run-test!` builtin + `--run-test`
+  flag), so breakpoints in the test body are hit. The debugger no
+  longer stops when a `(fn …)` closure is merely created (only when its
+  body runs), which also removes a spurious load-time stop for
+  breakpoints inside any function
 - shebang scripts: a leading `#!/usr/bin/env lisp` line reads as a
   comment (the two bytes become `;;` in place, so positions stay
   exact), `lisp --fmt` preserves it verbatim, and the VS Code

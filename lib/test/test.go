@@ -120,23 +120,43 @@ func (r *Registry) record(c Check) (inTest bool) {
 	return true
 }
 
+// runOne executes a single test, recording its checks. It is the shared
+// core of RunAll and RunOne.
+func (r *Registry) runOne(ctx context.Context, t *Test) {
+	r.mu.Lock()
+	t.Err = ""
+	t.Checks = nil
+	r.current = t
+	r.mu.Unlock()
+	if _, err := Apply(ctx, t.Fn, nil); err != nil {
+		t.Err = err.Error()
+	}
+	r.mu.Lock()
+	r.current = nil
+	r.mu.Unlock()
+}
+
 // RunAll executes every registered test sequentially and returns them
 // with their results.
 func (r *Registry) RunAll(ctx context.Context) []*Test {
 	for _, t := range r.Tests() {
-		r.mu.Lock()
-		t.Err = ""
-		t.Checks = nil
-		r.current = t
-		r.mu.Unlock()
-		if _, err := Apply(ctx, t.Fn, nil); err != nil {
-			t.Err = err.Error()
-		}
-		r.mu.Lock()
-		r.current = nil
-		r.mu.Unlock()
+		r.runOne(ctx, t)
 	}
 	return r.Tests()
+}
+
+// RunOne executes the single test named name and returns it, or nil when
+// no such test is registered. Evaluating the test body here (rather than
+// in a spawned runner process) is what lets the DAP debugger stop at
+// breakpoints inside it.
+func (r *Registry) RunOne(ctx context.Context, name string) *Test {
+	for _, t := range r.Tests() {
+		if t.Name == name {
+			r.runOne(ctx, t)
+			return t
+		}
+	}
+	return nil
 }
 
 // testsAsData converts results to lisp data for test/run-tests!.
@@ -295,6 +315,16 @@ func Load(env EnvType) error {
 	}
 	call.CallOverrideFN(env, "test/run-tests!", runTests)
 	call.Doc(env, "test/run-tests!", "[]", "Runs every registered test and returns the results as data.")
+
+	runTest := func(ctx context.Context, name string) (MalType, error) {
+		t := reg.RunOne(ctx, name)
+		if t == nil {
+			return nil, lisperror.NewLispError(fmt.Errorf("no test named %q", name), nil)
+		}
+		return testsAsData([]*Test{t}), nil
+	}
+	call.CallOverrideFN(env, "test/run-test!", runTest)
+	call.Doc(env, "test/run-test!", "[name]", "Runs the single registered test named name (used by the editor's Debug Test); returns its result as data.")
 
 	expandAre := func(argv MalType, expr MalType, rows MalType) (MalType, error) {
 		return ExpandAre(argv, expr, rows)

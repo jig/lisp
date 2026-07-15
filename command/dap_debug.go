@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/jig/lisp"
 	"github.com/jig/lisp/debugadapter"
 	"github.com/jig/lisp/types"
 )
@@ -17,7 +18,7 @@ import (
 // "host:port" TCP address. script is the program to debug; if empty,
 // the session is REPL-style and waits for `evaluate` requests (not yet
 // implemented at MVP).
-func startDAP(listen, script string, preamble []string, env types.EnvType) error {
+func startDAP(listen, script string, preamble []string, runTest string, env types.EnvType) error {
 	if script == "" {
 		return fmt.Errorf("--dap requires a script positional argument (REPL mode not yet supported)")
 	}
@@ -35,8 +36,19 @@ func startDAP(listen, script string, preamble []string, env types.EnvType) error
 		// placeholders (from --preamble flags or in-file `;; $NAME`
 		// lines) the file is evaluated directly with the same
 		// `;; $MODULE` source mapping.
-		_, err := runScript(ctx, env, script, preamble, types.NewAnonymousCursorHere(1, 1))
-		return err
+		if _, err := runScript(ctx, env, script, preamble, types.NewAnonymousCursorHere(1, 1)); err != nil {
+			return err
+		}
+		// Debug Test: the script has registered its deftests; run the
+		// requested one in this same session so breakpoints in its body
+		// (which carry the script's positions) stop the debugger.
+		if runTest != "" {
+			runOne := types.NewList(nil, types.Symbol{Val: "test/run-test!"}, runTest)
+			if _, err := lisp.EVAL(ctx, runOne, env); err != nil {
+				return err
+			}
+		}
+		return nil
 	}
 
 	// redirectStdout swaps os.Stdout for a pipe whose contents are

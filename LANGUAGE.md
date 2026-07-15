@@ -458,6 +458,7 @@ Attest and verify lisp source (formatting, hashing, Ed25519 signatures).
 | `test/check-eq!` | `[form expected-thunk actual-thunk & msg]` | Records an equality check with expected/actual reporting; (is (= a b)) expands to this. |
 | `test/expand-are` | `[argv expr rows]` | Macro helper: expands an (are …) template into a do of is forms. |
 | `test/register!` | `[name fn]` | Registers fn as the test named name; deftest expands to this. |
+| `test/run-test!` | `[name]` | Runs the single registered test named name (used by the editor's Debug Test); returns its result as data. |
 | `test/run-tests!` | `[]` | Runs every registered test and returns the results as data. |
 | `test/with-out-str*` | `[thunk]` | Runs thunk capturing standard output and returns it as a string; (with-out-str …) expands to this. |
 | `with-out-str ⁽ᵐ⁾` | `[& body]` | Evaluates body capturing standard output and returns it as a string (Clojure-style); output from concurrent goroutines is captured too. |

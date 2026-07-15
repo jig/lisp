@@ -235,11 +235,78 @@ export function activateTesting(context: vscode.ExtensionContext): void {
     run.end();
   }
 
+  // Debug: launch a DAP session per selected test. The interpreter loads
+  // the file (registering its deftests) and then runs just this one via
+  // --run-test, in the same session, so breakpoints in the test body are
+  // hit. Runs sequentially (each test is its own debug session).
+  async function debugHandler(
+    request: vscode.TestRunRequest,
+    token: vscode.CancellationToken,
+  ): Promise<void> {
+    const targets: vscode.TestItem[] = [];
+    const collect = (item: vscode.TestItem) => {
+      if (item.parent) {
+        targets.push(item); // a specific test
+      } else {
+        item.children.forEach((c) => targets.push(c)); // whole file
+      }
+    };
+    if (request.include) {
+      request.include.forEach(collect);
+    } else {
+      await discoverAll();
+      ctrl.items.forEach((f) => f.children.forEach((c) => targets.push(c)));
+    }
+    const run = ctrl.createTestRun(request);
+    for (const item of targets) {
+      if (token.isCancellationRequested || !item.uri) {
+        break;
+      }
+      run.enqueued(item);
+      run.started(item);
+      const started = await vscode.debug.startDebugging(
+        vscode.workspace.getWorkspaceFolder(item.uri),
+        {
+          type: "lisp",
+          request: "launch",
+          name: `Debug test: ${item.label}`,
+          program: item.uri.fsPath,
+          runTest: item.label,
+          stopOnEntry: false,
+        },
+      );
+      if (!started) {
+        run.errored(item, new vscode.TestMessage("could not start the lisp debug session"));
+        continue;
+      }
+      // The Testing panel does not receive pass/fail from a debug
+      // session; mark it skipped once the session ends so the spinner
+      // clears (the debugger, breakpoints and Debug Console are the point
+      // here, not the pass/fail badge — use Run for that).
+      await new Promise<void>((resolve) => {
+        const sub = vscode.debug.onDidTerminateDebugSession((s) => {
+          if (s.configuration.runTest === item.label && s.configuration.program === item.uri?.fsPath) {
+            sub.dispose();
+            resolve();
+          }
+        });
+      });
+      run.skipped(item);
+    }
+    run.end();
+  }
+
   ctrl.createRunProfile(
     "Run",
     vscode.TestRunProfileKind.Run,
     (req, token) => runHandler(req, token, false),
     true,
+  );
+  ctrl.createRunProfile(
+    "Debug",
+    vscode.TestRunProfileKind.Debug,
+    (req, token) => debugHandler(req, token),
+    false,
   );
   const covProfile = ctrl.createRunProfile(
     "Coverage",
@@ -249,6 +316,56 @@ export function activateTesting(context: vscode.ExtensionContext): void {
   );
   covProfile.loadDetailedCoverage = async (_run, fileCoverage) =>
     coverageDetails.get(fileCoverage as vscode.FileCoverage) ?? [];
+
+  // Go-parity CodeLens: a "Run Test | Debug Test" pair above each
+  // (deftest …). The commands route back through the same run/debug
+  // handlers, so behaviour matches the Testing panel exactly.
+  const findItem = async (uri: vscode.Uri, name: string): Promise<vscode.TestItem | undefined> => {
+    await parseTestFile(uri);
+    let found: vscode.TestItem | undefined;
+    ctrl.items.get(uri.toString())?.children.forEach((c) => {
+      if (c.label === name) {
+        found = c;
+      }
+    });
+    return found;
+  };
+  context.subscriptions.push(
+    vscode.commands.registerCommand("lisp.test.run", async (uri: vscode.Uri, name: string) => {
+      const item = await findItem(uri, name);
+      if (item) {
+        await runHandler(new vscode.TestRunRequest([item]), new vscode.CancellationTokenSource().token, false);
+      }
+    }),
+    vscode.commands.registerCommand("lisp.test.debug", async (uri: vscode.Uri, name: string) => {
+      const item = await findItem(uri, name);
+      if (item) {
+        await debugHandler(new vscode.TestRunRequest([item]), new vscode.CancellationTokenSource().token);
+      }
+    }),
+    vscode.languages.registerCodeLensProvider(
+      { language: "lisp" },
+      {
+        provideCodeLenses(document): vscode.CodeLens[] {
+          const lenses: vscode.CodeLens[] = [];
+          const lines = document.getText().split("\n");
+          for (let i = 0; i < lines.length; i++) {
+            DEFTEST_RE.lastIndex = 0;
+            let m: RegExpExecArray | null;
+            while ((m = DEFTEST_RE.exec(lines[i])) !== null) {
+              const range = new vscode.Range(i, 0, i, lines[i].length);
+              const name = m[1];
+              lenses.push(
+                new vscode.CodeLens(range, { title: "$(run) Run Test", command: "lisp.test.run", arguments: [document.uri, name] }),
+                new vscode.CodeLens(range, { title: "$(debug-alt) Debug Test", command: "lisp.test.debug", arguments: [document.uri, name] }),
+              );
+            }
+          }
+          return lenses;
+        },
+      },
+    ),
+  );
 }
 
 /** Resolve a check's module/line to a VS Code location, if possible. */

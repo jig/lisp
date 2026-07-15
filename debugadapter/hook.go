@@ -89,6 +89,17 @@ func (h *StepHook) OnEval(ctx context.Context, ev runtime.EvalEvent) error {
 		return nil
 	}
 
+	// A `(fn …)` form evaluates to a closure without running its body, so
+	// it is not a statement to stop on. A breakpoint set inside a function
+	// must fire when the function is *called* (its body runs), not when
+	// the closure is created — which matters most for macro-synthesised
+	// fns whose form shares a source line with their body, e.g. deftest's
+	// `(fn [] <body>)`: without this, a breakpoint in a test body would
+	// also stop once at load time as the test is registered.
+	if list, ok := ev.AST.(types.List); ok && isFnForm(list) {
+		return nil
+	}
+
 	t := runtime.ThreadFromContext(ctx)
 	depth := 0
 	var top *runtime.Frame
@@ -254,6 +265,16 @@ func isDoForm(ast types.List) bool {
 	}
 	sym, ok := ast.Val[0].(types.Symbol)
 	return ok && sym.Val == "do"
+}
+
+// isFnForm reports whether ast is a `(fn …)` special form: evaluating it
+// builds a closure without running the body.
+func isFnForm(ast types.List) bool {
+	if len(ast.Val) == 0 {
+		return false
+	}
+	sym, ok := ast.Val[0].(types.Symbol)
+	return ok && sym.Val == "fn"
 }
 
 // isInlineDoWrapper reports whether ast is a `(do …)` special form whose
