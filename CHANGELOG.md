@@ -163,9 +163,10 @@ Non-breaking, for context (see `git log v0.2.24..` for the full list):
   suites (200+ tests, 1300 value-based checks), run by `TestDeftests`
   and by `lisp --test deftests/`; the originals stay untouched under
   the line-based harness
-- Debug Test: the VS Code extension (0.9.2) gains a **Debug** run
-  profile and Go-style **Run Test | Debug Test** CodeLens above each
-  `deftest`. Debugging launches a DAP session that loads the file and
+- Debug Test: the VS Code extension (0.9.3) gains a **Debug** run
+  profile and Go-style CodeLens — **Run Test | Debug Test** above each
+  `deftest`, plus **Run File Tests | Run All Tests** at the top of any
+  file that has tests. Debugging launches a DAP session that loads the file and
   runs just that test (new `test/run-test!` builtin + `--run-test`
   flag), so breakpoints in the test body are hit. The debugger no
   longer stops when a `(fn …)` closure is merely created (only when its

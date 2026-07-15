@@ -22,6 +22,9 @@ interpreter.
 - Document formatting (a gofmt-style canonical layout, comments
   preserved) via the language server. Enabled on save by default for
   lisp files, or run **Format Document** (`⇧⌥F`) manually.
+- Go-style CodeLens: **Run Test | Debug Test** above each `(deftest …)`,
+  and **Run File Tests | Run All Tests** at the top of any file with
+  tests.
 - Testing panel integration: `(deftest …)` tests in `*_test.lisp` /
   `*_test.mal` files appear in the Test Explorer with run buttons and
   inline failure messages (expected/actual diffs from `(is (= … …))`).
