@@ -95,8 +95,7 @@ func runScript(ctx context.Context, env types.EnvType, fileName string, preamble
 		return nil, err
 	}
 
-	src := ";; $MODULE " + fileName + "\n(do " + content + "\n)"
-	ast, err := reader.Read_str(src, nil, &types.HashMap{Val: values}, env)
+	ast, err := reader.Read_program(content, types.NewCursorFile(fileName), &types.HashMap{Val: values}, env)
 	if err != nil {
 		return nil, err
 	}

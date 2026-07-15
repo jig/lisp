@@ -37,6 +37,17 @@ func lex(src string) ([]token, error) {
 		nl = 0
 	}
 
+	// A leading shebang is a comment token, kept verbatim so formatting
+	// preserves it byte for byte.
+	if strings.HasPrefix(src, "#!") {
+		j := strings.IndexByte(src, '\n')
+		if j < 0 {
+			j = n
+		}
+		emit(tComment, strings.TrimRight(src[:j], " \t\r"))
+		i = j
+	}
+
 	for i < n {
 		c := src[i]
 		switch {

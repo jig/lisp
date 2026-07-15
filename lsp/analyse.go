@@ -67,12 +67,9 @@ type analysis struct {
 	preambles []preambleDef   // in-file placeholder defaults
 }
 
-// analyseDocument parses content with the interpreter's reader and
-// extracts diagnostics and top-level definitions.
-//
-// The reader parses a single form, so the document is wrapped in
-// `(do\n…\n)`; the extra leading line shifts every row by one, which is
-// undone by walking the AST once. This reuses the real reader — the
+// analyseDocument parses content with the interpreter's reader
+// (Read_program: every top-level form, positions matching the document
+// exactly) and extracts diagnostics and top-level definitions — the
 // same positions, the same errors the interpreter itself would report.
 // emptyPlaceholders lets the reader accept `$NAME` preamble
 // placeholders in analysed documents: their values are only known at
@@ -94,13 +91,11 @@ func analyseDocument(name, content string) *analysis {
 			a.preambles = append(a.preambles, preambleDef{name: m[1], expr: m[2], line: i})
 		}
 	}
-	wrapped := "(do\n" + content + "\n)"
-	ast, err := reader.Read_str(wrapped, types.NewCursorFile(name), emptyPlaceholders)
+	ast, err := reader.Read_program(content, types.NewCursorFile(name), emptyPlaceholders)
 	if err != nil {
 		a.diagnostics = append(a.diagnostics, diagnosticFromError(err))
 		return a
 	}
-	shiftRows(ast, -1, map[*types.Position]bool{})
 	wrapper, ok := ast.(types.List)
 	if !ok || len(wrapper.Val) == 0 {
 		return a
@@ -644,8 +639,7 @@ func (b *semBuilder) ref(sym types.Symbol) {
 }
 
 // diagnosticFromError converts a reader error into an LSP diagnostic.
-// Rows are shifted by -1 to undo the `(do\n` wrapper line; LSP positions
-// are zero-based while the reader's are one-based.
+// LSP positions are zero-based while the reader's are one-based.
 func diagnosticFromError(err error) Diagnostic {
 	d := Diagnostic{
 		Severity: severityError,
@@ -655,10 +649,9 @@ func diagnosticFromError(err error) Diagnostic {
 	var pos *types.Position
 	if lispErr, ok := err.(lisperror.LispError); ok {
 		pos = lispErr.Position()
-		// The wrapped LispError message embeds "<module>:<row>:", with the
-		// row offset by the `(do\n` wrapper line. The diagnostic range
-		// already carries the (corrected) position, so surface only the
-		// bare underlying message.
+		// The wrapped LispError message embeds "<module>:<row>:"; the
+		// diagnostic range already carries the position, so surface only
+		// the bare underlying message.
 		if inner, ok := lispErr.ErrorValue().(error); ok {
 			d.Message = inner.Error()
 		}
@@ -667,7 +660,7 @@ func diagnosticFromError(err error) Diagnostic {
 		d.Range = Range{Start: Position{0, 0}, End: Position{0, 1}}
 		return d
 	}
-	startLine := pos.BeginRow - 2 // -1 wrapper line, -1 zero-based
+	startLine := pos.BeginRow - 1 // zero-based
 	if startLine < 0 {
 		startLine = 0
 	}
@@ -675,7 +668,7 @@ func diagnosticFromError(err error) Diagnostic {
 	if startChar < 0 {
 		startChar = 0
 	}
-	endLine := pos.Row - 2
+	endLine := pos.Row - 1
 	endChar := pos.Col
 	if endLine < startLine || (endLine == startLine && endChar <= startChar) {
 		endLine = startLine
@@ -734,43 +727,6 @@ func definitionOf(form types.MalType) (definition, bool) {
 		}
 	}
 	return d, true
-}
-
-// shiftRows walks the AST adjusting every cursor's rows by delta. seen
-// guards against adjusting a shared *Position twice.
-func shiftRows(ast types.MalType, delta int, seen map[*types.Position]bool) {
-	switch n := ast.(type) {
-	case types.List:
-		shiftPos(n.Cursor, delta, seen)
-		for _, c := range n.Val {
-			shiftRows(c, delta, seen)
-		}
-	case types.Vector:
-		shiftPos(n.Cursor, delta, seen)
-		for _, c := range n.Val {
-			shiftRows(c, delta, seen)
-		}
-	case types.HashMap:
-		shiftPos(n.Cursor, delta, seen)
-		for _, v := range n.Val {
-			shiftRows(v, delta, seen)
-		}
-	case types.Set:
-		shiftPos(n.Cursor, delta, seen)
-	case types.Symbol:
-		shiftPos(n.Cursor, delta, seen)
-	}
-}
-
-func shiftPos(p *types.Position, delta int, seen map[*types.Position]bool) {
-	if p == nil || seen[p] {
-		return
-	}
-	seen[p] = true
-	p.BeginRow += delta
-	if p.Row > 0 {
-		p.Row += delta
-	}
 }
 
 // rangeOf converts a reader position (one-based) to an LSP range

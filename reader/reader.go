@@ -43,6 +43,11 @@ func (tr *tokenReader) peek() *Token {
 }
 
 func tokenize(sourceCode string, cursor *Position) ([]Token, error) {
+	// A leading shebang (#!/usr/bin/env lisp) reads as a comment: the two
+	// bytes are replaced in place so every position stays exact.
+	if strings.HasPrefix(sourceCode, "#!") {
+		sourceCode = ";;" + sourceCode[2:]
+	}
 	result := make([]Token, 0, 1)
 
 	var s scanner.Scanner
@@ -409,4 +414,37 @@ func Read_str(str string, cursor *Position, placeholderValues *HashMap, ns ...En
 		return nil, lisperror.NewLispError(errors.New("not all tokens where parsed"), tokenReader.tokens[tokenReader.position-1])
 	}
 	return res, nil
+}
+
+// Read_program reads a whole compilation unit — any number of top-level
+// forms — and returns them wrapped in a single (do …) form built
+// directly as AST, so every position matches the source exactly: no
+// textual "(do " wrapping, no `;; $MODULE` prefix line, no row
+// shifting. A source with no forms (empty, or only comments) reads as
+// nil.
+func Read_program(str string, cursor *Position, placeholderValues *HashMap, ns ...EnvType) (MalType, error) {
+	if cursor == nil {
+		cursor = NewAnonymousCursorHere(1, 1)
+	}
+	tokens, err := tokenize(str, cursor)
+	if err != nil {
+		return nil, err
+	}
+	if len(tokens) == 0 {
+		return nil, nil
+	}
+	rdr := tokenReader{tokens: tokens, position: 0}
+	var nsv EnvType
+	if len(ns) != 0 {
+		nsv = ns[0]
+	}
+	forms := []MalType{Symbol{Val: "do"}}
+	for rdr.position < len(rdr.tokens) {
+		form, err := read_form(&rdr, placeholderValues, nsv)
+		if err != nil {
+			return nil, err
+		}
+		forms = append(forms, form)
+	}
+	return List{Val: forms, Cursor: tokens[0].Cursor.Copy()}, nil
 }

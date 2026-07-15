@@ -130,6 +130,7 @@ var coreDocs = []struct{ name, arglist, doc string }{
 	{"set", "[coll]", "Creates a set from the elements of coll."},
 
 	// Time & version
+	{"read-program", "[src module]", "Reads every form in src as one (do …) AST with positions attributed to module; load-file builds on it."},
 	{"time-ms", "[]", "Current time in milliseconds since the epoch."},
 	{"time-ns", "[]", "Current time in nanoseconds since the epoch."},
 	{"time-format", "[ms]", "Formats epoch milliseconds (as of time-ms) as an RFC 3339 UTC timestamp with millisecond precision."},
