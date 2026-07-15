@@ -2,7 +2,7 @@
   "name": "vscode-lisp",
   "displayName": "jig/lisp",
   "description": "Language support and debugger for the jig/lisp interpreter",
-  "version": "0.9.2",
+  "version": "0.9.3",
   "publisher": "jig",
   "icon": "./icons/icon.png",
   "license": "SEE LICENSE IN ../../LICENCE",

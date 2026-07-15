@@ -343,16 +343,30 @@ export function activateTesting(context: vscode.ExtensionContext): void {
         await debugHandler(new vscode.TestRunRequest([item]), new vscode.CancellationTokenSource().token);
       }
     }),
+    vscode.commands.registerCommand("lisp.test.runFile", async (uri: vscode.Uri) => {
+      await parseTestFile(uri);
+      const fileItem = ctrl.items.get(uri.toString());
+      if (fileItem) {
+        await runHandler(new vscode.TestRunRequest([fileItem]), new vscode.CancellationTokenSource().token, false);
+      }
+    }),
+    vscode.commands.registerCommand("lisp.test.runAll", async () => {
+      await runHandler(new vscode.TestRunRequest(), new vscode.CancellationTokenSource().token, false);
+    }),
     vscode.languages.registerCodeLensProvider(
       { language: "lisp" },
       {
         provideCodeLenses(document): vscode.CodeLens[] {
           const lenses: vscode.CodeLens[] = [];
           const lines = document.getText().split("\n");
+          let firstDeftest = -1;
           for (let i = 0; i < lines.length; i++) {
             DEFTEST_RE.lastIndex = 0;
             let m: RegExpExecArray | null;
             while ((m = DEFTEST_RE.exec(lines[i])) !== null) {
+              if (firstDeftest < 0) {
+                firstDeftest = i;
+              }
               const range = new vscode.Range(i, 0, i, lines[i].length);
               const name = m[1];
               lenses.push(
@@ -360,6 +374,14 @@ export function activateTesting(context: vscode.ExtensionContext): void {
                 new vscode.CodeLens(range, { title: "$(debug-alt) Debug Test", command: "lisp.test.debug", arguments: [document.uri, name] }),
               );
             }
+          }
+          // Go-style file-level lenses at the very top of any file with tests.
+          if (firstDeftest >= 0) {
+            const top = new vscode.Range(0, 0, 0, 0);
+            lenses.unshift(
+              new vscode.CodeLens(top, { title: "$(run-all) Run File Tests", command: "lisp.test.runFile", arguments: [document.uri] }),
+              new vscode.CodeLens(top, { title: "$(run-all) Run All Tests", command: "lisp.test.runAll", arguments: [] }),
+            );
           }
           return lenses;
         },
