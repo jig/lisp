@@ -90,13 +90,11 @@ func TestServer_DebugTestStopsInBody(t *testing.T) {
 	// stop there too, before the body runs under test/run-test!).
 	seq := 5
 	stops := []int{}
-	terminated := false
-	for !terminated {
+	for {
 		msg := readUntil(t, client, func(m map[string]interface{}) bool {
 			return m["event"] == "stopped" || m["event"] == "terminated"
 		})
 		if msg["event"] == "terminated" {
-			terminated = true
 			break
 		}
 		sendRequest(t, client, seq, "stackTrace", map[string]interface{}{"threadId": 1, "startFrame": 0, "levels": 20})
