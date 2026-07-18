@@ -10,6 +10,7 @@ import (
 	"github.com/jig/lisp/lib/concurrent/nsconcurrent"
 	"github.com/jig/lisp/lib/core/nscore"
 	"github.com/jig/lisp/lib/coreextended/nscoreextended"
+	"github.com/jig/lisp/lib/git/nsgit"
 	"github.com/jig/lisp/lib/integrity/nsintegrity"
 	"github.com/jig/lisp/lib/lazy/nslazy"
 	"github.com/jig/lisp/lib/require/nsrequire"
@@ -46,6 +47,7 @@ func libraries(scriptArgs []string) []library {
 		{"cli", nscli.Load},
 		{"integrity", nsintegrity.Load},
 		{"web", nsweb.Load},
+		{"git", nsgit.Load},
 		{"test", nstest.Load},
 	}
 }
