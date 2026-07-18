@@ -508,6 +508,23 @@ Attest and verify lisp source (formatting, hashing, Ed25519 signatures).
 | `git-verify-tag` | `[repo name allowed-keys]` | Verifies the SSH signature of annotated tag name; same contract as git-verify-commit. |
 | `git-with-repo ⁽ᵐ⁾` | `[binding & body]` | (git-with-repo [r (git-open …)] body…) binds r and guarantees git-close when body finishes or throws. |
 
+### term
+
+| Name | Arguments | Description |
+| ---- | --------- | ----------- |
+| `term-blue` | `[s]` | — |
+| `term-bold` | `[s]` | — |
+| `term-color?` | `[]` | Whether styled output is enabled: stdout is a terminal, NO_COLOR is unset and TERM is not "dumb"; CLICOLOR_FORCE=1 forces it on. |
+| `term-cyan` | `[s]` | — |
+| `term-gray` | `[s]` | — |
+| `term-green` | `[s]` | — |
+| `term-magenta` | `[s]` | — |
+| `term-red` | `[s]` | — |
+| `term-style` | `[s opts]` | Wraps string s in ANSI codes per opts {:fg :bg :bold :dim :italic :underline :blink :reverse :strikethrough}; colors are keywords (:red, :bright-red, ...), 0-255 ints or "#rrggbb". Returns s unchanged when color is off. |
+| `term-underline` | `[s]` | — |
+| `term-width` | `[]` | The terminal width in columns, or 0 when stdout is not a terminal. |
+| `term-yellow` | `[s]` | — |
+
 ### test
 
 | Name | Arguments | Description |

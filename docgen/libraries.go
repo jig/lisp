@@ -12,6 +12,7 @@ import (
 	"github.com/jig/lisp/lib/require/nsrequire"
 	"github.com/jig/lisp/lib/sql/nssql"
 	"github.com/jig/lisp/lib/system/nssystem"
+	"github.com/jig/lisp/lib/term/nsterm"
 	"github.com/jig/lisp/lib/test/nstest"
 	"github.com/jig/lisp/lib/web/nsweb"
 	"github.com/jig/lisp/types"
@@ -44,6 +45,7 @@ func standardLibraries() []library {
 		{"integrity", nsintegrity.Load},
 		{"web", nsweb.Load},
 		{"git", nsgit.Load},
+		{"term", nsterm.Load},
 		{"test", nstest.Load},
 	}
 }
