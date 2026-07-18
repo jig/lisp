@@ -20,18 +20,18 @@ type args struct {
 	Version   bool     `arg:"-v,--version" help:"show version information"`
 	Test      string   `arg:"-t,--test" help:"run the test suite from a directory or a single test file" placeholder:"DIR|FILE"`
 	TestJSON  string   `arg:"--test-json" help:"with --test, also write a JSON report to the given file" placeholder:"FILE"`
-	Coverage  string   `arg:"--coverage" help:"write an lcov coverage report of the executed lisp code (requires lispdebug build)" placeholder:"FILE"`
-	Debug     bool     `arg:"--debug" help:"enable DEBUG-EVAL support (requires lispdebug build)"`
+	Coverage  string   `arg:"--coverage" help:"write an lcov coverage report of the executed lisp code (requires -tags debugger)" placeholder:"FILE"`
+	Debug     bool     `arg:"--debug" help:"enable DEBUG-EVAL support (requires -tags debugger)"`
 	Eval      string   `arg:"-e,--eval" help:"evaluate expression and exit" placeholder:"EXPR"`
 	Fmt       bool     `arg:"--fmt" help:"format lisp source (files given as arguments, or stdin) and print the result"`
 	Write     bool     `arg:"-w,--write" help:"with --fmt, rewrite each file in place instead of printing"`
 	Include   []string `arg:"-i,--include,separate" help:"add include directory for require (needs the require library loaded)" placeholder:"DIR"`
 	Preamble  []string `arg:"-P,--preamble,separate" help:"define a preamble placeholder for the script, e.g. -P '$NAME <expr>'" placeholder:"ASSIGN"`
-	DAP       bool     `arg:"--dap" help:"start a Debug Adapter Protocol server on stdio (requires lispdebug build)"`
-	DAPListen string   `arg:"--dap-listen" help:"start a DAP server on the given TCP address (requires lispdebug build)" placeholder:"HOST:PORT"`
+	DAP       bool     `arg:"--dap" help:"start a Debug Adapter Protocol server on stdio (requires -tags debugger)"`
+	DAPListen string   `arg:"--dap-listen" help:"start a DAP server on the given TCP address (requires -tags debugger)" placeholder:"HOST:PORT"`
 	RunTest   string   `arg:"--run-test" help:"with --dap, run the named deftest after loading the script (used by the editor's Debug Test)" placeholder:"NAME"`
-	LSP       bool     `arg:"--lsp" help:"start a Language Server Protocol server on stdio (requires lispdebug build)"`
-	LSPListen string   `arg:"--lsp-listen" help:"start an LSP server on the given TCP address (requires lispdebug build)" placeholder:"HOST:PORT"`
+	LSP       bool     `arg:"--lsp" help:"start a Language Server Protocol server on stdio (requires -tags debugger)"`
+	LSPListen string   `arg:"--lsp-listen" help:"start an LSP server on the given TCP address (requires -tags debugger)" placeholder:"HOST:PORT"`
 	BatSyntax bool     `arg:"--install-bat-syntax" help:"install the jig/lisp syntax into bat (writes to bat's config dir and rebuilds its cache)"`
 	Script    string   `arg:"positional" help:"lisp script to execute"`
 	Args      []string `arg:"positional" help:"arguments to pass to the script"`
@@ -88,7 +88,7 @@ func Execute(cmdArgs []string, repl_env types.EnvType) error {
 	}
 
 	// Enable DEBUG-EVAL if flag is set. setupDebugHook is gated by the
-	// `lispdebug` build tag: in release builds it returns an error so the
+	// `debugger` build tag: in release builds it returns an error so the
 	// flag cannot accidentally enable hook code that was compiled out.
 	if parsedArgs.Debug {
 		if err := setupDebugHook(); err != nil {

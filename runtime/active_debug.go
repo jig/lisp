@@ -1,4 +1,4 @@
-//go:build lispdebug
+//go:build debugger
 
 package runtime
 
@@ -13,7 +13,7 @@ import (
 )
 
 // Enabled reports whether hook dispatching is compiled in.
-// Always true in debug builds (`-tags lispdebug`).
+// Always true in debug builds (`-tags debugger`).
 const Enabled = true
 
 // Hook is the active EvalHook. nil disables hooking.
@@ -21,6 +21,19 @@ const Enabled = true
 // Set this once before kicking off EVAL goroutines. Concurrent reads are
 // safe; concurrent writes are not synchronised — callers must coordinate.
 var Hook EvalHook
+
+// armed is set (one-way) when frame tracking becomes necessary: a Thread
+// is attached to a context. Hook installation needs no arming because
+// Active checks Hook directly.
+var armed atomic.Bool
+
+// Active reports whether any debugging facility is engaged (a hook is
+// installed or a Thread was ever created). EVAL consults it once per
+// call and per iteration so that a debugger-capable binary pays only
+// this check — not frame bookkeeping — until debugging actually starts.
+func Active() bool {
+	return Hook != nil || armed.Load()
+}
 
 // Dispatch invokes the active hook if any. EVAL calls this once per
 // iteration when Enabled is true.
@@ -256,8 +269,10 @@ type ctxKey struct{}
 var threadKey ctxKey
 
 // WithThread returns a context carrying the given Thread. EVAL calls
-// invoked with this context push/pop frames on it.
+// invoked with this context push/pop frames on it. Creating a thread
+// arms frame tracking for the whole process (one-way).
 func WithThread(ctx context.Context, t *Thread) context.Context {
+	armed.Store(true)
 	return context.WithValue(ctx, threadKey, t)
 }
 

@@ -84,7 +84,7 @@
               },
               "env": {
                 "type": "object",
-                "description": "Environment variables passed to the lisp-debug process. Useful for LISP_DAP_TRACE=1 to print step-mode diagnostics on the debug console.",
+                "description": "Environment variables passed to the lisp process. Useful for LISP_DAP_TRACE=1 to print step-mode diagnostics on the debug console.",
                 "default": {}
               },
               "cwd": {
@@ -133,8 +133,8 @@
       "properties": {
         "lisp.debugAdapter.command": {
           "type": "string",
-          "default": "lisp-debug",
-          "description": "Path or name of the debug-build interpreter (built with `go build -tags lispdebug`). The extension spawns this as the DAP server."
+          "default": "lisp",
+          "description": "Path or name of the debug-build interpreter (built with `go build -tags debugger`). The extension spawns this as the DAP server."
         },
         "lisp.debugAdapter.extraArgs": {
           "type": "array",
@@ -147,11 +147,11 @@
         "lisp.languageServer.enabled": {
           "type": "boolean",
           "default": true,
-          "description": "Enable the LSP client (diagnostics, completion, hover, outline). Requires the lisp-debug binary."
+          "description": "Enable the LSP client (diagnostics, completion, hover, outline). Requires the lisp binary."
         },
         "lisp.languageServer.command": {
           "type": "string",
-          "default": "lisp-debug",
+          "default": "lisp",
           "description": "Path or name of the debug-build interpreter spawned as the LSP server (with --lsp)."
         },
         "lisp.languageServer.includeDirs": {
@@ -165,7 +165,7 @@
         "lisp.testRunner.command": {
           "type": "string",
           "default": "",
-          "description": "Binary used by the Testing panel to run lisp tests (defaults to lisp.debugAdapter.command; needs a lispdebug build for coverage)."
+          "description": "Binary used by the Testing panel to run lisp tests (defaults to lisp.debugAdapter.command; needs a debugger build for coverage)."
         }
       }
     },

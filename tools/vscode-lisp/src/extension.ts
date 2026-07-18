@@ -12,7 +12,7 @@ let client: LanguageClient | undefined;
  * Activate the extension. Registers a DebugAdapterDescriptorFactory for
  * the `lisp` debug type (the factory tells VSCode to spawn the
  * lispdebug-build interpreter as the DAP server over stdio) and starts
- * the LSP client against the same binary (`lisp-debug --lsp`).
+ * the LSP client against the same binary (`lisp --lsp`).
  */
 export function activate(context: vscode.ExtensionContext): void {
   context.subscriptions.push(
@@ -33,7 +33,7 @@ export function activate(context: vscode.ExtensionContext): void {
 
   const cfg = vscode.workspace.getConfiguration("lisp");
   if (cfg.get<boolean>("languageServer.enabled", true)) {
-    const command = cfg.get<string>("languageServer.command", "lisp-debug");
+    const command = cfg.get<string>("languageServer.command", "lisp");
     // Spawn at the workspace root: require's git-root search walks up
     // from the process cwd.
     const cwd = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
@@ -78,7 +78,7 @@ class LispDebugAdapterDescriptorFactory
     _executable: vscode.DebugAdapterExecutable | undefined,
   ): vscode.ProviderResult<vscode.DebugAdapterDescriptor> {
     const cfg = vscode.workspace.getConfiguration("lisp");
-    const command = cfg.get<string>("debugAdapter.command", "lisp-debug");
+    const command = cfg.get<string>("debugAdapter.command", "lisp");
     const extra = cfg.get<string[]>("debugAdapter.extraArgs", []);
 
     const program = session.configuration.program;

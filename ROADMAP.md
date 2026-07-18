@@ -159,7 +159,7 @@ does not parse is left untouched). See [format](format/) and
 ## Backward compatibility (vital)
 
 Ground rule for every item above: **anything touching the interpreter
-(mal.go, lib/concurrent, runtime) goes behind the `lispdebug` build tag
+(mal.go, lib/concurrent, runtime) goes behind the `debugger` build tag
 so the release binary's semantics never change.** LSP/DAP protocol
 additions are inherently safe: their only consumer is the VSCode
 extension.

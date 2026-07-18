@@ -70,12 +70,12 @@ var placeholderRE = regexp.MustCompile(`^(;; \$[\-\d\w]+)+\s(.+)`)
 const preamblePrefix = ";; $"
 
 // DebugEvalEnabled is a deprecated shim for the legacy DEBUG-EVAL print
-// behaviour. Setting it to true takes effect only in `lispdebug` builds,
+// behaviour. Setting it to true takes effect only in `debugger` builds,
 // where it installs runtime.PrintEvalHook on the next EVAL call. In
 // release builds (the default) the flag has no effect because the hook
 // dispatch in EVAL is compiled out.
 //
-// Deprecated: in `lispdebug` builds, install a runtime.EvalHook directly
+// Deprecated: in `debugger` builds, install a runtime.EvalHook directly
 // via `runtime.Hook = runtime.PrintEvalHook{}` (or your own
 // implementation). New code in this repo wires --debug through that path.
 var DebugEvalEnabled = false
@@ -469,11 +469,14 @@ func evalInternal(ctx context.Context, ast MalType, env EnvType) (res MalType, e
 	isMacro := is_macro_call(ast, env)
 	functionName := extractFunctionName(ast, isMacro)
 
-	// Live execution stack (debug builds only). In release builds the
+	// Live execution stack (debugger builds only). In release builds the
 	// helpers are no-ops and `runtime.Enabled` is the compile-time
-	// constant `false`, so the whole block is dead code.
+	// constant `false`, so the whole block is dead code. In debugger
+	// builds runtime.Active() keeps the frame bookkeeping off until a
+	// hook is installed or a debug Thread exists, so an idle
+	// debugger-capable binary evaluates at (almost) release speed.
 	var frame *runtime.Frame
-	if runtime.Enabled {
+	if runtime.Enabled && runtime.Active() {
 		frame = runtime.MakeFrame(functionName, ast, env, lisperror.GetPosition(ast))
 		if runtime.PushFrame(ctx, frame) {
 			defer runtime.PopFrame(ctx)
@@ -505,7 +508,7 @@ func evalInternal(ctx context.Context, ast MalType, env EnvType) (res MalType, e
 	defer func() {
 		if e != nil {
 			if lispErr, ok := e.(lisperror.LispError); ok {
-				if runtime.Enabled && len(lispErr.Stack) == 0 {
+				if runtime.Enabled && runtime.Active() && len(lispErr.Stack) == 0 {
 					runtime.DispatchError(ctx, lispErr, ast, env, lisperror.GetPosition(ast), functionName)
 				}
 				e = lispErr.AddStackFrame(lisperror.GetPosition(ast), functionName)
@@ -531,16 +534,20 @@ func evalInternal(ctx context.Context, ast MalType, env EnvType) (res MalType, e
 			}
 		}
 
-		// Pluggable hook (debug builds only). When `runtime.Enabled` is
-		// the compile-time constant `false` (release build), the entire
-		// branch is dead code and the compiler removes it.
+		// Pluggable hook (debugger builds only). When `runtime.Enabled`
+		// is the compile-time constant `false` (release build), the
+		// entire branch is dead code and the compiler removes it. The
+		// legacy install check runs before the Active gate because it is
+		// what arms the hook in the first place.
 		if runtime.Enabled {
-			runtime.UpdateFrame(frame, ast, env, lisperror.GetPosition(ast))
 			if DebugEvalEnabled {
 				installLegacyDebugHook()
 			}
-			if err := runtime.Dispatch(ctx, ast, env, lisperror.GetPosition(ast)); err != nil {
-				return nil, err
+			if runtime.Active() {
+				runtime.UpdateFrame(frame, ast, env, lisperror.GetPosition(ast))
+				if err := runtime.Dispatch(ctx, ast, env, lisperror.GetPosition(ast)); err != nil {
+					return nil, err
+				}
 			}
 		}
 
@@ -560,7 +567,7 @@ func evalInternal(ctx context.Context, ast MalType, env EnvType) (res MalType, e
 		// already ran for the original call, so run it again for the
 		// expanded form. Otherwise a breakpoint or step on the line of
 		// the outermost expanded call would never trigger.
-		if runtime.Enabled && wasMacro {
+		if runtime.Enabled && wasMacro && runtime.Active() {
 			runtime.UpdateFrame(frame, ast, env, lisperror.GetPosition(ast))
 			if err := runtime.Dispatch(ctx, ast, env, lisperror.GetPosition(ast)); err != nil {
 				return nil, err

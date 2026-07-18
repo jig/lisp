@@ -1,4 +1,4 @@
-//go:build !lispdebug
+//go:build !debugger
 
 package runtime
 
@@ -12,6 +12,10 @@ import (
 // Always false in release builds. Callers can guard with
 // `if runtime.Enabled { ... }` and the compiler will eliminate the branch.
 const Enabled = false
+
+// Active is always false in release builds; with Enabled being the
+// compile-time constant false, guarded call sites are removed entirely.
+func Active() bool { return false }
 
 // Dispatch is a no-op in release builds. The constant `Enabled = false`
 // guarantees this is dead code and the compiler removes the call site.
@@ -30,7 +34,7 @@ func DispatchError(_ context.Context, _ error, _ types.MalType, _ types.EnvType,
 func RecordResult(_ context.Context, _ types.MalType) {}
 
 // Frame is a stub in release builds. The Frame contents only exist in
-// `lispdebug` builds; this empty struct keeps consumer code (mal.go,
+// `debugger` builds; this empty struct keeps consumer code (mal.go,
 // debugadapter) compilable when wrapped in `if runtime.Enabled { ... }`.
 type Frame struct{}
 

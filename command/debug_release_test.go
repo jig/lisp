@@ -1,4 +1,4 @@
-//go:build !lispdebug
+//go:build !debugger
 
 package command
 
@@ -28,7 +28,7 @@ func TestExecute_DebugFlagRequiresDebugBuild(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected --debug to fail in release build")
 	}
-	if !strings.Contains(err.Error(), "lispdebug") {
-		t.Fatalf("expected error to mention lispdebug build tag, got %v", err)
+	if !strings.Contains(err.Error(), "debugger") {
+		t.Fatalf("expected error to mention debugger build tag, got %v", err)
 	}
 }
