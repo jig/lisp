@@ -470,6 +470,36 @@ Attest and verify lisp source (formatting, hashing, Ed25519 signatures).
 | `web/wrap-log` | `[handler]` | Middleware: logs one structured JSON line per request with method, uri, status and elapsed ms. |
 | `web/wrap-recover` | `[handler]` | Middleware: turns any error escaping the handler into a 500 JSON response instead of dropping the connection. |
 
+### git
+
+| Name | Arguments | Description |
+| ---- | --------- | ----------- |
+| `git/add` | `[repo path & {:all :glob}]` | Stages path ("." for everything); :all true stages all modified/deleted files, :glob true treats path as a glob pattern. |
+| `git/branch` | `[repo name & {:checkout :at}]` | Creates branch name at HEAD (or :at rev); :checkout true switches to it. |
+| `git/branches` | `[repo]` | Returns a vector of {:name :hash :head} for local branches. |
+| `git/checkout` | `[repo ref & {:create :force}]` | Checks out a branch, tag or revision; :create true creates the branch first. |
+| `git/clone` | `[url path & {:auth :branch :depth :single-branch :bare}]` | Clones url into path and returns a handle; see git/push for the :auth map. |
+| `git/close` | `[repo]` | Closes a repository handle. |
+| `git/commit` | `[repo msg & {:author {:name :email} :committer :sign {:key :passphrase} :all :allow-empty :amend}]` | Commits staged changes and returns the commit map; :sign takes an OpenSSH private key (PEM string) and produces an SSH signature. |
+| `git/fetch` | `[repo & {:auth :remote :refspecs :depth :prune :force}]` | Fetches from :remote (default origin); returns :ok or :up-to-date. |
+| `git/head` | `[repo]` | Returns {:name :branch :hash} for HEAD. |
+| `git/init` | `[path & {:bare :object-format}]` | Creates a repository at path and returns a handle; :object-format "sha256" for a SHA-256 repo. |
+| `git/log` | `[repo & {:max :from :all :path}]` | Returns a vector of commit maps from HEAD (or :from rev), newest first. |
+| `git/open` | `[path]` | Opens an existing repository and returns a handle. |
+| `git/pull` | `[repo & {:auth :remote :branch :depth :force}]` | Pulls into the current branch; returns :ok or :up-to-date. |
+| `git/push` | `[repo & {:auth :remote :refspecs :force :prune :follow-tags}]` | Pushes to :remote (default origin); returns :ok or :up-to-date. :auth is :ssh-agent, {:ssh-key pem :passphrase p :user u :known-hosts path :insecure-host-key bool}, {:username u :password p}, {:token t} or {:bearer t}. |
+| `git/remote-add` | `[repo name url]` | Adds a remote. |
+| `git/remotes` | `[repo]` | Returns a vector of {:name :urls} for the configured remotes. |
+| `git/show` | `[repo rev]` | Returns the commit map for rev (hash, "HEAD", branch or tag name). |
+| `git/status` | `[repo]` | Returns {:clean bool :files {path {:staging kw :worktree kw}}} for the worktree. |
+| `git/tag` | `[repo name & {:at :message :tagger {:name :email} :sign}]` | Creates a tag at HEAD (or :at rev); :message makes it annotated, :sign (requires :message) signs it. |
+| `git/tag-verified?` | `[repo name allowed-keys]` | (git/tag-verified? repo name allowed-keys) is true when the tag's SSH signature verifies against allowed-keys. |
+| `git/tags` | `[repo]` | Returns a vector of {:name :hash :target :annotated} for all tags. |
+| `git/verified?` | `[repo rev allowed-keys]` | (git/verified? repo rev allowed-keys) is true when the commit's SSH signature verifies against allowed-keys. |
+| `git/verify-commit` | `[repo rev allowed-keys]` | Verifies the SSH signature of rev against allowed-keys (authorized_keys-format lines); returns {:valid true :key-type :fingerprint :hash-algorithm :signer} or throws. |
+| `git/verify-tag` | `[repo name allowed-keys]` | Verifies the SSH signature of annotated tag name; same contract as git/verify-commit. |
+| `git/with-repo ⁽ᵐ⁾` | `[binding & body]` | (git/with-repo [r (git/open …)] body…) binds r and guarantees git/close when body finishes or throws. |
+
 ### test
 
 | Name | Arguments | Description |
