@@ -8,6 +8,25 @@ migration note.
 
 ## Unreleased (since v0.2.24)
 
+### ⚠️ Changed — one binary, `debugger` build tag (was `lispdebug`)
+
+The two-binary split (`lisp` + `lisp-debug`) is gone. There is one
+`lisp` binary, and one build tag, renamed **`lispdebug` → `debugger`**:
+
+- **Installing the CLI/REPL**: build with the tag —
+  `go install -tags debugger github.com/jig/lisp/cmd/lisp@latest`. This
+  compiles in the LSP server, the DAP debugger and coverage. A cheap
+  hook check in the evaluator keeps the cost of an *idle* debugger
+  build under ~1% geomean (~3% on eval-heavy loops) — frame tracking
+  only starts when a hook is installed or a debug session begins.
+- **Embedding in Go**: build without tags (the default for any
+  importer) and the evaluator's debug paths are compiled out entirely,
+  as before. `--dap`, `--lsp`, `--coverage` and `--debug` error out in
+  such builds.
+- Anyone scripting the old names must switch `-tags lispdebug` →
+  `-tags debugger` and `lisp-debug` → `lisp`; the VS Code extension
+  defaults now spawn `lisp`.
+
 ### ⚠️ Changed — error message formatting
 
 Two related changes affect the **text** of error messages (what
@@ -169,7 +188,7 @@ Non-breaking, for context (see `git log v0.2.24..` for the full list):
   `--test` now also accepts a single file, runs registered tests after
   loading (legacy `*_test.mal` suites keep working), reports Go-style
   failures, exits non-zero, and `--test-json FILE` writes a machine
-  report. In `lispdebug` builds, `--coverage FILE` records per-line
+  report. In `debugger` builds, `--coverage FILE` records per-line
   execution of the lisp sources (lcov; test files excluded) for any run
   or test suite. The VS Code extension (0.9.0) integrates both: a
   Testing panel with per-test run buttons and failure diffs, and a
@@ -244,7 +263,7 @@ Non-breaking, for context (see `git log v0.2.24..` for the full list):
 - `*FILE*` — absolute path of the script being executed (cf. Clojure's
   `*file*`); unset in the REPL and `-e`
 - LSP/DAP improvements (signature help, hover docs, macro-aware
-  stepping) under the `lispdebug` build tag
+  stepping) under the `debugger` build tag
 - Clojure-style docstrings on `defn`, and `call.Doc` for documenting Go
   builtins
 - Robustness pass: malformed input now returns errors instead of

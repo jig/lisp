@@ -23,23 +23,22 @@ It requires Go 1.25.
 You need to have Go installed and configured. Then run:
 
 ```bash
-go install github.com/jig/lisp/cmd/lisp@latest
+go install -tags debugger github.com/jig/lisp/cmd/lisp@latest
 ```
+
+The `debugger` tag compiles in the LSP server, the DAP debugger and
+coverage support; a hook check in the evaluator keeps its cost near zero
+(<1% geomean) until a debugger actually attaches, so this is the build
+you want for the CLI and the REPL. Omitting the tag produces a smaller,
+hook-free evaluator that cannot debug — the right choice only when
+embedding jig/lisp inside a Go program (a plain `import` of the module
+gets this zero-overhead mode automatically).
 
 ### Development on Visual Studio Code
 
 `jig/lisp` includes a VSCode extension that provides a debugger and a language server. See [./tools/vscode-lisp/README.md](./tools/vscode-lisp/README.md) for installation and usage instructions.
 
-It provides an LSP (Language Server Protocol) server and a DAP (Debug Adapter Protocol) server, both enabled with the `lispdebug` build tag. The extension spawns a separate binary named `lisp-debug` (the regular `lisp` binary embeds neither the DAP nor the LSP server).
-
-You need to have Go installed and configured, for Linux and MacOS:
-
-```bash
-git clone github.com/jig/lisp
-cd lisp
-go build -tags lispdebug -o /tmp/lisp-debug ./cmd/lisp
-sudo install /tmp/lisp-debug /usr/local/bin/
-```
+It provides an LSP (Language Server Protocol) server and a DAP (Debug Adapter Protocol) server, both included in the `lisp` binary when it is built with the `debugger` tag (the recommended install above). The extension spawns that same `lisp` binary — there is no separate debug binary.
 
 Then build and install the VSCode extension (it is not published in the VSCode marketplace):
 
@@ -101,13 +100,13 @@ so printing behaviour is testable too:
 ```
 
 With
-the debug build, add `--coverage cov.lcov` to write an lcov report of
+a `-tags debugger` build, add `--coverage cov.lcov` to write an lcov report of
 the lisp lines executed (test files excluded), consumable by any lcov
 tool and by the VS Code extension's **Coverage** test profile, which
 paints covered/uncovered lines in the editor:
 
 ```bash
-lisp-debug --test ./tests --coverage cov.lcov
+lisp --test ./tests --coverage cov.lcov
 ```
 
 Coverage is recorded per form and mapped to lines; lines holding only
@@ -149,7 +148,7 @@ Changes respect to [kanaka/mal](https://github.com/kanaka/mal):
 - `(hash-map-decode (new-go-object) ¬{"key": "value"}¬)` to decode hash map to a Go struct if that struct has the appropiate Go marshaler
 - `(context (do ...))` provides a Go context. Context contents depend on Go, and might be passed to specific functions context compatible
 - Unit-testing library (`deftest`, `is`, `are`, `with-out-str`) run with `lisp --test DIR`, which loads every `*_test.lisp` / `*_test.mal` file in `DIR` and runs the registered tests. See "Testing lisp code" below
-- `web` library — a Ring-style HTTP/HTTPS server (`web/serve`, `web/router`, response helpers, middleware) with TLS, mTLS and Keycloak-compatible JWT verification. See [lib/web/README.md](./lib/web/README.md)
+- `web` library — a Ring-style HTTP/HTTPS server (`web-serve`, `web-router`, response helpers, middleware) with TLS, mTLS and Keycloak-compatible JWT verification. See [lib/web/README.md](./lib/web/README.md)
 - `(read-password prompt)` reads a line from stdin with terminal echo disabled (for secrets); prompt goes to stderr
 - Project compatible with GitHub CodeSpaces. Press `.` on your keyboard and you are ready to deploy a CodeSpace with mal in it
 - `(assert expr & optional-error)` asserts expression is not `nil` nor `false`, otherwise it success returning `nil`
@@ -259,7 +258,7 @@ plus a per-goroutine child (`env.NewSubordinateEnv(base)`) for each
 `EVAL`, so top-level `def`s don't leak between evaluations. Share
 *mutable* state between goroutines through **atoms** (`atom`, `swap!`,
 `reset!` — thread-safe), not by `def`-ing into a shared env. `future`
-runs its body on its own goroutine; in `lispdebug` builds it detaches
+runs its body on its own goroutine; in `debugger` builds it detaches
 from the debug session (see the roadmap for multi-thread debugging).
 
 **Matching errors.** Since errors are decorated with a `file:line:`
@@ -286,7 +285,7 @@ Create a new library and then add it (follow example above):
 
 The interpreter includes a DAP (Debug Adapter Protocol) server and an
 LSP (Language Server Protocol) server, both enabled with the
-`lispdebug` build tag, plus a VSCode extension in
+`debugger` build tag, plus a VSCode extension in
 [./tools/vscode-lisp](./tools/vscode-lisp). Together they provide:
 
 - **Debugger (DAP)**: breakpoints (including conditional breakpoints and

@@ -1,4 +1,4 @@
-//go:build lispdebug
+//go:build debugger
 
 package debugadapter
 

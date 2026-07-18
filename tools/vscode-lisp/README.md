@@ -18,7 +18,7 @@ interpreter.
   forms are followed statically, importing the module's definitions.
   Go-to-definition (F12) jumps to local definitions and into require'd
   module files; signature help lists a call's parameters as you type.
-  Spawned as `lisp-debug --lsp` when a lisp document opens.
+  Spawned as `lisp --lsp` when a lisp document opens.
 - Document formatting (a gofmt-style canonical layout, comments
   preserved) via the language server. Enabled on save by default for
   lisp files, or run **Format Document** (`⇧⌥F`) manually.
@@ -31,7 +31,7 @@ interpreter.
   The **Coverage** run profile executes the suite under
   `--coverage` and feeds VS Code's native test coverage view, painting
   covered/uncovered lisp lines in the editor gutter — Go-style. Both
-  profiles spawn the `lisp-debug` binary (`lisp.testRunner.command`
+  profiles spawn the `lisp` binary (`lisp.testRunner.command`
   overrides which one).
 - A pastel-green parenthesis `()` icon for the `lisp` language. Under a
   typical file icon theme (Seti, Material, …) this shows on editor tabs
@@ -51,15 +51,15 @@ Find-references and rename are not part of this release.
 
 ## Requirements
 
-The interpreter must be built with the `lispdebug` build tag — this is
+The interpreter must be built with the `debugger` build tag — this is
 the artefact that contains the DAP server. From the repo root:
 
 ```sh
-go build -tags lispdebug -o lisp-debug ./cmd/lisp
-sudo install lisp-debug /usr/local/bin/    # or anywhere on $PATH
+go build -tags debugger -o lisp ./cmd/lisp
+sudo install lisp /usr/local/bin/    # or anywhere on $PATH
 ```
 
-By default the extension spawns `lisp-debug --dap <program>`. Override
+By default the extension spawns `lisp --dap <program>`. Override
 the command via the `lisp.debugAdapter.command` setting.
 
 ## Building this extension
@@ -104,10 +104,10 @@ forwarded to the interpreter as `--preamble` flags.
 
 | Setting                          | Default       | Purpose                                          |
 | -------------------------------- | ------------- | ------------------------------------------------ |
-| `lisp.debugAdapter.command`      | `lisp-debug`  | Path or name of the debug-build interpreter.     |
+| `lisp.debugAdapter.command`      | `lisp`  | Path or name of the debug-build interpreter.     |
 | `lisp.debugAdapter.extraArgs`    | `[]`          | Args inserted before `--dap` on every spawn.     |
 | `lisp.languageServer.enabled`    | `true`        | Start the LSP client for lisp documents.         |
-| `lisp.languageServer.command`    | `lisp-debug`  | Binary spawned as the LSP server (with `--lsp`). |
+| `lisp.languageServer.command`    | `lisp`  | Binary spawned as the LSP server (with `--lsp`). |
 | `lisp.languageServer.includeDirs`| `[]`          | require search dirs for the editor (like `-i`).  |
 
 The extension also sets, as defaults you can override, `editor.formatOnSave`
@@ -124,7 +124,7 @@ The DAP wire is JSON-RPC over stdio. To inspect traffic, run the
 interpreter manually:
 
 ```sh
-lisp-debug --dap /path/to/script.lisp
+lisp --dap /path/to/script.lisp
 ```
 
 and feed it framed messages (`Content-Length: N\r\n\r\n<json>`).

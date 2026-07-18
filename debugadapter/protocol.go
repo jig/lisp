@@ -1,7 +1,7 @@
-//go:build lispdebug
+//go:build debugger
 
 // Package debugadapter implements a Debug Adapter Protocol (DAP) server
-// for the Lisp interpreter. It is compiled only into `lispdebug` builds.
+// for the Lisp interpreter. It is compiled only into `debugger` builds.
 //
 // The server speaks DAP over stdio or a TCP socket. A VSCode extension
 // (or any DAP client) connects, sets breakpoints, launches the program,

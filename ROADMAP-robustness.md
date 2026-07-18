@@ -39,7 +39,7 @@ independent and can be picked at leisure.
 **Done 2026-07-08** (branch `fix/future-data-race`): `Future.Done` and
 `Future.Cancelled` are now `atomic.Bool`; `Cancel` uses a
 `CompareAndSwap` to make its check-then-act atomic. CI gained a
-ubuntu-only `race` job (plain + `lispdebug`). Regression test
+ubuntu-only `race` job (plain + `debugger`). Regression test
 `TestFutureConcurrentStateNoRace` in
 [lib/concurrent/future_race_test.go](lib/concurrent/future_race_test.go)
 reproduces the original race (4 reports under `-race` on the old code)
@@ -51,7 +51,7 @@ and passes on the new. `go test -race ./...` is clean.
 the data race in 1.2 was never seen by CI (a local
 `go test -race ./...` fails today). Add a race pass — either a flag on
 the existing matrix step or a separate ubuntu-only job if macOS minutes
-matter. The `lispdebug` pass should get it too.
+matter. The `debugger` pass should get it too.
 
 *Effort: trivial. Do together with 1.2 so the new job is born green.*
 
@@ -334,7 +334,7 @@ The README explains *how* to embed but not the *guarantees*. One
 option 3 — renamed outright to `lib/coreextended`, no back-compat shim,
 documented as a breaking change in [CHANGELOG.md](CHANGELOG.md) for the
 0.3 bump. The Go package *name* (not just the directory) carried the
-typo too; both fixed. `go test ./...` and `-tags lispdebug` clean.
+typo too; both fixed. `go test ./...` and `-tags debugger` clean.
 
 "coreextented" (sic) is imported by every embedder, so a rename is an
 API break. Options, in increasing ambition:

@@ -6,7 +6,7 @@ import * as fs from "fs";
 
 /**
  * Test integration: discovers (deftest …) forms in *_test.lisp / *_test.mal
- * files, runs them through the CLI runner (`lisp-debug --test FILE
+ * files, runs them through the CLI runner (`lisp --test FILE
  * --test-json REPORT`), and — for the Coverage profile — collects an lcov
  * report (`--coverage`) surfaced through VS Code's native test coverage
  * API (gutters, Test Coverage view).
@@ -130,7 +130,7 @@ export function activateTesting(context: vscode.ExtensionContext): void {
 
     const cfg = vscode.workspace.getConfiguration("lisp");
     const command = cfg.get<string>("testRunner.command") ||
-      cfg.get<string>("debugAdapter.command", "lisp-debug");
+      cfg.get<string>("debugAdapter.command", "lisp");
 
     for (const { file, tests } of fileItems.values()) {
       if (token.isCancellationRequested) {

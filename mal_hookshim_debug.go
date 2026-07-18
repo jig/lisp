@@ -1,4 +1,4 @@
-//go:build lispdebug
+//go:build debugger
 
 package lisp
 
@@ -6,7 +6,7 @@ import "github.com/jig/lisp/runtime"
 
 // installLegacyDebugHook installs runtime.PrintEvalHook on the first EVAL
 // iteration that observes `DebugEvalEnabled = true` and no other hook
-// already active. Only present in `lispdebug` builds.
+// already active. Only present in `debugger` builds.
 func installLegacyDebugHook() {
 	if runtime.Hook == nil {
 		runtime.Hook = runtime.PrintEvalHook{}

@@ -3,7 +3,7 @@
 //
 // # Build modes
 //
-// The hook machinery is gated by the build tag `lispdebug`:
+// The hook machinery is gated by the build tag `debugger`:
 //
 //   - **release** (default, no tag): runtime.Enabled == false. The hook
 //     dispatch in EVAL is dead code and the compiler removes it. There is
@@ -11,14 +11,14 @@
 //     the hot path, and no in-process attack surface for an unwanted
 //     observer of evaluation.
 //
-//   - **debug** (`-tags lispdebug`): runtime.Enabled == true. The exported
+//   - **debug** (`-tags debugger`): runtime.Enabled == true. The exported
 //     `Hook` variable accepts an EvalHook implementation. EVAL invokes
 //     `runtime.Dispatch` once per iteration. Use this build for the
 //     `--debug` CLI flag and for the upcoming DAP debugger and LSP
 //     server.
 //
 // Build the production binary with `go build ./cmd/lisp`. Build the
-// debug binary with `go build -tags lispdebug ./cmd/lisp`.
+// debug binary with `go build -tags debugger ./cmd/lisp`.
 package runtime
 
 import (
@@ -37,7 +37,7 @@ type EvalEvent struct {
 // EvalHook is invoked by EVAL before each iteration of its TCO loop.
 // Returning a non-nil error aborts evaluation and propagates the error.
 //
-// Only meaningful in `lispdebug` builds; see package doc.
+// Only meaningful in `debugger` builds; see package doc.
 type EvalHook interface {
 	OnEval(ctx context.Context, ev EvalEvent) error
 }
@@ -58,7 +58,7 @@ type ErrorEvent struct {
 // intact — so a debugger can stop at the raise point. The hook must only
 // observe: it cannot alter or suppress the propagating error.
 //
-// Only meaningful in `lispdebug` builds; see package doc.
+// Only meaningful in `debugger` builds; see package doc.
 type ErrorHook interface {
 	OnError(ctx context.Context, ev ErrorEvent)
 }
