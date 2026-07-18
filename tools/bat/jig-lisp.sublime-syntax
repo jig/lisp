@@ -1,0 +1,70 @@
+%YAML 1.2
+---
+# jig/lisp syntax for bat (and Sublime Text). Hand-maintained in sync
+# with tools/vscode-lisp/syntaxes/lisp.tmLanguage.json — bat's syntect
+# engine only loads .sublime-syntax files, not TextMate JSON grammars.
+name: jig/lisp
+file_extensions:
+  - lisp
+scope: source.lisp
+
+contexts:
+  main:
+    # leading `;; $NAME <expr>` placeholder default lines
+    - match: '^(;;)\s(\$[-\w\d]+)\s(.*)$'
+      captures:
+        1: comment.line.semicolon.lisp
+        2: constant.other.placeholder.lisp
+        3: comment.line.semicolon.lisp
+    - match: ';.*$'
+      scope: comment.line.semicolon.lisp
+    - match: '"'
+      scope: punctuation.definition.string.begin.lisp
+      push: string
+    # ¬…¬ JSON-friendly strings; ¬¬ escapes a literal ¬
+    - match: '¬'
+      scope: punctuation.definition.string.begin.lisp
+      push: notation_string
+    - match: '(?<![\w-])-?\d+(\.\d+)?(?![\w-])'
+      scope: constant.numeric.lisp
+    - match: '::?[\w.\-?!*+<>=/]+'
+      scope: support.type.keyword.lisp
+    - match: '(?<=\(|\s)(def|defmacro|defn|let|fn|if|do|quote|quasiquote|unquote|splice-unquote|try|catch|finally|throw|macroexpand|recur|context)(?=\s|\))'
+      scope: keyword.control.lisp
+    # core/coreextended macros and module loading
+    - match: '(?<=\(|\s)(when|cond|and|or|->>|->|require|load-file|load-file-once|future|wait|time|benchmark|partial)(?=\s|\))'
+      scope: keyword.other.macro.lisp
+    - match: '(?<=\(|\s|^)(true|false|nil)(?=\s|\)|$)'
+      scope: constant.language.lisp
+    # the name being defined by def/defn/defmacro
+    - match: '(?<=def\s|defn\s|defmacro\s)[\w\-+*/<>=!?.]+'
+      scope: entity.name.function.definition.lisp
+    # $NAME preamble placeholders, substituted at read time
+    - match: '\$[-\w\d]+'
+      scope: constant.other.placeholder.lisp
+    # symbol in call position, qualified names included
+    - match: '(?<=\()[a-zA-Z_+\-*/<>=!?][\w\-+*/<>=!?.]*'
+      scope: entity.name.function.lisp
+    - match: '[''`~@^]|#(?=\{)'
+      scope: keyword.operator.quote.lisp
+    - match: '[a-zA-Z_+\-*/<>=!?][\w\-+*/<>=!?]*'
+      scope: variable.other.lisp
+
+  string:
+    - meta_scope: string.quoted.double.lisp
+    # format/printf %verbs, matching the LSP's treatment
+    - match: '%(%|[-#0+ '']*(\[\d+\])?[\d*]*(\.[\d*]+)?[a-zA-Z])'
+      scope: constant.other.placeholder.lisp
+    - match: '\\.'
+      scope: constant.character.escape.lisp
+    - match: '"'
+      scope: punctuation.definition.string.end.lisp
+      pop: true
+
+  notation_string:
+    - meta_scope: string.quoted.other.notation.lisp
+    - match: '¬¬'
+      scope: constant.character.escape.lisp
+    - match: '¬(?!¬)'
+      scope: punctuation.definition.string.end.lisp
+      pop: true

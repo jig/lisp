@@ -11,6 +11,7 @@ import (
 	"github.com/jig/lisp"
 	"github.com/jig/lisp/lib/core"
 	"github.com/jig/lisp/repl"
+	"github.com/jig/lisp/tools/bat"
 	"github.com/jig/lisp/types"
 )
 
@@ -31,6 +32,7 @@ type args struct {
 	RunTest   string   `arg:"--run-test" help:"with --dap, run the named deftest after loading the script (used by the editor's Debug Test)" placeholder:"NAME"`
 	LSP       bool     `arg:"--lsp" help:"start a Language Server Protocol server on stdio (requires lispdebug build)"`
 	LSPListen string   `arg:"--lsp-listen" help:"start an LSP server on the given TCP address (requires lispdebug build)" placeholder:"HOST:PORT"`
+	BatSyntax bool     `arg:"--install-bat-syntax" help:"install the jig/lisp syntax into bat (writes to bat's config dir and rebuilds its cache)"`
 	Script    string   `arg:"positional" help:"lisp script to execute"`
 	Args      []string `arg:"positional" help:"arguments to pass to the script"`
 }
@@ -107,6 +109,18 @@ func Execute(cmdArgs []string, repl_env types.EnvType) error {
 		}
 		files = append(files, parsedArgs.Args...)
 		return formatSources(files, parsedArgs.Write)
+	}
+
+	// Installing the bat syntax is a standalone action, like --fmt.
+	if parsedArgs.BatSyntax {
+		dir, err := batsyntax.ConfigDir()
+		if err != nil {
+			return err
+		}
+		if err := batsyntax.Install(dir, os.Stdout); err != nil {
+			return err
+		}
+		return batsyntax.BuildCache(os.Stdout)
 	}
 
 	// DAP server takes precedence over the rest of the modes when set.
