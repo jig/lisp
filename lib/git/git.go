@@ -14,13 +14,18 @@ package git
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 
+	"github.com/go-git/go-billy/v6/osfs"
 	gogit "github.com/go-git/go-git/v6"
 	gitcfg "github.com/go-git/go-git/v6/config"
 	"github.com/go-git/go-git/v6/plumbing"
 	formatcfg "github.com/go-git/go-git/v6/plumbing/format/config"
+	"github.com/go-git/go-git/v6/plumbing/format/gitignore"
 	"github.com/go-git/go-git/v6/plumbing/object"
 
 	_ "embed"
@@ -127,6 +132,53 @@ func Load(env EnvType) {
 		"Verifies the SSH signature of annotated tag name; same contract as git/verify-commit.")
 }
 
+// globalIgnore loads the system and user-global gitignore patterns once.
+// go-git only honors core.excludesfile declared in ~/.gitconfig; git's
+// XDG default ($XDG_CONFIG_HOME/git/ignore, usually ~/.config/git/ignore,
+// used when core.excludesFile is unset) is loaded here explicitly so
+// git/status agrees with git about what is ignored.
+var globalIgnore = sync.OnceValue(func() []gitignore.Pattern {
+	fs := osfs.New("/")
+	var ps []gitignore.Pattern
+	if p, err := gitignore.LoadSystemPatterns(fs); err == nil {
+		ps = append(ps, p...)
+	}
+	if p, err := gitignore.LoadGlobalPatterns(fs); err == nil && len(p) > 0 {
+		return append(ps, p...)
+	}
+	cfgDir := os.Getenv("XDG_CONFIG_HOME")
+	if cfgDir == "" {
+		home, err := os.UserHomeDir()
+		if err != nil {
+			return ps
+		}
+		cfgDir = filepath.Join(home, ".config")
+	}
+	data, err := os.ReadFile(filepath.Join(cfgDir, "git", "ignore"))
+	if err != nil {
+		return ps
+	}
+	for line := range strings.SplitSeq(string(data), "\n") {
+		line = strings.TrimSpace(line)
+		if line == "" || strings.HasPrefix(line, "#") {
+			continue
+		}
+		ps = append(ps, gitignore.ParsePattern(line, nil))
+	}
+	return ps
+})
+
+// worktree returns the repo's worktree with the global ignore patterns
+// attached, so ignore handling matches the git CLI.
+func worktree(r *Repo) (*gogit.Worktree, error) {
+	wt, err := r.repo.Worktree()
+	if err != nil {
+		return nil, err
+	}
+	wt.Excludes = globalIgnore()
+	return wt, nil
+}
+
 // refreshIndex rewrites the index so its on-disk timestamp becomes
 // strictly newer than the worktree files. go-git trusts index metadata
 // only in that case (the racy-git rule) and otherwise re-hashes worktree
@@ -209,7 +261,7 @@ func gitAdd(rv MalType, path string, params ...MalType) (MalType, error) {
 	if err != nil {
 		return nil, err
 	}
-	wt, err := r.repo.Worktree()
+	wt, err := worktree(r)
 	if err != nil {
 		return nil, err
 	}
@@ -251,7 +303,7 @@ func gitCommit(rv MalType, msg string, params ...MalType) (MalType, error) {
 	if err != nil {
 		return nil, err
 	}
-	wt, err := r.repo.Worktree()
+	wt, err := worktree(r)
 	if err != nil {
 		return nil, err
 	}
@@ -343,7 +395,7 @@ func gitStatus(rv MalType) (MalType, error) {
 	if err != nil {
 		return nil, err
 	}
-	wt, err := r.repo.Worktree()
+	wt, err := worktree(r)
 	if err != nil {
 		return nil, err
 	}
@@ -404,7 +456,7 @@ func gitBranch(rv MalType, name string, params ...MalType) (MalType, error) {
 		return nil, err
 	}
 	if optBool(o, "checkout") {
-		wt, err := r.repo.Worktree()
+		wt, err := worktree(r)
 		if err != nil {
 			return nil, err
 		}
@@ -454,7 +506,7 @@ func gitCheckout(rv MalType, ref string, params ...MalType) (MalType, error) {
 	if err != nil {
 		return nil, err
 	}
-	wt, err := r.repo.Worktree()
+	wt, err := worktree(r)
 	if err != nil {
 		return nil, err
 	}
