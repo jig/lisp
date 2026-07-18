@@ -120,6 +120,7 @@ func Load(env EnvType) {
 	call.Call(env, str)
 	call.Call(env, prn)
 	call.Call(env, println)
+	call.CallOverrideFN(env, "print", printNoNewline)
 	call.CallOverrideFN(env, "list", func(a ...MalType) (List, error) { return List{Val: a}, nil })
 	call.CallOverrideFN(env, "vector", func(a ...MalType) (Vector, error) { return Vector{Val: a}, nil })
 	call.Call(env, hash_map)
@@ -485,6 +486,13 @@ func prn(a ...MalType) (MalType, error) {
 
 func println(a ...MalType) (MalType, error) {
 	fmt.Println(printer.Pr_list(a, false, "", "", " "))
+	return nil, nil
+}
+
+// printNoNewline is println without the trailing newline, for composing a
+// line from several prints (e.g. styled fragments).
+func printNoNewline(a ...MalType) (MalType, error) {
+	fmt.Print(printer.Pr_list(a, false, "", "", " "))
 	return nil, nil
 }
 

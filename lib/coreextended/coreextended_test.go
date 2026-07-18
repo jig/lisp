@@ -113,3 +113,29 @@ func TestInto(t *testing.T) {
 		})
 	}
 }
+
+// TestFormat covers the Go-verb format builtin: primitives keep their
+// numeric/boolean verbs, keywords and collections render as lisp forms.
+func TestFormat(t *testing.T) {
+	ns := newEnv(t)
+	cases := []struct{ src, want string }{
+		{`(format "plain")`, `"plain"`},
+		{`(format "%s %d" "a" 42)`, `"a 42"`},
+		{`(format "%05.2f" 3.14159)`, `"03.14"`},
+		{`(format "%q" "quo\"ted")`, `"\"quo\\\"ted\""`},
+		{`(format "%x" 255)`, `"ff"`},
+		{`(format "%v" true)`, `"true"`},
+		{`(format "%v" nil)`, `"<nil>"`},
+		{`(format "%s" :key)`, `":key"`},
+		{`(format "%v" [1 2 3])`, `"[1 2 3]"`},
+		{`(format "%v" (list 1 :a "s"))`, `"(1 :a s)"`},
+		{`(format "%3d|" 7)`, `"  7|"`},
+	}
+	for _, tc := range cases {
+		t.Run(tc.src, func(t *testing.T) {
+			if got := run(t, ns, tc.src); got != tc.want {
+				t.Errorf("%s = %s, want %s", tc.src, got, tc.want)
+			}
+		})
+	}
+}

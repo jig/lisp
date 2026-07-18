@@ -91,6 +91,7 @@ var coreDocs = []struct{ name, arglist, doc string }{
 	{"symbol", "[name]", "Creates a symbol from a string."},
 
 	// I/O
+	{"print", "[& args]", "Prints its arguments (unquoted) separated by spaces, without a trailing newline."},
 	{"println", "[& args]", "Prints its arguments (unquoted) separated by spaces, then a newline."},
 	{"prn", "[& args]", "Prints its arguments (readable) separated by spaces, then a newline."},
 	{"sleep", "[ms]", "Sleeps for ms milliseconds."},

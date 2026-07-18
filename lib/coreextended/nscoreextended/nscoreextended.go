@@ -19,6 +19,8 @@ var (
 )
 
 func Load(env types.EnvType) error {
+	coreextended.Load(env)
+
 	if _, err := lisp.REPL(context.Background(), env, coreextended.HeaderCoreExtended(), types.NewCursorFile(_package_)); err != nil {
 		return err
 	}
