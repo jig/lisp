@@ -54,7 +54,7 @@ in 0.3). Anything users must act on goes in `CHANGELOG.md` under
 6. **Verify** the module is installable at the new tag:
 
    ```bash
-   go install github.com/jig/lisp/cmd/lisp@vNEW
+   go install -tags debugger github.com/jig/lisp/cmd/lisp@vNEW
    ```
 
 ## Backfilling older tags (optional)

@@ -52,12 +52,16 @@ Find-references and rename are not part of this release.
 ## Requirements
 
 The interpreter must be built with the `debugger` build tag — this is
-the artefact that contains the DAP server. From the repo root:
+the artefact that contains the DAP server:
 
 ```sh
-go build -tags debugger -o lisp ./cmd/lisp
-sudo install lisp /usr/local/bin/    # or anywhere on $PATH
+go install -tags debugger github.com/jig/lisp/cmd/lisp@latest
 ```
+
+(`go install` places `lisp` in `$GOBIN`, usually `~/go/bin` — make sure
+it is on your `$PATH`. To try uncommitted local changes instead, run the
+same command from the repo root with `.` in place of `@latest`:
+`go install -tags debugger ./cmd/lisp`.)
 
 By default the extension spawns `lisp --dap <program>`. Override
 the command via the `lisp.debugAdapter.command` setting.
