@@ -60,7 +60,7 @@ func Install(dir string, w io.Writer) error {
 	if err := os.WriteFile(syntaxPath, syntaxFile, 0o644); err != nil {
 		return err
 	}
-	fmt.Fprintf(w, "wrote %s\n", syntaxPath)
+	_, _ = fmt.Fprintf(w, "wrote %s\n", syntaxPath)
 
 	configPath := filepath.Join(dir, "config")
 	current, err := os.ReadFile(configPath)
@@ -68,7 +68,7 @@ func Install(dir string, w io.Writer) error {
 		return err
 	}
 	if strings.Contains(string(current), mapSyntaxLine) {
-		fmt.Fprintf(w, "%s already maps *.lisp\n", configPath)
+		_, _ = fmt.Fprintf(w, "%s already maps *.lisp\n", configPath)
 		return nil
 	}
 	updated := string(current)
@@ -79,7 +79,7 @@ func Install(dir string, w io.Writer) error {
 	if err := os.WriteFile(configPath, []byte(updated), 0o644); err != nil {
 		return err
 	}
-	fmt.Fprintf(w, "added %s to %s\n", mapSyntaxLine, configPath)
+	_, _ = fmt.Fprintf(w, "added %s to %s\n", mapSyntaxLine, configPath)
 	return nil
 }
 
@@ -87,7 +87,7 @@ func Install(dir string, w io.Writer) error {
 // effect. When bat is not on PATH it only prints the pending step.
 func BuildCache(w io.Writer) error {
 	if _, err := exec.LookPath("bat"); err != nil {
-		fmt.Fprintln(w, "bat not found on PATH; run `bat cache --build` once it is installed")
+		_, _ = fmt.Fprintln(w, "bat not found on PATH; run `bat cache --build` once it is installed")
 		return nil
 	}
 	cmd := exec.Command("bat", "cache", "--build")
