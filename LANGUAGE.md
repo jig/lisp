@@ -239,6 +239,7 @@ Arithmetic, collections, predicates, strings, JSON, errors — always loaded.
 | `or ⁽ᵐ⁾` | `[& xs]` | Evaluates its arguments in order, returning the first truthy one, or nil. |
 | `panic` | `[value]` | Raises value as a Go panic. |
 | `pr-str` | `[& args]` | Like str but with readable (quoted) representations. |
+| `print` | `[& args]` | Prints its arguments (unquoted) separated by spaces, without a trailing newline. |
 | `println` | `[& args]` | Prints its arguments (unquoted) separated by spaces, then a newline. |
 | `prn` | `[& args]` | Prints its arguments (readable) separated by spaces, then a newline. |
 | `range` | `[start end]` | Vector of integers from start to end-1. |
@@ -343,6 +344,7 @@ Higher-order helpers written in lisp (the prelude): reduce, map, partial, protoc
 | `filter` | `[pred xs]` | List of the items in xs for which (pred x) is truthy. |
 | `find-type` | `[obj]` | Returns a keyword naming obj's type (overridable via :type metadata). |
 | `foldr` | `[f init xs]` | Right fold: (f x1 (f x2 (.. (f xn init)))) over the elements of xs. |
+| `format` | `[fmt & args]` | Formats args into fmt using Go verbs (%s %d %f %v %q %x ...); collections and keywords render in their lisp form. Returns the string. |
 | `identity` | `[x]` | Returns its argument unchanged. |
 | `into` | `[to from]` | Pours every item of from into to using conj; the result keeps to's type. |
 | `max` | `[a & more]` | Largest of one or more numbers. |
