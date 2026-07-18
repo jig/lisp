@@ -101,6 +101,7 @@ Revisions (`rev`, `:from`, `:at`) accept anything `git rev-parse` style: a hash,
 ## Limitations (v1)
 
 - go-git v6 is pinned to a pre-release (`v6.0.0-alpha.4`); it is the first version with sha256 support. Signing works around its current signer plumbing (which targets the wrong header in sha256 repos) by signing after commit creation, so a signed commit briefly leaves one unsigned dangling object behind — harmless, and `git fsck` stays clean.
+- go-git's worktree status re-hashes files with sha1 regardless of the repo format, spuriously flagging clean files as modified in sha256 repos (breaking `git/status` and `git/pull`). The library compensates by rewriting the index after worktree-mutating operations so go-git keeps trusting file metadata; the consequence is that an edit that preserves a file's size and mtime can go unnoticed by `git/status` — the same blind spot `git status` itself has under mtime-truncating filesystems.
 - Only SSH signatures (any key type ssh-keygen supports; ed25519 recommended). No PGP/X.509 signing or verification.
 - Dual sha1+sha256 compatibility-mode repositories (both signature headers at once) are not supported.
 - go-git needs an author identity: pass `:author {:name … :email …}` (or have `user.name`/`user.email` in the repo or global config).

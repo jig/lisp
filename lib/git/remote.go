@@ -158,7 +158,16 @@ func gitClone(ctx context.Context, url, path string, params ...MalType) (MalType
 	if err != nil {
 		return nil, err
 	}
-	return newRepo(repo, path)
+	r, err := newRepo(repo, path)
+	if err != nil {
+		return nil, err
+	}
+	if !cloneOpts.Bare {
+		if err := refreshIndex(r); err != nil {
+			return nil, err
+		}
+	}
+	return r, nil
 }
 
 func gitPush(ctx context.Context, rv MalType, params ...MalType) (MalType, error) {
@@ -228,7 +237,11 @@ func gitPull(ctx context.Context, rv MalType, params ...MalType) (MalType, error
 	if err != nil {
 		return nil, err
 	}
-	return upToDate(wt.PullContext(ctx, pullOpts))
+	result, err := upToDate(wt.PullContext(ctx, pullOpts))
+	if err != nil {
+		return nil, err
+	}
+	return result, refreshIndex(r)
 }
 
 func gitFetch(ctx context.Context, rv MalType, params ...MalType) (MalType, error) {

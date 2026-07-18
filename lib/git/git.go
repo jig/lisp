@@ -127,6 +127,26 @@ func Load(env EnvType) {
 		"Verifies the SSH signature of annotated tag name; same contract as git/verify-commit.")
 }
 
+// refreshIndex rewrites the index so its on-disk timestamp becomes
+// strictly newer than the worktree files. go-git trusts index metadata
+// only in that case (the racy-git rule) and otherwise re-hashes worktree
+// files — with a hardcoded sha1 hasher (alpha.4,
+// utils/merkletrie/filesystem/node.go), so in sha256 repositories every
+// freshly written file is spuriously reported as modified, which breaks
+// status and pull. Rewriting the index after operations that touch both
+// the worktree and the index restores metadata trust. sha1 repositories
+// re-hash correctly and need no refresh.
+func refreshIndex(r *Repo) error {
+	if !r.sha256 {
+		return nil
+	}
+	idx, err := r.repo.Storer.Index()
+	if err != nil {
+		return err
+	}
+	return r.repo.Storer.SetIndex(idx)
+}
+
 func newRepo(repo *gogit.Repository, path string) (*Repo, error) {
 	cfg, err := repo.Config()
 	if err != nil {
@@ -195,13 +215,16 @@ func gitAdd(rv MalType, path string, params ...MalType) (MalType, error) {
 	}
 	switch {
 	case optBool(o, "glob"):
-		return nil, wt.AddGlob(path)
+		err = wt.AddGlob(path)
 	case optBool(o, "all"):
-		return nil, wt.AddWithOptions(&gogit.AddOptions{All: true})
+		err = wt.AddWithOptions(&gogit.AddOptions{All: true})
 	default:
-		_, err := wt.Add(path)
+		_, err = wt.Add(path)
+	}
+	if err != nil {
 		return nil, err
 	}
+	return nil, refreshIndex(r)
 }
 
 func gitCommit(rv MalType, msg string, params ...MalType) (MalType, error) {
@@ -246,6 +269,9 @@ func gitCommit(rv MalType, msg string, params ...MalType) (MalType, error) {
 	}
 	c, err := r.repo.CommitObject(hash)
 	if err != nil {
+		return nil, err
+	}
+	if err := refreshIndex(r); err != nil {
 		return nil, err
 	}
 	return commitMap(c), nil
@@ -382,7 +408,10 @@ func gitBranch(rv MalType, name string, params ...MalType) (MalType, error) {
 		if err != nil {
 			return nil, err
 		}
-		return nil, wt.Checkout(&gogit.CheckoutOptions{Branch: ref.Name()})
+		if err := wt.Checkout(&gogit.CheckoutOptions{Branch: ref.Name()}); err != nil {
+			return nil, err
+		}
+		return nil, refreshIndex(r)
 	}
 	return nil, nil
 }
@@ -443,7 +472,10 @@ func gitCheckout(rv MalType, ref string, params ...MalType) (MalType, error) {
 		}
 		checkoutOpts.Hash = *hash // tag or revision: detached HEAD
 	}
-	return nil, wt.Checkout(checkoutOpts)
+	if err := wt.Checkout(checkoutOpts); err != nil {
+		return nil, err
+	}
+	return nil, refreshIndex(r)
 }
 
 func gitRemoteAdd(rv MalType, name, url string) (MalType, error) {
