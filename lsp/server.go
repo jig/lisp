@@ -216,6 +216,7 @@ func (s *Server) updateDocument(uri, content string) {
 	diags := append([]Diagnostic{}, anal.diagnostics...)
 	diags = append(diags, requireDiags...)
 	diags = append(diags, s.unknownSymbolDiagnostics(anal, external)...)
+	diags = append(diags, formatDiagnostics(anal, content)...)
 	s.notify("textDocument/publishDiagnostics", PublishDiagnosticsParams{
 		URI: uri, Diagnostics: diags,
 	})

@@ -420,7 +420,7 @@ type semTok struct {
 // function/macro. It walks the parsed AST; quoted data is not descended
 // into. Tokens are returned in document order.
 func (a *analysis) semanticTokens(content string) []semTok {
-	b := &semBuilder{a: a, docScope: wholeContentRange(content), lines: strings.Split(content, "\n")}
+	b := &semBuilder{a: a, docScope: wholeContentRange(content), lines: strings.Split(content, "\n"), idx: newDocIndex(content)}
 	for _, f := range a.forms {
 		b.walk(f)
 	}
@@ -431,6 +431,7 @@ type semBuilder struct {
 	a        *analysis
 	docScope Range
 	lines    []string
+	idx      *docIndex
 	toks     []semTok
 }
 
@@ -581,6 +582,9 @@ func (b *semBuilder) list(n types.List) {
 			b.emit(head, tokKeyword, 0)
 		} else {
 			b.emit(head, b.headType(head.Val), 0)
+		}
+		if head.Val == "format" {
+			b.formatToks(n)
 		}
 		for _, c := range tail(n.Val, 1) {
 			b.walk(c)
