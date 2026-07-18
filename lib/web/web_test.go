@@ -67,12 +67,12 @@ func TestServeHTTPRoundTrip(t *testing.T) {
 	ns := newEnv(t)
 	// A router with a param route, wrapped in the JSON/log/recover stack.
 	h := handlerFrom(t, ns, `
-	  (-> (web/router
-	        [["/hello/:name" {:get (fn [req] (web/json {:hi (get (get req :path-params) :name)
+	  (-> (web-router
+	        [["/hello/:name" {:get (fn [req] (web-json {:hi (get (get req :path-params) :name)
 	                                                    :q  (get (get req :query) "n")}))}]
 	         ["/boom" {:get (fn [req] (throw "kaboom"))}]])
-	      web/wrap-json-body
-	      web/wrap-recover)`)
+	      web-wrap-json-body
+	      web-wrap-recover)`)
 
 	srv := httptest.NewServer(web.RingHandler(h))
 	defer srv.Close()
@@ -107,9 +107,9 @@ func TestServeHTTPRoundTrip(t *testing.T) {
 func TestServeMTLS(t *testing.T) {
 	ns := newEnv(t)
 	h := handlerFrom(t, ns, `
-	  (-> (fn [req] (web/json {:subject (get (get req :identity) :subject)
+	  (-> (fn [req] (web-json {:subject (get (get req :identity) :subject)
 	                           :kind    (get (get req :identity) :kind)}))
-	      web/wrap-identity)`)
+	      web-wrap-identity)`)
 
 	caCert, caKey := makeCA(t)
 	srv := httptest.NewUnstartedServer(web.RingHandler(h))
