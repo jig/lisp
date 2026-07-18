@@ -1,6 +1,6 @@
 // Package nsweb loads the web (Ring-style HTTP server) namespace into a
-// jig/lisp environment: the Go builtins (web/serve, web/router,
-// web/verify-jwt, web/log) plus the response helpers and middleware
+// jig/lisp environment: the Go builtins (web-serve, web-router,
+// web-verify-jwt, web-log) plus the response helpers and middleware
 // defined in header-web.lisp.
 package nsweb
 

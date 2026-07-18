@@ -18,12 +18,12 @@ nsgit.Load(env)
 (def key (slurp "/home/me/.ssh/id_ed25519"))
 (def pub (slurp "/home/me/.ssh/id_ed25519.pub"))
 
-(git/with-repo [r (git/init "/tmp/demo" {:object-format "sha256"})]
+(git-with-repo [r (git-init "/tmp/demo" {:object-format "sha256"})]
   (spit "/tmp/demo/a.txt" "hello\n")
-  (git/add r "a.txt")
-  (git/commit r "first" {:author {:name "Me" :email "me@example.com"}
+  (git-add r "a.txt")
+  (git-commit r "first" {:author {:name "Me" :email "me@example.com"}
                          :sign   {:key key}})
-  (git/verify-commit r "HEAD" pub))
+  (git-verify-commit r "HEAD" pub))
 ;; => {:valid true :key-type "ssh-ed25519" :fingerprint "SHA256:…"
 ;;     :hash-algorithm "sha512" :signer "me@laptop"}
 ```
@@ -40,11 +40,11 @@ In sha256 repositories the commit signature is stored under the `gpgsig-sha256` 
 
 ## Verification — fail closed
 
-`git/verify-commit` and `git/verify-tag` take the allowed public keys as a string of authorized_keys-format lines (`ssh-ed25519 AAAA… comment`, one per line; blank lines and `#` comments are skipped — a `.pub` file or an `allowed_signers`-style list both work). They return a result map **only** when a listed key produced a valid signature over the object's exact payload; every other outcome — unsigned object, no matching key, altered content, corrupt signature — throws a catchable error. `git/verified?` and `git/tag-verified?` wrap them when only a boolean is wanted.
+`git-verify-commit` and `git-verify-tag` take the allowed public keys as a string of authorized_keys-format lines (`ssh-ed25519 AAAA… comment`, one per line; blank lines and `#` comments are skipped — a `.pub` file or an `allowed_signers`-style list both work). They return a result map **only** when a listed key produced a valid signature over the object's exact payload; every other outcome — unsigned object, no matching key, altered content, corrupt signature — throws a catchable error. `git-verified?` and `git-tag-verified?` wrap them when only a boolean is wanted.
 
 ## Remotes and authentication
 
-`git/clone`, `git/push`, `git/pull` and `git/fetch` accept an `:auth` option:
+`git-clone`, `git-push`, `git-pull` and `git-fetch` accept an `:auth` option:
 
 | `:auth` | Meaning |
 |---|---|
@@ -62,31 +62,31 @@ SSH host keys are checked against the default `known_hosts` files. Override with
 
 | Builtin | Arguments | Returns |
 |---|---|---|
-| `git/init` | `[path & {:bare :object-format}]` | repo handle; `:object-format "sha256"` for a SHA-256 repo |
-| `git/open` | `[path]` | repo handle |
-| `git/clone` | `[url path & {:auth :branch :depth :single-branch :bare}]` | repo handle |
-| `git/close` | `[repo]` | nil |
-| `git/with-repo` | `[[r expr] & body]` | body value; guarantees `git/close` |
-| `git/add` | `[repo path & {:all :glob}]` | nil |
-| `git/commit` | `[repo msg & {:author :committer :sign :all :allow-empty :amend}]` | commit map |
-| `git/log` | `[repo & {:max :from :all :path}]` | vector of commit maps, newest first |
-| `git/show` | `[repo rev]` | commit map |
-| `git/status` | `[repo]` | `{:clean bool :files {path {:staging kw :worktree kw}}}` |
-| `git/head` | `[repo]` | `{:name :branch :hash}` |
-| `git/branch` | `[repo name & {:checkout :at}]` | nil |
-| `git/branches` | `[repo]` | vector of `{:name :hash :head}` |
-| `git/checkout` | `[repo ref & {:create :force}]` | nil |
-| `git/tag` | `[repo name & {:at :message :tagger :sign}]` | `{:name :hash :target :annotated}` |
-| `git/tags` | `[repo]` | vector of tag maps |
-| `git/remote-add` | `[repo name url]` | nil |
-| `git/remotes` | `[repo]` | vector of `{:name :urls}` |
-| `git/push` | `[repo & {:auth :remote :refspecs :force :prune :follow-tags}]` | `:ok` or `:up-to-date` |
-| `git/pull` | `[repo & {:auth :remote :branch :depth :force}]` | `:ok` or `:up-to-date` |
-| `git/fetch` | `[repo & {:auth :remote :refspecs :depth :prune :force}]` | `:ok` or `:up-to-date` |
-| `git/verify-commit` | `[repo rev allowed-keys]` | `{:valid :key-type :fingerprint :hash-algorithm :signer}` or throws |
-| `git/verify-tag` | `[repo name allowed-keys]` | same, for annotated tags |
-| `git/verified?` | `[repo rev allowed-keys]` | boolean |
-| `git/tag-verified?` | `[repo name allowed-keys]` | boolean |
+| `git-init` | `[path & {:bare :object-format}]` | repo handle; `:object-format "sha256"` for a SHA-256 repo |
+| `git-open` | `[path]` | repo handle |
+| `git-clone` | `[url path & {:auth :branch :depth :single-branch :bare}]` | repo handle |
+| `git-close` | `[repo]` | nil |
+| `git-with-repo` | `[[r expr] & body]` | body value; guarantees `git-close` |
+| `git-add` | `[repo path & {:all :glob}]` | nil |
+| `git-commit` | `[repo msg & {:author :committer :sign :all :allow-empty :amend}]` | commit map |
+| `git-log` | `[repo & {:max :from :all :path}]` | vector of commit maps, newest first |
+| `git-show` | `[repo rev]` | commit map |
+| `git-status` | `[repo]` | `{:clean bool :files {path {:staging kw :worktree kw}}}` |
+| `git-head` | `[repo]` | `{:name :branch :hash}` |
+| `git-branch` | `[repo name & {:checkout :at}]` | nil |
+| `git-branches` | `[repo]` | vector of `{:name :hash :head}` |
+| `git-checkout` | `[repo ref & {:create :force}]` | nil |
+| `git-tag` | `[repo name & {:at :message :tagger :sign}]` | `{:name :hash :target :annotated}` |
+| `git-tags` | `[repo]` | vector of tag maps |
+| `git-remote-add` | `[repo name url]` | nil |
+| `git-remotes` | `[repo]` | vector of `{:name :urls}` |
+| `git-push` | `[repo & {:auth :remote :refspecs :force :prune :follow-tags}]` | `:ok` or `:up-to-date` |
+| `git-pull` | `[repo & {:auth :remote :branch :depth :force}]` | `:ok` or `:up-to-date` |
+| `git-fetch` | `[repo & {:auth :remote :refspecs :depth :prune :force}]` | `:ok` or `:up-to-date` |
+| `git-verify-commit` | `[repo rev allowed-keys]` | `{:valid :key-type :fingerprint :hash-algorithm :signer}` or throws |
+| `git-verify-tag` | `[repo name allowed-keys]` | same, for annotated tags |
+| `git-verified?` | `[repo rev allowed-keys]` | boolean |
+| `git-tag-verified?` | `[repo name allowed-keys]` | boolean |
 
 Commit maps look like:
 
@@ -102,8 +102,8 @@ Revisions (`rev`, `:from`, `:at`) accept anything `git rev-parse` style: a hash,
 ## Limitations (v1)
 
 - go-git v6 is pinned to a pre-release (`v6.0.0-alpha.4`); it is the first version with sha256 support. Signing works around its current signer plumbing (which targets the wrong header in sha256 repos) by signing after commit creation, so a signed commit briefly leaves one unsigned dangling object behind — harmless, and `git fsck` stays clean.
-- go-git's worktree status re-hashes files with sha1 regardless of the repo format, spuriously flagging clean files as modified in sha256 repos (breaking `git/status` and `git/pull`). The library compensates by rewriting the index after worktree-mutating operations so go-git keeps trusting file metadata; the consequence is that an edit that preserves a file's size and mtime can go unnoticed by `git/status` — the same blind spot `git status` itself has under mtime-truncating filesystems.
-- go-git only reads `core.excludesfile` from `~/.gitconfig`; the library additionally loads git's XDG default global ignore (`$XDG_CONFIG_HOME/git/ignore`) and the system one so `git/status` agrees with `git status` about ignored files. A `core.excludesfile` declared only in `$XDG_CONFIG_HOME/git/config` is still not seen.
+- go-git's worktree status re-hashes files with sha1 regardless of the repo format, spuriously flagging clean files as modified in sha256 repos (breaking `git-status` and `git-pull`). The library compensates by rewriting the index after worktree-mutating operations so go-git keeps trusting file metadata; the consequence is that an edit that preserves a file's size and mtime can go unnoticed by `git-status` — the same blind spot `git status` itself has under mtime-truncating filesystems.
+- go-git only reads `core.excludesfile` from `~/.gitconfig`; the library additionally loads git's XDG default global ignore (`$XDG_CONFIG_HOME/git/ignore`) and the system one so `git-status` agrees with `git status` about ignored files. A `core.excludesfile` declared only in `$XDG_CONFIG_HOME/git/config` is still not seen.
 - Only SSH signatures (any key type ssh-keygen supports; ed25519 recommended). No PGP/X.509 signing or verification.
 - Dual sha1+sha256 compatibility-mode repositories (both signature headers at once) are not supported.
 - go-git needs an author identity: pass `:author {:name … :email …}` (or have `user.name`/`user.email` in the repo or global config).

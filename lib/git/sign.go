@@ -133,7 +133,7 @@ func resignTag(r *Repo, ref *plumbing.Reference, signer gossh.Signer) (*plumbing
 }
 
 func gitVerifyCommit(rv MalType, rev string, allowedKeys string) (MalType, error) {
-	r, err := asRepo("git/verify-commit", rv)
+	r, err := asRepo("git-verify-commit", rv)
 	if err != nil {
 		return nil, err
 	}
@@ -146,13 +146,13 @@ func gitVerifyCommit(rv MalType, rev string, allowedKeys string) (MalType, error
 		armored = c.Signature
 	}
 	if armored == "" {
-		return nil, fmt.Errorf("git/verify-commit: commit %s is not signed", c.Hash)
+		return nil, fmt.Errorf("git-verify-commit: commit %s is not signed", c.Hash)
 	}
 	return verifySignature(c, armored, allowedKeys)
 }
 
 func gitVerifyTag(rv MalType, name string, allowedKeys string) (MalType, error) {
-	r, err := asRepo("git/verify-tag", rv)
+	r, err := asRepo("git-verify-tag", rv)
 	if err != nil {
 		return nil, err
 	}
@@ -162,14 +162,14 @@ func gitVerifyTag(rv MalType, name string, allowedKeys string) (MalType, error) 
 	}
 	tag, err := r.repo.TagObject(ref.Hash())
 	if err != nil {
-		return nil, fmt.Errorf("git/verify-tag: %q is not an annotated tag", name)
+		return nil, fmt.Errorf("git-verify-tag: %q is not an annotated tag", name)
 	}
 	armored := tag.SignatureSHA256
 	if armored == "" {
 		armored = tag.Signature
 	}
 	if armored == "" {
-		return nil, fmt.Errorf("git/verify-tag: tag %q is not signed", name)
+		return nil, fmt.Errorf("git-verify-tag: tag %q is not signed", name)
 	}
 	return verifySignature(tag, armored, allowedKeys)
 }
