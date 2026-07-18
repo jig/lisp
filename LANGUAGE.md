@@ -356,6 +356,7 @@ Higher-order helpers written in lisp (the prelude): reduce, map, partial, protoc
 | `partial` | `[f & args]` | Returns a function that calls f with the given args plus any it is later called with. |
 | `pos?` | `[n]` | Whether n is greater than 0. |
 | `pprint` | `[obj]` | Pretty-prints a lisp value with indentation. |
+| `printf` | `[fmt & args]` | Prints (format fmt args...) without a trailing newline; returns nil. |
 | `quot` | `[a b]` | Integer quotient of a divided by b, truncated toward zero. |
 | `reduce` | `[f init xs]` | Left fold: (f (.. (f (f init x1) x2) ..) xn) over the elements of xs. |
 | `reduce-kv` | `[f init xs]` | Left fold over a sequence of key/value pairs: applies (f acc k v) across xs. |

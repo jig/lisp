@@ -139,3 +139,12 @@ func TestFormat(t *testing.T) {
 		})
 	}
 }
+
+// TestPrintf checks the printf sugar evaluates and returns nil (its
+// output goes to stdout; the formatting itself is covered by TestFormat).
+func TestPrintf(t *testing.T) {
+	ns := newEnv(t)
+	if got := run(t, ns, `(printf "%s-%d" "x" 1)`); got != "nil" {
+		t.Errorf("(printf ...) = %s, want nil", got)
+	}
+}

@@ -446,4 +446,11 @@
     [to from]
     (reduce conj to from))
 
+;;; Printing
+
+  (defn printf
+    "Prints (format fmt args...) without a trailing newline; returns nil."
+    [fmt & args]
+    (print (apply format fmt args)))
+
 )

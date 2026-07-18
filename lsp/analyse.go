@@ -583,7 +583,7 @@ func (b *semBuilder) list(n types.List) {
 		} else {
 			b.emit(head, b.headType(head.Val), 0)
 		}
-		if head.Val == "format" {
+		if formatHeads[head.Val] {
 			b.formatToks(n)
 		}
 		for _, c := range tail(n.Val, 1) {
