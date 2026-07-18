@@ -48,6 +48,8 @@ func TestFormatVerbTokens(t *testing.T) {
 		{`(format fmt-var a)`, nil},
 		// alternate ¬…¬ string literal
 		{`(format ¬%s¬ a)`, []string{"0:10-12"}},
+		// printf gets the same treatment
+		{`(printf "%s\n" a)`, []string{"0:9-11"}},
 	}
 	for _, tc := range cases {
 		t.Run(tc.src, func(t *testing.T) {
@@ -82,6 +84,7 @@ func TestFormatDiagnostics(t *testing.T) {
 		{`(quote (format "%s" a b))`, nil}, // quoted data: ignored
 		{`(defn f [x] (format "%s %s" x))`, []string{"consumes 2 argument(s), but 1 given"}}, // nested in a body
 		{"(format \"a\n%d %d\" x)", []string{"consumes 2 argument(s), but 1 given"}},         // multi-line literal
+		{`(printf "%s %d" a)`, []string{"consumes 2 argument(s), but 1 given"}},              // printf too
 	}
 	for _, tc := range cases {
 		t.Run(tc.src, func(t *testing.T) {

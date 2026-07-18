@@ -159,15 +159,19 @@ func scanFormatVerbs(s string) []formatVerb {
 	return out
 }
 
-// formatCall matches a (format "..." args...) call form and locates its
-// literal; ok is false for empty lists, other heads or non-literal
-// format arguments.
+// formatHeads are the call heads whose first argument is a format
+// string: format returns the formatted string, printf prints it.
+var formatHeads = map[string]bool{"format": true, "printf": true}
+
+// formatCall matches a (format "..." args...) or (printf ...) call form
+// and locates its literal; ok is false for empty lists, other heads or
+// non-literal format arguments.
 func formatCall(idx *docIndex, n types.List) (head types.Symbol, lit stringLiteral, ok bool) {
 	if len(n.Val) < 2 {
 		return head, lit, false
 	}
 	head, isSym := n.Val[0].(types.Symbol)
-	if !isSym || head.Val != "format" || head.Cursor == nil {
+	if !isSym || !formatHeads[head.Val] || head.Cursor == nil {
 		return head, lit, false
 	}
 	if _, isString := n.Val[1].(string); !isString {
