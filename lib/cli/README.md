@@ -8,7 +8,7 @@ string, and any errors.
 
 ## Loading
 
-`cmd/lisp` loads it by default, so scripts can use `cli/parse-opts`
+`cmd/lisp` loads it by default, so scripts can use `cli-parse-opts`
 directly. To embed it:
 
 ```go
@@ -38,7 +38,7 @@ So the minimal load sequence is `nscore.Load`, `nsconcurrent.Load`
    ["-v" "--verbose" "Verbose output"]
    ["-h" "--help"    "Show help"]])
 
-(def parsed (cli/parse-opts *ARGV* specs))
+(def parsed (cli-parse-opts *ARGV* specs))
 
 (get parsed :options)    ; => {:port 8080 :verbose true}
 (get parsed :arguments)  ; => ["file.txt"]   (positionals)

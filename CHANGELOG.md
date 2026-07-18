@@ -234,7 +234,7 @@ Non-breaking, for context (see `git log v0.2.24..` for the full list):
 - `require` with `:as` / `:refer` / `:refer :all`, a module search path
   and `LISPPATH`
 - `cli` library — command-line option parsing modelled on
-  clojure/tools.cli (`cli/parse-opts`), plus the `subs`, `starts-with?`
+  clojure/tools.cli (`cli-parse-opts`), plus the `subs`, `starts-with?`
   and `ends-with?` string builtins it builds on
 - `integrity` library — attest and verify lisp source: `fmt` (canonical
   formatting, as `lisp --fmt`), `sha2-256`, and deterministic Ed25519
