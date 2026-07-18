@@ -63,80 +63,80 @@ func asRepo(name string, v MalType) (*Repo, error) {
 
 // Load registers the git builtins in env.
 func Load(env EnvType) {
-	call.CallOverrideFN(env, "git/init", gitInit, 1, 2)
-	call.CallOverrideFN(env, "git/open", gitOpen)
-	call.CallOverrideFN(env, "git/clone", gitClone, 3, 4)
-	call.CallOverrideFN(env, "git/close", gitClose)
-	call.CallOverrideFN(env, "git/add", gitAdd, 2, 3)
-	call.CallOverrideFN(env, "git/commit", gitCommit, 2, 3)
-	call.CallOverrideFN(env, "git/log", gitLog, 1, 2)
-	call.CallOverrideFN(env, "git/show", gitShow)
-	call.CallOverrideFN(env, "git/status", gitStatus)
-	call.CallOverrideFN(env, "git/head", gitHead)
-	call.CallOverrideFN(env, "git/branch", gitBranch, 2, 3)
-	call.CallOverrideFN(env, "git/branches", gitBranches)
-	call.CallOverrideFN(env, "git/checkout", gitCheckout, 2, 3)
-	call.CallOverrideFN(env, "git/tag", gitTag, 2, 3)
-	call.CallOverrideFN(env, "git/tags", gitTags)
-	call.CallOverrideFN(env, "git/remote-add", gitRemoteAdd)
-	call.CallOverrideFN(env, "git/remotes", gitRemotes)
-	call.CallOverrideFN(env, "git/push", gitPush, 2, 3)
-	call.CallOverrideFN(env, "git/pull", gitPull, 2, 3)
-	call.CallOverrideFN(env, "git/fetch", gitFetch, 2, 3)
-	call.CallOverrideFN(env, "git/verify-commit", gitVerifyCommit)
-	call.CallOverrideFN(env, "git/verify-tag", gitVerifyTag)
+	call.CallOverrideFN(env, "git-init", gitInit, 1, 2)
+	call.CallOverrideFN(env, "git-open", gitOpen)
+	call.CallOverrideFN(env, "git-clone", gitClone, 3, 4)
+	call.CallOverrideFN(env, "git-close", gitClose)
+	call.CallOverrideFN(env, "git-add", gitAdd, 2, 3)
+	call.CallOverrideFN(env, "git-commit", gitCommit, 2, 3)
+	call.CallOverrideFN(env, "git-log", gitLog, 1, 2)
+	call.CallOverrideFN(env, "git-show", gitShow)
+	call.CallOverrideFN(env, "git-status", gitStatus)
+	call.CallOverrideFN(env, "git-head", gitHead)
+	call.CallOverrideFN(env, "git-branch", gitBranch, 2, 3)
+	call.CallOverrideFN(env, "git-branches", gitBranches)
+	call.CallOverrideFN(env, "git-checkout", gitCheckout, 2, 3)
+	call.CallOverrideFN(env, "git-tag", gitTag, 2, 3)
+	call.CallOverrideFN(env, "git-tags", gitTags)
+	call.CallOverrideFN(env, "git-remote-add", gitRemoteAdd)
+	call.CallOverrideFN(env, "git-remotes", gitRemotes)
+	call.CallOverrideFN(env, "git-push", gitPush, 2, 3)
+	call.CallOverrideFN(env, "git-pull", gitPull, 2, 3)
+	call.CallOverrideFN(env, "git-fetch", gitFetch, 2, 3)
+	call.CallOverrideFN(env, "git-verify-commit", gitVerifyCommit)
+	call.CallOverrideFN(env, "git-verify-tag", gitVerifyTag)
 
-	call.Doc(env, "git/init", "[path & {:bare :object-format}]",
+	call.Doc(env, "git-init", "[path & {:bare :object-format}]",
 		"Creates a repository at path and returns a handle; :object-format \"sha256\" for a SHA-256 repo.")
-	call.Doc(env, "git/open", "[path]",
+	call.Doc(env, "git-open", "[path]",
 		"Opens an existing repository and returns a handle.")
-	call.Doc(env, "git/clone", "[url path & {:auth :branch :depth :single-branch :bare}]",
-		"Clones url into path and returns a handle; see git/push for the :auth map.")
-	call.Doc(env, "git/close", "[repo]",
+	call.Doc(env, "git-clone", "[url path & {:auth :branch :depth :single-branch :bare}]",
+		"Clones url into path and returns a handle; see git-push for the :auth map.")
+	call.Doc(env, "git-close", "[repo]",
 		"Closes a repository handle.")
-	call.Doc(env, "git/add", "[repo path & {:all :glob}]",
+	call.Doc(env, "git-add", "[repo path & {:all :glob}]",
 		"Stages path (\".\" for everything); :all true stages all modified/deleted files, :glob true treats path as a glob pattern.")
-	call.Doc(env, "git/commit", "[repo msg & {:author {:name :email} :committer :sign {:key :passphrase} :all :allow-empty :amend}]",
+	call.Doc(env, "git-commit", "[repo msg & {:author {:name :email} :committer :sign {:key :passphrase} :all :allow-empty :amend}]",
 		"Commits staged changes and returns the commit map; :sign takes an OpenSSH private key (PEM string) and produces an SSH signature.")
-	call.Doc(env, "git/log", "[repo & {:max :from :all :path}]",
+	call.Doc(env, "git-log", "[repo & {:max :from :all :path}]",
 		"Returns a vector of commit maps from HEAD (or :from rev), newest first.")
-	call.Doc(env, "git/show", "[repo rev]",
+	call.Doc(env, "git-show", "[repo rev]",
 		"Returns the commit map for rev (hash, \"HEAD\", branch or tag name).")
-	call.Doc(env, "git/status", "[repo]",
+	call.Doc(env, "git-status", "[repo]",
 		"Returns {:clean bool :files {path {:staging kw :worktree kw}}} for the worktree.")
-	call.Doc(env, "git/head", "[repo]",
+	call.Doc(env, "git-head", "[repo]",
 		"Returns {:name :branch :hash} for HEAD.")
-	call.Doc(env, "git/branch", "[repo name & {:checkout :at}]",
+	call.Doc(env, "git-branch", "[repo name & {:checkout :at}]",
 		"Creates branch name at HEAD (or :at rev); :checkout true switches to it.")
-	call.Doc(env, "git/branches", "[repo]",
+	call.Doc(env, "git-branches", "[repo]",
 		"Returns a vector of {:name :hash :head} for local branches.")
-	call.Doc(env, "git/checkout", "[repo ref & {:create :force}]",
+	call.Doc(env, "git-checkout", "[repo ref & {:create :force}]",
 		"Checks out a branch, tag or revision; :create true creates the branch first.")
-	call.Doc(env, "git/tag", "[repo name & {:at :message :tagger {:name :email} :sign}]",
+	call.Doc(env, "git-tag", "[repo name & {:at :message :tagger {:name :email} :sign}]",
 		"Creates a tag at HEAD (or :at rev); :message makes it annotated, :sign (requires :message) signs it.")
-	call.Doc(env, "git/tags", "[repo]",
+	call.Doc(env, "git-tags", "[repo]",
 		"Returns a vector of {:name :hash :target :annotated} for all tags.")
-	call.Doc(env, "git/remote-add", "[repo name url]",
+	call.Doc(env, "git-remote-add", "[repo name url]",
 		"Adds a remote.")
-	call.Doc(env, "git/remotes", "[repo]",
+	call.Doc(env, "git-remotes", "[repo]",
 		"Returns a vector of {:name :urls} for the configured remotes.")
-	call.Doc(env, "git/push", "[repo & {:auth :remote :refspecs :force :prune :follow-tags}]",
+	call.Doc(env, "git-push", "[repo & {:auth :remote :refspecs :force :prune :follow-tags}]",
 		"Pushes to :remote (default origin); returns :ok or :up-to-date. :auth is :ssh-agent, {:ssh-key pem :passphrase p :user u :known-hosts path :insecure-host-key bool}, {:username u :password p}, {:token t} or {:bearer t}.")
-	call.Doc(env, "git/pull", "[repo & {:auth :remote :branch :depth :force}]",
+	call.Doc(env, "git-pull", "[repo & {:auth :remote :branch :depth :force}]",
 		"Pulls into the current branch; returns :ok or :up-to-date.")
-	call.Doc(env, "git/fetch", "[repo & {:auth :remote :refspecs :depth :prune :force}]",
+	call.Doc(env, "git-fetch", "[repo & {:auth :remote :refspecs :depth :prune :force}]",
 		"Fetches from :remote (default origin); returns :ok or :up-to-date.")
-	call.Doc(env, "git/verify-commit", "[repo rev allowed-keys]",
+	call.Doc(env, "git-verify-commit", "[repo rev allowed-keys]",
 		"Verifies the SSH signature of rev against allowed-keys (authorized_keys-format lines); returns {:valid true :key-type :fingerprint :hash-algorithm :signer} or throws.")
-	call.Doc(env, "git/verify-tag", "[repo name allowed-keys]",
-		"Verifies the SSH signature of annotated tag name; same contract as git/verify-commit.")
+	call.Doc(env, "git-verify-tag", "[repo name allowed-keys]",
+		"Verifies the SSH signature of annotated tag name; same contract as git-verify-commit.")
 }
 
 // globalIgnore loads the system and user-global gitignore patterns once.
 // go-git only honors core.excludesfile declared in ~/.gitconfig; git's
 // XDG default ($XDG_CONFIG_HOME/git/ignore, usually ~/.config/git/ignore,
 // used when core.excludesFile is unset) is loaded here explicitly so
-// git/status agrees with git about what is ignored.
+// git-status agrees with git about what is ignored.
 var globalIgnore = sync.OnceValue(func() []gitignore.Pattern {
 	fs := osfs.New("/")
 	var ps []gitignore.Pattern
@@ -226,7 +226,7 @@ func gitInit(path string, params ...MalType) (MalType, error) {
 		case "sha256":
 			initOpts = append(initOpts, gogit.WithObjectFormat(formatcfg.SHA256))
 		default:
-			return nil, fmt.Errorf("git/init: :object-format must be \"sha1\" or \"sha256\", got %q", s)
+			return nil, fmt.Errorf("git-init: :object-format must be \"sha1\" or \"sha256\", got %q", s)
 		}
 	}
 	repo, err := gogit.PlainInit(path, optBool(o, "bare"), initOpts...)
@@ -245,7 +245,7 @@ func gitOpen(path string) (MalType, error) {
 }
 
 func gitClose(rv MalType) (MalType, error) {
-	r, err := asRepo("git/close", rv)
+	r, err := asRepo("git-close", rv)
 	if err != nil {
 		return nil, err
 	}
@@ -253,7 +253,7 @@ func gitClose(rv MalType) (MalType, error) {
 }
 
 func gitAdd(rv MalType, path string, params ...MalType) (MalType, error) {
-	r, err := asRepo("git/add", rv)
+	r, err := asRepo("git-add", rv)
 	if err != nil {
 		return nil, err
 	}
@@ -280,7 +280,7 @@ func gitAdd(rv MalType, path string, params ...MalType) (MalType, error) {
 }
 
 func gitCommit(rv MalType, msg string, params ...MalType) (MalType, error) {
-	r, err := asRepo("git/commit", rv)
+	r, err := asRepo("git-commit", rv)
 	if err != nil {
 		return nil, err
 	}
@@ -330,7 +330,7 @@ func gitCommit(rv MalType, msg string, params ...MalType) (MalType, error) {
 }
 
 func gitLog(rv MalType, params ...MalType) (MalType, error) {
-	r, err := asRepo("git/log", rv)
+	r, err := asRepo("git-log", rv)
 	if err != nil {
 		return nil, err
 	}
@@ -379,7 +379,7 @@ func gitLog(rv MalType, params ...MalType) (MalType, error) {
 }
 
 func gitShow(rv MalType, rev string) (MalType, error) {
-	r, err := asRepo("git/show", rv)
+	r, err := asRepo("git-show", rv)
 	if err != nil {
 		return nil, err
 	}
@@ -391,7 +391,7 @@ func gitShow(rv MalType, rev string) (MalType, error) {
 }
 
 func gitStatus(rv MalType) (MalType, error) {
-	r, err := asRepo("git/status", rv)
+	r, err := asRepo("git-status", rv)
 	if err != nil {
 		return nil, err
 	}
@@ -417,7 +417,7 @@ func gitStatus(rv MalType) (MalType, error) {
 }
 
 func gitHead(rv MalType) (MalType, error) {
-	r, err := asRepo("git/head", rv)
+	r, err := asRepo("git-head", rv)
 	if err != nil {
 		return nil, err
 	}
@@ -433,7 +433,7 @@ func gitHead(rv MalType) (MalType, error) {
 }
 
 func gitBranch(rv MalType, name string, params ...MalType) (MalType, error) {
-	r, err := asRepo("git/branch", rv)
+	r, err := asRepo("git-branch", rv)
 	if err != nil {
 		return nil, err
 	}
@@ -469,7 +469,7 @@ func gitBranch(rv MalType, name string, params ...MalType) (MalType, error) {
 }
 
 func gitBranches(rv MalType) (MalType, error) {
-	r, err := asRepo("git/branches", rv)
+	r, err := asRepo("git-branches", rv)
 	if err != nil {
 		return nil, err
 	}
@@ -498,7 +498,7 @@ func gitBranches(rv MalType) (MalType, error) {
 }
 
 func gitCheckout(rv MalType, ref string, params ...MalType) (MalType, error) {
-	r, err := asRepo("git/checkout", rv)
+	r, err := asRepo("git-checkout", rv)
 	if err != nil {
 		return nil, err
 	}
@@ -531,7 +531,7 @@ func gitCheckout(rv MalType, ref string, params ...MalType) (MalType, error) {
 }
 
 func gitRemoteAdd(rv MalType, name, url string) (MalType, error) {
-	r, err := asRepo("git/remote-add", rv)
+	r, err := asRepo("git-remote-add", rv)
 	if err != nil {
 		return nil, err
 	}
@@ -540,7 +540,7 @@ func gitRemoteAdd(rv MalType, name, url string) (MalType, error) {
 }
 
 func gitRemotes(rv MalType) (MalType, error) {
-	r, err := asRepo("git/remotes", rv)
+	r, err := asRepo("git-remotes", rv)
 	if err != nil {
 		return nil, err
 	}
@@ -563,7 +563,7 @@ func gitRemotes(rv MalType) (MalType, error) {
 }
 
 func gitTag(rv MalType, name string, params ...MalType) (MalType, error) {
-	r, err := asRepo("git/tag", rv)
+	r, err := asRepo("git-tag", rv)
 	if err != nil {
 		return nil, err
 	}
@@ -590,7 +590,7 @@ func gitTag(rv MalType, name string, params ...MalType) (MalType, error) {
 		return nil, err
 	}
 	if signer != nil && !annotated {
-		return nil, fmt.Errorf("git/tag: :sign requires :message (only annotated tags can be signed)")
+		return nil, fmt.Errorf("git-tag: :sign requires :message (only annotated tags can be signed)")
 	}
 	var tagOpts *gogit.CreateTagOptions
 	if annotated {
@@ -617,7 +617,7 @@ func gitTag(rv MalType, name string, params ...MalType) (MalType, error) {
 }
 
 func gitTags(rv MalType) (MalType, error) {
-	r, err := asRepo("git/tags", rv)
+	r, err := asRepo("git-tags", rv)
 	if err != nil {
 		return nil, err
 	}

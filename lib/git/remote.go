@@ -187,7 +187,7 @@ func gitClone(ctx context.Context, url, path string, params ...MalType) (MalType
 }
 
 func gitPush(ctx context.Context, rv MalType, params ...MalType) (MalType, error) {
-	r, err := asRepo("git/push", rv)
+	r, err := asRepo("git-push", rv)
 	if err != nil {
 		return nil, err
 	}
@@ -218,7 +218,7 @@ func gitPush(ctx context.Context, rv MalType, params ...MalType) (MalType, error
 }
 
 func gitPull(ctx context.Context, rv MalType, params ...MalType) (MalType, error) {
-	r, err := asRepo("git/pull", rv)
+	r, err := asRepo("git-pull", rv)
 	if err != nil {
 		return nil, err
 	}
@@ -261,7 +261,7 @@ func gitPull(ctx context.Context, rv MalType, params ...MalType) (MalType, error
 }
 
 func gitFetch(ctx context.Context, rv MalType, params ...MalType) (MalType, error) {
-	r, err := asRepo("git/fetch", rv)
+	r, err := asRepo("git-fetch", rv)
 	if err != nil {
 		return nil, err
 	}

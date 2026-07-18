@@ -270,11 +270,11 @@ func tlsConfig(config MalType) (*tls.Config, error) {
 	certFile := hgetStr(tlsMap, "cert", "")
 	keyFile := hgetStr(tlsMap, "key", "")
 	if certFile == "" || keyFile == "" {
-		return nil, errors.New("web/serve: :tls requires :cert and :key")
+		return nil, errors.New("web-serve: :tls requires :cert and :key")
 	}
 	cert, err := tls.LoadX509KeyPair(certFile, keyFile)
 	if err != nil {
-		return nil, fmt.Errorf("web/serve: loading server certificate: %w", err)
+		return nil, fmt.Errorf("web-serve: loading server certificate: %w", err)
 	}
 	cfg := &tls.Config{
 		Certificates: []tls.Certificate{cert},
@@ -283,11 +283,11 @@ func tlsConfig(config MalType) (*tls.Config, error) {
 	if caFile := hgetStr(tlsMap, "client-ca", ""); caFile != "" {
 		pem, err := os.ReadFile(caFile)
 		if err != nil {
-			return nil, fmt.Errorf("web/serve: reading client CA: %w", err)
+			return nil, fmt.Errorf("web-serve: reading client CA: %w", err)
 		}
 		pool := x509.NewCertPool()
 		if !pool.AppendCertsFromPEM(pem) {
-			return nil, errors.New("web/serve: no certificates found in :client-ca")
+			return nil, errors.New("web-serve: no certificates found in :client-ca")
 		}
 		cfg.ClientCAs = pool
 		cfg.ClientAuth = tls.RequireAndVerifyClientCert // default when a CA is given
@@ -296,7 +296,7 @@ func tlsConfig(config MalType) (*tls.Config, error) {
 		name := strings.TrimPrefix(toStr(v), "ʞ")
 		at, ok := clientAuthTypes[name]
 		if !ok {
-			return nil, fmt.Errorf("web/serve: unknown :client-auth %q", name)
+			return nil, fmt.Errorf("web-serve: unknown :client-auth %q", name)
 		}
 		cfg.ClientAuth = at
 	}
@@ -335,7 +335,7 @@ func ringHandler(handler MalType) http.Handler {
 func webServe(ctx context.Context, config MalType) (MalType, error) {
 	handler, ok := hget(config, "handler")
 	if !ok {
-		return nil, errors.New("web/serve: config needs a :handler function")
+		return nil, errors.New("web-serve: config needs a :handler function")
 	}
 	addr := hgetStr(config, "addr", "")
 	if addr == "" {
@@ -386,21 +386,21 @@ type route struct {
 func compileRoutes(routes MalType) ([]route, error) {
 	slc, err := GetSlice(routes)
 	if err != nil {
-		return nil, errors.New("web/router: routes must be a vector of [path methods] pairs")
+		return nil, errors.New("web-router: routes must be a vector of [path methods] pairs")
 	}
 	out := make([]route, 0, len(slc))
 	for _, entry := range slc {
 		pair, err := GetSlice(entry)
 		if err != nil || len(pair) != 2 {
-			return nil, errors.New("web/router: each route must be a [path {:method handler}] pair")
+			return nil, errors.New("web-router: each route must be a [path {:method handler}] pair")
 		}
 		path, ok := pair[0].(string)
 		if !ok {
-			return nil, errors.New("web/router: route path must be a string")
+			return nil, errors.New("web-router: route path must be a string")
 		}
 		mm, ok := pair[1].(HashMap)
 		if !ok {
-			return nil, errors.New("web/router: route methods must be a hash-map")
+			return nil, errors.New("web-router: route methods must be a hash-map")
 		}
 		methods := make(map[string]MalType, len(mm.Val))
 		for k, v := range mm.Val {
@@ -588,7 +588,7 @@ func logValue(v MalType) any {
 }
 
 // webLog logs msg at level with alternating key/value attributes:
-// (web/log :info "message" "key" value …).
+// (web-log :info "message" "key" value …).
 func webLog(level, msg string, kv ...MalType) (MalType, error) {
 	attrs := make([]any, 0, len(kv))
 	for i, v := range kv {
@@ -614,19 +614,19 @@ func webLog(level, msg string, kv ...MalType) (MalType, error) {
 // Load registers the web builtins. The Ring response helpers and
 // middleware are added by the header (see nsweb.Load).
 func Load(env EnvType) {
-	call.CallOverrideFN(env, "web/serve", webServe)
-	call.CallOverrideFN(env, "web/log", webLog)
-	call.Doc(env, "web/log", "[level msg & kv]",
+	call.CallOverrideFN(env, "web-serve", webServe)
+	call.CallOverrideFN(env, "web-log", webLog)
+	call.Doc(env, "web-log", "[level msg & kv]",
 		"Emits a structured JSON log line to stderr at level (:debug/:info/:warn/:error) with alternating key/value attributes.")
-	call.CallOverrideFN(env, "web/encode-json", webEncodeJSON)
-	call.Doc(env, "web/encode-json", "[value]",
+	call.CallOverrideFN(env, "web-encode-json", webEncodeJSON)
+	call.Doc(env, "web-encode-json", "[value]",
 		"Encodes Lisp data as JSON for an HTTP response: keyword keys and values become plain strings (:id → \"id\"), unlike core json-encode.")
-	call.Doc(env, "web/serve", "[config]",
+	call.Doc(env, "web-serve", "[config]",
 		"Starts an HTTP(S) server and blocks until interrupted. config is a hash-map: :handler (a Ring handler fn), :port or :addr, and optional :tls {:cert :key :client-ca :client-auth} for HTTPS/mTLS.")
-	call.CallOverrideFN(env, "web/router", webRouter)
-	call.Doc(env, "web/router", "[routes]",
+	call.CallOverrideFN(env, "web-router", webRouter)
+	call.Doc(env, "web-router", "[routes]",
 		"Returns a Ring handler that dispatches on method and path. routes is a vector of [\"/path/:param\" {:get handler :post handler}] pairs; matched params appear under the request's :path-params.")
-	call.CallOverrideFN(env, "web/verify-jwt", webVerifyJWT)
-	call.Doc(env, "web/verify-jwt", "[token config]",
+	call.CallOverrideFN(env, "web-verify-jwt", webVerifyJWT)
+	call.Doc(env, "web-verify-jwt", "[token config]",
 		"Verifies a JWT against a JWKS and returns its claims as a hash-map. config: :jwks-uri (required), :issuer, :audience, :algorithms (defaults to Keycloak's RS/ES set).")
 }

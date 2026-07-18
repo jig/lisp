@@ -12,19 +12,19 @@ no socket required.
 
 ```clojure
 (def app
-  (-> (web/router
-        [["/ping"        {:get (fn [req] (web/json {:pong true}))}]
-         ["/certs/:id"   {:get (fn [req] (web/json {:id (get (get req :path-params) :id)}))}]])
-      web/wrap-json-body     ; decodes a JSON body under :json
-      web/wrap-log           ; one structured JSON log line per request
-      web/wrap-recover))     ; errors become 500 instead of dropping the connection
+  (-> (web-router
+        [["/ping"        {:get (fn [req] (web-json {:pong true}))}]
+         ["/certs/:id"   {:get (fn [req] (web-json {:id (get (get req :path-params) :id)}))}]])
+      web-wrap-json-body     ; decodes a JSON body under :json
+      web-wrap-log           ; one structured JSON log line per request
+      web-wrap-recover))     ; errors become 500 instead of dropping the connection
 
-(web/serve {:port 8443
+(web-serve {:port 8443
             :handler app
             :tls {:cert "server.crt" :key "server.key"}})
 ```
 
-`web/serve` blocks until interrupted (Ctrl-C / SIGTERM) and shuts down
+`web-serve` blocks until interrupted (Ctrl-C / SIGTERM) and shuts down
 gracefully. Omit `:tls` for plain HTTP during development.
 
 Test it:
@@ -47,14 +47,14 @@ curl -sk https://localhost:8443/certs/42     # {"id":"42"}
 | `:scheme` | `:http` or `:https` |
 | `:remote-addr` | client address |
 | `:mtls` | client-certificate identity, when mTLS verified it (below) |
-| `:json` | decoded JSON body, added by `web/wrap-json-body` |
+| `:json` | decoded JSON body, added by `web-wrap-json-body` |
 | `:identity` | added by an auth middleware |
 
 ## The response map
 
 `{:status 200 :headers {"content-type" "…"} :body "…"}`. Build it with
-the helpers: `web/response`, `web/text`, `web/json`, `web/not-found`,
-`web/bad-request`, `web/unauthorized`, `web/redirect`. `web/json`
+the helpers: `web-response`, `web-text`, `web-json`, `web-not-found`,
+`web-bad-request`, `web-unauthorized`, `web-redirect`. `web-json`
 encodes with clean keys (`:id` → `"id"`), unlike core `json-encode`.
 
 ## TLS and mTLS
@@ -70,7 +70,7 @@ encodes with clean keys (`:id` → `"id"`), unlike core `json-encode`.
 `:verify-if-given`, `:require-and-verify` (the default once a
 `:client-ca` is given). When a client certificate is verified, the
 request carries `:mtls {:subject-cn … :subject … :issuer-cn … :serial
-"0x…" :sans-dns […] :verified true}`; `web/wrap-identity` promotes it to
+"0x…" :sans-dns […] :verified true}`; `web-wrap-identity` promotes it to
 `:identity {:kind :mtls :subject …}`.
 
 ## JWT (Keycloak)
@@ -78,30 +78,30 @@ request carries `:mtls {:subject-cn … :subject … :issuer-cn … :serial
 ```clojure
 (def secured
   (-> protected-app
-      (web/wrap-jwt {:jwks-uri "https://kc.example/realms/app/protocol/openid-connect/certs"
+      (web-wrap-jwt {:jwks-uri "https://kc.example/realms/app/protocol/openid-connect/certs"
                      :issuer   "https://kc.example/realms/app"
                      :audience "my-api"})))
 ```
 
-`web/wrap-jwt` reads the `Authorization: Bearer …` header, verifies the
+`web-wrap-jwt` reads the `Authorization: Bearer …` header, verifies the
 token against the JWKS (RS256/384/512 and ES256/384/512 — what Keycloak
 issues), checks issuer/audience/expiry, and sets `:identity {:kind :jwt
 :claims … :subject …}`; a missing or invalid token gets a 401. The JWKS
-is fetched and cached (auto-refreshing). `web/verify-jwt` is the
+is fetched and cached (auto-refreshing). `web-verify-jwt` is the
 underlying primitive if you need the claims directly.
 
 ## Middleware
 
 Middleware is `handler → handler`; compose with `->`. Built-in:
-`web/wrap-recover`, `web/wrap-log`, `web/wrap-json-body`,
-`web/wrap-identity`, `web/wrap-jwt`. Write your own the same way:
+`web-wrap-recover`, `web-wrap-log`, `web-wrap-json-body`,
+`web-wrap-identity`, `web-wrap-jwt`. Write your own the same way:
 
 ```clojure
 (defn wrap-require-role [role handler]
   (fn [req]
     (if (contains? (get-in req [:identity :claims :realm_access :roles]) role)
       (handler req)
-      (web/unauthorized "forbidden"))))
+      (web-unauthorized "forbidden"))))
 ```
 
 ## Not yet
