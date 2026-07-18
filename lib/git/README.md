@@ -48,8 +48,9 @@ In sha256 repositories the commit signature is stored under the `gpgsig-sha256` 
 
 | `:auth` | Meaning |
 |---|---|
-| absent | Anonymous; also for local path remotes |
-| `:ssh-agent` | Keys from the running SSH agent |
+| absent | Anonymous for HTTP and local paths; SSH URLs fall back to the SSH agent with the URL's user |
+| `:ssh-agent` | Keys from the running SSH agent, user `git` |
+| `{:ssh-agent true :user u}` | SSH agent with an explicit user |
 | `{:ssh-key pem :passphrase p :user u}` | SSH private key (user defaults to `git`) |
 | `{:username u :password p}` | HTTP basic auth |
 | `{:token t}` | GitHub/GitLab personal access token |
@@ -102,6 +103,7 @@ Revisions (`rev`, `:from`, `:at`) accept anything `git rev-parse` style: a hash,
 
 - go-git v6 is pinned to a pre-release (`v6.0.0-alpha.4`); it is the first version with sha256 support. Signing works around its current signer plumbing (which targets the wrong header in sha256 repos) by signing after commit creation, so a signed commit briefly leaves one unsigned dangling object behind — harmless, and `git fsck` stays clean.
 - go-git's worktree status re-hashes files with sha1 regardless of the repo format, spuriously flagging clean files as modified in sha256 repos (breaking `git/status` and `git/pull`). The library compensates by rewriting the index after worktree-mutating operations so go-git keeps trusting file metadata; the consequence is that an edit that preserves a file's size and mtime can go unnoticed by `git/status` — the same blind spot `git status` itself has under mtime-truncating filesystems.
+- go-git only reads `core.excludesfile` from `~/.gitconfig`; the library additionally loads git's XDG default global ignore (`$XDG_CONFIG_HOME/git/ignore`) and the system one so `git/status` agrees with `git status` about ignored files. A `core.excludesfile` declared only in `$XDG_CONFIG_HOME/git/config` is still not seen.
 - Only SSH signatures (any key type ssh-keygen supports; ed25519 recommended). No PGP/X.509 signing or verification.
 - Dual sha1+sha256 compatibility-mode repositories (both signature headers at once) are not supported.
 - go-git needs an author identity: pass `:author {:name … :email …}` (or have `user.name`/`user.email` in the repo or global config).

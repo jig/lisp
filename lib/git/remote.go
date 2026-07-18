@@ -17,19 +17,21 @@ import (
 )
 
 // clientOpts maps the :auth option to go-git transport client options.
-// Supported shapes: the keyword :ssh-agent, {:ssh-key pem :passphrase p
-// :user u :known-hosts path :insecure-host-key bool}, {:username u
-// :password p}, {:token t} (GitHub/GitLab PATs over basic auth) and
-// {:bearer t} (true Bearer servers). Absent :auth means anonymous, which
-// also covers local path remotes. When no host-key option is given go-git
-// falls back to the default known_hosts files — the secure default.
+// Supported shapes: the keyword :ssh-agent (user "git"), {:ssh-agent
+// true :user u}, {:ssh-key pem :passphrase p :user u :known-hosts path
+// :insecure-host-key bool}, {:username u :password p}, {:token t}
+// (GitHub/GitLab PATs over basic auth) and {:bearer t} (true Bearer
+// servers). Absent :auth means anonymous for HTTP and local paths, while
+// for SSH URLs go-git itself falls back to agent auth with the URL's
+// user. When no host-key option is given go-git uses the default
+// known_hosts files — the secure default.
 func clientOpts(o map[string]MalType) ([]client.Option, error) {
 	v, ok := optGet(o, "auth")
 	if !ok || v == nil {
 		return nil, nil
 	}
 	if v == NewKeyword("ssh-agent") {
-		auth, err := transportssh.NewSSHAgentAuth("")
+		auth, err := transportssh.NewSSHAgentAuth(transportssh.DefaultUsername)
 		if err != nil {
 			return nil, err
 		}
@@ -40,6 +42,20 @@ func clientOpts(o map[string]MalType) ([]client.Option, error) {
 		return nil, fmt.Errorf(":auth must be :ssh-agent or a map, got %T", v)
 	}
 	auth := hm.Val
+	if optBool(auth, "ssh-agent") {
+		user, _, err := optString(auth, "user")
+		if err != nil {
+			return nil, err
+		}
+		if user == "" {
+			user = transportssh.DefaultUsername
+		}
+		agentAuth, err := transportssh.NewSSHAgentAuth(user)
+		if err != nil {
+			return nil, err
+		}
+		return []client.Option{client.WithSSHAuth(agentAuth)}, nil
+	}
 	if pem, ok, err := optString(auth, "ssh-key"); err != nil {
 		return nil, err
 	} else if ok {
@@ -90,7 +106,7 @@ func clientOpts(o map[string]MalType) ([]client.Option, error) {
 	} else if ok {
 		return []client.Option{client.WithHTTPAuth(&transporthttp.TokenAuth{Token: bearer})}, nil
 	}
-	return nil, fmt.Errorf(":auth map must contain :ssh-key, :username, :token or :bearer")
+	return nil, fmt.Errorf(":auth map must contain :ssh-key, :ssh-agent, :username, :token or :bearer")
 }
 
 // refSpecs converts a :refspecs vector of strings.
@@ -233,7 +249,7 @@ func gitPull(ctx context.Context, rv MalType, params ...MalType) (MalType, error
 	} else if ok {
 		pullOpts.ReferenceName = plumbing.NewBranchReferenceName(branch)
 	}
-	wt, err := r.repo.Worktree()
+	wt, err := worktree(r)
 	if err != nil {
 		return nil, err
 	}
