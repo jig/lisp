@@ -433,8 +433,13 @@ Command-line option parsing (clojure/tools.cli style).
 
 | Name | Arguments | Description |
 | ---- | --------- | ----------- |
-| `cli/parse-opts` | `[args specs]` | Parses args (typically *ARGV*) against a vector of option specs. Returns a map:   :options   parsed values keyed by :id   :arguments leftover positional arguments   :summary   generated help text   :errors    a vector of messages, or nil when all is well |
-| `cli/summarize` | `[specs]` | Builds a help string from a vector of option specs, one line per option. |
+| `cli--coerce` | `[spec raw]` | — |
+| `cli--compile-spec` | `[spec]` | — |
+| `cli--defaults` | `[compiled]` | — |
+| `cli--find-spec` | `[compiled tok]` | — |
+| `cli--option-token?` | `[tok]` | — |
+| `cli-parse-opts` | `[args specs]` | Parses args (typically *ARGV*) against a vector of option specs. Returns a map:   :options   parsed values keyed by :id   :arguments leftover positional arguments   :summary   generated help text   :errors    a vector of messages, or nil when all is well |
+| `cli-summarize` | `[specs]` | Builds a help string from a vector of option specs, one line per option. |
 
 ### integrity
 
