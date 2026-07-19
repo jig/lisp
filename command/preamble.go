@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/jig/lisp"
+	"github.com/jig/lisp/lib/integrity"
 	"github.com/jig/lisp/reader"
 	"github.com/jig/lisp/types"
 )
@@ -83,6 +84,17 @@ func runScript(ctx context.Context, env types.EnvType, fileName string, preamble
 
 	contentBytes, err := os.ReadFile(fileName)
 	if err != nil {
+		return nil, err
+	}
+	// Under --integrity, verify the exact bytes about to be evaluated.
+	// integrity.Enable verified the script from an earlier, independent
+	// read; the preamble branch below evaluates *this* buffer directly
+	// (not through load-file/slurp-source), so without this check the
+	// two reads could diverge — a worktree file swapped for a FIFO fed
+	// concurrently runs unverified code under a "verified" run. No-op
+	// when integrity mode is off. The load-file fast path re-verifies
+	// through slurp-source, so the check there is merely redundant.
+	if err := integrity.VerifyFile(abs, contentBytes); err != nil {
 		return nil, err
 	}
 	content := string(contentBytes)

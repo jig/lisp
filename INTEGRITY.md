@@ -167,6 +167,15 @@ attacker cannot write to what the interpreter reads:
   the operator is the trusted party in this model.
 - A self-verifying binary is deliberately **not** attempted: an
   attacker who can replace the binary can also remove the check.
+- Verification compares the **worktree bytes** against the **raw
+  committed blob**. A repository that applies EOL normalization or a
+  clean/smudge filter (`.gitattributes`: `text eol=crlf`, `filter=…`)
+  to a verified file makes the two differ, so verification fails
+  closed — it is not a bypass, but such repositories must keep their
+  `.lisp` and `.state/` files unfiltered. On case-insensitive or
+  unicode-normalizing filesystems (macOS), a committed path and the
+  on-disk path that resolves to it must match exactly; a mismatch
+  fails closed rather than verifying the wrong file.
 
 ## Future revisions (not implemented)
 
