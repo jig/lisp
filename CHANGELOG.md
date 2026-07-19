@@ -153,6 +153,19 @@ identifiers or bit patterns keep working and now survive any width.
 
 Non-breaking, for context (see `git log v0.2.24..` for the full list):
 
+- `--integrity REF` — run a script if and only if it matches what is
+  committed in its Git repository at REF (a commit hash, tag or
+  branch): HEAD must be exactly REF, the script must byte-match its
+  committed blob, and the check cascades to every `require` resolved
+  inside the same repository (modules resolving outside it are
+  refused). `--integrity-signers FILE` additionally requires REF to be
+  SSH-signed by a key listed in FILE (authorized_keys format, as
+  `git-verify-commit`). The new `(assert-integrity)` builtin throws
+  unless the run is verified — so committed code can demand the flag —
+  and returns the verified commit hash. This is an operational
+  assurance against drift and uncommitted edits, not a security
+  boundary against whoever can rewrite the repository or the binary.
+  See `lib/integrity/README.md`
 - `exit` builtin: `(exit)` / `(exit status)` ends the process with the
   given status (`0` by default), like Clojure's `System/exit`. It stops
   before the interpreter echoes a script's final value, so a program run

@@ -446,10 +446,11 @@ Command-line option parsing (clojure/tools.cli style).
 
 ### integrity
 
-Attest and verify lisp source (formatting, hashing, Ed25519 signatures).
+Attest and verify lisp source (formatting, hashing, Ed25519 signatures, --integrity mode).
 
 | Name | Arguments | Description |
 | ---- | --------- | ----------- |
+| `assert-integrity` | `[]` | Throws unless the interpreter runs under --integrity; returns the verified commit hash. |
 | `ed25519-generate` | `[]` | Generates an Ed25519 key pair, as a map {:public :private} of base64 strings. |
 | `ed25519-sign` | `[private s]` | Signs string s with a base64 Ed25519 private key; returns the base64 signature (deterministic). |
 | `ed25519-verify` | `[public s signature]` | Reports whether the base64 signature of string s verifies against the base64 Ed25519 public key. |

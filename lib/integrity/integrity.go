@@ -9,6 +9,12 @@
 // produce the same signature bytes, so signatures are reproducible and
 // diff-friendly. Keys and signatures are exchanged as standard base64
 // strings; digests as lowercase hex.
+//
+// The package also implements the interpreter's integrity mode
+// (`lisp --integrity <ref>`, see mode.go), which runs a script if and
+// only if it — and, in cascade, its repo-local requires — match what is
+// committed in its Git repository at <ref>; the (assert-integrity)
+// builtin lets a script demand that mode.
 package integrity
 
 import (
@@ -32,6 +38,7 @@ func Load(env EnvType) {
 	call.Call(env, ed25519_generate)
 	call.Call(env, ed25519_sign)
 	call.Call(env, ed25519_verify)
+	call.Call(env, assert_integrity)
 
 	call.Doc(env, "fmt", "[s]",
 		"Formats lisp source s into its canonical form (as lisp --fmt does); errors if s does not parse.")
@@ -43,6 +50,15 @@ func Load(env EnvType) {
 		"Signs string s with a base64 Ed25519 private key; returns the base64 signature (deterministic).")
 	call.Doc(env, "ed25519-verify", "[public s signature]",
 		"Reports whether the base64 signature of string s verifies against the base64 Ed25519 public key.")
+	call.Doc(env, "assert-integrity", "[]",
+		"Throws unless the interpreter runs under --integrity; returns the verified commit hash.")
+}
+
+func assert_integrity() (string, error) {
+	if !Active() {
+		return "", fmt.Errorf("assert-integrity: source integrity is not verified (run with --integrity <ref>)")
+	}
+	return CommitHash(), nil
 }
 
 func fmtSource(s string) (string, error) {
