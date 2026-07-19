@@ -299,6 +299,7 @@ func drop_last(n int, arg MalType) (MalType, error) {
 
 func LoadInput(env EnvType) {
 	call.Call(env, slurp)
+	call.Call(env, slurp_source)
 	call.Call(env, spit, 2, 4)
 	call.Call(env, readLine)
 	call.CallOverrideFN(env, "read-password", readPassword)
@@ -494,6 +495,33 @@ func println(a ...MalType) (MalType, error) {
 func printNoNewline(a ...MalType) (MalType, error) {
 	fmt.Print(printer.Pr_list(a, false, "", "", " "))
 	return nil, nil
+}
+
+// VerifySource, when non-nil, vets a source file before load-file (via
+// slurp-source) evaluates it; a non-nil error aborts the load. The
+// command package installs it when running under --integrity, so code
+// loaded at runtime is verified like the script and its requires.
+// slurp itself is never hooked: it reads data, not code.
+var VerifySource func(absPath string, content []byte) error
+
+// slurp_source is slurp for files that will be evaluated as code:
+// identical, except that under --integrity the content is verified
+// against the pinned commit. load-file builds on it.
+func slurp_source(fileName string) (MalType, error) {
+	v, err := slurp(fileName)
+	if err != nil {
+		return nil, err
+	}
+	if VerifySource != nil {
+		abs, err := filepath.Abs(fileName)
+		if err != nil {
+			return nil, err
+		}
+		if err := VerifySource(abs, []byte(v.(string))); err != nil {
+			return nil, err
+		}
+	}
+	return v, nil
 }
 
 func slurp(fileName string) (MalType, error) {

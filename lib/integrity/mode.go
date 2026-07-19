@@ -36,8 +36,10 @@ import (
 
 // modeState is the pinned verification context of an --integrity run.
 type modeState struct {
+	repo     *gogit.Repository
 	repoRoot string
 	ref      string
+	signer   string
 	commit   *object.Commit
 	tree     *object.Tree
 }
@@ -56,6 +58,23 @@ func CommitHash() string {
 		return ""
 	}
 	return mode.commit.Hash.String()
+}
+
+// Ref returns the ref --integrity was given, or "" when inactive.
+func Ref() string {
+	if mode == nil {
+		return ""
+	}
+	return mode.ref
+}
+
+// Signer returns the comment of the allowed key that signed the
+// verified ref, or "" when inactive or no signers were required.
+func Signer() string {
+	if mode == nil {
+		return ""
+	}
+	return mode.signer
 }
 
 // Disable turns integrity mode off. Exported for tests.
@@ -103,11 +122,18 @@ func Enable(scriptPath, ref, allowedSigners string) error {
 		return fmt.Errorf("integrity: %w", err)
 	}
 	if head.Hash() != commit.Hash {
-		return fmt.Errorf("integrity: HEAD is at %s, not at %q (%s)", head.Hash(), ref, commit.Hash)
+		// HEAD may sit above the ref: state-save commits its writes,
+		// moving HEAD, and the code ref stays valid across restarts as
+		// long as every commit in between touches only .state/.
+		if err := verifyStateOnlyDescent(repo, head.Hash(), commit.Hash); err != nil {
+			return fmt.Errorf("integrity: HEAD is at %s, not at %q (%s): %w", head.Hash(), ref, commit.Hash, err)
+		}
 	}
 
+	signer := ""
 	if allowedSigners != "" {
-		if err := verifyRefSignature(repo, ref, tag, commit, allowedSigners); err != nil {
+		signer, err = verifyRefSignature(repo, ref, tag, commit, allowedSigners)
+		if err != nil {
 			return fmt.Errorf("integrity: %w", err)
 		}
 	}
@@ -116,7 +142,7 @@ func Enable(scriptPath, ref, allowedSigners string) error {
 	if err != nil {
 		return fmt.Errorf("integrity: %w", err)
 	}
-	m := &modeState{repoRoot: root, ref: ref, commit: commit, tree: tree}
+	m := &modeState{repo: repo, repoRoot: root, ref: ref, signer: signer, commit: commit, tree: tree}
 	content, err := os.ReadFile(abs)
 	if err != nil {
 		return fmt.Errorf("integrity: %w", err)
@@ -130,8 +156,9 @@ func Enable(scriptPath, ref, allowedSigners string) error {
 
 // verifyRefSignature requires ref to be SSH-signed by an allowed key:
 // the tag signature when ref is an annotated tag, the commit signature
-// otherwise (plain commits, branches and lightweight tags).
-func verifyRefSignature(repo *gogit.Repository, ref string, tag *object.Tag, commit *object.Commit, allowedSigners string) error {
+// otherwise (plain commits, branches and lightweight tags). It returns
+// the signing key's comment.
+func verifyRefSignature(repo *gogit.Repository, ref string, tag *object.Tag, commit *object.Commit, allowedSigners string) (string, error) {
 	if tag == nil {
 		// ResolveRevision may already have peeled an annotated tag
 		// named ref to its commit; look the tag object up explicitly
@@ -146,6 +173,46 @@ func verifyRefSignature(repo *gogit.Repository, ref string, tag *object.Tag, com
 		return libgit.VerifyTagSSH(tag, allowedSigners)
 	}
 	return libgit.VerifyCommitSSH(commit, allowedSigners)
+}
+
+// verifyStateOnlyDescent checks that ref is an ancestor of head through
+// a linear chain of commits that touch only .state/ paths — the commits
+// state-save creates. Any other divergence is an error.
+func verifyStateOnlyDescent(repo *gogit.Repository, head, ref plumbing.Hash) error {
+	cur, err := repo.CommitObject(head)
+	if err != nil {
+		return err
+	}
+	for cur.Hash != ref {
+		if cur.NumParents() != 1 {
+			return fmt.Errorf("commit %s is not part of a linear state-only descent from the ref", cur.Hash)
+		}
+		parent, err := cur.Parent(0)
+		if err != nil {
+			return err
+		}
+		curTree, err := cur.Tree()
+		if err != nil {
+			return err
+		}
+		parentTree, err := parent.Tree()
+		if err != nil {
+			return err
+		}
+		changes, err := object.DiffTree(parentTree, curTree)
+		if err != nil {
+			return err
+		}
+		for _, ch := range changes {
+			for _, name := range []string{ch.From.Name, ch.To.Name} {
+				if name != "" && !strings.HasPrefix(name, stateDir+"/") {
+					return fmt.Errorf("commit %s modifies %s outside %s/", cur.Hash, name, stateDir)
+				}
+			}
+		}
+		cur = parent
+	}
+	return nil
 }
 
 // VerifyFile checks that absPath lies inside the verified repository

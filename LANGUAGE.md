@@ -298,6 +298,7 @@ Reading and writing files and stdin.
 | `read-password` | `[prompt]` | Prints prompt (to stderr) and reads a line with terminal echo disabled; falls back to a plain read when input is not a terminal. Returns nil on end of input. |
 | `readline` | `[prompt]` | Prints prompt and reads a line from input. |
 | `slurp` | `[filename]` | Reads a file and returns its contents as a string. |
+| `slurp-source` | `[filename]` | Reads a source file like slurp and, under --integrity, verifies it against the pinned commit; load-file builds on it. |
 | `spit` | `[filename s & opts]` | Writes string s to a file, creating or truncating it; with :append true, appends instead. |
 
 ### core — runtime variables
@@ -456,6 +457,8 @@ Attest and verify lisp source (formatting, hashing, Ed25519 signatures, --integr
 | `ed25519-verify` | `[public s signature]` | Reports whether the base64 signature of string s verifies against the base64 Ed25519 public key. |
 | `fmt` | `[s]` | Formats lisp source s into its canonical form (as lisp --fmt does); errors if s does not parse. |
 | `sha2-256` | `[s]` | SHA2-256 digest of string s, as lowercase hex. |
+| `state-load` | `[name & [default]]` | Reads .state/name.lisp back as data (READ, never EVAL); returns default (or throws) when absent. Under --integrity the file must match its committed version at HEAD. |
+| `state-save` | `[name value]` | Writes value as canonical lisp data to .state/name.lisp at the repository root and commits it; returns the commit hash. Under --integrity the commit keeps the verified ref valid. |
 
 ### web
 

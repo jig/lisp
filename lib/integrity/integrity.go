@@ -39,6 +39,8 @@ func Load(env EnvType) {
 	call.Call(env, ed25519_sign)
 	call.Call(env, ed25519_verify)
 	call.Call(env, assert_integrity)
+	call.Call(env, state_save)
+	call.Call(env, state_load, 1, 2)
 
 	call.Doc(env, "fmt", "[s]",
 		"Formats lisp source s into its canonical form (as lisp --fmt does); errors if s does not parse.")
@@ -52,6 +54,10 @@ func Load(env EnvType) {
 		"Reports whether the base64 signature of string s verifies against the base64 Ed25519 public key.")
 	call.Doc(env, "assert-integrity", "[]",
 		"Throws unless the interpreter runs under --integrity; returns the verified commit hash.")
+	call.Doc(env, "state-save", "[name value]",
+		"Writes value as canonical lisp data to .state/name.lisp at the repository root and commits it; returns the commit hash. Under --integrity the commit keeps the verified ref valid.")
+	call.Doc(env, "state-load", "[name & [default]]",
+		"Reads .state/name.lisp back as data (READ, never EVAL); returns default (or throws) when absent. Under --integrity the file must match its committed version at HEAD.")
 }
 
 func assert_integrity() (string, error) {

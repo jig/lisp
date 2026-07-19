@@ -18,6 +18,8 @@ mode](#integrity-mode---integrity) (`lisp --integrity <ref>`).
 | `(ed25519-sign private s)` | base64 signature of `s` |
 | `(ed25519-verify public s signature)` | `true` or `false` |
 | `(assert-integrity)` | the verified commit hash; **throws** unless running under `--integrity` |
+| `(state-save name value)` | writes `value` as canonical lisp data to `.state/name.lisp` and commits it; returns the commit hash |
+| `(state-load name & [default])` | the state read back as pure data (READ, never EVAL); `default` (or throws) when absent |
 
 Ed25519 signing is deterministic: the same key and message always yield
 the same signature bytes, so signatures are reproducible and
@@ -41,15 +43,21 @@ diff-friendly.
 if* it matches what is committed in its enclosing Git repository at
 `<ref>` (a commit hash, tag or branch):
 
-1. `HEAD` must be exactly the commit `<ref>` resolves to;
+1. `HEAD` must be exactly the commit `<ref>` resolves to, or a linear
+   chain of `.state/`-only commits above it (the ones `state-save`
+   creates), so the same ref stays valid across restarts;
 2. the script must byte-match the blob committed at `<ref>`;
-3. in cascade, every module loaded with `require` must resolve inside
-   the same repository and byte-match its committed blob — a module
-   resolving outside the repository (an `-i` directory elsewhere,
+3. in cascade, every file evaluated as code — `require` modules and
+   `load-file`/`load-file-once` targets — must resolve inside the same
+   repository and byte-match its committed blob; a file resolving
+   outside the repository (an `-i` directory elsewhere,
    `~/.config/lisp/`, …) is refused.
 
 `(assert-integrity)` lets committed code demand the mode: it throws
 unless the run is verified, and returns the verified commit hash.
+`state-save`/`state-load` give a verified program a way to persist
+state without leaving the integrity envelope (see
+[INTEGRITY.md](../../INTEGRITY.md), the full specification).
 
 With `--integrity-signers FILE` the ref must additionally carry an SSH
 signature made by one of the public keys in `FILE` (authorized_keys
@@ -62,9 +70,9 @@ What integrity mode is — and is not: it is an operational assurance
 for the operator launching the script (no accidental drift, no
 uncommitted edits, optionally "signed by a trusted key"). It is not a
 security boundary against an attacker who can rewrite the repository,
-the signers file or the `lisp` binary. Files the verified code loads
-outside `require` (`load-file`, `slurp` + `eval`) are not covered, and
-uncommitted files that are never interpreted do not affect the check.
+the signers file or the `lisp` binary. `eval` over strings obtained by
+other means (`slurp`, network) is not covered, and uncommitted files
+that are never interpreted do not affect the check.
 
 ## Loading
 

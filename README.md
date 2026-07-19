@@ -401,10 +401,12 @@ it matches what is committed in its Git repository at `REF` (a commit
 hash, tag or branch — an immutable commit hash is the strongest
 choice):
 
-- `HEAD` must be exactly the commit `REF` resolves to,
+- `HEAD` must be exactly the commit `REF` resolves to (or a
+  state-only descendant of it, see below),
 - the script must byte-match the blob committed at `REF`, and
-- the check cascades to `require`: every module must resolve inside
-  the same repository and match its committed blob; modules resolving
+- the check cascades to every file evaluated as code: `require`
+  modules and `load-file`/`load-file-once` targets must resolve inside
+  the same repository and match their committed blobs; files resolving
   outside it (e.g. `~/.config/lisp/`) are refused.
 
 ```bash
@@ -434,12 +436,25 @@ which survives cloning the repository onto other machines:
 lisp --integrity v1.4.2 --integrity-signers /etc/lisp/release-keys service.lisp
 ```
 
+A verified program persists state through the `.state/` store instead
+of raw file writes: `(state-save "db" value)` writes
+`.state/db.lisp` (canonical lisp data, at the repository root next to
+`.lisp/`) and commits it in the same operation; `(state-load "db")`
+reads it back as pure data and, under `--integrity`, requires it to
+match its committed version at `HEAD`. State commits keep the original
+`--integrity REF` valid across restarts: the startup check accepts
+`HEAD` being a linear chain of state-only commits above `REF`.
+
 Scope: this is an operational assurance for the operator — no
 accidental drift, no uncommitted edits — not a security boundary
 against someone who can rewrite the repository, the keys file or the
-binary. Files loaded outside the `require` mechanism (`load-file`,
-`slurp` + `eval`) are not covered; other uncommitted files in the
-repository do not affect the check.
+binary (that separation belongs to the OS: root-owned checkout, keys
+and binary; unprivileged process). `eval` over strings obtained by
+other means (`slurp`, network) is not covered; uncommitted files that
+are never interpreted do not affect the check.
+
+The full specification — invariants, state commit protocol, crash
+recovery, deployment recipe — lives in [INTEGRITY.md](./INTEGRITY.md).
 
 ### Preamble placeholders (-P/--preamble)
 

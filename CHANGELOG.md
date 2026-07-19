@@ -155,17 +155,25 @@ Non-breaking, for context (see `git log v0.2.24..` for the full list):
 
 - `--integrity REF` — run a script if and only if it matches what is
   committed in its Git repository at REF (a commit hash, tag or
-  branch): HEAD must be exactly REF, the script must byte-match its
-  committed blob, and the check cascades to every `require` resolved
-  inside the same repository (modules resolving outside it are
-  refused). `--integrity-signers FILE` additionally requires REF to be
-  SSH-signed by a key listed in FILE (authorized_keys format, as
-  `git-verify-commit`). The new `(assert-integrity)` builtin throws
-  unless the run is verified — so committed code can demand the flag —
-  and returns the verified commit hash. This is an operational
-  assurance against drift and uncommitted edits, not a security
-  boundary against whoever can rewrite the repository or the binary.
-  See `lib/integrity/README.md`
+  branch): HEAD must be exactly REF (or a `.state/`-only descendant),
+  the script must byte-match its committed blob, and the check
+  cascades to every file evaluated as code — `require` modules and
+  `load-file` targets — resolved inside the same repository (files
+  resolving outside it are refused). `--integrity-signers FILE`
+  additionally requires REF to be SSH-signed by a key listed in FILE
+  (authorized_keys format, as `git-verify-commit`); a JSON audit line
+  is logged on successful verification. New builtins:
+  `(assert-integrity)` throws unless the run is verified — so
+  committed code can demand the flag — and returns the verified commit
+  hash; `(state-save name value)` / `(state-load name & [default])`
+  persist program state as canonical lisp data under `.state/`,
+  committing on save and verifying against HEAD on load, so state
+  commits keep the original REF valid across restarts; `slurp-source`
+  (which `load-file` now builds on) is `slurp` plus the code
+  verification. This is an operational assurance against drift and
+  uncommitted edits, not a security boundary against whoever can
+  rewrite the repository or the binary. Full specification in
+  `INTEGRITY.md`
 - `exit` builtin: `(exit)` / `(exit status)` ends the process with the
   given status (`0` by default), like Clojure's `System/exit`. It stops
   before the interpreter echoes a script's final value, so a program run
