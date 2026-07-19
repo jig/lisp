@@ -76,7 +76,15 @@ func TestTimeoutOnTryCatch(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), 500*time.Millisecond)
+	// `try` reserves 20% of the deadline for the catch/finally handlers
+	// (mal.go: 80% goes to the try body). The handler here is a trivial
+	// string concat, but on a loaded CI runner the scheduling jitter
+	// between the try body's timeout firing and the handler running can
+	// exceed a too-small 20% slice — then the top-of-loop ctx check
+	// re-fires the (now expired) deadline outside the try, uncatchably.
+	// A comfortable deadline keeps that 20% (~400ms) far larger than any
+	// realistic jitter, so the timeout is caught deterministically.
+	ctx, cancel := context.WithTimeout(context.Background(), 2000*time.Millisecond)
 	defer cancel()
 	res, err := EVAL(ctx, ast, ns)
 	if err != nil {
