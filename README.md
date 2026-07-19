@@ -424,7 +424,7 @@ that call:
 (def release (assert-integrity))
 ```
 
-With `--integrity-signers FILE`, `REF` must additionally carry an SSH
+With `--integrity-keys FILE`, `REF` must additionally carry an SSH
 signature by one of the public keys listed in `FILE`
 (authorized_keys format, one key per line — the same format
 `git-verify-commit` takes). For an annotated tag the tag's signature
@@ -433,7 +433,7 @@ is checked; otherwise the commit's. This upgrades the guarantee from
 which survives cloning the repository onto other machines:
 
 ```bash
-lisp --integrity v1.4.2 --integrity-signers /etc/lisp/release-keys service.lisp
+lisp --integrity v1.4.2 --integrity-keys /etc/lisp/release-keys service.lisp
 ```
 
 A verified program persists state through the `.state/` store instead

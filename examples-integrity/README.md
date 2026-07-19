@@ -54,7 +54,7 @@ The same cascade covers `load-file`/`load-file-once` targets.
 
 ## 03-signed — trust a key, not the local repository
 
-An SSH-signed tag plus `--integrity-signers` upgrades the guarantee
+An SSH-signed tag plus `--integrity-keys` upgrades the guarantee
 from "matches this repository" to "matches what a trusted key
 released" — it survives cloning the repository elsewhere.
 
@@ -65,14 +65,15 @@ git init && git add -A && git commit -m "release"
 ssh-keygen -t ed25519 -f release-key -N "" -C "release@example.com"
 git -c gpg.format=ssh -c user.signingkey=./release-key tag -s v1 -m "signed release"
 
-# The signers file is authorized_keys format — the .pub file as is.
+# The keys file is authorized_keys / .pub format — the .pub file as is,
+# NOT git's allowed_signers (a principal-first line would be rejected).
 # In production it lives OUTSIDE the repository (e.g. /etc/lisp/).
-lisp --integrity v1 --integrity-signers release-key.pub service.lisp   # ✓
+lisp --integrity v1 --integrity-keys release-key.pub service.lisp   # ✓
 
 ssh-keygen -t ed25519 -f other-key -N ""
-lisp --integrity v1 --integrity-signers other-key.pub service.lisp     # ✗ no allowed key matches
+lisp --integrity v1 --integrity-keys other-key.pub service.lisp     # ✗ no allowed key matches
 git tag -d v1 && git tag v1                                            # re-tag, unsigned
-lisp --integrity v1 --integrity-signers release-key.pub service.lisp   # ✗ tag is not signed
+lisp --integrity v1 --integrity-keys release-key.pub service.lisp   # ✗ tag is not signed
 ```
 
 ## 04-state — persistent state inside the integrity envelope

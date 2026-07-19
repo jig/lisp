@@ -59,12 +59,13 @@ unless the run is verified, and returns the verified commit hash.
 state without leaving the integrity envelope (see
 [INTEGRITY.md](../../INTEGRITY.md), the full specification).
 
-With `--integrity-signers FILE` the ref must additionally carry an SSH
-signature made by one of the public keys in `FILE` (authorized_keys
-format, one key per line, as `git-verify-commit`): the tag signature
-for annotated tags, the commit signature otherwise. The trust anchor
-then becomes the key list instead of the local repository state, so
-verification survives cloning the repository elsewhere.
+With `--integrity-keys FILE` the ref must additionally carry an SSH
+signature made by one of the public keys in `FILE` (authorized_keys /
+`.pub` format, one key per line, as `git-verify-commit` — **not** git's
+`allowed_signers` format): the tag signature for annotated tags, the
+commit signature otherwise. The trust anchor then becomes the key list
+instead of the local repository state, so verification survives cloning
+the repository elsewhere.
 
 What integrity mode is — and is not: it is an operational assurance
 for the operator launching the script (no accidental drift, no

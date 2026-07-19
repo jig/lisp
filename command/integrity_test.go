@@ -142,7 +142,7 @@ func TestExecuteIntegrityFlagValidation(t *testing.T) {
 		{"lisp", "--integrity", "HEAD"},                          // no script
 		{"lisp", "--integrity", "HEAD", "-"},                     // stdin
 		{"lisp", "--integrity", "HEAD", "-e", "1", "x.lisp"},     // eval
-		{"lisp", "--integrity-signers", "keys.txt", "x.lisp"},    // signers alone
+		{"lisp", "--integrity-keys", "keys.txt", "x.lisp"},       // keys alone
 		{"lisp", "--integrity", "HEAD", "--fmt", "x.lisp"},       // fmt
 		{"lisp", "--integrity", "HEAD", "--test", ".", "x.lisp"}, // test
 		{"lisp", "--integrity", "HEAD", "--debug", "x.lisp"},     // debugger hook

@@ -159,10 +159,12 @@ Non-breaking, for context (see `git log v0.2.24..` for the full list):
   the script must byte-match its committed blob, and the check
   cascades to every file evaluated as code — `require` modules and
   `load-file` targets — resolved inside the same repository (files
-  resolving outside it are refused). `--integrity-signers FILE`
+  resolving outside it are refused). `--integrity-keys FILE`
   additionally requires REF to be SSH-signed by a key listed in FILE
-  (authorized_keys format, as `git-verify-commit`); a JSON audit line
-  is logged on successful verification. New builtins:
+  (authorized_keys / `.pub` format, as `git-verify-commit` — not git's
+  `allowed_signers`; a principal-first line is rejected, keys are
+  matched by key with no expiry); a JSON audit line is logged on
+  successful verification. New builtins:
   `(assert-integrity)` throws unless the run is verified — so
   committed code can demand the flag — and returns the verified commit
   hash; `(state-save name value)` / `(state-load name & [default])`

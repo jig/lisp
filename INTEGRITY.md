@@ -22,7 +22,7 @@ signatures, exactly what a trusted key released) — no accidental
 drift, no uncommitted edits, no locally patched copy.
 
 It is **not a security boundary** against an attacker who can already
-write to the repository, the signers file or the `lisp` binary. The
+write to the repository, the keys file or the `lisp` binary. The
 interpreter cannot protect itself from whoever controls what it reads;
 that separation belongs to the operating system (see
 [Deployment](#deployment-hardening-the-assurance-into-a-boundary)).
@@ -34,7 +34,7 @@ Definitions:
 - **ref** — the argument of `--integrity`: a commit hash, tag or
   branch name, resolved in the repository enclosing the script.
   A commit hash is immutable and therefore the strongest choice; a
-  signed tag is equivalent when `--integrity-signers` is used.
+  signed tag is equivalent when `--integrity-keys` is used.
 - **code file** — any file evaluated as code: the script, every module
   loaded through `require`, and every file loaded through `load-file` /
   `load-file-once` (which read via the `slurp-source` builtin).
@@ -47,7 +47,7 @@ At startup (`--integrity <ref>`):
 2. `HEAD` must be `C`, **or** a descendant of `C` through a linear
    chain of commits each touching only state paths (the commits
    `state-save` creates). Anything else fails.
-3. With `--integrity-signers FILE`: the ref must carry an SSH
+3. With `--integrity-keys FILE`: the ref must carry an SSH
    signature by one of the public keys in `FILE` — the tag signature
    if the ref is an annotated tag, the commit signature otherwise.
 4. The script must byte-match its blob in `C`'s tree.
@@ -80,20 +80,29 @@ Concepts 1–2 and 4–6 are demonstrated by
 ```bash
 lisp --integrity v1.4.2 service.lisp
 lisp --integrity 9fceb02d service.lisp
-lisp --integrity v1.4.2 --integrity-signers /etc/lisp/release-keys service.lisp
+lisp --integrity v1.4.2 --integrity-keys /etc/lisp/release-keys service.lisp
 ```
 
 - `--integrity REF` — enable the mode. Requires a script file;
   incompatible with `-e`, `--test`, `--fmt`, `--debug`, stdin (`-`)
   and the DAP/LSP server modes.
-- `--integrity-signers FILE` — additionally require the ref to be
-  SSH-signed by a key listed in FILE. authorized_keys format, one
-  public key per line (`ssh-ed25519 AAAA… comment`), the same format
-  `git-verify-commit` takes. Requires `--integrity`.
+- `--integrity-keys FILE` — additionally require the ref to be
+  SSH-signed by a key listed in FILE. **authorized_keys / `.pub`
+  format**: one public key per line, `<type> <base64> [comment]`
+  (e.g. `ssh-ed25519 AAAA… alice`), blank lines and `#` comments
+  skipped — the same format `git-verify-commit` takes. This is **not**
+  git's `allowed_signers` format (which puts the principal first); such
+  a line is rejected, not silently accepted, so the trust anchor is the
+  set of keys, matched by key — no principal or validity constraints
+  (rotate keys by editing the file, not by expiry). Requires
+  `--integrity`.
 
 On success one structured JSON line is logged to stderr for the audit
-trail: `{"msg":"integrity verified","ref":…,"commit":…,"signer":…}`
-(`signer` only when signers were required).
+trail: `{"msg":"integrity: entry script and ref verified","ref":…,"commit":…,"signer":…}`
+(`signer` only when keys were required). It attests the pinned ref and
+the entry script; each cascaded `require` / `load-file` is verified as
+it loads and aborts the run on mismatch, so the line does not mean the
+whole run is already verified.
 
 ## Builtins
 
@@ -132,15 +141,15 @@ integrity envelope:
 
 ## Signatures and trust anchors
 
-Without `--integrity-signers` the trust anchor is the local repository
+Without `--integrity-keys` the trust anchor is the local repository
 state: the mode proves consistency ("matches what is committed here"),
 which stops drift but not history rewriting by whoever can write to
 the repository.
 
-With `--integrity-signers` the anchor becomes the key list plus the
+With `--integrity-keys` the anchor becomes the key list plus the
 binary: the ref must be signed by a trusted key, so verification
 survives cloning the repository onto other machines and re-tagging by
-someone without the key. Keep the signers file outside the repository
+someone without the key. Keep the keys file outside the repository
 and outside the process user's write reach.
 
 ## Deployment: hardening the assurance into a boundary
@@ -148,7 +157,7 @@ and outside the process user's write reach.
 The mode becomes a real boundary only when the OS guarantees the
 attacker cannot write to what the interpreter reads:
 
-- repository checkout, signers file and `lisp` binary owned by `root`
+- repository checkout, keys file and `lisp` binary owned by `root`
   (or a dedicated `deploy` user);
 - the process running as an unprivileged user with **no write access**
   to any of the three;

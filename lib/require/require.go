@@ -23,6 +23,7 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"unicode"
 
 	"github.com/jig/lisp"
 	"github.com/jig/lisp/env"
@@ -339,6 +340,13 @@ func resolve_require(module string) (string, error) {
 	module = strings.TrimSpace(module)
 	if module == "" {
 		return "", fmt.Errorf("require: empty module name")
+	}
+	// Control characters (newline, CR, tab, …) never belong in a module
+	// path: they could split the `;; $MODULE <path>` cursor prefix that
+	// loadModule prepends. Not a bypass — the module must still resolve
+	// to a committed file — but reject them outright.
+	if strings.ContainsFunc(module, unicode.IsControl) {
+		return "", fmt.Errorf("require: invalid module path %q (control characters)", module)
 	}
 	if strings.ContainsAny(module, " \\:@") {
 		return "", fmt.Errorf("require: invalid module path %q", module)

@@ -51,13 +51,17 @@ git tag -d v1 >/dev/null
 ssh-keygen -q -t ed25519 -f release-key -N "" -C "release@example.com"
 git -c user.name=Demo -c user.email=demo@example.com \
     -c gpg.format=ssh -c user.signingkey=./release-key tag -s v1 -m "signed release"
-$LISP --integrity v1 --integrity-signers release-key.pub service.lisp
+$LISP --integrity v1 --integrity-keys release-key.pub service.lisp
 ssh-keygen -q -t ed25519 -f other-key -N ""
-must_fail "signed by a key not in the signers file" -- \
-	$LISP --integrity v1 --integrity-signers other-key.pub service.lisp
+must_fail "signed by a key not in the keys file" -- \
+	$LISP --integrity v1 --integrity-keys other-key.pub service.lisp
+# git allowed_signers format (principal-first) is refused, not misparsed.
+printf 'release@example.com %s\n' "$(cat release-key.pub)" > allowed_signers
+must_fail "allowed_signers format (principal-first) instead of .pub" -- \
+	$LISP --integrity v1 --integrity-keys allowed_signers service.lisp
 git tag -d v1 >/dev/null && git tag v1
-must_fail "unsigned tag with --integrity-signers" -- \
-	$LISP --integrity v1 --integrity-signers release-key.pub service.lisp
+must_fail "unsigned tag with --integrity-keys" -- \
+	$LISP --integrity v1 --integrity-keys release-key.pub service.lisp
 
 step "04-state: persistent state inside the integrity envelope"
 repo 04-state

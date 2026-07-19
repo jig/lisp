@@ -17,26 +17,26 @@ import (
 
 // args represents command line arguments for the Lisp interpreter
 type args struct {
-	Version          bool     `arg:"-v,--version" help:"show version information"`
-	Test             string   `arg:"-t,--test" help:"run the test suite from a directory or a single test file" placeholder:"DIR|FILE"`
-	TestJSON         string   `arg:"--test-json" help:"with --test, also write a JSON report to the given file" placeholder:"FILE"`
-	Coverage         string   `arg:"--coverage" help:"write an lcov coverage report of the executed lisp code (requires -tags debugger)" placeholder:"FILE"`
-	Debug            bool     `arg:"--debug" help:"enable DEBUG-EVAL support (requires -tags debugger)"`
-	Eval             string   `arg:"-e,--eval" help:"evaluate expression and exit" placeholder:"EXPR"`
-	Fmt              bool     `arg:"--fmt" help:"format lisp source (files given as arguments, or stdin) and print the result"`
-	Write            bool     `arg:"-w,--write" help:"with --fmt, rewrite each file in place instead of printing"`
-	Include          []string `arg:"-i,--include,separate" help:"add include directory for require (needs the require library loaded)" placeholder:"DIR"`
-	Integrity        string   `arg:"--integrity" help:"run the script only if it and its repo-local requires match Git REF and HEAD is at REF" placeholder:"REF"`
-	IntegritySigners string   `arg:"--integrity-signers" help:"with --integrity, additionally require REF to be SSH-signed by a key listed in FILE (authorized_keys format)" placeholder:"FILE"`
-	Preamble         []string `arg:"-P,--preamble,separate" help:"define a preamble placeholder for the script, e.g. -P '$NAME <expr>'" placeholder:"ASSIGN"`
-	DAP              bool     `arg:"--dap" help:"start a Debug Adapter Protocol server on stdio (requires -tags debugger)"`
-	DAPListen        string   `arg:"--dap-listen" help:"start a DAP server on the given TCP address (requires -tags debugger)" placeholder:"HOST:PORT"`
-	RunTest          string   `arg:"--run-test" help:"with --dap, run the named deftest after loading the script (used by the editor's Debug Test)" placeholder:"NAME"`
-	LSP              bool     `arg:"--lsp" help:"start a Language Server Protocol server on stdio (requires -tags debugger)"`
-	LSPListen        string   `arg:"--lsp-listen" help:"start an LSP server on the given TCP address (requires -tags debugger)" placeholder:"HOST:PORT"`
-	BatSyntax        bool     `arg:"--install-bat-syntax" help:"install the jig/lisp syntax into bat (writes to bat's config dir and rebuilds its cache)"`
-	Script           string   `arg:"positional" help:"lisp script to execute"`
-	Args             []string `arg:"positional" help:"arguments to pass to the script"`
+	Version       bool     `arg:"-v,--version" help:"show version information"`
+	Test          string   `arg:"-t,--test" help:"run the test suite from a directory or a single test file" placeholder:"DIR|FILE"`
+	TestJSON      string   `arg:"--test-json" help:"with --test, also write a JSON report to the given file" placeholder:"FILE"`
+	Coverage      string   `arg:"--coverage" help:"write an lcov coverage report of the executed lisp code (requires -tags debugger)" placeholder:"FILE"`
+	Debug         bool     `arg:"--debug" help:"enable DEBUG-EVAL support (requires -tags debugger)"`
+	Eval          string   `arg:"-e,--eval" help:"evaluate expression and exit" placeholder:"EXPR"`
+	Fmt           bool     `arg:"--fmt" help:"format lisp source (files given as arguments, or stdin) and print the result"`
+	Write         bool     `arg:"-w,--write" help:"with --fmt, rewrite each file in place instead of printing"`
+	Include       []string `arg:"-i,--include,separate" help:"add include directory for require (needs the require library loaded)" placeholder:"DIR"`
+	Integrity     string   `arg:"--integrity" help:"run the script only if it and its repo-local requires match Git REF and HEAD is at REF" placeholder:"REF"`
+	IntegrityKeys string   `arg:"--integrity-keys" help:"with --integrity, additionally require REF to be SSH-signed by a key listed in FILE (authorized_keys/.pub format, one key per line)" placeholder:"FILE"`
+	Preamble      []string `arg:"-P,--preamble,separate" help:"define a preamble placeholder for the script, e.g. -P '$NAME <expr>'" placeholder:"ASSIGN"`
+	DAP           bool     `arg:"--dap" help:"start a Debug Adapter Protocol server on stdio (requires -tags debugger)"`
+	DAPListen     string   `arg:"--dap-listen" help:"start a DAP server on the given TCP address (requires -tags debugger)" placeholder:"HOST:PORT"`
+	RunTest       string   `arg:"--run-test" help:"with --dap, run the named deftest after loading the script (used by the editor's Debug Test)" placeholder:"NAME"`
+	LSP           bool     `arg:"--lsp" help:"start a Language Server Protocol server on stdio (requires -tags debugger)"`
+	LSPListen     string   `arg:"--lsp-listen" help:"start an LSP server on the given TCP address (requires -tags debugger)" placeholder:"HOST:PORT"`
+	BatSyntax     bool     `arg:"--install-bat-syntax" help:"install the jig/lisp syntax into bat (writes to bat's config dir and rebuilds its cache)"`
+	Script        string   `arg:"positional" help:"lisp script to execute"`
+	Args          []string `arg:"positional" help:"arguments to pass to the script"`
 }
 
 func (args) Description() string {
