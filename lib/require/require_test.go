@@ -294,6 +294,7 @@ func TestResolveRequire_RejectsInvalidNames(t *testing.T) {
 		"", " ", "/abs/path", "~/home", "../escape", "a/../b", "./x",
 		"a//b", ".hidden", "a/.hidden", "with space", "back\\slash",
 		"colon:name", "at@name",
+		"line\nbreak", "carriage\rreturn", "tab\there", "bell\x07",
 	} {
 		if _, err := resolve_require(bad); err == nil {
 			t.Errorf("expected error for module name %q", bad)

@@ -250,7 +250,14 @@ func verifySignature(obj payloadEncoder, armored, allowedKeys string) (MalType, 
 }
 
 // matchAllowedKey finds the allowed key (authorized_keys-format lines;
-// blank lines and # comments skipped) matching the signature's public key.
+// blank lines and # comments skipped) matching the signature's public
+// key. The format is authorized_keys / a `.pub` file — one key per line,
+// `<type> <base64> [comment]` — NOT git's allowed_signers (which puts
+// the principal first). A principal-first line is rejected rather than
+// silently misparsed: ParseAuthorizedKey would read the principal as an
+// SSH option and drop it, verifying the key with no identity or
+// validity constraint. Options are meaningless for signature checking,
+// so any line carrying them is refused.
 func matchAllowedKey(sig *sshsig.Signature, allowedKeys string) (gossh.PublicKey, string, error) {
 	want := sig.PublicKey.Marshal()
 	for line := range strings.SplitSeq(allowedKeys, "\n") {
@@ -258,9 +265,12 @@ func matchAllowedKey(sig *sshsig.Signature, allowedKeys string) (gossh.PublicKey
 		if line == "" || strings.HasPrefix(line, "#") {
 			continue
 		}
-		pub, comment, _, _, err := gossh.ParseAuthorizedKey([]byte(line))
+		pub, comment, options, _, err := gossh.ParseAuthorizedKey([]byte(line))
 		if err != nil {
-			return nil, "", fmt.Errorf("invalid allowed key %q: %w", line, err)
+			return nil, "", fmt.Errorf("invalid allowed key %q: %w (expected an authorized_keys / .pub line, not git allowed_signers)", line, err)
+		}
+		if len(options) > 0 {
+			return nil, "", fmt.Errorf("allowed key %q carries unsupported options %q; expected a plain authorized_keys / .pub line (git allowed_signers, principal-first, is not supported)", line, options)
 		}
 		if bytes.Equal(pub.Marshal(), want) {
 			return pub, comment, nil

@@ -40,7 +40,7 @@ In sha256 repositories the commit signature is stored under the `gpgsig-sha256` 
 
 ## Verification — fail closed
 
-`git-verify-commit` and `git-verify-tag` take the allowed public keys as a string of authorized_keys-format lines (`ssh-ed25519 AAAA… comment`, one per line; blank lines and `#` comments are skipped — a `.pub` file or an `allowed_signers`-style list both work). They return a result map **only** when a listed key produced a valid signature over the object's exact payload; every other outcome — unsigned object, no matching key, altered content, corrupt signature — throws a catchable error. `git-verified?` and `git-tag-verified?` wrap them when only a boolean is wanted.
+`git-verify-commit` and `git-verify-tag` take the allowed public keys as a string of authorized_keys-format lines (`ssh-ed25519 AAAA… comment`, one per line; blank lines and `#` comments are skipped — a `.pub` file works as is). This is **not** git's `allowed_signers` format: a principal-first line (`alice@example.com ssh-ed25519 …`) is rejected rather than silently misparsed, since the principal would otherwise be read as an SSH option and dropped. Keys are matched by key, with no principal or validity constraints. They return a result map **only** when a listed key produced a valid signature over the object's exact payload; every other outcome — unsigned object, no matching key, altered content, corrupt signature — throws a catchable error. `git-verified?` and `git-tag-verified?` wrap them when only a boolean is wanted.
 
 ## Remotes and authentication
 

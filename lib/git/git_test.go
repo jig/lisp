@@ -183,6 +183,31 @@ func TestVerifyFailClosed(t *testing.T) {
 	eval(t, ns, `(git-close r)`)
 }
 
+// TestRejectAllowedSignersFormat verifies that a git allowed_signers
+// line (principal-first) is refused rather than silently misparsed:
+// ParseAuthorizedKey would read the principal as an SSH option and drop
+// it, verifying the key with no identity constraint. The very same key
+// verifies in authorized_keys format, so the rejection is about the
+// format, not the key.
+func TestRejectAllowedSignersFormat(t *testing.T) {
+	ns := newEnv(t)
+	dir := t.TempDir()
+	privPEM, authorized := testKey(t, "alice")
+	eval(t, ns, fmt.Sprintf(`(def r (git-init %q))`, dir))
+	if err := os.WriteFile(filepath.Join(dir, "a.txt"), []byte("1\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	eval(t, ns, `(git-add r "a.txt")`)
+	eval(t, ns, fmt.Sprintf(`(git-commit r "signed" {:author %s :sign {:key %q}})`, author, privPEM))
+
+	// authorized_keys format (key-first) verifies.
+	expectTrue(t, ns, fmt.Sprintf(`(get (git-verify-commit r "HEAD" %q) :valid)`, authorized))
+	// allowed_signers format (principal-first) with the SAME key is refused.
+	allowedSigners := "alice@example.com " + authorized
+	expectThrow(t, ns, fmt.Sprintf(`(git-verify-commit r "HEAD" %q)`, allowedSigners))
+	eval(t, ns, `(git-close r)`)
+}
+
 func TestBranchesTagsStatus(t *testing.T) {
 	ns := newEnv(t)
 	dir := t.TempDir()

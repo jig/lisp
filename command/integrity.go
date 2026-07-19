@@ -17,8 +17,8 @@ import (
 // outside it are refused). No-op when --integrity was not given.
 func setupIntegrity(a args) error {
 	if a.Integrity == "" {
-		if a.IntegritySigners != "" {
-			return fmt.Errorf("--integrity-signers requires --integrity")
+		if a.IntegrityKeys != "" {
+			return fmt.Errorf("--integrity-keys requires --integrity")
 		}
 		return nil
 	}
@@ -29,25 +29,28 @@ func setupIntegrity(a args) error {
 		a.DAP || a.DAPListen != "" || a.LSP || a.LSPListen != "" {
 		return fmt.Errorf("--integrity only runs a script file; it cannot be combined with --eval, --test, --fmt, --debug or the server modes")
 	}
-	signers := ""
-	if a.IntegritySigners != "" {
-		b, err := os.ReadFile(a.IntegritySigners)
+	keys := ""
+	if a.IntegrityKeys != "" {
+		b, err := os.ReadFile(a.IntegrityKeys)
 		if err != nil {
-			return fmt.Errorf("--integrity-signers: %w", err)
+			return fmt.Errorf("--integrity-keys: %w", err)
 		}
-		signers = string(b)
+		keys = string(b)
 	}
-	if err := integrity.Enable(a.Script, a.Integrity, signers); err != nil {
+	if err := integrity.Enable(a.Script, a.Integrity, keys); err != nil {
 		return err
 	}
 	require.VerifyModule = integrity.VerifyFile
 	core.VerifySource = integrity.VerifyFile
 
-	// One structured line to stderr for the operator's audit trail.
+	// One structured line to stderr for the operator's audit trail. It
+	// attests the pinned ref and the entry script only; each require /
+	// load-file is verified as it loads and aborts the run on mismatch,
+	// so a green line here does not mean the whole run is pre-verified.
 	logAttrs := []any{"ref", integrity.Ref(), "commit", integrity.CommitHash()}
-	if signers != "" {
+	if keys != "" {
 		logAttrs = append(logAttrs, "signer", integrity.Signer())
 	}
-	slog.New(slog.NewJSONHandler(os.Stderr, nil)).Info("integrity verified", logAttrs...)
+	slog.New(slog.NewJSONHandler(os.Stderr, nil)).Info("integrity: entry script and ref verified", logAttrs...)
 	return nil
 }

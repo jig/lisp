@@ -20,7 +20,7 @@ verified** — including the startup audit line and a successful
 
 Declared non-goals — findings here are not interesting:
 
-- An attacker who can rewrite the repository/refs, the signers file or
+- An attacker who can rewrite the repository/refs, the keys file or
   the `lisp` binary, or who controls the operator's command line
   (including `-P` preamble injection).
 - Verified code that *chooses* to evaluate unverified input
