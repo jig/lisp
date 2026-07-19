@@ -34,6 +34,19 @@ func newIntegrityEnv(t *testing.T) types.EnvType {
 	return ns
 }
 
+// runGit runs a git command in dir and returns its trimmed output,
+// failing the test on error. Shared by the integrity tests.
+func runGit(t *testing.T, dir string, args ...string) string {
+	t.Helper()
+	cmd := exec.Command("git", append([]string{"-c", "user.name=Test", "-c", "user.email=test@example.com"}, args...)...)
+	cmd.Dir = dir
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("git %v: %v\n%s", args, err, out)
+	}
+	return strings.TrimSpace(string(out))
+}
+
 // gitRepoWithScript builds a repository containing script.lisp (which
 // requires .lisp/util.lisp and asserts integrity) and returns its dir
 // and HEAD hash. It uses the git CLI, chdirs into the repo (so require
@@ -42,16 +55,7 @@ func newIntegrityEnv(t *testing.T) types.EnvType {
 func gitRepoWithScript(t *testing.T) (dir, hash string) {
 	t.Helper()
 	dir = t.TempDir()
-	git := func(args ...string) string {
-		t.Helper()
-		cmd := exec.Command("git", append([]string{"-c", "user.name=Test", "-c", "user.email=test@example.com"}, args...)...)
-		cmd.Dir = dir
-		out, err := cmd.CombinedOutput()
-		if err != nil {
-			t.Fatalf("git %v: %v\n%s", args, err, out)
-		}
-		return strings.TrimSpace(string(out))
-	}
+	git := func(args ...string) string { return runGit(t, dir, args...) }
 	script := "(require \"util\")\n(load-file \"extra.lisp\")\n(str (assert-integrity) \" \" (util/hello) \" \" extra-val)\n"
 	if err := os.WriteFile(filepath.Join(dir, "script.lisp"), []byte(script), 0o644); err != nil {
 		t.Fatal(err)

@@ -497,11 +497,11 @@ func printNoNewline(a ...MalType) (MalType, error) {
 	return nil, nil
 }
 
-// VerifySource, when non-nil, vets a source file before load-file (via
-// slurp-source) evaluates it; a non-nil error aborts the load. The
-// command package installs it when running under --integrity, so code
-// loaded at runtime is verified like the script and its requires.
-// slurp itself is never hooked: it reads data, not code.
+// VerifySource is an optional hook that vets a source file before
+// load-file (via slurp-source) evaluates it; a non-nil error aborts the
+// load. The command package installs it when running under --integrity,
+// so code loaded at runtime is verified like the script and its
+// requires. slurp itself is never hooked: it reads data, not code.
 var VerifySource func(absPath string, content []byte) error
 
 // slurp_source is slurp for files that will be evaluated as code:
