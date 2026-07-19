@@ -276,9 +276,9 @@ func TestStateSaveLoadWithoutIntegrity(t *testing.T) {
 	expectTrue(t, ns, `(= 1 (get (state-load "db") :n))`)
 	expectTrue(t, ns, `(= "operador" (get (state-load "db") :who))`)
 	expectTrue(t, ns, `(= 42 (state-load "missing" 42))`)
-	evalErr(t, ns, `(state-load "missing")`)
-	evalErr(t, ns, `(state-save "../evil" 1)`)
-	evalErr(t, ns, `(state-save ".hidden" 1)`)
+	_ = evalErr(t, ns, `(state-load "missing")`)
+	_ = evalErr(t, ns, `(state-save "../evil" 1)`)
+	_ = evalErr(t, ns, `(state-save ".hidden" 1)`)
 
 	// The state commit is a real commit at HEAD touching only .state/.
 	expectTrue(t, ns, fmt.Sprintf(`(= %q (get (git-show r "HEAD") :hash))`, hash))
