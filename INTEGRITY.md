@@ -10,7 +10,9 @@ Runnable mini-examples of every concept below — basic verification,
 the require cascade, signed refs, the state store, and what each
 failure looks like — live in
 [examples-integrity/](./examples-integrity/), with a `demo.sh` that
-replays all of them in throwaway repositories.
+replays all of them in throwaway repositories. Reviewers trying to
+break the mode should start from the adversarial review brief in
+[INTEGRITY-REVIEW.md](./INTEGRITY-REVIEW.md).
 
 ## Purpose and threat model
 
