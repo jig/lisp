@@ -454,7 +454,9 @@ other means (`slurp`, network) is not covered; uncommitted files that
 are never interpreted do not affect the check.
 
 The full specification — invariants, state commit protocol, crash
-recovery, deployment recipe — lives in [INTEGRITY.md](./INTEGRITY.md).
+recovery, deployment recipe — lives in [INTEGRITY.md](./INTEGRITY.md);
+runnable mini-examples of each concept (and each failure mode) in
+[examples-integrity/](./examples-integrity/).
 
 ### Preamble placeholders (-P/--preamble)
 

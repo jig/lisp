@@ -6,6 +6,12 @@ This document is both the user guide and the specification the
 implementation is held to (`lib/integrity/mode.go`, `state.go`;
 enforced by `lib/integrity/mode_test.go` and `command/integrity_test.go`).
 
+Runnable mini-examples of every concept below — basic verification,
+the require cascade, signed refs, the state store, and what each
+failure looks like — live in
+[examples-integrity/](./examples-integrity/), with a `demo.sh` that
+replays all of them in throwaway repositories.
+
 ## Purpose and threat model
 
 The goal is **operational assurance for the operator launching a
@@ -60,6 +66,12 @@ any check. Point 2 is what makes the **same `--integrity <ref>` valid
 across restarts** no matter how many state commits have accumulated:
 the operator keeps launching with the release ref (or signed tag) and
 never needs to chase state-commit hashes.
+
+Concepts 1–2 and 4–6 are demonstrated by
+[examples-integrity/01-basic](./examples-integrity/01-basic) and
+[02-requires](./examples-integrity/02-requires); concept 3 by
+[03-signed](./examples-integrity/03-signed); the state paths of 2 and
+6 by [04-state](./examples-integrity/04-state).
 
 ## CLI
 
