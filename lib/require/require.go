@@ -87,6 +87,12 @@ func load(rootEnv types.EnvType, cfg Config) error {
 	return nil
 }
 
+// VerifyModule, when non-nil, vets every module file before it is
+// evaluated; a non-nil error aborts the require. The command package
+// installs it when running under --integrity, so the verification of
+// the script cascades to its requires.
+var VerifyModule func(absPath string, content []byte) error
+
 // moduleLoader evaluates modules once and exposes their top-level
 // definitions in the root environment under qualified names.
 type moduleLoader struct {
@@ -203,6 +209,11 @@ func (l *moduleLoader) evalModule(ctx context.Context, absPath string) (types.En
 	content, err := os.ReadFile(absPath)
 	if err != nil {
 		return nil, fmt.Errorf("require: %w", err)
+	}
+	if VerifyModule != nil {
+		if err := VerifyModule(absPath, content); err != nil {
+			return nil, err
+		}
 	}
 	// Register the module so the debugger maps its cursors back to the
 	// on-disk file. Dead code in release builds.

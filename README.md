@@ -174,7 +174,7 @@ Changes respect to [kanaka/mal](https://github.com/kanaka/mal):
 - `spit`, the write counterpart of `slurp` (Clojure-style): `(spit filename s)` creates or truncates, `(spit filename s :append true)` appends
 - `*FILE*` holds the absolute path of the script being executed (cf. Clojure's `*file*`), so a script can read its own source; unset in the REPL and `-e`
 - `cli` library for command-line option parsing, modelled on [clojure/tools.cli](https://github.com/clojure/tools.cli) — `(cli-parse-opts *ARGV* specs)`. See [./lib/cli/README.md](./lib/cli/README.md)
-- `integrity` library to attest and verify lisp source: `fmt` (canonical formatting, as `lisp --fmt`), `sha2-256`, and deterministic Ed25519 signatures (`ed25519-generate`, `ed25519-sign`, `ed25519-verify`). See [./lib/integrity/README.md](./lib/integrity/README.md)
+- `integrity` library to attest and verify lisp source: `fmt` (canonical formatting, as `lisp --fmt`), `sha2-256`, and deterministic Ed25519 signatures (`ed25519-generate`, `ed25519-sign`, `ed25519-verify`); plus the interpreter's integrity mode (`--integrity`, with the `assert-integrity` builtin). See [./lib/integrity/README.md](./lib/integrity/README.md)
 
 ## Embed jig/lisp in Go code
 
@@ -393,6 +393,70 @@ Hello Args:  (first-arg second-arg)
 evaled to (first-arg second-arg)
 42
 ```
+
+### Run only committed code (--integrity)
+
+`--integrity REF` makes the interpreter run a script *if and only if*
+it matches what is committed in its Git repository at `REF` (a commit
+hash, tag or branch — an immutable commit hash is the strongest
+choice):
+
+- `HEAD` must be exactly the commit `REF` resolves to (or a
+  state-only descendant of it, see below),
+- the script must byte-match the blob committed at `REF`, and
+- the check cascades to every file evaluated as code: `require`
+  modules and `load-file`/`load-file-once` targets must resolve inside
+  the same repository and match their committed blobs; files resolving
+  outside it (e.g. `~/.config/lisp/`) are refused.
+
+```bash
+lisp --integrity v1.4.2 service.lisp
+lisp --integrity 9fceb02d service.lisp
+```
+
+A script can demand the flag with the `assert-integrity` builtin,
+which throws unless the run is verified (and returns the verified
+commit hash), so a committed program cannot silently be run
+unverified — as long as the operator knows it is supposed to carry
+that call:
+
+```lisp
+(def release (assert-integrity))
+```
+
+With `--integrity-signers FILE`, `REF` must additionally carry an SSH
+signature by one of the public keys listed in `FILE`
+(authorized_keys format, one key per line — the same format
+`git-verify-commit` takes). For an annotated tag the tag's signature
+is checked; otherwise the commit's. This upgrades the guarantee from
+"matches the local repository" to "matches what a trusted key signed",
+which survives cloning the repository onto other machines:
+
+```bash
+lisp --integrity v1.4.2 --integrity-signers /etc/lisp/release-keys service.lisp
+```
+
+A verified program persists state through the `.state/` store instead
+of raw file writes: `(state-save "db" value)` writes
+`.state/db.lisp` (canonical lisp data, at the repository root next to
+`.lisp/`) and commits it in the same operation; `(state-load "db")`
+reads it back as pure data and, under `--integrity`, requires it to
+match its committed version at `HEAD`. State commits keep the original
+`--integrity REF` valid across restarts: the startup check accepts
+`HEAD` being a linear chain of state-only commits above `REF`.
+
+Scope: this is an operational assurance for the operator — no
+accidental drift, no uncommitted edits — not a security boundary
+against someone who can rewrite the repository, the keys file or the
+binary (that separation belongs to the OS: root-owned checkout, keys
+and binary; unprivileged process). `eval` over strings obtained by
+other means (`slurp`, network) is not covered; uncommitted files that
+are never interpreted do not affect the check.
+
+The full specification — invariants, state commit protocol, crash
+recovery, deployment recipe — lives in [INTEGRITY.md](./INTEGRITY.md);
+runnable mini-examples of each concept (and each failure mode) in
+[examples-integrity/](./examples-integrity/).
 
 ### Preamble placeholders (-P/--preamble)
 

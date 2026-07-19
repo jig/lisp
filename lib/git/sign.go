@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/go-git/go-git/v6/plumbing"
+	"github.com/go-git/go-git/v6/plumbing/object"
 	"github.com/hiddeco/sshsig"
 	gossh "golang.org/x/crypto/ssh"
 
@@ -172,6 +173,51 @@ func gitVerifyTag(rv MalType, name string, allowedKeys string) (MalType, error) 
 		return nil, fmt.Errorf("git-verify-tag: tag %q is not signed", name)
 	}
 	return verifySignature(tag, armored, allowedKeys)
+}
+
+// VerifyCommitSSH checks that commit c carries an SSH signature made by
+// one of the allowed public keys (authorized_keys-format lines, as
+// git-verify-commit) and returns the matching key's comment. Exported
+// for the integrity mode of the CLI.
+func VerifyCommitSSH(c *object.Commit, allowedKeys string) (signer string, err error) {
+	armored := c.SignatureSHA256
+	if armored == "" {
+		armored = c.Signature
+	}
+	if armored == "" {
+		return "", fmt.Errorf("commit %s is not signed", c.Hash)
+	}
+	v, err := verifySignature(c, armored, allowedKeys)
+	if err != nil {
+		return "", err
+	}
+	return signerOf(v), nil
+}
+
+// VerifyTagSSH is VerifyCommitSSH for annotated tag objects.
+func VerifyTagSSH(tag *object.Tag, allowedKeys string) (signer string, err error) {
+	armored := tag.SignatureSHA256
+	if armored == "" {
+		armored = tag.Signature
+	}
+	if armored == "" {
+		return "", fmt.Errorf("tag %q is not signed", tag.Name)
+	}
+	v, err := verifySignature(tag, armored, allowedKeys)
+	if err != nil {
+		return "", err
+	}
+	return signerOf(v), nil
+}
+
+// signerOf extracts the :signer comment from a verifySignature result.
+func signerOf(v MalType) string {
+	m, ok := v.(HashMap)
+	if !ok {
+		return ""
+	}
+	s, _ := m.Val[NewKeyword("signer")].(string)
+	return s
 }
 
 // verifySignature checks the armored SSH signature of a commit or tag
