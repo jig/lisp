@@ -355,7 +355,21 @@ func TestStateSaveSignedCommit(t *testing.T) {
 					t.Fatalf("state commit author = %s <%s>", commit.Author.Name, commit.Author.Email)
 				}
 			}
-			expectTrue(t, ns, `(get (git-status r) :clean)`)
+			repo, err := gogit.PlainOpen(dir)
+			if err != nil {
+				t.Fatal(err)
+			}
+			wt, err := repo.Worktree()
+			if err != nil {
+				t.Fatal(err)
+			}
+			status, err := wt.Status()
+			if err != nil {
+				t.Fatal(err)
+			}
+			if !status.IsClean() {
+				t.Fatalf("state worktree is dirty: %v", status)
+			}
 		})
 	}
 }
