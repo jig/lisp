@@ -6,6 +6,7 @@ import (
 	"io"
 	"strings"
 
+	gogit "github.com/go-git/go-git/v6"
 	"github.com/go-git/go-git/v6/plumbing"
 	"github.com/go-git/go-git/v6/plumbing/object"
 	"github.com/hiddeco/sshsig"
@@ -40,6 +41,12 @@ func optSigner(o map[string]MalType) (gossh.Signer, error) {
 		return gossh.ParsePrivateKeyWithPassphrase([]byte(key), []byte(passphrase))
 	}
 	return gossh.ParsePrivateKey([]byte(key))
+}
+
+// SSHSignerFromOptions parses the same {:sign {:key :passphrase}} options
+// accepted by git-commit and git-tag.
+func SSHSignerFromOptions(options HashMap) (gossh.Signer, error) {
+	return optSigner(options.Val)
 }
 
 // payloadEncoder is the part of commits and tags that reproduces the exact
@@ -82,6 +89,7 @@ func resignCommit(r *Repo, hash plumbing.Hash, signer gossh.Signer) (plumbing.Ha
 	if err != nil {
 		return plumbing.ZeroHash, err
 	}
+
 	armored, err := armorSign(c, signer)
 	if err != nil {
 		return plumbing.ZeroHash, err
@@ -105,6 +113,16 @@ func resignCommit(r *Repo, hash plumbing.Hash, signer gossh.Signer) (plumbing.Ha
 	}
 	ref := plumbing.NewHashReference(head.Name(), signedHash)
 	return signedHash, r.repo.Storer.SetReference(ref)
+}
+
+// SignCommitSSH rewrites hash with a Git-compatible SSH signature and moves
+// HEAD to the signed commit, preserving the repository's object format.
+func SignCommitSSH(repo *gogit.Repository, hash plumbing.Hash, signer gossh.Signer) (plumbing.Hash, error) {
+	r, err := newRepo(repo, "")
+	if err != nil {
+		return plumbing.ZeroHash, err
+	}
+	return resignCommit(r, hash, signer)
 }
 
 // resignTag is resignCommit for annotated tags: it re-creates the tag

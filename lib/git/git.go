@@ -30,6 +30,7 @@ import (
 
 	_ "embed"
 
+	"github.com/jig/lisp/internal/gogitutil"
 	"github.com/jig/lisp/lib/call"
 	. "github.com/jig/lisp/types"
 )
@@ -292,6 +293,7 @@ func gitCommit(rv MalType, msg string, params ...MalType) (MalType, error) {
 		All:               optBool(o, "all"),
 		AllowEmptyCommits: optBool(o, "allow-empty"),
 		Amend:             optBool(o, "amend"),
+		Signer:            gogitutil.NoSign{},
 	}
 	if commitOpts.Author, err = optSignature(o, "author"); err != nil {
 		return nil, err
@@ -594,7 +596,7 @@ func gitTag(rv MalType, name string, params ...MalType) (MalType, error) {
 	}
 	var tagOpts *gogit.CreateTagOptions
 	if annotated {
-		tagOpts = &gogit.CreateTagOptions{Message: message}
+		tagOpts = &gogit.CreateTagOptions{Message: message, Signer: gogitutil.NoSign{}}
 		if tagOpts.Tagger, err = optSignature(o, "tagger"); err != nil {
 			return nil, err
 		}

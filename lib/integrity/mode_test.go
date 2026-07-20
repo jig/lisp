@@ -11,9 +11,13 @@ import (
 	"strings"
 	"testing"
 
+	gogit "github.com/go-git/go-git/v6"
+	gitconfig "github.com/go-git/go-git/v6/config"
+	"github.com/go-git/go-git/v6/plumbing"
 	"github.com/jig/lisp"
 	"github.com/jig/lisp/env"
 	"github.com/jig/lisp/lib/core/nscore"
+	libgit "github.com/jig/lisp/lib/git"
 	"github.com/jig/lisp/lib/git/nsgit"
 	"github.com/jig/lisp/lib/integrity"
 	"github.com/jig/lisp/lib/integrity/nsintegrity"
@@ -273,6 +277,7 @@ func TestStateSaveLoadWithoutIntegrity(t *testing.T) {
 	if !ok || hash == "" {
 		t.Fatalf("state-save did not return a commit hash")
 	}
+
 	expectTrue(t, ns, `(= 1 (get (state-load "db") :n))`)
 	expectTrue(t, ns, `(= "operador" (get (state-load "db") :who))`)
 	expectTrue(t, ns, `(= 42 (state-load "missing" 42))`)
@@ -283,6 +288,76 @@ func TestStateSaveLoadWithoutIntegrity(t *testing.T) {
 	// The state commit is a real commit at HEAD touching only .state/.
 	expectTrue(t, ns, fmt.Sprintf(`(= %q (get (git-show r "HEAD") :hash))`, hash))
 	expectTrue(t, ns, `(= "state: db" (get (git-show r "HEAD") :message))`)
+}
+
+func TestStateSaveIgnoresCommitGPGSign(t *testing.T) {
+	t.Setenv("GIT_CONFIG_GLOBAL", os.DevNull)
+
+	ns := newGitEnv(t)
+	dir, _ := setupRepo(t, ns, "")
+	t.Chdir(dir)
+
+	repo, err := gogit.PlainOpen(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	cfg, err := repo.Config()
+	if err != nil {
+		t.Fatal(err)
+	}
+	cfg.Commit.GpgSign = gitconfig.OptBoolTrue
+	if err := repo.SetConfig(cfg); err != nil {
+		t.Fatal(err)
+	}
+
+	hash := evalLisp(t, ns, `(state-save "db" {:n 1})`).(string)
+	commit, err := repo.CommitObject(plumbing.NewHash(hash))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if commit.Signature != "" || commit.SignatureSHA256 != "" {
+		t.Fatal("state-save commit must remain unsigned")
+	}
+}
+
+func TestStateSaveSignedCommit(t *testing.T) {
+	for _, format := range []string{"sha1", "sha256"} {
+		t.Run(format, func(t *testing.T) {
+			ns := newGitEnv(t)
+			privPEM, authorized := testKey(t, "state-writer")
+			dir := t.TempDir()
+			t.Chdir(dir)
+			evalLisp(t, ns, fmt.Sprintf(
+				`(def r (git-init %q {:object-format %q}))`,
+				dir,
+				format,
+			))
+
+			for n := 1; n <= 2; n++ {
+				hash := evalLisp(t, ns, fmt.Sprintf(
+					`(state-save "db" {:n %d} {:sign {:key %q}})`,
+					n,
+					privPEM,
+				)).(string)
+				repo, err := gogit.PlainOpen(dir)
+				if err != nil {
+					t.Fatal(err)
+				}
+				commit, err := repo.CommitObject(plumbing.NewHash(hash))
+				if err != nil {
+					t.Fatal(err)
+				}
+				if _, err := libgit.VerifyCommitSSH(commit, authorized); err != nil {
+					t.Fatalf("verify signed state commit: %v", err)
+				}
+				if commit.Author.Name != "state-save" || commit.Author.Email != "state-save@lisp" {
+					t.Fatalf("state commit author = %s <%s>", commit.Author.Name, commit.Author.Email)
+				}
+			}
+			expectTrue(t, ns, `(get (git-status r) :clean)`)
+		})
+	}
 }
 
 func TestStateUnderIntegrity(t *testing.T) {

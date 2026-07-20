@@ -12,6 +12,8 @@ import (
 	"strings"
 	"testing"
 
+	gogit "github.com/go-git/go-git/v6"
+	gitconfig "github.com/go-git/go-git/v6/config"
 	"github.com/jig/lisp"
 	"github.com/jig/lisp/env"
 	"github.com/jig/lisp/lib/core/nscore"
@@ -107,6 +109,7 @@ func TestInitAddCommitLog(t *testing.T) {
 			if err := os.WriteFile(filepath.Join(dir, "a.txt"), []byte("hola\n"), 0o644); err != nil {
 				t.Fatal(err)
 			}
+
 			eval(t, ns, `(git-add r "a.txt")`)
 			eval(t, ns, `(def c (git-commit r "first" {:author `+author+`}))`)
 			expectTrue(t, ns, `(= false (get c :signed))`)
@@ -125,6 +128,34 @@ func TestInitAddCommitLog(t *testing.T) {
 			eval(t, ns, `(git-close r)`)
 		})
 	}
+}
+
+func TestCommitIgnoresConfigAutoSign(t *testing.T) {
+	t.Setenv("GIT_CONFIG_GLOBAL", os.DevNull)
+
+	ns := newEnv(t)
+	dir := t.TempDir()
+	eval(t, ns, fmt.Sprintf(`(def r (git-init %q))`, dir))
+
+	repo, err := gogit.PlainOpen(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cfg, err := repo.Config()
+	if err != nil {
+		t.Fatal(err)
+	}
+	cfg.Commit.GpgSign = gitconfig.OptBoolTrue
+	if err := repo.SetConfig(cfg); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := os.WriteFile(filepath.Join(dir, "a.txt"), []byte("hola\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	eval(t, ns, `(git-add r "a.txt")`)
+	eval(t, ns, `(def c (git-commit r "unsigned" {:author `+author+`}))`)
+	expectTrue(t, ns, `(= false (get c :signed))`)
 }
 
 func TestSignedCommitVerify(t *testing.T) {
