@@ -109,7 +109,7 @@ whole run is already verified.
 | Builtin | Behaviour |
 |---|---|
 | `(assert-integrity)` | Throws unless running under `--integrity`; returns the verified commit hash. Committed code uses it to demand the mode — effective as long as operators know the program is supposed to carry it. |
-| `(state-save name value)` | Writes `value` as canonical lisp data to `.state/name.lisp` and **commits it in the same operation** (message `state: name`); returns the commit hash. Works with or without the mode; requires a Git repository. |
+| `(state-save name value)` / `(state-save name value options)` | Writes `value` as canonical lisp data to `.state/name.lisp` and **commits it in the same operation** (message `state: name`); returns the commit hash. `options` may contain `{:sign {:key OPENSSH-PRIVATE-KEY :passphrase STRING}}`, using the same SSH signing format as `git-commit`. Works with or without the mode; requires a Git repository. |
 | `(state-load name)` / `(state-load name default)` | Reads the state back as pure data (READ, never EVAL — state cannot smuggle code). Returns `default`, or throws without one, when the state does not exist. Under the mode, enforces invariant 6. |
 | `(slurp-source path)` | `slurp` for files about to be evaluated: identical, plus invariant 5 under the mode. `load-file` builds on it. |
 
@@ -127,7 +127,8 @@ integrity envelope:
 - **Commit protocol** — write file → `git add` → `git commit`, all
   inside `state-save`. Committed state is therefore always the product
   of a completed save. State commits are authored `state-save
-  <state-save@lisp>` and unsigned (v1).
+  <state-save@lisp>` and are unsigned by default; the explicit `:sign`
+  option creates a Git-compatible SSH-signed commit.
 - **Crash recovery** — a save interrupted between write and commit
   leaves the file differing from `HEAD`; the next `state-load` under
   the mode fails closed and the operator resolves it (commit the
@@ -188,9 +189,10 @@ attacker cannot write to what the interpreter reads:
 
 ## Future revisions (not implemented)
 
-- **Signed state commits** — sign `state-save` commits with a machine
-  or process key (distinct from release keys) and verify membership on
-  load, giving state authenticity, not just consistency.
+- **Enforced signed state chain** — `state-save` can create SSH-signed
+  commits, but integrity startup does not yet require every state commit
+  to be signed. A future state-key policy can verify membership on load,
+  giving state authenticity rather than auditability alone.
 - **Keys baked into the binary** — accept allowed signers via
   `-ldflags -X` at build time, shrinking the trust anchor to the
   binary alone.

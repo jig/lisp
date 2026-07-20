@@ -24,6 +24,8 @@ import (
 	gogit "github.com/go-git/go-git/v6"
 	"github.com/go-git/go-git/v6/plumbing/object"
 	"github.com/jig/lisp/format"
+	"github.com/jig/lisp/internal/gogitutil"
+	libgit "github.com/jig/lisp/lib/git"
 	"github.com/jig/lisp/printer"
 	"github.com/jig/lisp/reader"
 	. "github.com/jig/lisp/types"
@@ -76,9 +78,26 @@ func statePath(fnName, name string) (string, error) {
 	return stateDir + "/" + name + ".lisp", nil
 }
 
-func state_save(name string, value MalType) (MalType, error) {
+func state_save(name string, value MalType, params ...MalType) (MalType, error) {
 	stateMu.Lock()
 	defer stateMu.Unlock()
+
+	options := HashMap{Val: map[string]MalType{}}
+	switch len(params) {
+	case 0:
+	case 1:
+		var ok bool
+		options, ok = params[0].(HashMap)
+		if !ok {
+			return nil, fmt.Errorf("state-save: options must be a map, got %T", params[0])
+		}
+	default:
+		return nil, fmt.Errorf("state-save: expected one options map, got %d arguments", len(params))
+	}
+	signer, err := libgit.SSHSignerFromOptions(options)
+	if err != nil {
+		return nil, fmt.Errorf("state-save: %w", err)
+	}
 
 	rel, err := statePath("state-save", name)
 	if err != nil {
@@ -113,14 +132,24 @@ func state_save(name string, value MalType) (MalType, error) {
 	if err != nil {
 		return nil, fmt.Errorf("state-save: %w", err)
 	}
-	if _, err := wt.Add(rel); err != nil {
+	if err := wt.AddWithOptions(&gogit.AddOptions{
+		Path:       rel,
+		SkipStatus: true,
+	}); err != nil {
 		return nil, fmt.Errorf("state-save: %w", err)
 	}
 	hash, err := wt.Commit("state: "+name, &gogit.CommitOptions{
 		Author: &object.Signature{Name: "state-save", Email: "state-save@lisp", When: time.Now()},
+		Signer: gogitutil.NoSign{},
 	})
 	if err != nil {
 		return nil, fmt.Errorf("state-save: %w", err)
+	}
+	if signer != nil {
+		hash, err = libgit.SignCommitSSH(repo, hash, signer)
+		if err != nil {
+			return nil, fmt.Errorf("state-save: sign commit: %w", err)
+		}
 	}
 	return hash.String(), nil
 }

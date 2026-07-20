@@ -13,6 +13,7 @@ import (
 	"github.com/go-git/go-git/v6/plumbing/object"
 	gossh "golang.org/x/crypto/ssh"
 
+	"github.com/jig/lisp/internal/gogitutil"
 	. "github.com/jig/lisp/types"
 )
 
@@ -53,7 +54,7 @@ func signedCommit(t *testing.T, signer gossh.Signer) (*Repo, *object.Commit) {
 		t.Fatal(err)
 	}
 	who := &object.Signature{Name: "T", Email: "t@x", When: time.Now()}
-	hash, err := wt.Commit("one", &gogit.CommitOptions{Author: who})
+	hash, err := wt.Commit("one", &gogit.CommitOptions{Author: who, Signer: gogitutil.NoSign{}})
 	if err != nil {
 		t.Fatal(err)
 	}
