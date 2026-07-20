@@ -132,7 +132,10 @@ func state_save(name string, value MalType, params ...MalType) (MalType, error) 
 	if err != nil {
 		return nil, fmt.Errorf("state-save: %w", err)
 	}
-	if _, err := wt.Add(rel); err != nil {
+	if err := wt.AddWithOptions(&gogit.AddOptions{
+		Path:       rel,
+		SkipStatus: true,
+	}); err != nil {
 		return nil, fmt.Errorf("state-save: %w", err)
 	}
 	hash, err := wt.Commit("state: "+name, &gogit.CommitOptions{
