@@ -186,7 +186,7 @@ func TestPrDataDeterministicMixedCollections(t *testing.T) {
 		"ʞa": types.Set{Val: map[string]struct{}{"beta": {}, "ʞalpha": {}, "alpha": {}}},
 		"z":  nil,
 	}}
-	want := `{"a" (quote [3 2 1]) "z" nil :a #{"alpha" "beta" :alpha} :z {:a 1 :b 2}}`
+	want := `{"a" '[3 2 1] "z" nil :a #{"alpha" "beta" :alpha} :z {:a 1 :b 2}}`
 
 	for range 20 {
 		if got := printer.Pr_data(value, 200); got != want {
@@ -202,9 +202,11 @@ func TestPrDataNestedWidthAwareLayout(t *testing.T) {
 			"ʞname":   "alpha",
 		}},
 		types.HashMap{Val: map[string]types.MalType{
+			// A quote long enough to wrap: reader-macro sugar (') is
+			// printed, and the wrapped form aligns under it.
 			"ʞquoted": types.List{Val: []types.MalType{
 				types.Symbol{Val: "quote"},
-				types.Vector{Val: []types.MalType{10, 20, 30, 40}},
+				types.Vector{Val: []types.MalType{100, 200, 300, 400}},
 			}},
 			"ʞname": "beta",
 		}},
@@ -212,10 +214,10 @@ func TestPrDataNestedWidthAwareLayout(t *testing.T) {
 	want := `[{:name "alpha"
   :values [1 2 3 4]}
  {:name "beta"
-  :quoted (quote [10
-                  20
-                  30
-                  40])}]`
+  :quoted '[100
+            200
+            300
+            400]}]`
 
 	got := printer.Pr_data(value, 24)
 	if got != want {
@@ -228,5 +230,38 @@ func TestPrDataNestedWidthAwareLayout(t *testing.T) {
 	}
 	if roundTripPrinted := printer.Pr_data(roundTrip, 24); roundTripPrinted != want {
 		t.Fatalf("round-trip Pr_data:\n%s\nwant:\n%s", roundTripPrinted, want)
+	}
+}
+
+// TestPrDataReaderMacroSugar checks that reader-macro forms print with
+// their sugar and round-trip through the reader to the same value.
+func TestPrDataReaderMacroSugar(t *testing.T) {
+	cases := map[string]string{
+		`'x`:                       `'x`,
+		`'(1 2 3)`:                 `'(1 2 3)`,
+		"`(a b)":                   "`(a b)",
+		`~x`:                       `~x`,
+		`~@xs`:                     `~@xs`,
+		`@a`:                       `@a`,
+		`{:q '(1 2 3) :v [4 5 6]}`: `{:q '(1 2 3) :v [4 5 6]}`,
+		`['a '[1 2] '{:k 1}]`:      `['a '[1 2] '{:k 1}]`,
+		`(not-a-macro 1 2)`:        `(not-a-macro 1 2)`, // ordinary lists untouched
+	}
+	for src, want := range cases {
+		value, err := reader.Read_str(src, types.NewCursorFile(t.Name()), nil)
+		if err != nil {
+			t.Fatalf("read %q: %v", src, err)
+		}
+		got := printer.Pr_data(value, 100)
+		if got != want {
+			t.Errorf("Pr_data(%q) = %q, want %q", src, got, want)
+		}
+		back, err := reader.Read_str(got, types.NewCursorFile(t.Name()), nil)
+		if err != nil {
+			t.Fatalf("read-back %q: %v", got, err)
+		}
+		if a, b := printer.Pr_data(value, 1000), printer.Pr_data(back, 1000); a != b {
+			t.Errorf("round-trip %q: %q vs %q", src, a, b)
+		}
 	}
 }

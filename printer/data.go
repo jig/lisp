@@ -34,6 +34,13 @@ func (p dataPrinter) render(value types.MalType, column int) string {
 	case types.LispPrintable:
 		return flat
 	case types.List:
+		if prefix, form, ok := simpleReaderMacro(value.Val); ok {
+			return prefix + p.render(form, column+runeWidth(prefix))
+		}
+		if form, meta, ok := withMetaForm(value.Val); ok {
+			head := "^" + p.flat(meta) + " "
+			return head + p.render(form, column+runeWidth(head))
+		}
 		return p.renderList(value.Val, column)
 	case types.Vector:
 		return p.renderSequence(value.Val, column, "[", "]")
@@ -65,6 +72,12 @@ func (p dataPrinter) flat(value types.MalType) string {
 			return p.flat(value)
 		})
 	case types.List:
+		if prefix, form, ok := simpleReaderMacro(value.Val); ok {
+			return prefix + p.flat(form)
+		}
+		if form, meta, ok := withMetaForm(value.Val); ok {
+			return "^" + p.flat(meta) + " " + p.flat(form)
+		}
 		return p.flatSequence(value.Val, "(", ")")
 	case types.Vector:
 		return p.flatSequence(value.Val, "[", "]")
@@ -270,4 +283,47 @@ func columnAfter(start int, value string) int {
 
 func runeWidth(value string) int {
 	return utf8.RuneCountInString(value)
+}
+
+// Reader-macro sugar: the reader expands 'x → (quote x), `x →
+// (quasiquote x), ~x → (unquote x), ~@x → (splice-unquote x), @x →
+// (deref x), and ^meta form → (with-meta form meta). Pr_data prints
+// these back sugared so state files read naturally; the forms still
+// round-trip (the reader re-expands them to the same value).
+var readerMacroPrefix = map[string]string{
+	"quote":          "'",
+	"quasiquote":     "`",
+	"unquote":        "~",
+	"splice-unquote": "~@",
+	"deref":          "@",
+}
+
+// simpleReaderMacro returns the sugar prefix and wrapped form when list
+// is a two-element reader-macro expansion like (quote x).
+func simpleReaderMacro(list []types.MalType) (string, types.MalType, bool) {
+	if len(list) != 2 {
+		return "", nil, false
+	}
+	sym, ok := list[0].(types.Symbol)
+	if !ok {
+		return "", nil, false
+	}
+	prefix, ok := readerMacroPrefix[sym.Val]
+	if !ok {
+		return "", nil, false
+	}
+	return prefix, list[1], true
+}
+
+// withMetaForm returns the form and its metadata when list is a
+// (with-meta form meta) expansion, printed as "^meta form".
+func withMetaForm(list []types.MalType) (form, meta types.MalType, ok bool) {
+	if len(list) != 3 {
+		return nil, nil, false
+	}
+	sym, isSym := list[0].(types.Symbol)
+	if !isSym || sym.Val != "with-meta" {
+		return nil, nil, false
+	}
+	return list[1], list[2], true
 }
