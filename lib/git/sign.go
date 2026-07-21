@@ -4,13 +4,16 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"net"
 	"strings"
+	"sync"
 
 	gogit "github.com/go-git/go-git/v6"
 	"github.com/go-git/go-git/v6/plumbing"
 	"github.com/go-git/go-git/v6/plumbing/object"
 	"github.com/hiddeco/sshsig"
 	gossh "golang.org/x/crypto/ssh"
+	"golang.org/x/crypto/ssh/agent"
 
 	. "github.com/jig/lisp/types"
 )
@@ -19,34 +22,121 @@ import (
 // signatures (see gitformat-signature).
 const gitNamespace = "git"
 
-// optSigner builds an SSH signer from the :sign {:key :passphrase} option,
-// or returns nil when signing was not requested.
-func optSigner(o map[string]MalType) (gossh.Signer, error) {
-	m, ok, err := optHashMap(o, "sign")
-	if err != nil || !ok {
-		return nil, err
-	}
-	key, ok, err := optString(m, "key")
-	if err != nil {
-		return nil, err
-	}
-	if !ok {
-		return nil, fmt.Errorf(":sign requires :key with an OpenSSH private key (PEM string)")
-	}
-	passphrase, hasPass, err := optString(m, "passphrase")
-	if err != nil {
-		return nil, err
-	}
-	if hasPass && passphrase != "" {
-		return gossh.ParsePrivateKeyWithPassphrase([]byte(key), []byte(passphrase))
-	}
-	return gossh.ParsePrivateKey([]byte(key))
+// signerResolve returns the SSH signer to sign commits and tags with, or
+// nil when no signing policy is installed. It is the single knob for
+// signing — there is no per-call key option and no private key ever
+// enters the process. The command package installs it (SetSigningKeys)
+// when --integrity-keys is active; tests inject a signer with SetSigner.
+var signerResolve func() (gossh.Signer, error)
+
+// SetSigner installs a signing policy: git-commit, git-tag and
+// state-save sign with the signer it returns. A resolver returning an
+// error fails the commit/tag closed.
+func SetSigner(resolve func() (gossh.Signer, error)) { signerResolve = resolve }
+
+// ClearSigner removes the signing policy (commits and tags are left
+// unsigned). Used by the command package and tests to reset state.
+func ClearSigner() { signerResolve = nil }
+
+// SetSigningKeys installs the ssh-agent signing policy used under
+// --integrity-keys: commits and tags are signed with the agent key (at
+// sshAuthSock) whose public key appears in allowedKeys (authorized_keys
+// / .pub format). Resolution is lazy and cached on first use, so a run
+// that never commits needs no agent; a run that commits under
+// --integrity-keys with no matching agent key fails closed.
+func SetSigningKeys(sshAuthSock, allowedKeys string) {
+	var once sync.Once
+	var s gossh.Signer
+	var e error
+	SetSigner(func() (gossh.Signer, error) {
+		once.Do(func() { s, e = resolveAgentSigner(sshAuthSock, allowedKeys) })
+		return s, e
+	})
 }
 
-// SSHSignerFromOptions parses the same {:sign {:key :passphrase}} options
-// accepted by git-commit and git-tag.
-func SSHSignerFromOptions(options HashMap) (gossh.Signer, error) {
-	return optSigner(options.Val)
+// resolveAgentSigner finds the ssh-agent signer whose public key is
+// listed in allowedKeys. The agent connection is kept open for the
+// process lifetime because the returned signer calls back over it.
+func resolveAgentSigner(sshAuthSock, allowedKeys string) (gossh.Signer, error) {
+	if sshAuthSock == "" {
+		return nil, fmt.Errorf("signing under --integrity-keys needs an ssh-agent, but SSH_AUTH_SOCK is unset")
+	}
+	conn, err := net.Dial("unix", sshAuthSock)
+	if err != nil {
+		return nil, fmt.Errorf("cannot reach ssh-agent at %s: %w", sshAuthSock, err)
+	}
+	signers, err := agent.NewClient(conn).Signers()
+	if err != nil {
+		conn.Close()
+		return nil, fmt.Errorf("ssh-agent: %w", err)
+	}
+	for _, s := range signers {
+		if keyListed(s.PublicKey(), allowedKeys) {
+			return s, nil
+		}
+	}
+	conn.Close()
+	return nil, fmt.Errorf("no ssh-agent key is listed in --integrity-keys")
+}
+
+// keyListed reports whether pub appears in allowedKeys (authorized_keys
+// format; blank lines and # comments skipped, options rejected as in
+// matchAllowedKey).
+func keyListed(pub gossh.PublicKey, allowedKeys string) bool {
+	want := pub.Marshal()
+	for line := range strings.SplitSeq(allowedKeys, "\n") {
+		line = strings.TrimSpace(line)
+		if line == "" || strings.HasPrefix(line, "#") {
+			continue
+		}
+		p, _, options, _, err := gossh.ParseAuthorizedKey([]byte(line))
+		if err != nil || len(options) > 0 {
+			continue
+		}
+		if bytes.Equal(p.Marshal(), want) {
+			return true
+		}
+	}
+	return false
+}
+
+// signCommitIfPolicy signs the commit at hash with the installed policy,
+// or returns it unchanged when none is installed.
+func signCommitIfPolicy(r *Repo, hash plumbing.Hash) (plumbing.Hash, error) {
+	if signerResolve == nil {
+		return hash, nil
+	}
+	signer, err := signerResolve()
+	if err != nil {
+		return plumbing.ZeroHash, err
+	}
+	return resignCommit(r, hash, signer)
+}
+
+// signTagIfPolicy signs annotated tag ref with the installed policy, or
+// returns it unchanged when none is installed.
+func signTagIfPolicy(r *Repo, ref *plumbing.Reference) (*plumbing.Reference, error) {
+	if signerResolve == nil {
+		return ref, nil
+	}
+	signer, err := signerResolve()
+	if err != nil {
+		return nil, err
+	}
+	return resignTag(r, ref, signer)
+}
+
+// SignCommitIfPolicy is signCommitIfPolicy for callers holding a
+// *gogit.Repository (state-save).
+func SignCommitIfPolicy(repo *gogit.Repository, hash plumbing.Hash) (plumbing.Hash, error) {
+	if signerResolve == nil {
+		return hash, nil
+	}
+	r, err := newRepo(repo, "")
+	if err != nil {
+		return plumbing.ZeroHash, err
+	}
+	return signCommitIfPolicy(r, hash)
 }
 
 // payloadEncoder is the part of commits and tags that reproduces the exact
@@ -113,16 +203,6 @@ func resignCommit(r *Repo, hash plumbing.Hash, signer gossh.Signer) (plumbing.Ha
 	}
 	ref := plumbing.NewHashReference(head.Name(), signedHash)
 	return signedHash, r.repo.Storer.SetReference(ref)
-}
-
-// SignCommitSSH rewrites hash with a Git-compatible SSH signature and moves
-// HEAD to the signed commit, preserving the repository's object format.
-func SignCommitSSH(repo *gogit.Repository, hash plumbing.Hash, signer gossh.Signer) (plumbing.Hash, error) {
-	r, err := newRepo(repo, "")
-	if err != nil {
-		return plumbing.ZeroHash, err
-	}
-	return resignCommit(r, hash, signer)
 }
 
 // resignTag is resignCommit for annotated tags: it re-creates the tag

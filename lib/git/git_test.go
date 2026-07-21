@@ -17,6 +17,7 @@ import (
 	"github.com/jig/lisp"
 	"github.com/jig/lisp/env"
 	"github.com/jig/lisp/lib/core/nscore"
+	libgit "github.com/jig/lisp/lib/git"
 	"github.com/jig/lisp/lib/git/nsgit"
 	"github.com/jig/lisp/types"
 	gossh "golang.org/x/crypto/ssh"
@@ -95,6 +96,19 @@ func testKey(t *testing.T, comment string) (privPEM, authorized string) {
 	return string(pem.EncodeToMemory(block)), line
 }
 
+// signWith installs a signing policy from a PEM private key — the test
+// stand-in for --integrity-keys' ssh-agent signer — and clears it when
+// the (sub)test ends. git-commit and annotated git-tag then sign.
+func signWith(t *testing.T, privPEM string) {
+	t.Helper()
+	signer, err := gossh.ParsePrivateKey([]byte(privPEM))
+	if err != nil {
+		t.Fatal(err)
+	}
+	libgit.SetSigner(func() (gossh.Signer, error) { return signer, nil })
+	t.Cleanup(libgit.ClearSigner)
+}
+
 // objectFormats parametrizes tests over sha1 and sha256 repositories.
 var objectFormats = []string{"sha1", "sha256"}
 
@@ -169,7 +183,8 @@ func TestSignedCommitVerify(t *testing.T) {
 				t.Fatal(err)
 			}
 			eval(t, ns, `(git-add r "a.txt")`)
-			eval(t, ns, fmt.Sprintf(`(def c (git-commit r "signed" {:author %s :sign {:key %q}}))`, author, privPEM))
+			signWith(t, privPEM)
+			eval(t, ns, fmt.Sprintf(`(def c (git-commit r "signed" {:author %s}))`, author))
 			expectTrue(t, ns, `(get c :signed)`)
 			eval(t, ns, fmt.Sprintf(`(def v (git-verify-commit r "HEAD" %q))`, authorized))
 			expectTrue(t, ns, `(get v :valid)`)
@@ -203,7 +218,8 @@ func TestVerifyFailClosed(t *testing.T) {
 		t.Fatal(err)
 	}
 	eval(t, ns, `(git-add r "a.txt")`)
-	eval(t, ns, fmt.Sprintf(`(git-commit r "signed" {:author %s :sign {:key %q}})`, author, privPEM))
+	signWith(t, privPEM)
+	eval(t, ns, fmt.Sprintf(`(git-commit r "signed" {:author %s})`, author))
 
 	// wrong key throws; a multi-line allowed-keys with the right key passes
 	expectThrow(t, ns, fmt.Sprintf(`(git-verify-commit r "HEAD" %q)`, otherAuthorized))
@@ -229,7 +245,8 @@ func TestRejectAllowedSignersFormat(t *testing.T) {
 		t.Fatal(err)
 	}
 	eval(t, ns, `(git-add r "a.txt")`)
-	eval(t, ns, fmt.Sprintf(`(git-commit r "signed" {:author %s :sign {:key %q}})`, author, privPEM))
+	signWith(t, privPEM)
+	eval(t, ns, fmt.Sprintf(`(git-commit r "signed" {:author %s})`, author))
 
 	// authorized_keys format (key-first) verifies.
 	expectTrue(t, ns, fmt.Sprintf(`(get (git-verify-commit r "HEAD" %q) :valid)`, authorized))
@@ -260,19 +277,27 @@ func TestBranchesTagsStatus(t *testing.T) {
 	eval(t, ns, `(git-checkout r "master")`)
 	expectTrue(t, ns, `(= "master" (get (git-head r) :branch))`)
 
-	// tags: lightweight, annotated, signed
+	// tags: lightweight and annotated are unsigned; the signed one is
+	// created while a signing policy is active (as under --integrity-keys).
 	eval(t, ns, `(git-tag r "light")`)
 	eval(t, ns, `(git-tag r "annotated" {:message "v1" :tagger `+author+`})`)
-	eval(t, ns, fmt.Sprintf(`(git-tag r "signed" {:message "v2" :tagger %s :sign {:key %q}})`, author, privPEM))
-	expectTrue(t, ns, `(= 3 (count (git-tags r)))`)
+	signer, err := gossh.ParsePrivateKey([]byte(privPEM))
+	if err != nil {
+		t.Fatal(err)
+	}
+	libgit.SetSigner(func() (gossh.Signer, error) { return signer, nil })
+	eval(t, ns, fmt.Sprintf(`(git-tag r "signed" {:message "v2" :tagger %s})`, author))
+	// A lightweight tag is not signed even while the policy is active.
+	eval(t, ns, `(git-tag r "light2")`)
+	libgit.ClearSigner()
+
+	expectTrue(t, ns, `(= 4 (count (git-tags r)))`)
 	expectTrue(t, ns, fmt.Sprintf(`(get (git-verify-tag r "signed" %q) :valid)`, authorized))
 	expectThrow(t, ns, fmt.Sprintf(`(git-verify-tag r "annotated" %q)`, authorized))
 	expectThrow(t, ns, fmt.Sprintf(`(git-verify-tag r "light" %q)`, authorized))
+	expectThrow(t, ns, fmt.Sprintf(`(git-verify-tag r "light2" %q)`, authorized))
 	expectTrue(t, ns, fmt.Sprintf(`(git-tag-verified? r "signed" %q)`, authorized))
 	expectTrue(t, ns, fmt.Sprintf(`(= false (git-tag-verified? r "light" %q))`, authorized))
-
-	// :sign without :message is rejected
-	expectThrow(t, ns, fmt.Sprintf(`(git-tag r "bad" {:sign {:key %q}})`, privPEM))
 	eval(t, ns, `(git-close r)`)
 }
 
@@ -341,8 +366,9 @@ func TestGitCLIInterop(t *testing.T) {
 				t.Fatal(err)
 			}
 			eval(t, ns, `(git-add r "a.txt")`)
-			eval(t, ns, fmt.Sprintf(`(git-commit r "signed" {:author %s :sign {:key %q}})`, author, privPEM))
-			eval(t, ns, fmt.Sprintf(`(git-tag r "v1" {:message "v1" :tagger %s :sign {:key %q}})`, author, privPEM))
+			signWith(t, privPEM)
+			eval(t, ns, fmt.Sprintf(`(git-commit r "signed" {:author %s})`, author))
+			eval(t, ns, fmt.Sprintf(`(git-tag r "v1" {:message "v1" :tagger %s})`, author))
 			eval(t, ns, `(git-close r)`)
 
 			for _, args := range [][]string{

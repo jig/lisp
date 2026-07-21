@@ -3,8 +3,8 @@
 ;; under --integrity, requires it to match its committed version at
 ;; HEAD. The state commits do not invalidate the code ref: every
 ;; restart uses the same --integrity argument.
-;; Pass {:sign {:key (slurp "/path/to/key")}} as state-save's third
-;; argument when the state commit itself should carry an SSH signature.
+;; Run under --integrity-keys and the state commit is SSH-signed
+;; automatically with the ssh-agent key listed there — no key in the code.
 (assert-integrity)
 
 (def db (state-load "db" {:visits 0}))

@@ -25,6 +25,10 @@ repo() { # repo <example-dir> → sets up $WORK/<example-dir> as a fresh tagged 
 	cp -r "$HERE/$1/." "$dir/"
 	cd "$dir"
 	git init -q
+	# Hermetic: ignore the runner's global commit.gpgsign / tag.gpgsign so
+	# the plain commit and lightweight tag below never demand a signature.
+	git config commit.gpgsign false
+	git config tag.gpgsign false
 	git add -A
 	git -c user.name=Demo -c user.email=demo@example.com commit -qm "release"
 	git tag v1

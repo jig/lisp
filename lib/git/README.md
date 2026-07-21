@@ -15,28 +15,20 @@ nsgit.Load(env)
 ## Quick example
 
 ```clojure
-(def key (slurp "/home/me/.ssh/id_ed25519"))
 (def pub (slurp "/home/me/.ssh/id_ed25519.pub"))
 
 (git-with-repo [r (git-init "/tmp/demo" {:object-format "sha256"})]
   (spit "/tmp/demo/a.txt" "hello\n")
   (git-add r "a.txt")
-  (git-commit r "first" {:author {:name "Me" :email "me@example.com"}
-                         :sign   {:key key}})
-  (git-verify-commit r "HEAD" pub))
-;; => {:valid true :key-type "ssh-ed25519" :fingerprint "SHA256:…"
-;;     :hash-algorithm "sha512" :signer "me@laptop"}
+  (git-commit r "first" {:author {:name "Me" :email "me@example.com"}})
+  (git-verify-commit r "HEAD" pub))   ;; throws unless the commit was signed
 ```
 
 ## Signed commits and tags
 
-`:sign {:key pem :passphrase p}` takes an OpenSSH private key as a PEM string (read it with `slurp`; `:passphrase` only for encrypted keys). The signature uses the SSH signature format with namespace `git` and SHA-512, exactly what `ssh-keygen -Y sign` and `git commit -S` produce with `gpg.format=ssh`. Generate a key with:
+There is **no per-call signing key**. `git-commit` and annotated `git-tag` are SSH-signed only when a signing policy is installed, which the interpreter does under `lisp --integrity-keys FILE`: it signs with the **ssh-agent** key whose public key is listed in FILE (the same trusted-key list that verifies the code ref). The private key never enters the process — it stays in the agent, unlocked however the agent is (keychain, `ssh-add`, …). No policy → commits and tags are unsigned.
 
-```
-ssh-keygen -t ed25519 -f signing-key
-```
-
-In sha256 repositories the commit signature is stored under the `gpgsig-sha256` header, as git expects; tag signatures are appended to the tag body in both formats.
+The signature uses the SSH signature format with namespace `git` and SHA-512, exactly what `ssh-keygen -Y sign` and `git commit -S` produce with `gpg.format=ssh`. In sha256 repositories the commit signature is stored under the `gpgsig-sha256` header, as git expects; tag signatures are appended to the tag body in both formats. (Go embedders install their own policy with `git.SetSigner`.)
 
 ## Verification — fail closed
 
@@ -68,7 +60,7 @@ SSH host keys are checked against the default `known_hosts` files. Override with
 | `git-close` | `[repo]` | nil |
 | `git-with-repo` | `[[r expr] & body]` | body value; guarantees `git-close` |
 | `git-add` | `[repo path & {:all :glob}]` | nil |
-| `git-commit` | `[repo msg & {:author :committer :sign :all :allow-empty :amend}]` | commit map |
+| `git-commit` | `[repo msg & {:author :committer :all :allow-empty :amend}]` | commit map |
 | `git-log` | `[repo & {:max :from :all :path}]` | vector of commit maps, newest first |
 | `git-show` | `[repo rev]` | commit map |
 | `git-status` | `[repo]` | `{:clean bool :files {path {:staging kw :worktree kw}}}` |
@@ -76,7 +68,7 @@ SSH host keys are checked against the default `known_hosts` files. Override with
 | `git-branch` | `[repo name & {:checkout :at}]` | nil |
 | `git-branches` | `[repo]` | vector of `{:name :hash :head}` |
 | `git-checkout` | `[repo ref & {:create :force}]` | nil |
-| `git-tag` | `[repo name & {:at :message :tagger :sign}]` | `{:name :hash :target :annotated}` |
+| `git-tag` | `[repo name & {:at :message :tagger}]` | `{:name :hash :target :annotated}` |
 | `git-tags` | `[repo]` | vector of tag maps |
 | `git-remote-add` | `[repo name url]` | nil |
 | `git-remotes` | `[repo]` | vector of `{:name :urls}` |
