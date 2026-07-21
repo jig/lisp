@@ -273,11 +273,39 @@ func TestStateSaveLoadWithoutIntegrity(t *testing.T) {
 	dir, _ := setupRepo(t, ns, "")
 	t.Chdir(dir)
 
-	hash, ok := evalLisp(t, ns, `(state-save "db" {:n 1 :who "operador"})`).(string)
+	state := `{:z "last" :n 1 :who "operador" :entries [` +
+		`{:payload "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789abcdefghijklmnop" :label "alpha"} ` +
+		`{:payload "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnop" :label "beta"}]}`
+	hash, ok := evalLisp(t, ns, `(state-save "db" `+state+`)`).(string)
 	if !ok || hash == "" {
 		t.Fatalf("state-save did not return a commit hash")
 	}
 
+	contentBytes, err := os.ReadFile(filepath.Join(dir, ".state", "db.lisp"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	content := string(contentBytes)
+	keyIndexes := []int{
+		strings.Index(content, ":entries"),
+		strings.Index(content, ":n 1"),
+		strings.Index(content, ":who"),
+		strings.Index(content, ":z"),
+	}
+	for i, index := range keyIndexes {
+		if index < 0 || i > 0 && index <= keyIndexes[i-1] {
+			t.Fatalf("state keys are not in deterministic order: %q", content)
+		}
+	}
+	if !strings.Contains(content, "\n           {:label \"beta\"") ||
+		!strings.Contains(content, "\n            :payload ") {
+		t.Fatalf("nested state value is not multiline:\n%s", content)
+	}
+	if !strings.HasSuffix(content, "\n") || strings.HasSuffix(content, "\n\n") {
+		t.Fatalf("state file must have exactly one trailing newline: %q", content)
+	}
+
+	expectTrue(t, ns, `(= `+state+` (state-load "db"))`)
 	expectTrue(t, ns, `(= 1 (get (state-load "db") :n))`)
 	expectTrue(t, ns, `(= "operador" (get (state-load "db") :who))`)
 	expectTrue(t, ns, `(= 42 (state-load "missing" 42))`)

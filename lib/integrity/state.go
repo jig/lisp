@@ -108,10 +108,11 @@ func state_save(name string, value MalType, params ...MalType) (MalType, error) 
 		return nil, err
 	}
 
-	// Canonical form: print readably and run the formatter, so state
-	// files diff cleanly and hash deterministically. A value the reader
-	// cannot round-trip (a live handle, a function) fails here.
-	printed := printer.Pr_str(value, true)
+	// Canonical form: print readable data at a stable width and run the
+	// formatter, so state files diff cleanly and hash deterministically.
+	// A value the reader cannot round-trip (a live handle, a function)
+	// fails here.
+	printed := printer.Pr_data(value, 100)
 	canon, err := format.Source([]byte(printed))
 	if err != nil {
 		return nil, fmt.Errorf("state-save: value is not serializable lisp data: %w", err)
