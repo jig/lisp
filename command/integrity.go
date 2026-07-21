@@ -1,15 +1,23 @@
 package command
 
 import (
+	"errors"
 	"fmt"
 	"log/slog"
 	"os"
+	"strings"
 
 	"github.com/jig/lisp/lib/core"
 	libgit "github.com/jig/lisp/lib/git"
 	"github.com/jig/lisp/lib/integrity"
 	"github.com/jig/lisp/lib/require"
+	libterm "github.com/jig/lisp/lib/term"
 )
+
+// ErrIntegrityReported signals that the integrity failure has already
+// been shown to the user (the red block); main exits non-zero without
+// re-printing it.
+var ErrIntegrityReported = errors.New("integrity check failed")
 
 // setupIntegrity validates the --integrity flags and enables integrity
 // mode: the script is verified against the given Git ref before it
@@ -39,7 +47,7 @@ func setupIntegrity(a args) error {
 		keys = string(b)
 	}
 	if err := integrity.Enable(a.Script, a.Integrity, keys); err != nil {
-		return err
+		return reportIntegrity(false, "", "", "", err)
 	}
 	require.VerifyModule = integrity.VerifyFile
 	core.VerifySource = integrity.VerifyFile
@@ -52,14 +60,52 @@ func setupIntegrity(a args) error {
 		libgit.SetSigningKeys(os.Getenv("SSH_AUTH_SOCK"), keys)
 	}
 
-	// One structured line to stderr for the operator's audit trail. It
-	// attests the pinned ref and the entry script only; each require /
-	// load-file is verified as it loads and aborts the run on mismatch,
-	// so a green line here does not mean the whole run is pre-verified.
-	logAttrs := []any{"ref", integrity.Ref(), "commit", integrity.CommitHash()}
-	if keys != "" {
-		logAttrs = append(logAttrs, "signer", integrity.Signer())
+	return reportIntegrity(true, integrity.Ref(), integrity.CommitHash(), integrity.Signer(), nil)
+}
+
+// reportIntegrity writes the audit outcome to stderr. On an interactive
+// terminal it prints a human-readable block — green when integrity is
+// satisfied, red when not; when stderr is redirected it emits the
+// machine-readable JSON line instead (JSON is the norm for log
+// ingestion). The block attests the pinned ref and the entry script
+// only: each require/load-file is verified as it loads and aborts the
+// run on mismatch, so a green block does not mean the whole run is
+// pre-verified. Returns nil on success, ErrIntegrityReported on a
+// terminal failure (already shown), or the cause when redirected.
+func reportIntegrity(ok bool, ref, commit, signer string, cause error) error {
+	if !libterm.StderrIsTerminal() {
+		if !ok {
+			return cause // the normal error path reports it
+		}
+		attrs := []any{"ref", ref, "commit", commit}
+		if signer != "" {
+			attrs = append(attrs, "signer", signer)
+		}
+		slog.New(slog.NewJSONHandler(os.Stderr, nil)).Info("integrity: entry script and ref verified", attrs...)
+		return nil
 	}
-	slog.New(slog.NewJSONHandler(os.Stderr, nil)).Info("integrity: entry script and ref verified", logAttrs...)
-	return nil
+
+	fmt.Fprint(os.Stderr, integrityBlock(ok, ref, commit, signer, cause))
+	if ok {
+		return nil
+	}
+	return ErrIntegrityReported
+}
+
+// integrityBlock renders the coloured, one-field-per-line audit block.
+func integrityBlock(ok bool, ref, commit, signer string, cause error) string {
+	field := func(label, value string) string {
+		return fmt.Sprintf("    %-6s  %s\n", label, value)
+	}
+	if !ok {
+		reason := strings.TrimPrefix(cause.Error(), "integrity: ")
+		return libterm.StderrStyle("red", true, "✗ integrity check failed") + "\n" +
+			libterm.StderrStyle("red", false, field("reason", reason))
+	}
+	body := field("ref", ref) + field("commit", commit)
+	if signer != "" {
+		body += field("signer", signer)
+	}
+	return libterm.StderrStyle("green", true, "✓ integrity verified") + "\n" +
+		libterm.StderrStyle("green", false, body)
 }
