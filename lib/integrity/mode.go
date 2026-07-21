@@ -125,7 +125,7 @@ func Enable(scriptPath, ref, allowedSigners string) error {
 		// HEAD may sit above the ref: state-save commits its writes,
 		// moving HEAD, and the code ref stays valid across restarts as
 		// long as every commit in between touches only .state/.
-		if err := verifyStateOnlyDescent(repo, head.Hash(), commit.Hash); err != nil {
+		if err := verifyStateOnlyDescent(repo, head.Hash(), commit.Hash, allowedSigners); err != nil {
 			return fmt.Errorf("integrity: HEAD is at %s, not at %q (%s): %w", head.Hash(), ref, commit.Hash, err)
 		}
 	}
@@ -177,8 +177,12 @@ func verifyRefSignature(repo *gogit.Repository, ref string, tag *object.Tag, com
 
 // verifyStateOnlyDescent checks that ref is an ancestor of head through
 // a linear chain of commits that touch only .state/ paths — the commits
-// state-save creates. Any other divergence is an error.
-func verifyStateOnlyDescent(repo *gogit.Repository, head, ref plumbing.Hash) error {
+// state-save creates. Any other divergence is an error. When
+// allowedSigners is non-empty (--integrity-keys), each state commit must
+// additionally carry an SSH signature by one of those keys, so the whole
+// chain from ref to HEAD is signed by a trusted key — state authenticity,
+// not just consistency.
+func verifyStateOnlyDescent(repo *gogit.Repository, head, ref plumbing.Hash, allowedSigners string) error {
 	cur, err := repo.CommitObject(head)
 	if err != nil {
 		return err
@@ -186,6 +190,11 @@ func verifyStateOnlyDescent(repo *gogit.Repository, head, ref plumbing.Hash) err
 	for cur.Hash != ref {
 		if cur.NumParents() != 1 {
 			return fmt.Errorf("commit %s is not part of a linear state-only descent from the ref", cur.Hash)
+		}
+		if allowedSigners != "" {
+			if _, err := libgit.VerifyCommitSSH(cur, allowedSigners); err != nil {
+				return fmt.Errorf("state commit %s is not signed by an allowed key: %w", cur.Hash, err)
+			}
 		}
 		parent, err := cur.Parent(0)
 		if err != nil {
