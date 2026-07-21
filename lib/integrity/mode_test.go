@@ -6,6 +6,7 @@ import (
 	"crypto/rand"
 	"encoding/pem"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -387,16 +388,60 @@ func TestStateSaveSignedCommit(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			wt, err := repo.Worktree()
+
+			const statePath = ".state/db.lisp"
+			worktreeData, err := os.ReadFile(filepath.Join(dir, filepath.FromSlash(statePath)))
 			if err != nil {
 				t.Fatal(err)
 			}
-			status, err := wt.Status()
+			idx, err := repo.Storer.Index()
 			if err != nil {
 				t.Fatal(err)
 			}
-			if !status.IsClean() {
-				t.Fatalf("state worktree is dirty: %v", status)
+			entry, err := idx.Entry(statePath)
+			if err != nil {
+				t.Fatal(err)
+			}
+			indexBlob, err := repo.BlobObject(entry.Hash)
+			if err != nil {
+				t.Fatal(err)
+			}
+			indexReader, err := indexBlob.Reader()
+			if err != nil {
+				t.Fatal(err)
+			}
+			indexData, err := io.ReadAll(indexReader)
+			if closeErr := indexReader.Close(); err == nil {
+				err = closeErr
+			}
+			if err != nil {
+				t.Fatal(err)
+			}
+			head, err := repo.Head()
+			if err != nil {
+				t.Fatal(err)
+			}
+			headCommit, err := repo.CommitObject(head.Hash())
+			if err != nil {
+				t.Fatal(err)
+			}
+			headTree, err := headCommit.Tree()
+			if err != nil {
+				t.Fatal(err)
+			}
+			headFile, err := headTree.File(statePath)
+			if err != nil {
+				t.Fatal(err)
+			}
+			headData, err := headFile.Contents()
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			// go-git v6 alpha.4 hashes racy worktree files with SHA-1 even
+			// in SHA-256 repositories, so Status can report a false change.
+			if string(worktreeData) != string(indexData) || string(worktreeData) != headData {
+				t.Fatal("state differs between worktree, index, and HEAD")
 			}
 		})
 	}
