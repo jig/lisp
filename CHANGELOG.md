@@ -170,7 +170,10 @@ Non-breaking, for context (see `git log v0.2.24..` for the full list):
   **ssh-agent** key listed there — no private key ever enters the
   process, and it fails closed if no listed key is loaded in the agent.
   (`git-commit`/`git-tag` therefore no longer take a `:sign {:key …}`
-  option — signing is agent-driven only.) New builtins:
+  option — signing is agent-driven only.) Under `--integrity-keys`,
+  startup also **requires** every state commit between the ref and HEAD
+  to be signed by a listed key, so the whole chain is signed by a
+  trusted key (state authenticity, not just consistency). New builtins:
   `(assert-integrity)` throws unless the run is verified — so
   committed code can demand the flag — and returns the verified commit
   hash; `(state-save name value)` / `(state-load name & [default])`

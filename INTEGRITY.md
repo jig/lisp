@@ -49,7 +49,10 @@ At startup (`--integrity <ref>`):
    `state-save` creates). Anything else fails.
 3. With `--integrity-keys FILE`: the ref must carry an SSH
    signature by one of the public keys in `FILE` — the tag signature
-   if the ref is an annotated tag, the commit signature otherwise.
+   if the ref is an annotated tag, the commit signature otherwise — and
+   **every state commit** between `C` and `HEAD` (point 2) must
+   likewise be signed by a listed key. The whole chain from ref to
+   `HEAD` is thus signed by a trusted key.
 4. The script must byte-match its blob in `C`'s tree.
 
 At runtime, while the mode is active:
@@ -194,11 +197,6 @@ attacker cannot write to what the interpreter reads:
 
 ## Future revisions (not implemented)
 
-- **Enforced signed state chain** — under `--integrity-keys` state
-  commits are SSH-signed, but integrity startup does not yet *require*
-  every state commit to be signed by a listed key. A future check on
-  load would verify that membership, giving state authenticity rather
-  than auditability alone.
 - **Keys baked into the binary** — accept allowed signers via
   `-ldflags -X` at build time, shrinking the trust anchor to the
   binary alone.

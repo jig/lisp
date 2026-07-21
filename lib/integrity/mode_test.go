@@ -515,6 +515,34 @@ func TestStateSaveIdempotentUnchanged(t *testing.T) {
 	}
 }
 
+// TestStateChainSignedUnderKeys verifies that under --integrity-keys every
+// state commit above the ref must be SSH-signed by a listed key: a signed
+// chain verifies, an unsigned state commit on top fails closed.
+func TestStateChainSignedUnderKeys(t *testing.T) {
+	ns := newGitEnv(t)
+	privPEM, authorized := testKey(t, "release")
+
+	// Signed release commit + one signed state commit.
+	clear := signWith(t, privPEM)
+	dir, hash := setupRepo(t, ns, "")
+	t.Chdir(dir)
+	evalLisp(t, ns, `(state-save "db" {:n 1})`)
+	clear()
+
+	script := filepath.Join(dir, "script.lisp")
+	if err := enable(t, script, hash, authorized); err != nil {
+		t.Fatalf("Enable(signed state chain): %v", err)
+	}
+	integrity.Disable()
+
+	// An unsigned state commit on top must fail closed under --integrity-keys.
+	evalLisp(t, ns, `(state-save "db" {:n 2})`)
+	if err := enable(t, script, hash, authorized); err == nil ||
+		!strings.Contains(err.Error(), "not signed by an allowed key") {
+		t.Fatalf("Enable(unsigned state commit) = %v, want 'not signed by an allowed key'", err)
+	}
+}
+
 func TestStateUnderIntegrity(t *testing.T) {
 	ns := newGitEnv(t)
 	dir, hash := setupRepo(t, ns, "")
