@@ -75,7 +75,7 @@ func resolveAgentSigner(sshAuthSock, allowedKeys string) (gossh.Signer, error) {
 			return s, nil
 		}
 	}
-	conn.Close()
+	_ = conn.Close()
 	return nil, fmt.Errorf("no ssh-agent key is listed in --integrity-keys")
 }
 
