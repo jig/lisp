@@ -15,6 +15,7 @@ import (
 	gogit "github.com/go-git/go-git/v6"
 	gitconfig "github.com/go-git/go-git/v6/config"
 	"github.com/go-git/go-git/v6/plumbing"
+	"github.com/go-git/go-git/v6/plumbing/object"
 	"github.com/jig/lisp"
 	"github.com/jig/lisp/env"
 	"github.com/jig/lisp/lib/core/nscore"
@@ -444,6 +445,57 @@ func TestStateSaveSignedCommit(t *testing.T) {
 				t.Fatal("state differs between worktree, index, and HEAD")
 			}
 		})
+	}
+}
+
+// TestStateSaveIdempotentUnchanged verifies that saving a byte-identical
+// value is a no-op returning the existing commit, not an ErrEmptyCommit
+// failure. Deterministic serialization makes an unchanged value produce
+// an unchanged file, so without idempotence a repeated save would error.
+func TestStateSaveIdempotentUnchanged(t *testing.T) {
+	ns := newGitEnv(t)
+	dir, _ := setupRepo(t, ns, "")
+	t.Chdir(dir)
+
+	first := evalLisp(t, ns, `(state-save "db" {:a 1 :b 2 :c 3})`).(string)
+	repo, err := gogit.PlainOpen(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	countState := func() int {
+		iter, err := repo.Log(&gogit.LogOptions{})
+		if err != nil {
+			t.Fatal(err)
+		}
+		n := 0
+		_ = iter.ForEach(func(c *object.Commit) error {
+			if strings.HasPrefix(c.Message, "state: ") {
+				n++
+			}
+			return nil
+		})
+		return n
+	}
+	if countState() != 1 {
+		t.Fatalf("expected 1 state commit, got %d", countState())
+	}
+
+	// Re-saving the identical value must not error and must not add a commit.
+	second := evalLisp(t, ns, `(state-save "db" {:a 1 :b 2 :c 3})`).(string)
+	if second != first {
+		t.Fatalf("idempotent save returned %q, want the existing commit %q", second, first)
+	}
+	if countState() != 1 {
+		t.Fatalf("idempotent save created a new commit: %d state commits", countState())
+	}
+
+	// A changed value still commits.
+	third := evalLisp(t, ns, `(state-save "db" {:a 1 :b 2 :c 4})`).(string)
+	if third == first {
+		t.Fatal("changed save should produce a new commit")
+	}
+	if countState() != 2 {
+		t.Fatalf("expected 2 state commits after a change, got %d", countState())
 	}
 }
 
