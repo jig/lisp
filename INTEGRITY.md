@@ -105,12 +105,25 @@ lisp --integrity v1.4.2 --integrity-keys /etc/lisp/release-keys service.lisp
   listed key is loaded in the agent). Requires
   `--integrity`.
 
-On success one structured JSON line is logged to stderr for the audit
-trail: `{"msg":"integrity: entry script and ref verified","ref":…,"commit":…,"signer":…}`
-(`signer` only when keys were required). It attests the pinned ref and
-the entry script; each cascaded `require` / `load-file` is verified as
-it loads and aborts the run on mismatch, so the line does not mean the
-whole run is already verified.
+The result is reported to stderr for the audit trail. On an
+**interactive terminal** it is a human-readable block — green when
+integrity is satisfied, red when not — with the ref, commit and (when
+keys were required) signer each on their own line:
+
+```
+✓ integrity verified
+    ref     v1.4.2
+    commit  9fceb02da8f3c1…
+    signer  alice
+```
+
+When stderr is **redirected** (a pipe or file — the server/log-ingestion
+case) it is instead one structured JSON line:
+`{"msg":"integrity: entry script and ref verified","ref":…,"commit":…,"signer":…}`.
+Either way it attests the pinned ref and the entry script only; each
+cascaded `require` / `load-file` is verified as it loads and aborts the
+run on mismatch, so a green block does not mean the whole run is already
+verified. Color also honours `NO_COLOR` / `CLICOLOR_FORCE`.
 
 ## Builtins
 

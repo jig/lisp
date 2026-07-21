@@ -163,8 +163,10 @@ Non-breaking, for context (see `git log v0.2.24..` for the full list):
   additionally requires REF to be SSH-signed by a key listed in FILE
   (authorized_keys / `.pub` format, as `git-verify-commit` — not git's
   `allowed_signers`; a principal-first line is rejected, keys are
-  matched by key with no expiry); a JSON audit line is logged on
-  successful verification. That same key set also **drives signing**:
+  matched by key with no expiry); the audit outcome is reported on
+  stderr — a colored human-readable block (green ✓ / red ✗, one field
+  per line) on an interactive terminal, a structured JSON line when
+  redirected. That same key set also **drives signing**:
   while `--integrity-keys` is active, every `git-commit`, annotated
   `git-tag` and `state-save` made during the run is SSH-signed with the
   **ssh-agent** key listed there — no private key ever enters the

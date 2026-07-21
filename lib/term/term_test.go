@@ -115,6 +115,30 @@ func TestStylePlain(t *testing.T) {
 	}
 }
 
+// TestStderrStyle covers the Go-facing helper the CLI uses for its own
+// stderr output.
+func TestStderrStyle(t *testing.T) {
+	t.Setenv("CLICOLOR_FORCE", "1")
+	term.ResetColorCache()
+	if got, want := term.StderrStyle("green", true, "x"), "\x1b[1;32mx\x1b[0m"; got != want {
+		t.Errorf("green bold = %q, want %q", got, want)
+	}
+	if got, want := term.StderrStyle("red", false, "x"), "\x1b[31mx\x1b[0m"; got != want {
+		t.Errorf("red = %q, want %q", got, want)
+	}
+	if got := term.StderrStyle("no-such-color", false, "x"); got != "x" {
+		t.Errorf("unknown color should be plain: %q", got)
+	}
+}
+
+func TestStderrStylePlain(t *testing.T) {
+	t.Setenv("NO_COLOR", "1")
+	term.ResetColorCache()
+	if got := term.StderrStyle("green", true, "x"); got != "x" {
+		t.Errorf("under NO_COLOR should be plain: %q", got)
+	}
+}
+
 func TestWidthNonTTY(t *testing.T) {
 	ns := newEnv(t)
 	v, err := eval(t, ns, `(term-width)`)

@@ -47,10 +47,15 @@ func Load(env EnvType) {
 		"The terminal width in columns, or 0 when stdout is not a terminal.")
 }
 
-// colorEnabled decides once whether to emit ANSI codes.
-var colorEnabled = sync.OnceValue(colorDecision)
+// colorEnabled decides once whether to emit ANSI codes on stdout;
+// colorEnabledStderr does the same for stderr (where the CLI writes its
+// own audit output).
+var (
+	colorEnabled       = sync.OnceValue(func() bool { return colorDecisionFor(os.Stdout.Fd()) })
+	colorEnabledStderr = sync.OnceValue(func() bool { return colorDecisionFor(os.Stderr.Fd()) })
+)
 
-func colorDecision() bool {
+func colorDecisionFor(fd uintptr) bool {
 	if os.Getenv("CLICOLOR_FORCE") == "1" {
 		return true
 	}
@@ -60,7 +65,35 @@ func colorDecision() bool {
 	if os.Getenv("TERM") == "dumb" {
 		return false
 	}
-	return term.IsTerminal(int(os.Stdout.Fd()))
+	return term.IsTerminal(int(fd))
+}
+
+// StderrStyle wraps s in an SGR sequence for the named color (as
+// term-style's :fg accepts — "green", "red", …), bold when bold is true,
+// honoring NO_COLOR / CLICOLOR_FORCE / TERM=dumb and whether stderr is a
+// terminal. Returns s unchanged when color is disabled or the color name
+// is unknown. It is the Go-facing counterpart of term-style, for the
+// CLI's own colored output on stderr.
+func StderrStyle(color string, bold bool, s string) string {
+	if !colorEnabledStderr() {
+		return s
+	}
+	code, ok := namedColors[color]
+	if !ok {
+		return s
+	}
+	seq := strconv.Itoa(code)
+	if bold {
+		seq = "1;" + seq
+	}
+	return "\x1b[" + seq + "m" + s + "\x1b[0m"
+}
+
+// StderrIsTerminal reports whether stderr is a terminal, so the CLI can
+// print human-readable output there and machine-readable JSON when it is
+// redirected to a file or pipe.
+func StderrIsTerminal() bool {
+	return term.IsTerminal(int(os.Stderr.Fd()))
 }
 
 // namedColors maps color keywords to their base SGR foreground code;

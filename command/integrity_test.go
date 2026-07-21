@@ -1,6 +1,7 @@
 package command
 
 import (
+	"errors"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -150,5 +151,35 @@ func TestExecuteIntegrityFlagValidation(t *testing.T) {
 		if err := Execute(cmdline, ns); err == nil {
 			t.Errorf("Execute(%v) did not fail", cmdline)
 		}
+	}
+}
+
+// TestIntegrityBlockFormat pins the human-readable audit block: a green
+// header plus one field per line on success, a red header plus reason on
+// failure. Asserts the text (robust to whether color is on).
+func TestIntegrityBlockFormat(t *testing.T) {
+	ok := integrityBlock(true, "v1.2.3", "abc123def", "alice", nil)
+	for _, want := range []string{"integrity verified", "ref", "v1.2.3", "commit", "abc123def", "signer", "alice"} {
+		if !strings.Contains(ok, want) {
+			t.Errorf("success block missing %q:\n%s", want, ok)
+		}
+	}
+	if n := strings.Count(strings.TrimRight(ok, "\n"), "\n"); n != 3 {
+		t.Errorf("expected header + 3 fields (3 newlines), got %d:\n%s", n, ok)
+	}
+
+	noSigner := integrityBlock(true, "v1", "abc", "", nil)
+	if strings.Contains(noSigner, "signer") {
+		t.Errorf("no signer line expected when signer is empty:\n%s", noSigner)
+	}
+
+	fail := integrityBlock(false, "", "", "", errors.New("integrity: HEAD moved"))
+	for _, want := range []string{"integrity check failed", "reason", "HEAD moved"} {
+		if !strings.Contains(fail, want) {
+			t.Errorf("failure block missing %q:\n%s", want, fail)
+		}
+	}
+	if strings.Contains(fail, "integrity: HEAD moved") {
+		t.Errorf("expected the redundant 'integrity: ' prefix stripped:\n%s", fail)
 	}
 }

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"log"
 	"os"
 
@@ -64,6 +65,11 @@ func main() {
 	}
 
 	if err := command.Execute(os.Args, ns); err != nil {
+		// An integrity failure has already been shown to the user as its
+		// own red block; just exit non-zero without a second "Error:" line.
+		if errors.Is(err, command.ErrIntegrityReported) {
+			os.Exit(1)
+		}
 		log.Fatalf("Error: %v\n", err)
 	}
 }
