@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/jig/lisp/printer"
+	"github.com/jig/lisp/reader"
 	"github.com/jig/lisp/types"
 )
 
@@ -172,5 +173,60 @@ func TestPrStrHashMapMulti(t *testing.T) {
 		if !strings.Contains(got, part) {
 			t.Fatalf("%q missing %q", got, part)
 		}
+	}
+}
+
+func TestPrDataDeterministicMixedCollections(t *testing.T) {
+	value := types.HashMap{Val: map[string]types.MalType{
+		"ʞz": types.HashMap{Val: map[string]types.MalType{"ʞb": 2, "ʞa": 1}},
+		"a": types.List{Val: []types.MalType{
+			types.Symbol{Val: "quote"},
+			types.Vector{Val: []types.MalType{3, 2, 1}},
+		}},
+		"ʞa": types.Set{Val: map[string]struct{}{"beta": {}, "ʞalpha": {}, "alpha": {}}},
+		"z":  nil,
+	}}
+	want := `{"a" (quote [3 2 1]) "z" nil :a #{"alpha" "beta" :alpha} :z {:a 1 :b 2}}`
+
+	for range 20 {
+		if got := printer.Pr_data(value, 200); got != want {
+			t.Fatalf("Pr_data = %q, want %q", got, want)
+		}
+	}
+}
+
+func TestPrDataNestedWidthAwareLayout(t *testing.T) {
+	value := types.Vector{Val: []types.MalType{
+		types.HashMap{Val: map[string]types.MalType{
+			"ʞvalues": types.Vector{Val: []types.MalType{1, 2, 3, 4}},
+			"ʞname":   "alpha",
+		}},
+		types.HashMap{Val: map[string]types.MalType{
+			"ʞquoted": types.List{Val: []types.MalType{
+				types.Symbol{Val: "quote"},
+				types.Vector{Val: []types.MalType{10, 20, 30, 40}},
+			}},
+			"ʞname": "beta",
+		}},
+	}}
+	want := `[{:name "alpha"
+  :values [1 2 3 4]}
+ {:name "beta"
+  :quoted (quote [10
+                  20
+                  30
+                  40])}]`
+
+	got := printer.Pr_data(value, 24)
+	if got != want {
+		t.Fatalf("Pr_data:\n%s\nwant:\n%s", got, want)
+	}
+
+	roundTrip, err := reader.Read_str(got, types.NewCursorFile(t.Name()), nil)
+	if err != nil {
+		t.Fatalf("read Pr_data output: %v", err)
+	}
+	if roundTripPrinted := printer.Pr_data(roundTrip, 24); roundTripPrinted != want {
+		t.Fatalf("round-trip Pr_data:\n%s\nwant:\n%s", roundTripPrinted, want)
 	}
 }

@@ -23,7 +23,6 @@ import (
 
 	gogit "github.com/go-git/go-git/v6"
 	"github.com/go-git/go-git/v6/plumbing/object"
-	"github.com/jig/lisp/format"
 	"github.com/jig/lisp/internal/gogitutil"
 	libgit "github.com/jig/lisp/lib/git"
 	"github.com/jig/lisp/printer"
@@ -108,16 +107,16 @@ func state_save(name string, value MalType, params ...MalType) (MalType, error) 
 		return nil, err
 	}
 
-	// Canonical form: print readably and run the formatter, so state
-	// files diff cleanly and hash deterministically. A value the reader
-	// cannot round-trip (a live handle, a function) fails here.
-	printed := printer.Pr_str(value, true)
-	canon, err := format.Source([]byte(printed))
-	if err != nil {
-		return nil, fmt.Errorf("state-save: value is not serializable lisp data: %w", err)
-	}
+	// Canonical form: Pr_data is the single source of truth for state
+	// layout — it prints readable data deterministically (sorted map/set
+	// keys) at a stable width, so state files diff cleanly and hash
+	// deterministically. The lisp source formatter is not run: on
+	// Pr_data output it only appends this trailing newline. Validate that
+	// the text round-trips — a value the reader cannot read back (a live
+	// handle, a function) fails here.
+	canon := []byte(printer.Pr_data(value, 100) + "\n")
 	if _, err := reader.Read_str(string(canon), NewCursorFile(rel), nil); err != nil {
-		return nil, fmt.Errorf("state-save: value is not readable lisp data: %w", err)
+		return nil, fmt.Errorf("state-save: value is not serializable lisp data: %w", err)
 	}
 
 	abs := filepath.Join(root, filepath.FromSlash(rel))
@@ -143,6 +142,19 @@ func state_save(name string, value MalType, params ...MalType) (MalType, error) 
 		Signer: gogitutil.NoSign{},
 	})
 	if err != nil {
+		// Deterministic serialization means an unchanged value produces
+		// a byte-identical file, so re-saving the same state leaves the
+		// worktree clean. That is a no-op, not an error: the state is
+		// already committed, so return the existing HEAD commit. (A
+		// :sign option is ignored here — there is nothing new to sign;
+		// sign when the value actually changes.)
+		if errors.Is(err, gogit.ErrEmptyCommit) {
+			head, herr := repo.Head()
+			if herr != nil {
+				return nil, fmt.Errorf("state-save: %w", herr)
+			}
+			return head.Hash().String(), nil
+		}
 		return nil, fmt.Errorf("state-save: %w", err)
 	}
 	if signer != nil {

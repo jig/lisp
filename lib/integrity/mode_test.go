@@ -6,6 +6,7 @@ import (
 	"crypto/rand"
 	"encoding/pem"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -14,6 +15,7 @@ import (
 	gogit "github.com/go-git/go-git/v6"
 	gitconfig "github.com/go-git/go-git/v6/config"
 	"github.com/go-git/go-git/v6/plumbing"
+	"github.com/go-git/go-git/v6/plumbing/object"
 	"github.com/jig/lisp"
 	"github.com/jig/lisp/env"
 	"github.com/jig/lisp/lib/core/nscore"
@@ -273,11 +275,39 @@ func TestStateSaveLoadWithoutIntegrity(t *testing.T) {
 	dir, _ := setupRepo(t, ns, "")
 	t.Chdir(dir)
 
-	hash, ok := evalLisp(t, ns, `(state-save "db" {:n 1 :who "operador"})`).(string)
+	state := `{:z "last" :n 1 :who "operador" :entries [` +
+		`{:payload "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789abcdefghijklmnop" :label "alpha"} ` +
+		`{:payload "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnop" :label "beta"}]}`
+	hash, ok := evalLisp(t, ns, `(state-save "db" `+state+`)`).(string)
 	if !ok || hash == "" {
 		t.Fatalf("state-save did not return a commit hash")
 	}
 
+	contentBytes, err := os.ReadFile(filepath.Join(dir, ".state", "db.lisp"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	content := string(contentBytes)
+	keyIndexes := []int{
+		strings.Index(content, ":entries"),
+		strings.Index(content, ":n 1"),
+		strings.Index(content, ":who"),
+		strings.Index(content, ":z"),
+	}
+	for i, index := range keyIndexes {
+		if index < 0 || i > 0 && index <= keyIndexes[i-1] {
+			t.Fatalf("state keys are not in deterministic order: %q", content)
+		}
+	}
+	if !strings.Contains(content, "\n           {:label \"beta\"") ||
+		!strings.Contains(content, "\n            :payload ") {
+		t.Fatalf("nested state value is not multiline:\n%s", content)
+	}
+	if !strings.HasSuffix(content, "\n") || strings.HasSuffix(content, "\n\n") {
+		t.Fatalf("state file must have exactly one trailing newline: %q", content)
+	}
+
+	expectTrue(t, ns, `(= `+state+` (state-load "db"))`)
 	expectTrue(t, ns, `(= 1 (get (state-load "db") :n))`)
 	expectTrue(t, ns, `(= "operador" (get (state-load "db") :who))`)
 	expectTrue(t, ns, `(= 42 (state-load "missing" 42))`)
@@ -359,18 +389,113 @@ func TestStateSaveSignedCommit(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			wt, err := repo.Worktree()
+
+			const statePath = ".state/db.lisp"
+			worktreeData, err := os.ReadFile(filepath.Join(dir, filepath.FromSlash(statePath)))
 			if err != nil {
 				t.Fatal(err)
 			}
-			status, err := wt.Status()
+			idx, err := repo.Storer.Index()
 			if err != nil {
 				t.Fatal(err)
 			}
-			if !status.IsClean() {
-				t.Fatalf("state worktree is dirty: %v", status)
+			entry, err := idx.Entry(statePath)
+			if err != nil {
+				t.Fatal(err)
+			}
+			indexBlob, err := repo.BlobObject(entry.Hash)
+			if err != nil {
+				t.Fatal(err)
+			}
+			indexReader, err := indexBlob.Reader()
+			if err != nil {
+				t.Fatal(err)
+			}
+			indexData, err := io.ReadAll(indexReader)
+			if closeErr := indexReader.Close(); err == nil {
+				err = closeErr
+			}
+			if err != nil {
+				t.Fatal(err)
+			}
+			head, err := repo.Head()
+			if err != nil {
+				t.Fatal(err)
+			}
+			headCommit, err := repo.CommitObject(head.Hash())
+			if err != nil {
+				t.Fatal(err)
+			}
+			headTree, err := headCommit.Tree()
+			if err != nil {
+				t.Fatal(err)
+			}
+			headFile, err := headTree.File(statePath)
+			if err != nil {
+				t.Fatal(err)
+			}
+			headData, err := headFile.Contents()
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			// go-git v6 alpha.4 hashes racy worktree files with SHA-1 even
+			// in SHA-256 repositories, so Status can report a false change.
+			if string(worktreeData) != string(indexData) || string(worktreeData) != headData {
+				t.Fatal("state differs between worktree, index, and HEAD")
 			}
 		})
+	}
+}
+
+// TestStateSaveIdempotentUnchanged verifies that saving a byte-identical
+// value is a no-op returning the existing commit, not an ErrEmptyCommit
+// failure. Deterministic serialization makes an unchanged value produce
+// an unchanged file, so without idempotence a repeated save would error.
+func TestStateSaveIdempotentUnchanged(t *testing.T) {
+	ns := newGitEnv(t)
+	dir, _ := setupRepo(t, ns, "")
+	t.Chdir(dir)
+
+	first := evalLisp(t, ns, `(state-save "db" {:a 1 :b 2 :c 3})`).(string)
+	repo, err := gogit.PlainOpen(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	countState := func() int {
+		iter, err := repo.Log(&gogit.LogOptions{})
+		if err != nil {
+			t.Fatal(err)
+		}
+		n := 0
+		_ = iter.ForEach(func(c *object.Commit) error {
+			if strings.HasPrefix(c.Message, "state: ") {
+				n++
+			}
+			return nil
+		})
+		return n
+	}
+	if countState() != 1 {
+		t.Fatalf("expected 1 state commit, got %d", countState())
+	}
+
+	// Re-saving the identical value must not error and must not add a commit.
+	second := evalLisp(t, ns, `(state-save "db" {:a 1 :b 2 :c 3})`).(string)
+	if second != first {
+		t.Fatalf("idempotent save returned %q, want the existing commit %q", second, first)
+	}
+	if countState() != 1 {
+		t.Fatalf("idempotent save created a new commit: %d state commits", countState())
+	}
+
+	// A changed value still commits.
+	third := evalLisp(t, ns, `(state-save "db" {:a 1 :b 2 :c 4})`).(string)
+	if third == first {
+		t.Fatal("changed save should produce a new commit")
+	}
+	if countState() != 2 {
+		t.Fatalf("expected 2 state commits after a change, got %d", countState())
 	}
 }
 
