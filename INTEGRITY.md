@@ -94,7 +94,12 @@ lisp --integrity v1.4.2 --integrity-keys /etc/lisp/release-keys service.lisp
   git's `allowed_signers` format (which puts the principal first); such
   a line is rejected, not silently accepted, so the trust anchor is the
   set of keys, matched by key — no principal or validity constraints
-  (rotate keys by editing the file, not by expiry). Requires
+  (rotate keys by editing the file, not by expiry). This same key set
+  also **drives signing**: while `--integrity-keys` is active, every
+  `git-commit`, annotated `git-tag` and `state-save` made during the run
+  is SSH-signed with the **ssh-agent** key whose public key is listed
+  here (no private key ever enters the process; fails closed if no
+  listed key is loaded in the agent). Requires
   `--integrity`.
 
 On success one structured JSON line is logged to stderr for the audit
@@ -109,7 +114,7 @@ whole run is already verified.
 | Builtin | Behaviour |
 |---|---|
 | `(assert-integrity)` | Throws unless running under `--integrity`; returns the verified commit hash. Committed code uses it to demand the mode — effective as long as operators know the program is supposed to carry it. |
-| `(state-save name value)` / `(state-save name value options)` | Writes `value` as canonical lisp data to `.state/name.lisp` and **commits it in the same operation** (message `state: name`); returns the commit hash. `options` may contain `{:sign {:key OPENSSH-PRIVATE-KEY :passphrase STRING}}`, using the same SSH signing format as `git-commit`. Works with or without the mode; requires a Git repository. |
+| `(state-save name value)` | Writes `value` as canonical lisp data to `.state/name.lisp` and **commits it in the same operation** (message `state: name`); returns the commit hash. Under `--integrity-keys` the commit is SSH-signed with the ssh-agent key listed there (no per-call key). Saving an unchanged value is a no-op returning the current commit. Works with or without the mode; requires a Git repository. |
 | `(state-load name)` / `(state-load name default)` | Reads the state back as pure data (READ, never EVAL — state cannot smuggle code). Returns `default`, or throws without one, when the state does not exist. Under the mode, enforces invariant 6. |
 | `(slurp-source path)` | `slurp` for files about to be evaluated: identical, plus invariant 5 under the mode. `load-file` builds on it. |
 
@@ -127,8 +132,8 @@ integrity envelope:
 - **Commit protocol** — write file → `git add` → `git commit`, all
   inside `state-save`. Committed state is therefore always the product
   of a completed save. State commits are authored `state-save
-  <state-save@lisp>` and are unsigned by default; the explicit `:sign`
-  option creates a Git-compatible SSH-signed commit.
+  <state-save@lisp>`; they are Git-compatible SSH-signed when
+  `--integrity-keys` is active (ssh-agent key), unsigned otherwise.
 - **Crash recovery** — a save interrupted between write and commit
   leaves the file differing from `HEAD`; the next `state-load` under
   the mode fails closed and the operator resolves it (commit the
@@ -189,10 +194,11 @@ attacker cannot write to what the interpreter reads:
 
 ## Future revisions (not implemented)
 
-- **Enforced signed state chain** — `state-save` can create SSH-signed
-  commits, but integrity startup does not yet require every state commit
-  to be signed. A future state-key policy can verify membership on load,
-  giving state authenticity rather than auditability alone.
+- **Enforced signed state chain** — under `--integrity-keys` state
+  commits are SSH-signed, but integrity startup does not yet *require*
+  every state commit to be signed by a listed key. A future check on
+  load would verify that membership, giving state authenticity rather
+  than auditability alone.
 - **Keys baked into the binary** — accept allowed signers via
   `-ldflags -X` at build time, shrinking the trust anchor to the
   binary alone.

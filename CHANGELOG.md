@@ -164,7 +164,13 @@ Non-breaking, for context (see `git log v0.2.24..` for the full list):
   (authorized_keys / `.pub` format, as `git-verify-commit` — not git's
   `allowed_signers`; a principal-first line is rejected, keys are
   matched by key with no expiry); a JSON audit line is logged on
-  successful verification. New builtins:
+  successful verification. That same key set also **drives signing**:
+  while `--integrity-keys` is active, every `git-commit`, annotated
+  `git-tag` and `state-save` made during the run is SSH-signed with the
+  **ssh-agent** key listed there — no private key ever enters the
+  process, and it fails closed if no listed key is loaded in the agent.
+  (`git-commit`/`git-tag` therefore no longer take a `:sign {:key …}`
+  option — signing is agent-driven only.) New builtins:
   `(assert-integrity)` throws unless the run is verified — so
   committed code can demand the flag — and returns the verified commit
   hash; `(state-save name value)` / `(state-load name & [default])`

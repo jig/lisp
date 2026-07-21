@@ -458,7 +458,7 @@ Attest and verify lisp source (formatting, hashing, Ed25519 signatures, --integr
 | `fmt` | `[s]` | Formats lisp source s into its canonical form (as lisp --fmt does); errors if s does not parse. |
 | `sha2-256` | `[s]` | SHA2-256 digest of string s, as lowercase hex. |
 | `state-load` | `[name & [default]]` | Reads .state/name.lisp back as data (READ, never EVAL); returns default (or throws) when absent. Under --integrity the file must match its committed version at HEAD. |
-| `state-save` | `[name value & [options]]` | Writes value as canonical lisp data to .state/name.lisp at the repository root and commits it; returns the commit hash. options may contain :sign {:key OPENSSH-PRIVATE-KEY :passphrase STRING}. Under --integrity the commit keeps the verified ref valid. |
+| `state-save` | `[name value]` | Writes value as canonical lisp data to .state/name.lisp at the repository root and commits it; returns the commit hash. Under --integrity-keys the commit is SSH-signed with the ssh-agent key listed there. Under --integrity the commit keeps the verified ref valid. |
 
 ### web
 
@@ -493,7 +493,7 @@ Attest and verify lisp source (formatting, hashing, Ed25519 signatures, --integr
 | `git-checkout` | `[repo ref & {:create :force}]` | Checks out a branch, tag or revision; :create true creates the branch first. |
 | `git-clone` | `[url path & {:auth :branch :depth :single-branch :bare}]` | Clones url into path and returns a handle; see git-push for the :auth map. |
 | `git-close` | `[repo]` | Closes a repository handle. |
-| `git-commit` | `[repo msg & {:author {:name :email} :committer :sign {:key :passphrase} :all :allow-empty :amend}]` | Commits staged changes and returns the commit map; :sign takes an OpenSSH private key (PEM string) and produces an SSH signature. |
+| `git-commit` | `[repo msg & {:author {:name :email} :committer :all :allow-empty :amend}]` | Commits staged changes and returns the commit map. Under --integrity-keys the commit is SSH-signed with the ssh-agent key listed there; otherwise it is unsigned (there is no per-call key option). |
 | `git-fetch` | `[repo & {:auth :remote :refspecs :depth :prune :force}]` | Fetches from :remote (default origin); returns :ok or :up-to-date. |
 | `git-head` | `[repo]` | Returns {:name :branch :hash} for HEAD. |
 | `git-init` | `[path & {:bare :object-format}]` | Creates a repository at path and returns a handle; :object-format "sha256" for a SHA-256 repo. |
@@ -505,7 +505,7 @@ Attest and verify lisp source (formatting, hashing, Ed25519 signatures, --integr
 | `git-remotes` | `[repo]` | Returns a vector of {:name :urls} for the configured remotes. |
 | `git-show` | `[repo rev]` | Returns the commit map for rev (hash, "HEAD", branch or tag name). |
 | `git-status` | `[repo]` | Returns {:clean bool :files {path {:staging kw :worktree kw}}} for the worktree. |
-| `git-tag` | `[repo name & {:at :message :tagger {:name :email} :sign}]` | Creates a tag at HEAD (or :at rev); :message makes it annotated, :sign (requires :message) signs it. |
+| `git-tag` | `[repo name & {:at :message :tagger {:name :email}}]` | Creates a tag at HEAD (or :at rev); :message makes it annotated. Under --integrity-keys an annotated tag is SSH-signed with the ssh-agent key listed there. |
 | `git-tag-verified?` | `[repo name allowed-keys]` | (git-tag-verified? repo name allowed-keys) is true when the tag's SSH signature verifies against allowed-keys. |
 | `git-tags` | `[repo]` | Returns a vector of {:name :hash :target :annotated} for all tags. |
 | `git-verified?` | `[repo rev allowed-keys]` | (git-verified? repo rev allowed-keys) is true when the commit's SSH signature verifies against allowed-keys. |

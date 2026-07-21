@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/jig/lisp/lib/core"
+	libgit "github.com/jig/lisp/lib/git"
 	"github.com/jig/lisp/lib/integrity"
 	"github.com/jig/lisp/lib/require"
 )
@@ -42,6 +43,14 @@ func setupIntegrity(a args) error {
 	}
 	require.VerifyModule = integrity.VerifyFile
 	core.VerifySource = integrity.VerifyFile
+
+	// With --integrity-keys, git commits/tags and state-save made during
+	// the run are SSH-signed with the ssh-agent key that is listed in the
+	// keys file. No private key ever enters the process; the resolution
+	// is lazy and fails closed if no listed key is loaded in the agent.
+	if keys != "" {
+		libgit.SetSigningKeys(os.Getenv("SSH_AUTH_SOCK"), keys)
+	}
 
 	// One structured line to stderr for the operator's audit trail. It
 	// attests the pinned ref and the entry script only; each require /

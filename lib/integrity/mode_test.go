@@ -103,6 +103,19 @@ func setupRepo(t *testing.T, ns types.EnvType, commitOpts string) (dir, hash str
 	return dir, h
 }
 
+// signWith installs a signing policy from a PEM private key (the test
+// stand-in for --integrity-keys' ssh-agent signer) and returns the
+// function that removes it. git-commit, git-tag and state-save then sign.
+func signWith(t *testing.T, privPEM string) func() {
+	t.Helper()
+	signer, err := gossh.ParsePrivateKey([]byte(privPEM))
+	if err != nil {
+		t.Fatal(err)
+	}
+	libgit.SetSigner(func() (gossh.Signer, error) { return signer, nil })
+	return libgit.ClearSigner
+}
+
 // enable calls integrity.Enable and registers cleanup of the global mode.
 func enable(t *testing.T, script, ref, signers string) error {
 	t.Helper()
@@ -206,7 +219,8 @@ func TestEnableSignedCommit(t *testing.T) {
 	ns := newGitEnv(t)
 	privPEM, authorized := testKey(t, "alice")
 	_, otherAuthorized := testKey(t, "mallory")
-	dir, hash := setupRepo(t, ns, fmt.Sprintf(`:sign {:key %q}`, privPEM))
+	t.Cleanup(signWith(t, privPEM))
+	dir, hash := setupRepo(t, ns, "")
 	script := filepath.Join(dir, "script.lisp")
 
 	if err := enable(t, script, hash, authorized); err != nil {
@@ -223,7 +237,9 @@ func TestEnableSignedTag(t *testing.T) {
 	privPEM, authorized := testKey(t, "alice")
 	dir, _ := setupRepo(t, ns, "")
 	script := filepath.Join(dir, "script.lisp")
-	evalLisp(t, ns, fmt.Sprintf(`(git-tag r "v1" {:message "release" :tagger `+author+` :sign {:key %q}})`, privPEM))
+	clear := signWith(t, privPEM)
+	evalLisp(t, ns, `(git-tag r "v1" {:message "release" :tagger `+author+`})`)
+	clear()
 
 	if err := enable(t, script, "v1", authorized); err != nil {
 		t.Fatalf("Enable(signed tag, allowed key): %v", err)
@@ -358,6 +374,7 @@ func TestStateSaveSignedCommit(t *testing.T) {
 			privPEM, authorized := testKey(t, "state-writer")
 			dir := t.TempDir()
 			t.Chdir(dir)
+			t.Cleanup(signWith(t, privPEM))
 			evalLisp(t, ns, fmt.Sprintf(
 				`(def r (git-init %q {:object-format %q}))`,
 				dir,
@@ -366,9 +383,8 @@ func TestStateSaveSignedCommit(t *testing.T) {
 
 			for n := 1; n <= 2; n++ {
 				hash := evalLisp(t, ns, fmt.Sprintf(
-					`(state-save "db" {:n %d} {:sign {:key %q}})`,
+					`(state-save "db" {:n %d})`,
 					n,
-					privPEM,
 				)).(string)
 				repo, err := gogit.PlainOpen(dir)
 				if err != nil {
