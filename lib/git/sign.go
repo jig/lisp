@@ -67,7 +67,7 @@ func resolveAgentSigner(sshAuthSock, allowedKeys string) (gossh.Signer, error) {
 	}
 	signers, err := agent.NewClient(conn).Signers()
 	if err != nil {
-		conn.Close()
+		_ = conn.Close()
 		return nil, fmt.Errorf("ssh-agent: %w", err)
 	}
 	for _, s := range signers {
