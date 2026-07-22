@@ -189,6 +189,14 @@ Non-breaking, for context (see `git log v0.2.24..` for the full list):
   uncommitted edits, not a security boundary against whoever can
   rewrite the repository or the binary. Full specification in
   `INTEGRITY.md`
+- `regexp` library — regular expressions backed by Go's RE2 engine
+  (linear-time; no backreferences or lookaround). Patterns are written
+  as raw `¬…¬` strings (jig/lisp's equivalent of Clojure's `#"…"`).
+  `re-pattern` compiles a reusable regex; `re-matches?` / `re-find?`
+  return booleans (anchored / substring), `re-matches` / `re-find`
+  return Clojure-style match data (`nil`, the match string, or a vector
+  of capture groups). `re-replace`/`re-split`/`re-seq` are planned. See
+  `lib/regexp/README.md`
 - `exit` builtin: `(exit)` / `(exit status)` ends the process with the
   given status (`0` by default), like Clojure's `System/exit`. It stops
   before the interpreter echoes a script's final value, so a program run

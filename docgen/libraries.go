@@ -9,6 +9,7 @@ import (
 	"github.com/jig/lisp/lib/git/nsgit"
 	"github.com/jig/lisp/lib/integrity/nsintegrity"
 	"github.com/jig/lisp/lib/lazy/nslazy"
+	"github.com/jig/lisp/lib/regexp/nsregexp"
 	"github.com/jig/lisp/lib/require/nsrequire"
 	"github.com/jig/lisp/lib/sql/nssql"
 	"github.com/jig/lisp/lib/system/nssystem"
@@ -43,6 +44,7 @@ func standardLibraries() []library {
 		{"sql", nssql.Load},
 		{"cli", nscli.Load},
 		{"integrity", nsintegrity.Load},
+		{"regexp", nsregexp.Load},
 		{"web", nsweb.Load},
 		{"git", nsgit.Load},
 		{"term", nsterm.Load},
