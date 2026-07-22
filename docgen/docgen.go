@@ -58,6 +58,7 @@ var sectionBlurb = map[string]struct{ title, desc string }{
 	"sql":                 {"sql", "SQL database access."},
 	"cli":                 {"cli", "Command-line option parsing (clojure/tools.cli style)."},
 	"integrity":           {"integrity", "Attest and verify lisp source (formatting, hashing, Ed25519 signatures, --integrity mode)."},
+	"regexp":              {"regexp", "Regular expressions (Go RE2): re-pattern, re-matches / re-find and their ? predicates."},
 }
 
 // entry is one documented symbol.

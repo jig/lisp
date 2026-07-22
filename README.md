@@ -149,6 +149,7 @@ Changes respect to [kanaka/mal](https://github.com/kanaka/mal):
 - `(context (do ...))` provides a Go context. Context contents depend on Go, and might be passed to specific functions context compatible
 - Unit-testing library (`deftest`, `is`, `are`, `with-out-str`) run with `lisp --test DIR`, which loads every `*_test.lisp` / `*_test.mal` file in `DIR` and runs the registered tests. See "Testing lisp code" below
 - `web` library — a Ring-style HTTP/HTTPS server (`web-serve`, `web-router`, response helpers, middleware) with TLS, mTLS and Keycloak-compatible JWT verification. See [lib/web/README.md](./lib/web/README.md)
+- `regexp` library — regular expressions (Go RE2): `re-pattern`, `re-matches?`/`re-find?` (booleans) and `re-matches`/`re-find` (Clojure-style match data). Patterns are written as raw `¬…¬` strings. See [lib/regexp/README.md](./lib/regexp/README.md)
 - `(read-password prompt)` reads a line from stdin with terminal echo disabled (for secrets); prompt goes to stderr
 - Project compatible with GitHub CodeSpaces. Press `.` on your keyboard and you are ready to deploy a CodeSpace with mal in it
 - `(assert expr & optional-error)` asserts expression is not `nil` nor `false`, otherwise it success returning `nil`

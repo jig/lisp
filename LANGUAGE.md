@@ -460,6 +460,18 @@ Attest and verify lisp source (formatting, hashing, Ed25519 signatures, --integr
 | `state-load` | `[name & [default]]` | Reads .state/name.lisp back as data (READ, never EVAL); returns default (or throws) when absent. Under --integrity the file must match its committed version at HEAD. |
 | `state-save` | `[name value]` | Writes value as canonical lisp data to .state/name.lisp at the repository root and commits it; returns the commit hash. Under --integrity-keys the commit is SSH-signed with the ssh-agent key listed there. Under --integrity the commit keeps the verified ref valid. |
 
+### regexp
+
+Regular expressions (Go RE2): re-pattern, re-matches / re-find and their ? predicates.
+
+| Name | Arguments | Description |
+| ---- | --------- | ----------- |
+| `re-find` | `[re-or-pattern s]` | First match anywhere in s: nil, the match string when there are no groups, or a vector [whole g1 g2 …] (nil for an unmatched group). |
+| `re-find?` | `[re-or-pattern s]` | Reports whether the pattern matches anywhere in s (substring). Accepts a compiled regex or a raw pattern string. |
+| `re-matches` | `[re-or-pattern s]` | Anchored match of the whole string: nil, the match string when there are no groups, or a vector [whole g1 g2 …] (nil for an unmatched group). |
+| `re-matches?` | `[re-or-pattern s]` | Reports whether the whole string s matches (anchored). Accepts a compiled regex or a raw pattern string. |
+| `re-pattern` | `[pattern]` | Compiles a raw pattern string (Go RE2 syntax; write it as ¬…¬) into a reusable regex value. |
+
 ### web
 
 | Name | Arguments | Description |
