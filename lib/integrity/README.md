@@ -18,7 +18,7 @@ mode](#integrity-mode---integrity) (`lisp --integrity <ref>`).
 | `(ed25519-sign private s)` | base64 signature of `s` |
 | `(ed25519-verify public s signature)` | `true` or `false` |
 | `(assert-integrity)` | the verified commit hash; **throws** unless running under `--integrity` |
-| `(state-save name value)` | writes `value` as canonical lisp data to `.state/name.lisp` and commits it (SSH-signed with the ssh-agent key under `--integrity-keys`); returns the commit hash |
+| `(state-save name value & [message])` | writes `value` as canonical lisp data to `.state/name.lisp` and commits it (message defaults to `state: name`; SSH-signed with the ssh-agent key under `--integrity-keys`); returns the commit hash |
 | `(state-load name & [default])` | the state read back as pure data (READ, never EVAL); `default` (or throws) when absent |
 
 Ed25519 signing is deterministic: the same key and message always yield

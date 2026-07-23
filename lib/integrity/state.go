@@ -77,9 +77,23 @@ func statePath(fnName, name string) (string, error) {
 	return stateDir + "/" + name + ".lisp", nil
 }
 
-func state_save(name string, value MalType) (MalType, error) {
+func state_save(name string, value MalType, params ...MalType) (MalType, error) {
 	stateMu.Lock()
 	defer stateMu.Unlock()
+
+	// Optional commit message; defaults to "state: <name>".
+	message := "state: " + name
+	switch len(params) {
+	case 0:
+	case 1:
+		m, ok := params[0].(string)
+		if !ok {
+			return nil, fmt.Errorf("state-save: message must be a string, got %T", params[0])
+		}
+		message = m
+	default:
+		return nil, fmt.Errorf("state-save: expected at most one message argument, got %d", len(params))
+	}
 
 	rel, err := statePath("state-save", name)
 	if err != nil {
@@ -120,7 +134,7 @@ func state_save(name string, value MalType) (MalType, error) {
 	}); err != nil {
 		return nil, fmt.Errorf("state-save: %w", err)
 	}
-	hash, err := wt.Commit("state: "+name, &gogit.CommitOptions{
+	hash, err := wt.Commit(message, &gogit.CommitOptions{
 		Author: &object.Signature{Name: "state-save", Email: "state-save@lisp", When: time.Now()},
 		Signer: gogitutil.NoSign{},
 	})

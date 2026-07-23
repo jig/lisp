@@ -178,7 +178,7 @@ Non-breaking, for context (see `git log v0.2.24..` for the full list):
   trusted key (state authenticity, not just consistency). New builtins:
   `(assert-integrity)` throws unless the run is verified — so
   committed code can demand the flag — and returns the verified commit
-  hash; `(state-save name value)` / `(state-load name & [default])`
+  hash; `(state-save name value & [message])` / `(state-load name & [default])`
   persist program state as canonical lisp data under `.state/`
   (deterministic key order, width-aware wrapping, reader-macro sugar —
   `'x`, `` `x ``, `~x`, `~@x`, `@x`, `^meta form`),

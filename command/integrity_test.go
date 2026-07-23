@@ -36,10 +36,16 @@ func newIntegrityEnv(t *testing.T) types.EnvType {
 }
 
 // runGit runs a git command in dir and returns its trimmed output,
-// failing the test on error. Shared by the integrity tests.
+// failing the test on error. Shared by the integrity tests. Signing is
+// disabled so the test is hermetic regardless of the runner's global
+// commit.gpgsign / tag.gpgsign config.
 func runGit(t *testing.T, dir string, args ...string) string {
 	t.Helper()
-	cmd := exec.Command("git", append([]string{"-c", "user.name=Test", "-c", "user.email=test@example.com"}, args...)...)
+	base := []string{
+		"-c", "user.name=Test", "-c", "user.email=test@example.com",
+		"-c", "commit.gpgsign=false", "-c", "tag.gpgsign=false",
+	}
+	cmd := exec.Command("git", append(base, args...)...)
 	cmd.Dir = dir
 	out, err := cmd.CombinedOutput()
 	if err != nil {
