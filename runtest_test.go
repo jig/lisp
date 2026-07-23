@@ -125,7 +125,7 @@ func newEnv(fileName string) types.EnvType {
 	if _, err := REPL(ctx, newenv, core.HeaderBasic(), types.NewCursorFile(fileName)); err != nil {
 		return nil
 	}
-	if _, err := REPL(ctx, newenv, core.HeaderLoadFile(), types.NewCursorFile(fileName)); err != nil {
+	if _, err := REPL(ctx, newenv, system.HeaderLoadFile(), types.NewCursorFile(fileName)); err != nil {
 		return nil
 	}
 	if _, err := REPL(ctx, newenv, coreextended.HeaderCoreExtended(), types.NewCursorFile(fileName)); err != nil {

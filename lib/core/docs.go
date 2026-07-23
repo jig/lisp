@@ -27,9 +27,6 @@ func loadInputDocs(env EnvType) {
 }
 
 var inputDocs = []struct{ name, arglist, doc string }{
-	{"slurp", "[filename]", "Reads a file and returns its contents as a string."},
-	{"slurp-source", "[filename]", "Reads a source file like slurp and, under --integrity, verifies it against the pinned commit; load-file builds on it."},
-	{"spit", "[filename s & opts]", "Writes string s to a file, creating or truncating it; with :append true, appends instead."},
 	{"readline", "[prompt]", "Prints prompt and reads a line from input."},
 	{"read-password", "[prompt]", "Prints prompt (to stderr) and reads a line with terminal echo disabled; falls back to a plain read when input is not a terminal. Returns nil on end of input."},
 	{"exit", "([] [status])", "Terminates the process with status (an integer, 0 when omitted). Does not return."},

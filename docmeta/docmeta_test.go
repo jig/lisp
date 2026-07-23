@@ -10,6 +10,7 @@ import (
 	"github.com/jig/lisp/lib/concurrent"
 	"github.com/jig/lisp/lib/core"
 	"github.com/jig/lisp/lib/coreextended"
+	"github.com/jig/lisp/lib/system"
 	"github.com/jig/lisp/types"
 )
 
@@ -23,7 +24,7 @@ func fullEnv(t *testing.T) types.EnvType {
 		return lisp.EVAL(ctx, a[0], ns)
 	}})
 	ctx := context.Background()
-	for _, h := range []string{core.HeaderBasic(), core.HeaderLoadFile(), concurrent.HeaderConcurrent(), coreextended.HeaderCoreExtended()} {
+	for _, h := range []string{core.HeaderBasic(), system.HeaderLoadFile(), concurrent.HeaderConcurrent(), coreextended.HeaderCoreExtended()} {
 		if _, err := lisp.REPL(ctx, ns, h, types.NewCursorFile("preamble")); err != nil {
 			t.Fatalf("header: %v", err)
 		}

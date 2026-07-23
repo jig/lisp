@@ -7,10 +7,10 @@ import (
 	"os"
 	"strings"
 
-	"github.com/jig/lisp/lib/core"
 	libgit "github.com/jig/lisp/lib/git"
 	"github.com/jig/lisp/lib/integrity"
 	"github.com/jig/lisp/lib/require"
+	"github.com/jig/lisp/lib/system"
 	libterm "github.com/jig/lisp/lib/term"
 )
 
@@ -50,7 +50,7 @@ func setupIntegrity(a args) error {
 		return reportIntegrity(false, "", "", "", err)
 	}
 	require.VerifyModule = integrity.VerifyFile
-	core.VerifySource = integrity.VerifyFile
+	system.VerifySource = integrity.VerifyFile
 
 	// With --integrity-keys, git commits/tags and state-save made during
 	// the run are SSH-signed with the ssh-agent key that is listed in the

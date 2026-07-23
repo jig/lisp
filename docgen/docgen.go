@@ -47,12 +47,12 @@ const (
 // entry here falls back to its raw name and no description.
 var sectionBlurb = map[string]struct{ title, desc string }{
 	"core mal":            {"core", "Arithmetic, collections, predicates, strings, JSON, errors — always loaded."},
-	"core mal with input": {"core — input/output", "Reading and writing files and stdin."},
+	"core mal with input": {"core — input/output", "Reading a line or password from stdin, and process exit."},
 	"command line args":   {"core — runtime variables", "Values the runtime binds for a running script."},
 	"concurrent":          {"concurrent", "Atoms and futures for shared, thread-safe state."},
 	"core mal extended":   {"coreextended", "Higher-order helpers written in lisp (the prelude): reduce, map, partial, protocols…"},
 	"assert":              {"assert", "Minimal test library (run with `lisp --test DIR`)."},
-	"system":              {"system", "Host OS: environment variables, working directory, temp directories, file removal."},
+	"system":              {"system", "Host OS: environment variables, files (slurp/spit, load-file), working directory, temp directories, file removal."},
 	"lazy":                {"lazy", "Lazy sequences."},
 	"require":             {"require", "Module loading by name through a search path."},
 	"sql":                 {"sql", "SQL database access."},

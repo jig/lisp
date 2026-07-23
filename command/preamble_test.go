@@ -10,6 +10,7 @@ import (
 	"github.com/jig/lisp/env"
 	"github.com/jig/lisp/lib/concurrent"
 	"github.com/jig/lisp/lib/core"
+	"github.com/jig/lisp/lib/system"
 	"github.com/jig/lisp/types"
 )
 
@@ -19,11 +20,12 @@ func preambleTestEnv(t *testing.T) types.EnvType {
 	core.Load(ns)
 	core.LoadInput(ns)
 	concurrent.Load(ns)
+	system.Load(ns)
 	ns.Set(types.Symbol{Val: "eval"}, types.Func{Fn: func(ctx context.Context, a []types.MalType) (types.MalType, error) {
 		return lisp.EVAL(ctx, a[0], ns)
 	}})
 	ctx := context.Background()
-	for _, header := range []string{core.HeaderBasic(), core.HeaderLoadFile(), concurrent.HeaderConcurrent()} {
+	for _, header := range []string{core.HeaderBasic(), system.HeaderLoadFile(), concurrent.HeaderConcurrent()} {
 		if _, err := lisp.REPL(ctx, ns, header, types.NewCursorFile("preamble")); err != nil {
 			t.Fatalf("header: %v", err)
 		}

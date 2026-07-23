@@ -15,6 +15,7 @@ import (
 	"github.com/jig/lisp/lib/core/nscore"
 	"github.com/jig/lisp/lib/coreextended/nscoreextended"
 	"github.com/jig/lisp/lib/system"
+	"github.com/jig/lisp/lib/system/nssystem"
 	"github.com/jig/lisp/lib/test"
 	"github.com/jig/lisp/lib/test/nstest"
 	"github.com/jig/lisp/types"
@@ -30,6 +31,7 @@ func TestDeftests(t *testing.T) {
 	for _, load := range []func(types.EnvType) error{
 		nscore.Load,
 		nscore.LoadInput,
+		nssystem.Load,
 		nscore.LoadNullArgs,
 		nsconcurrent.Load,
 		nscoreextended.Load,

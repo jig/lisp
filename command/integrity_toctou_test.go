@@ -7,9 +7,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/jig/lisp/lib/core"
 	"github.com/jig/lisp/lib/integrity"
 	"github.com/jig/lisp/lib/require"
+	"github.com/jig/lisp/lib/system"
 	"github.com/jig/lisp/types"
 )
 
@@ -41,7 +41,7 @@ func TestRunScriptPreambleTOCTOU(t *testing.T) {
 	t.Cleanup(func() {
 		integrity.Disable()
 		require.VerifyModule = nil
-		core.VerifySource = nil
+		system.VerifySource = nil
 	})
 
 	// Enable verifies the committed script; wire the hooks exactly as
@@ -50,7 +50,7 @@ func TestRunScriptPreambleTOCTOU(t *testing.T) {
 		t.Fatalf("Enable: %v", err)
 	}
 	require.VerifyModule = integrity.VerifyFile
-	core.VerifySource = integrity.VerifyFile
+	system.VerifySource = integrity.VerifyFile
 
 	// The attacker swaps the file after verification, before evaluation.
 	if err := os.WriteFile(scriptPath, []byte(payload), 0o644); err != nil {

@@ -288,18 +288,13 @@ Runtime variables: `*host-language*`
 
 ### core — input/output
 
-Reading and writing files and stdin.
+Reading a line or password from stdin, and process exit.
 
 | Name | Arguments | Description |
 | ---- | --------- | ----------- |
 | `exit` | `([] [status])` | Terminates the process with status (an integer, 0 when omitted). Does not return. |
-| `load-file` | `[file-path]` | Reads and evaluates the lisp file at file-path in the current environment; returns the value of its last form. |
-| `load-file-once` | `[file-path]` | Like load-file, but never loads the same path twice. |
 | `read-password` | `[prompt]` | Prints prompt (to stderr) and reads a line with terminal echo disabled; falls back to a plain read when input is not a terminal. Returns nil on end of input. |
 | `readline` | `[prompt]` | Prints prompt and reads a line from input. |
-| `slurp` | `[filename]` | Reads a file and returns its contents as a string. |
-| `slurp-source` | `[filename]` | Reads a source file like slurp and, under --integrity, verifies it against the pinned commit; load-file builds on it. |
-| `spit` | `[filename s & opts]` | Writes string s to a file, creating or truncating it; with :append true, appends instead. |
 
 ### core — runtime variables
 
@@ -372,16 +367,21 @@ Higher-order helpers written in lisp (the prelude): reduce, map, partial, protoc
 
 ### system
 
-Host OS: environment variables, working directory, temp directories, file removal.
+Host OS: environment variables, files (slurp/spit, load-file), working directory, temp directories, file removal.
 
 | Name | Arguments | Description |
 | ---- | --------- | ----------- |
 | `chdir` | `[path]` | Changes the process working directory to path. Process-global: affects the working directory of all subsequent operations, including the .state store and git repository detection. |
 | `cwd` | `[]` | Returns the process working directory as an absolute path string. |
 | `getenv` | `[name]` | Value of the environment variable name, or nil. |
+| `load-file` | `[file-path]` | Reads and evaluates the lisp file at file-path in the current environment; returns the value of its last form. |
+| `load-file-once` | `[file-path]` | Like load-file, but never loads the same path twice. |
 | `mkdtemp` | `[& prefix]` | Creates a new uniquely-named temporary directory (optionally name-prefixed) and returns its absolute path. |
 | `remove-all` | `[path]` | Recursively removes path and everything under it; does not error if path is absent. |
 | `setenv` | `[name value]` | Sets the environment variable name to value. |
+| `slurp` | `[filename]` | Reads a file and returns its contents as a string. |
+| `slurp-source` | `[filename]` | Reads a source file like slurp and, under --integrity, verifies it against the pinned commit; load-file builds on it. |
+| `spit` | `[filename s & opts]` | Writes string s to a file, creating or truncating it; with :append true, appends instead. |
 | `unsetenv` | `[name]` | Removes the environment variable name. |
 
 ### lazy

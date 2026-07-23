@@ -17,6 +17,7 @@ import (
 	"github.com/jig/lisp/lib/core"
 	"github.com/jig/lisp/lib/coreextended"
 	"github.com/jig/lisp/lib/coreextended/nscoreextended"
+	"github.com/jig/lisp/lib/system"
 	"github.com/jig/lisp/runtime"
 	"github.com/jig/lisp/types"
 )
@@ -28,6 +29,7 @@ func fullEnv(t *testing.T) types.EnvType {
 	ns := env.NewEnv()
 	core.Load(ns)
 	core.LoadInput(ns)
+	system.Load(ns) // slurp/slurp-source/spit — load-file (below) builds on them
 	concurrent.Load(ns)
 	ns.Set(types.Symbol{Val: "eval"}, types.Func{Fn: func(ctx context.Context, a []types.MalType) (types.MalType, error) {
 		return lisp.EVAL(ctx, a[0], ns)
@@ -37,7 +39,7 @@ func fullEnv(t *testing.T) types.EnvType {
 	if _, err := lisp.REPL(ctx, ns, core.HeaderBasic(), types.NewCursorFile("preamble")); err != nil {
 		t.Fatalf("HeaderBasic: %v", err)
 	}
-	if _, err := lisp.REPL(ctx, ns, core.HeaderLoadFile(), types.NewCursorFile("preamble")); err != nil {
+	if _, err := lisp.REPL(ctx, ns, system.HeaderLoadFile(), types.NewCursorFile("preamble")); err != nil {
 		t.Fatalf("HeaderLoadFile: %v", err)
 	}
 	if _, err := lisp.REPL(ctx, ns, concurrent.HeaderConcurrent(), types.NewCursorFile("preamble")); err != nil {

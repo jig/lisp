@@ -10,6 +10,7 @@ import (
 	"github.com/jig/lisp/lib/concurrent"
 	"github.com/jig/lisp/lib/core"
 	"github.com/jig/lisp/lib/coreextended"
+	"github.com/jig/lisp/lib/system"
 	"github.com/jig/lisp/types"
 )
 
@@ -544,7 +545,7 @@ func TestMacro(t *testing.T) {
 	if _, err := REPL(ctx, repl_env, core.HeaderBasic(), types.NewCursorFile(reflect.TypeOf(_here_{}).PkgPath())); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := REPL(ctx, repl_env, core.HeaderLoadFile(), types.NewCursorFile(reflect.TypeOf(_here_{}).PkgPath())); err != nil {
+	if _, err := REPL(ctx, repl_env, system.HeaderLoadFile(), types.NewCursorFile(reflect.TypeOf(_here_{}).PkgPath())); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := REPL(ctx, repl_env, coreextended.HeaderCoreExtended(), types.NewCursorFile(reflect.TypeOf(_here_{}).PkgPath())); err != nil {

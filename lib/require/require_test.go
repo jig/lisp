@@ -13,6 +13,7 @@ import (
 	"github.com/jig/lisp/lib/concurrent"
 	"github.com/jig/lisp/lib/core"
 	"github.com/jig/lisp/lib/coreextended"
+	"github.com/jig/lisp/lib/system"
 	"github.com/jig/lisp/types"
 )
 
@@ -24,6 +25,7 @@ func testEnv(t *testing.T, includeDirs ...string) types.EnvType {
 	core.Load(ns)
 	core.LoadInput(ns)
 	concurrent.Load(ns)
+	system.Load(ns)
 	ns.Set(types.Symbol{Val: "eval"}, types.Func{Fn: func(ctx context.Context, a []types.MalType) (types.MalType, error) {
 		return lisp.EVAL(ctx, a[0], ns)
 	}})
@@ -33,7 +35,7 @@ func testEnv(t *testing.T, includeDirs ...string) types.EnvType {
 		src  string
 	}{
 		{"basic", core.HeaderBasic()},
-		{"load-file", core.HeaderLoadFile()},
+		{"load-file", system.HeaderLoadFile()},
 		{"concurrent", concurrent.HeaderConcurrent()},
 		{"coreextended", coreextended.HeaderCoreExtended()},
 	} {
