@@ -515,6 +515,45 @@ func TestStateSaveIdempotentUnchanged(t *testing.T) {
 	}
 }
 
+// TestStateSaveMessage covers the optional commit-message argument:
+// default "state: name", a custom message when given, and a type error
+// for a non-string message.
+func TestStateSaveMessage(t *testing.T) {
+	ns := newGitEnv(t)
+	dir, _ := setupRepo(t, ns, "")
+	t.Chdir(dir)
+
+	evalLisp(t, ns, `(state-save "db" {:n 1})`)             // default message
+	evalLisp(t, ns, `(state-save "db" {:n 2} "bump to 2")`) // custom message
+
+	repo, err := gogit.PlainOpen(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	head, err := repo.Head()
+	if err != nil {
+		t.Fatal(err)
+	}
+	c, err := repo.CommitObject(head.Hash())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if c.Message != "bump to 2" {
+		t.Fatalf("HEAD message = %q, want %q", c.Message, "bump to 2")
+	}
+	parent, err := c.Parent(0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if parent.Message != "state: db" {
+		t.Fatalf("parent (default) message = %q, want %q", parent.Message, "state: db")
+	}
+
+	if err := evalErr(t, ns, `(state-save "db" {:n 3} 42)`); !strings.Contains(err.Error(), "message must be a string") {
+		t.Fatalf("non-string message = %v, want a type error", err)
+	}
+}
+
 // TestStateChainSignedUnderKeys verifies that under --integrity-keys every
 // state commit above the ref must be SSH-signed by a listed key: a signed
 // chain verifies, an unsigned state commit on top fails closed.

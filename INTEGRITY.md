@@ -130,7 +130,7 @@ verified. Color also honours `NO_COLOR` / `CLICOLOR_FORCE`.
 | Builtin | Behaviour |
 |---|---|
 | `(assert-integrity)` | Throws unless running under `--integrity`; returns the verified commit hash. Committed code uses it to demand the mode — effective as long as operators know the program is supposed to carry it. |
-| `(state-save name value)` | Writes `value` as canonical lisp data to `.state/name.lisp` and **commits it in the same operation** (message `state: name`); returns the commit hash. Under `--integrity-keys` the commit is SSH-signed with the ssh-agent key listed there (no per-call key). Saving an unchanged value is a no-op returning the current commit. Works with or without the mode; requires a Git repository. |
+| `(state-save name value & [message])` | Writes `value` as canonical lisp data to `.state/name.lisp` and **commits it in the same operation**; returns the commit hash. The commit `message` defaults to `state: name`. Under `--integrity-keys` the commit is SSH-signed with the ssh-agent key listed there (no per-call key). Saving an unchanged value is a no-op returning the current commit. Works with or without the mode; requires a Git repository. |
 | `(state-load name)` / `(state-load name default)` | Reads the state back as pure data (READ, never EVAL — state cannot smuggle code). Returns `default`, or throws without one, when the state does not exist. Under the mode, enforces invariant 6. |
 | `(slurp-source path)` | `slurp` for files about to be evaluated: identical, plus invariant 5 under the mode. `load-file` builds on it. |
 

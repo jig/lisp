@@ -458,7 +458,7 @@ Attest and verify lisp source (formatting, hashing, Ed25519 signatures, --integr
 | `fmt` | `[s]` | Formats lisp source s into its canonical form (as lisp --fmt does); errors if s does not parse. |
 | `sha2-256` | `[s]` | SHA2-256 digest of string s, as lowercase hex. |
 | `state-load` | `[name & [default]]` | Reads .state/name.lisp back as data (READ, never EVAL); returns default (or throws) when absent. Under --integrity the file must match its committed version at HEAD. |
-| `state-save` | `[name value]` | Writes value as canonical lisp data to .state/name.lisp at the repository root and commits it; returns the commit hash. Under --integrity-keys the commit is SSH-signed with the ssh-agent key listed there. Under --integrity the commit keeps the verified ref valid. |
+| `state-save` | `[name value & [message]]` | Writes value as canonical lisp data to .state/name.lisp at the repository root and commits it; returns the commit hash. message is the commit message (default "state: name"). Under --integrity-keys the commit is SSH-signed with the ssh-agent key listed there. Under --integrity the commit keeps the verified ref valid. |
 
 ### regexp
 
