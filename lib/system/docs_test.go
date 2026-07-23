@@ -13,7 +13,7 @@ import (
 func TestSystemDocs(t *testing.T) {
 	ns := env.NewEnv()
 	Load(ns)
-	for _, name := range []string{"getenv", "setenv", "unsetenv"} {
+	for _, name := range []string{"getenv", "setenv", "unsetenv", "chdir", "cwd", "mkdtemp", "remove-all"} {
 		v, err := ns.Get(types.Symbol{Val: name})
 		if err != nil {
 			t.Errorf("%q not registered", name)

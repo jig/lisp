@@ -372,11 +372,15 @@ Higher-order helpers written in lisp (the prelude): reduce, map, partial, protoc
 
 ### system
 
-Access to the host environment (env vars, …).
+Host OS: environment variables, working directory, temp directories, file removal.
 
 | Name | Arguments | Description |
 | ---- | --------- | ----------- |
+| `chdir` | `[path]` | Changes the process working directory to path. Process-global: affects the working directory of all subsequent operations, including the .state store and git repository detection. |
+| `cwd` | `[]` | Returns the process working directory as an absolute path string. |
 | `getenv` | `[name]` | Value of the environment variable name, or nil. |
+| `mkdtemp` | `[& prefix]` | Creates a new uniquely-named temporary directory (optionally name-prefixed) and returns its absolute path. |
+| `remove-all` | `[path]` | Recursively removes path and everything under it; does not error if path is absent. |
 | `setenv` | `[name value]` | Sets the environment variable name to value. |
 | `unsetenv` | `[name]` | Removes the environment variable name. |
 

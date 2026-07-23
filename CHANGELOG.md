@@ -197,6 +197,14 @@ Non-breaking, for context (see `git log v0.2.24..` for the full list):
   return Clojure-style match data (`nil`, the match string, or a vector
   of capture groups). `re-replace`/`re-split`/`re-seq` are planned. See
   `lib/regexp/README.md`
+- `system` library grows directory/process primitives: `(chdir path)`
+  (changes the process-global working directory — affects the `.state`
+  store and git detection), `(cwd)` (the working directory as an
+  absolute path), `(mkdtemp & [prefix])` (a fresh unique temp directory)
+  and `(remove-all path)` (recursive delete, no error if absent). These
+  let in-process tests drive `state-save`/`state-load` against a
+  temporary git repo (via `mkdtemp` + `git-init` + `chdir`) instead of
+  the real one
 - `exit` builtin: `(exit)` / `(exit status)` ends the process with the
   given status (`0` by default), like Clojure's `System/exit`. It stops
   before the interpreter echoes a script's final value, so a program run
