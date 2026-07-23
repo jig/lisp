@@ -29,6 +29,7 @@ func fullEnv(t *testing.T) types.EnvType {
 	ns := env.NewEnv()
 	core.Load(ns)
 	core.LoadInput(ns)
+	system.Load(ns) // slurp/slurp-source/spit — load-file (below) builds on them
 	concurrent.Load(ns)
 	ns.Set(types.Symbol{Val: "eval"}, types.Func{Fn: func(ctx context.Context, a []types.MalType) (types.MalType, error) {
 		return lisp.EVAL(ctx, a[0], ns)
