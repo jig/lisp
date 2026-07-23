@@ -52,7 +52,7 @@ var sectionBlurb = map[string]struct{ title, desc string }{
 	"concurrent":          {"concurrent", "Atoms and futures for shared, thread-safe state."},
 	"core mal extended":   {"coreextended", "Higher-order helpers written in lisp (the prelude): reduce, map, partial, protocols…"},
 	"assert":              {"assert", "Minimal test library (run with `lisp --test DIR`)."},
-	"system":              {"system", "Access to the host environment (env vars, …)."},
+	"system":              {"system", "Host OS: environment variables, working directory, temp directories, file removal."},
 	"lazy":                {"lazy", "Lazy sequences."},
 	"require":             {"require", "Module loading by name through a search path."},
 	"sql":                 {"sql", "SQL database access."},
