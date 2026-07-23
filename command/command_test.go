@@ -9,6 +9,7 @@ import (
 
 	"github.com/jig/lisp/env"
 	"github.com/jig/lisp/lib/core/nscore"
+	"github.com/jig/lisp/lib/system/nssystem"
 	"github.com/jig/lisp/types"
 )
 
@@ -41,6 +42,9 @@ func newTestEnv(t *testing.T) types.EnvType {
 	}
 	if err := nscore.LoadInput(ns); err != nil {
 		t.Fatalf("nscore.LoadInput: %v", err)
+	}
+	if err := nssystem.Load(ns); err != nil {
+		t.Fatalf("nssystem.Load: %v", err)
 	}
 	return ns
 }

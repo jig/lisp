@@ -9,6 +9,7 @@ import (
 	"github.com/jig/lisp"
 	"github.com/jig/lisp/env"
 	"github.com/jig/lisp/lib/core"
+	"github.com/jig/lisp/lib/system"
 	"github.com/jig/lisp/runtime"
 )
 
@@ -24,7 +25,7 @@ func TestExecute_DebugFlagInstallsHook(t *testing.T) {
 	if _, err := lisp.REPL(ctx, ns, core.HeaderBasic(), nil); err != nil {
 		t.Fatalf("preamble failed: %v", err)
 	}
-	if _, err := lisp.REPL(ctx, ns, core.HeaderLoadFile(), nil); err != nil {
+	if _, err := lisp.REPL(ctx, ns, system.HeaderLoadFile(), nil); err != nil {
 		t.Fatalf("preamble failed: %v", err)
 	}
 

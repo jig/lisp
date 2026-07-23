@@ -9,6 +9,7 @@ import (
 
 	"github.com/jig/lisp/env"
 	"github.com/jig/lisp/lib/core"
+	"github.com/jig/lisp/lib/system"
 	"github.com/jig/lisp/types"
 )
 
@@ -333,6 +334,7 @@ func TestLoadFileErrorStackTrace(t *testing.T) {
 	ns := env.NewEnv()
 	core.Load(ns)
 	core.LoadInput(ns) // Needed for slurp function
+	system.Load(ns)    // slurp-source + spit; load-file's deps
 
 	// Manually load eval and load-file since we can't use nscore (import cycle)
 	ns.Set(types.Symbol{Val: "eval"}, types.Func{Fn: func(ctx context.Context, a []types.MalType) (types.MalType, error) {
@@ -344,7 +346,7 @@ func TestLoadFileErrorStackTrace(t *testing.T) {
 		t.Fatalf("Failed to load basic headers: %v", err)
 	}
 
-	_, err = REPL(context.Background(), ns, core.HeaderLoadFile(), types.NewCursorFile(t.Name()))
+	_, err = REPL(context.Background(), ns, system.HeaderLoadFile(), types.NewCursorFile(t.Name()))
 	if err != nil {
 		t.Fatalf("Failed to load load-file: %v", err)
 	}

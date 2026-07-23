@@ -2,10 +2,8 @@ package nscore
 
 import (
 	"context"
-	"fmt"
 	"reflect"
 	"strings"
-	"sync"
 
 	"github.com/jig/lisp"
 	"github.com/jig/lisp/lib/call"
@@ -40,41 +38,17 @@ func Load(env EnvType) error {
 	return nil
 }
 
+// LoadInput registers the stdin builtins and the eval helper. File I/O
+// (slurp/spit) and load-file/load-file-once moved to the system library
+// (nssystem.Load), so core has no ambient filesystem access — reading a
+// file to evaluate it is a system capability, or a require (which reads
+// modules itself).
 func LoadInput(env EnvType) error {
 	core.LoadInput(env)
 	env.Set(Symbol{Val: "eval"}, Func{Fn: func(ctx context.Context, a []MalType) (MalType, error) {
 		return lisp.EVAL(ctx, a[0], env)
 	}})
 	docEval(env)
-
-	if _, err := lisp.REPL(context.Background(), env, core.HeaderLoadFile(), NewCursorFile(_package_)); err != nil {
-		return err
-	}
-
-	// load-file-once needs mutable state for its seen-set; a Go closure
-	// keeps it available with only core loaded (atoms belong to the
-	// concurrent library).
-	var mu sync.Mutex
-	seen := map[string]bool{}
-	env.Set(Symbol{Val: "load-file-once"}, Func{Fn: func(ctx context.Context, a []MalType) (MalType, error) {
-		if len(a) != 1 {
-			return nil, fmt.Errorf("load-file-once: wrong number of arguments (%d instead of 1)", len(a))
-		}
-		path, ok := a[0].(string)
-		if !ok {
-			return nil, fmt.Errorf("load-file-once: file-path must be a string (was of type %T)", a[0])
-		}
-		mu.Lock()
-		already := seen[path]
-		seen[path] = true
-		mu.Unlock()
-		if already {
-			return nil, nil
-		}
-		return lisp.EVAL(ctx, NewList(nil, Symbol{Val: "load-file"}, path), env)
-	}})
-	call.Doc(env, "load-file-once", "[file-path]", "Like load-file, but never loads the same path twice.")
-
 	return nil
 }
 

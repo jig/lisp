@@ -17,6 +17,7 @@ import (
 	"github.com/jig/lisp/lib/core"
 	"github.com/jig/lisp/lib/coreextended"
 	"github.com/jig/lisp/lib/coreextended/nscoreextended"
+	"github.com/jig/lisp/lib/system"
 	"github.com/jig/lisp/runtime"
 	"github.com/jig/lisp/types"
 )
@@ -37,7 +38,7 @@ func fullEnv(t *testing.T) types.EnvType {
 	if _, err := lisp.REPL(ctx, ns, core.HeaderBasic(), types.NewCursorFile("preamble")); err != nil {
 		t.Fatalf("HeaderBasic: %v", err)
 	}
-	if _, err := lisp.REPL(ctx, ns, core.HeaderLoadFile(), types.NewCursorFile("preamble")); err != nil {
+	if _, err := lisp.REPL(ctx, ns, system.HeaderLoadFile(), types.NewCursorFile("preamble")); err != nil {
 		t.Fatalf("HeaderLoadFile: %v", err)
 	}
 	if _, err := lisp.REPL(ctx, ns, concurrent.HeaderConcurrent(), types.NewCursorFile("preamble")); err != nil {

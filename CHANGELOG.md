@@ -8,6 +8,29 @@ migration note.
 
 ## Unreleased (since v0.2.24)
 
+### ⚠️ Changed — file I/O moved from `core` to `system`
+
+`slurp`, `spit`, `load-file` and `load-file-once` are no longer part of
+`core`; they moved to the `system` library. This makes `core` a pure
+base with **no ambient filesystem access** — it keeps `eval`,
+`read-program` and `read-string` (evaluate code you already hold as
+data) but can no longer read a file to run it. File access is now an
+explicit capability:
+
+- **`+system`** (`nssystem.Load`) — raw host I/O: `slurp`/`spit`,
+  `load-file`/`load-file-once`, plus `chdir`/`cwd`/`mkdtemp`/`remove-all`
+  and the env-var builtins.
+- **`+require`** — structured module loading; `require` reads modules
+  itself (in Go), so it works without `system`.
+
+**Not user-facing:** the `lisp` binary loads `system` by default, so
+scripts using `slurp`/`spit`/`load-file` are unaffected, as is running a
+script (which the CLI does via `load-file`). **Embedders** who loaded
+only `core`/`nscore` and used those builtins must now also load
+`nssystem.Load` (after core and its input layer — `load-file` builds on
+`slurp-source` from system plus `read-program`/`eval` from core). The
+`core.VerifySource` integrity hook moved to `system.VerifySource`.
+
 ### ⚠️ Changed — one binary, `debugger` build tag (was `lispdebug`)
 
 The two-binary split (`lisp` + `lisp-debug`) is gone. There is one

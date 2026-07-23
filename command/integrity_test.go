@@ -9,13 +9,14 @@ import (
 	"testing"
 
 	"github.com/jig/lisp/env"
-	"github.com/jig/lisp/lib/core"
 	"github.com/jig/lisp/lib/core/nscore"
 	"github.com/jig/lisp/lib/coreextended/nscoreextended"
 	"github.com/jig/lisp/lib/integrity"
 	"github.com/jig/lisp/lib/integrity/nsintegrity"
 	"github.com/jig/lisp/lib/require"
 	"github.com/jig/lisp/lib/require/nsrequire"
+	"github.com/jig/lisp/lib/system"
+	"github.com/jig/lisp/lib/system/nssystem"
 	"github.com/jig/lisp/types"
 )
 
@@ -25,7 +26,7 @@ func newIntegrityEnv(t *testing.T) types.EnvType {
 	t.Helper()
 	ns := env.NewEnv()
 	for _, load := range []func(types.EnvType) error{
-		nscore.Load, nscore.LoadInput, nscoreextended.Load,
+		nscore.Load, nscore.LoadInput, nssystem.Load, nscoreextended.Load,
 		nsrequire.Load("lisp"), nsintegrity.Load,
 	} {
 		if err := load(ns); err != nil {
@@ -85,7 +86,7 @@ func gitRepoWithScript(t *testing.T) (dir, hash string) {
 	t.Cleanup(func() {
 		integrity.Disable()
 		require.VerifyModule = nil
-		core.VerifySource = nil
+		system.VerifySource = nil
 	})
 	return dir, hash
 }
