@@ -9,7 +9,9 @@
 // accept either a compiled regex or a raw pattern string (compiled on
 // use). Following Clojure, re-matches / re-matches? are anchored (the
 // whole string must match) while re-find / re-find? are unanchored
-// (match anywhere).
+// (match anywhere). re-seq returns every match, re-replace /
+// re-replace-first rewrite matches (with $1 / ${name} group references),
+// and re-split breaks a string around matches.
 package regexp
 
 import (
@@ -64,6 +66,10 @@ func Load(env EnvType) {
 	call.CallOverrideFN(env, "re-find?", reFindQ)
 	call.CallOverrideFN(env, "re-matches", reMatches)
 	call.CallOverrideFN(env, "re-find", reFind)
+	call.CallOverrideFN(env, "re-seq", reSeq)
+	call.CallOverrideFN(env, "re-replace", reReplace)
+	call.CallOverrideFN(env, "re-replace-first", reReplaceFirst)
+	call.CallOverrideFN(env, "re-split", reSplit, 2, 3)
 
 	call.Doc(env, "re-pattern", "[pattern]",
 		"Compiles a raw pattern string (Go RE2 syntax; write it as ¬…¬) into a reusable regex value.")
@@ -75,6 +81,14 @@ func Load(env EnvType) {
 		"Anchored match of the whole string: nil, the match string when there are no groups, or a vector [whole g1 g2 …] (nil for an unmatched group).")
 	call.Doc(env, "re-find", "[re-or-pattern s]",
 		"First match anywhere in s: nil, the match string when there are no groups, or a vector [whole g1 g2 …] (nil for an unmatched group).")
+	call.Doc(env, "re-seq", "[re-or-pattern s]",
+		"Vector of every successive match in s (left to right, non-overlapping); each element is the match string when there are no groups, or a vector [whole g1 g2 …]. Empty vector when there is no match.")
+	call.Doc(env, "re-replace", "[re-or-pattern s replacement]",
+		"Replaces every match in s with replacement, where $1 or ${name} expand captured groups (use ${1} to delimit a number, $$ for a literal $). Returns the new string.")
+	call.Doc(env, "re-replace-first", "[re-or-pattern s replacement]",
+		"Like re-replace but only replaces the first match; the string is returned unchanged when there is no match.")
+	call.Doc(env, "re-split", "[re-or-pattern s & limit]",
+		"Splits s around matches of the pattern, returning a vector of the pieces. An optional integer limit caps the number of pieces (the last one keeps the remainder); a negative or absent limit returns them all, including trailing empty strings.")
 }
 
 func rePattern(pattern MalType) (MalType, error) {
@@ -136,4 +150,79 @@ func submatch(re *regexp.Regexp, s string) MalType {
 		}
 	}
 	return Vector{Val: out}
+}
+
+// submatchIdx is submatch working from an index slice already produced by
+// FindAllStringSubmatchIndex, so re-seq shares the match-data shape of
+// re-find (whole match string when there are no groups, else a vector).
+func submatchIdx(s string, idx []int) MalType {
+	n := len(idx) / 2
+	if n == 1 {
+		return s[idx[0]:idx[1]]
+	}
+	out := make([]MalType, n)
+	for i := range n {
+		start, end := idx[2*i], idx[2*i+1]
+		if start < 0 {
+			out[i] = nil
+		} else {
+			out[i] = s[start:end]
+		}
+	}
+	return Vector{Val: out}
+}
+
+func reSeq(reOrPattern MalType, s string) (MalType, error) {
+	rx, err := asRegexp("re-seq", reOrPattern)
+	if err != nil {
+		return nil, err
+	}
+	all := rx.re.FindAllStringSubmatchIndex(s, -1)
+	out := make([]MalType, len(all))
+	for i, idx := range all {
+		out[i] = submatchIdx(s, idx)
+	}
+	return Vector{Val: out}, nil
+}
+
+func reReplace(reOrPattern MalType, s, replacement string) (MalType, error) {
+	rx, err := asRegexp("re-replace", reOrPattern)
+	if err != nil {
+		return nil, err
+	}
+	return rx.re.ReplaceAllString(s, replacement), nil
+}
+
+func reReplaceFirst(reOrPattern MalType, s, replacement string) (MalType, error) {
+	rx, err := asRegexp("re-replace-first", reOrPattern)
+	if err != nil {
+		return nil, err
+	}
+	idx := rx.re.FindStringSubmatchIndex(s)
+	if idx == nil {
+		return s, nil
+	}
+	repl := rx.re.ExpandString(nil, replacement, s, idx)
+	return s[:idx[0]] + string(repl) + s[idx[1]:], nil
+}
+
+func reSplit(reOrPattern MalType, s string, limit ...MalType) (MalType, error) {
+	rx, err := asRegexp("re-split", reOrPattern)
+	if err != nil {
+		return nil, err
+	}
+	n := -1
+	if len(limit) == 1 {
+		l, ok := limit[0].(int)
+		if !ok {
+			return nil, fmt.Errorf("re-split: limit must be an integer, got %T", limit[0])
+		}
+		n = l
+	}
+	parts := rx.re.Split(s, n)
+	out := make([]MalType, len(parts))
+	for i, p := range parts {
+		out[i] = p
+	}
+	return Vector{Val: out}, nil
 }

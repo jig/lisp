@@ -218,7 +218,9 @@ Non-breaking, for context (see `git log v0.2.24..` for the full list):
   `re-pattern` compiles a reusable regex; `re-matches?` / `re-find?`
   return booleans (anchored / substring), `re-matches` / `re-find`
   return Clojure-style match data (`nil`, the match string, or a vector
-  of capture groups). `re-replace`/`re-split`/`re-seq` are planned. See
+  of capture groups). `re-seq` returns every match, `re-replace` /
+  `re-replace-first` rewrite matches (with `$1` / `${name}` group
+  references), and `re-split` breaks a string around matches. See
   `lib/regexp/README.md`
 - `system` library grows directory/process primitives: `(chdir path)`
   (changes the process-global working directory — affects the `.state`

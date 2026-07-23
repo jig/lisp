@@ -94,6 +94,75 @@ func TestMatchData(t *testing.T) {
 	}
 }
 
+func TestSeq(t *testing.T) {
+	ns := newEnv(t)
+	cases := []struct {
+		src, want string
+	}{
+		// no groups -> each match is a string
+		{`(re-seq ¬\d+¬ "a1 bb 22 c333")`, `["1" "22" "333"]`},
+		// no match -> empty vector
+		{`(re-seq ¬\d+¬ "abc")`, "[]"},
+		// groups -> each match is [whole g1 g2 …]
+		{`(re-seq ¬(\d)(\w)¬ "1a 2b")`, `[["1a" "1" "a"] ["2b" "2" "b"]]`},
+		// a compiled pattern works too
+		{`(re-seq (re-pattern ¬[a-z]+¬) "ab CD ef")`, `["ab" "ef"]`},
+	}
+	for _, c := range cases {
+		if got := eval(t, ns, c.src); got != c.want {
+			t.Errorf("%s = %s, want %s", c.src, got, c.want)
+		}
+	}
+}
+
+func TestReplace(t *testing.T) {
+	ns := newEnv(t)
+	cases := []struct {
+		src, want string
+	}{
+		// replace all, literal replacement
+		{`(re-replace ¬\d+¬ "a1b22c333" "#")`, `"a#b#c#"`},
+		// group references with ${n}
+		{`(re-replace ¬(\d+)-(\d+)¬ "555-1234 and 9-8" "${2}.${1}")`, `"1234.555 and 8.9"`},
+		// $$ is a literal dollar
+		{`(re-replace ¬\d¬ "a1" "$$")`, `"a$"`},
+		// no match -> unchanged
+		{`(re-replace ¬x¬ "abc" "y")`, `"abc"`},
+		// replace-first only touches the first match
+		{`(re-replace-first ¬\d+¬ "a1b22c333" "#")`, `"a#b22c333"`},
+		{`(re-replace-first ¬(\d+)¬ "v42 v7" "[${1}]")`, `"v[42] v7"`},
+		{`(re-replace-first ¬x¬ "abc" "y")`, `"abc"`},
+	}
+	for _, c := range cases {
+		if got := eval(t, ns, c.src); got != c.want {
+			t.Errorf("%s = %s, want %s", c.src, got, c.want)
+		}
+	}
+}
+
+func TestSplit(t *testing.T) {
+	ns := newEnv(t)
+	cases := []struct {
+		src, want string
+	}{
+		{`(re-split ¬,¬ "a,b,c")`, `["a" "b" "c"]`},
+		{`(re-split ¬\s+¬ "one  two   three")`, `["one" "two" "three"]`},
+		// no match -> the whole string as a single piece
+		{`(re-split ¬,¬ "abc")`, `["abc"]`},
+		// trailing empty pieces are kept (Go semantics)
+		{`(re-split ¬,¬ "a,b,,")`, `["a" "b" "" ""]`},
+		// limit caps the number of pieces; the last keeps the remainder
+		{`(re-split ¬,¬ "a,b,c,d" 2)`, `["a" "b,c,d"]`},
+		// compiled pattern
+		{`(re-split (re-pattern ¬\d¬) "a1b2c")`, `["a" "b" "c"]`},
+	}
+	for _, c := range cases {
+		if got := eval(t, ns, c.src); got != c.want {
+			t.Errorf("%s = %s, want %s", c.src, got, c.want)
+		}
+	}
+}
+
 func TestPatternValue(t *testing.T) {
 	ns := newEnv(t)
 	// re-pattern prints as «regex …» and is idempotent (accepts a regex).
@@ -113,4 +182,6 @@ func TestErrors(t *testing.T) {
 	// wrong argument types
 	evalErr(t, ns, `(re-find? 42 "x")`)
 	evalErr(t, ns, `(re-matches? ¬\d¬ 42)`)
+	// re-split limit must be an integer
+	evalErr(t, ns, `(re-split ¬,¬ "a,b" "2")`)
 }
