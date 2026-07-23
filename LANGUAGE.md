@@ -466,7 +466,7 @@ Attest and verify lisp source (formatting, hashing, Ed25519 signatures, --integr
 
 ### regexp
 
-Regular expressions (Go RE2): re-pattern, re-matches / re-find and their ? predicates.
+Regular expressions (Go RE2): re-pattern, re-matches / re-find, re-seq, re-replace and re-split.
 
 | Name | Arguments | Description |
 | ---- | --------- | ----------- |
@@ -475,6 +475,10 @@ Regular expressions (Go RE2): re-pattern, re-matches / re-find and their ? predi
 | `re-matches` | `[re-or-pattern s]` | Anchored match of the whole string: nil, the match string when there are no groups, or a vector [whole g1 g2 …] (nil for an unmatched group). |
 | `re-matches?` | `[re-or-pattern s]` | Reports whether the whole string s matches (anchored). Accepts a compiled regex or a raw pattern string. |
 | `re-pattern` | `[pattern]` | Compiles a raw pattern string (Go RE2 syntax; write it as ¬…¬) into a reusable regex value. |
+| `re-replace` | `[re-or-pattern s replacement]` | Replaces every match in s with replacement, where $1 or ${name} expand captured groups (use ${1} to delimit a number, $$ for a literal $). Returns the new string. |
+| `re-replace-first` | `[re-or-pattern s replacement]` | Like re-replace but only replaces the first match; the string is returned unchanged when there is no match. |
+| `re-seq` | `[re-or-pattern s]` | Vector of every successive match in s (left to right, non-overlapping); each element is the match string when there are no groups, or a vector [whole g1 g2 …]. Empty vector when there is no match. |
+| `re-split` | `[re-or-pattern s & limit]` | Splits s around matches of the pattern, returning a vector of the pieces. An optional integer limit caps the number of pieces (the last one keeps the remainder); a negative or absent limit returns them all, including trailing empty strings. |
 
 ### web
 
