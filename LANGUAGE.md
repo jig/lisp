@@ -265,6 +265,9 @@ Arithmetic, collections, predicates, strings, JSON, errors — always loaded.
 | `take` | `[n coll]` | First n elements of coll. |
 | `take-last` | `[n coll]` | Last n elements of coll. |
 | `throw` | `[value]` | Raises value as an error. |
+| `time-add` | `[ms deltas]` | Shifts epoch milliseconds ms by the deltas hash-map. :years :months :days are calendar-aware (via UTC); :hours :minutes :seconds :milliseconds add a fixed duration. Missing keys are 0, values may be negative; an unknown key or non-integer value errors. |
+| `time-after?` | `[t1 t2]` | Reports whether epoch milliseconds t1 is strictly after t2. |
+| `time-before?` | `[t1 t2]` | Reports whether epoch milliseconds t1 is strictly before t2. |
 | `time-format` | `[ms]` | Formats epoch milliseconds (as of time-ms) as an RFC 3339 UTC timestamp with millisecond precision. |
 | `time-ms` | `[]` | Current time in milliseconds since the epoch. |
 | `time-ns` | `[]` | Current time in nanoseconds since the epoch. |
