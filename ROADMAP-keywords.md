@@ -294,10 +294,17 @@ Findings and decisions made while implementing:
   when refactoring.
 
 CHANGELOG now carries the 0.4 section with the embedder migration
-guide. Still pending for the real 0.4 PR: LANGUAGE.md wording,
+guide. Tier-2 landed on `feat/tier2-collections`: `ValidKey` accepts
+any immutable scalar (nil/bool/int/float/string/keyword), `KeyLess`
+orders by type group then value, and `Pr_str` prints maps and sets in
+that order (deterministic printing). Composites, symbols and big ints
+stay invalid (unhashable / identity-compared). Found on the way:
+`READWithPreamble` swallows placeholder parse errors (`item, _ :=`),
+which had been silently defining `nil` for an unreadable placeholder in
+`TestPassingLispDataFromGo` since before the migration — candidate for
+the robustness backlog. Still pending for 0.4: LANGUAGE.md wording,
 docgen/docs sweep, deciding whether `lnotation` gains keyword-key
-helpers, Tier-2 arbitrary sets/maps (now a small step: relax
-`ValidKey` and extend `KeyLess`).
+helpers.
 
 ## 8. Conclusion
 

@@ -529,25 +529,30 @@ func (s *Server) childrenOf(v types.MalType) []Variable {
 	case types.HashMap:
 		out := make([]Variable, 0, len(v.Items))
 		for k, val := range v.Items {
-			displayKey, _ := k.(string)
-			if kw, ok := k.(types.Keyword); ok {
-				displayKey = ":" + string(kw)
-			}
-			out = append(out, s.formatVariable(displayKey, val))
+			out = append(out, s.formatVariable(displayKey(k), val))
 		}
 		return out
 	case types.Set:
 		out := make([]Variable, 0, len(v.Items))
 		for k := range v.Items {
-			name, _ := k.(string)
-			if kw, ok := k.(types.Keyword); ok {
-				name = ":" + string(kw)
-			}
-			out = append(out, s.formatVariable(name, k))
+			out = append(out, s.formatVariable(displayKey(k), k))
 		}
 		return out
 	}
 	return nil
+}
+
+// displayKey renders a hash-map key or set element as a variable name:
+// strings verbatim, keywords with their sigil, other scalars printed.
+func displayKey(k types.MalType) string {
+	switch k := k.(type) {
+	case string:
+		return k
+	case types.Keyword:
+		return ":" + string(k)
+	default:
+		return printer.Pr_str(k, true)
+	}
 }
 
 // formatVariable produces a DAP Variable for the given name/value pair.

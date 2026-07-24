@@ -56,8 +56,11 @@ func Pr_str(obj types.MalType, print_readably bool) string {
 	case types.HashMap:
 		return hashMapToString(tobj, print_readably)
 	case types.Set:
-		str_list := make([]string, 0, len(tobj.Items))
-		for k := range tobj.Items {
+		// GetSlice yields the elements in KeyLess order, so sets print
+		// deterministically.
+		elems, _ := types.GetSlice(tobj)
+		str_list := make([]string, 0, len(elems))
+		for _, k := range elems {
 			str_list = append(str_list, Pr_str(k, print_readably))
 		}
 		return "#{" + strings.Join(str_list, " ") + "}"
@@ -135,10 +138,14 @@ func bigIntToHex(i *big.Int) string {
 }
 
 func hashMapToString(tobj types.HashMap, print_readably bool) string {
-	str_list := make([]string, 0, len(tobj.Items)*2)
-	for k, v := range tobj.Items {
-		str_list = append(str_list, Pr_str(k, print_readably))
-		str_list = append(str_list, Pr_str(v, print_readably))
+	// GetSlice yields [key value] entries in KeyLess order, so maps
+	// print deterministically.
+	entries, _ := types.GetSlice(tobj)
+	str_list := make([]string, 0, len(entries)*2)
+	for _, e := range entries {
+		kv := e.(types.Vector).Val
+		str_list = append(str_list, Pr_str(kv[0], print_readably))
+		str_list = append(str_list, Pr_str(kv[1], print_readably))
 	}
 	return "{" + strings.Join(str_list, " ") + "}"
 }
