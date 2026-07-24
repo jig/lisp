@@ -63,22 +63,18 @@ func _newSubordinateEnvWithBinds(outer *Env, binds_mt types.MalType, exprs_mt ty
 				if i+1 >= len(binds) {
 					return nil, lisperror.NewLispError(errors.New("missing symbol after '&' in binding list"), nil)
 				}
-				rest, ok := binds[i+1].(types.Symbol)
-				if !ok {
-					return nil, lisperror.NewLispError(fmt.Errorf("expected symbol after '&' in binding list, got %T", binds[i+1]), nil)
+				if err := env.bindPattern(binds[i+1], types.List{Val: exprs[i:]}); err != nil {
+					return nil, err
 				}
-				env.data[rest.Val] = types.List{Val: exprs[i:]}
 				varargs = true
 				break
 			} else {
 				if i == len(exprs) {
 					return nil, lisperror.NewLispError(fmt.Errorf("too few arguments passed (%d binds, %d arguments passed)", len(binds), len(exprs)), nil)
 				}
-				sym, ok := binds[i].(types.Symbol)
-				if !ok {
-					return nil, lisperror.NewLispError(fmt.Errorf("binding list expected symbol, got %T", binds[i]), nil)
+				if err := env.bindPattern(binds[i], exprs[i]); err != nil {
+					return nil, err
 				}
-				env.data[sym.Val] = exprs[i]
 			}
 		}
 		if !varargs && len(exprs) != i {
@@ -86,6 +82,60 @@ func _newSubordinateEnvWithBinds(outer *Env, binds_mt types.MalType, exprs_mt ty
 		}
 	}
 	return env, nil
+}
+
+// Bind binds pattern to value in env: a symbol binds directly, a vector
+// destructures value positionally (Clojure sequential destructuring).
+// Used by binding special forms (let) on their own environments.
+func Bind(env types.EnvType, pattern, value types.MalType) error {
+	return env.(*Env).bindPattern(pattern, value)
+}
+
+// bindPattern binds one binding-form element. A symbol binds the value as
+// is. A vector is a sequential destructuring pattern: each element binds
+// the corresponding element of value (which must be seqable, or nil),
+// recursively; missing elements bind nil, extra elements are ignored, and
+// `&` binds the remainder as a list (Clojure semantics, except that an
+// empty remainder is the empty list, as with varargs, rather than nil).
+func (e *Env) bindPattern(pattern, value types.MalType) error {
+	switch pattern := pattern.(type) {
+	case types.Symbol:
+		// Direct write: binding always targets a freshly created,
+		// not-yet-shared environment, as the previous inline binds did.
+		e.data[pattern.Val] = value
+		return nil
+	case types.Vector:
+		var elems []types.MalType
+		if value != nil {
+			var err error
+			elems, err = types.GetSlice(value)
+			if err != nil {
+				return lisperror.NewLispError(fmt.Errorf("cannot destructure a %T as a sequence", value), nil)
+			}
+		}
+		for i := 0; i < len(pattern.Val); i++ {
+			if types.Q[types.Symbol](pattern.Val[i]) && pattern.Val[i].(types.Symbol).Val == "&" {
+				if i+1 >= len(pattern.Val) {
+					return lisperror.NewLispError(errors.New("missing symbol after '&' in binding list"), nil)
+				}
+				rest := types.List{}
+				if i < len(elems) {
+					rest = types.List{Val: elems[i:]}
+				}
+				return e.bindPattern(pattern.Val[i+1], rest)
+			}
+			var v types.MalType
+			if i < len(elems) {
+				v = elems[i]
+			}
+			if err := e.bindPattern(pattern.Val[i], v); err != nil {
+				return err
+			}
+		}
+		return nil
+	default:
+		return lisperror.NewLispError(fmt.Errorf("binding list expected symbol or vector, got %T", pattern), nil)
+	}
 }
 
 func (e *Env) Find(key types.Symbol) types.EnvType {

@@ -623,14 +623,13 @@ func evalInternal(ctx context.Context, ast MalType, env EnvType) (res MalType, e
 				return nil, lisperror.NewLispError(errors.New("let: odd elements on binding vector"), a1)
 			}
 			for i := 0; i < len(arr1); i += 2 {
-				if !Q[Symbol](arr1[i]) {
-					return nil, lisperror.NewLispError(errors.New("non-symbol bind value"), a1)
-				}
 				exp, e := evalInternal(ctx, arr1[i+1], let_env)
 				if e != nil {
 					return nil, e
 				}
-				let_env.Set(arr1[i].(Symbol), exp)
+				if e := Bind(let_env, arr1[i], exp); e != nil {
+					return nil, lisperror.NewLispError(e, a1)
+				}
 			}
 			astRef := ast.(List)
 			ast, e = do(ctx, astRef, 2, -1, let_env)

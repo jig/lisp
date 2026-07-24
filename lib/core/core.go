@@ -1187,6 +1187,15 @@ func vec(seq MalType) (MalType, error) {
 }
 
 func nth(seq MalType, idx int) (MalType, error) {
+	// Maps and sets seq (via GetSlice) but are not indexed collections,
+	// and their iteration order is unspecified — indexing into them would
+	// return a nondeterministic element. Clojure errors here too.
+	switch seq.(type) {
+	case HashMap:
+		return nil, errors.New("nth not supported on a hash-map")
+	case Set:
+		return nil, errors.New("nth not supported on a set")
+	}
 	slc, e := GetSlice(seq)
 	if e != nil {
 		return nil, e
@@ -1394,11 +1403,17 @@ func seq(seq MalType) (MalType, error) {
 			return nil, nil
 		}
 		return List{Val: arg.Val}, nil
-	case Set:
-		slc := []MalType{}
-		for k := range arg.Val {
-			slc = append(slc, k)
+	case HashMap:
+		if len(arg.Val) == 0 {
+			return nil, nil
 		}
+		slc, _ := GetSlice(arg)
+		return List{Val: slc}, nil
+	case Set:
+		if len(arg.Val) == 0 {
+			return nil, nil
+		}
+		slc, _ := GetSlice(arg)
 		return List{Val: slc}, nil
 	case string:
 		if len(arg) == 0 {
@@ -1412,7 +1427,7 @@ func seq(seq MalType) (MalType, error) {
 	case nil:
 		return nil, nil
 	}
-	return nil, errors.New("seq requires string or list or vector or nil")
+	return nil, errors.New("seq requires string or list or vector or hash-map or set or nil")
 }
 
 // Metadata functions

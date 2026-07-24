@@ -33,7 +33,7 @@
 (deftest set-seq-and-count
   (def set-s1b (set ()))
   (def set-s2b (assoc set-s1b "a"))
-  (is (= () (seq set-s1b)))
+  (is (= nil (seq set-s1b))) ; (seq empty-set) is nil, as in Clojure
   (is (= (quote ("a")) (seq set-s2b)))
   (is (= (quote ("1")) (seq #{"1"})))
   (is (= 3 (count (seq (assoc set-s2b "b" "c")))))

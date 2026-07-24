@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"math/big"
 	"reflect"
+	"sort"
 	"strings"
 )
 
@@ -158,6 +159,38 @@ func GetSlice(seq MalType) ([]MalType, error) {
 		return seq.Val, nil
 	case Vector:
 		return seq.Val, nil
+	case HashMap:
+		// A hash-map seqs as its entries, each a [key value] vector
+		// (Clojure MapEntry), in sorted key order. Keys are returned
+		// exactly as stored. The order must be deterministic — not just
+		// any order: Go randomises map iteration per call, and first and
+		// rest each seq the map independently, so an unstable order makes
+		// them disagree and a first/rest traversal (reduce, filter) drops
+		// or repeats entries. Clojure gets the same coherence from its
+		// maps' stable iteration order.
+		keys := make([]string, 0, len(seq.Val))
+		for k := range seq.Val {
+			keys = append(keys, k)
+		}
+		sort.Strings(keys)
+		entries := make([]MalType, 0, len(keys))
+		for _, k := range keys {
+			entries = append(entries, Vector{Val: []MalType{k, seq.Val[k]}})
+		}
+		return entries, nil
+	case Set:
+		// A set seqs as its elements, as stored, in sorted order — see
+		// the hash-map case for why the order must be deterministic.
+		keys := make([]string, 0, len(seq.Val))
+		for k := range seq.Val {
+			keys = append(keys, k)
+		}
+		sort.Strings(keys)
+		elems := make([]MalType, 0, len(keys))
+		for _, k := range keys {
+			elems = append(elems, k)
+		}
+		return elems, nil
 	default:
 		return nil, errors.New("GetSlice called on non-sequence")
 	}
@@ -337,6 +370,9 @@ func ConvertFrom(from MalType) ([]MalType, MalType, error) {
 		return from.Val, from.Meta, nil
 	case Vector:
 		return from.Val, from.Meta, nil
+	case HashMap:
+		entries, _ := GetSlice(from)
+		return entries, from.Meta, nil
 	default:
 		return nil, nil, fmt.Errorf("cannot convert from type %T", from)
 	}
