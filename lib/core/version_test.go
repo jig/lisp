@@ -5,6 +5,8 @@ import (
 	"runtime/debug"
 	"strings"
 	"testing"
+
+	. "github.com/jig/lisp/types"
 )
 
 // TestModuleVersion checks that a module's version is found whether it is
@@ -49,9 +51,9 @@ func TestVersionBuiltin(t *testing.T) {
 	if err != nil {
 		t.Fatalf("version(): %v", err)
 	}
-	for _, k := range []string{"ʞgo-version", "ʞbuild", "ʞdependencies"} {
-		if _, ok := v.Val[k]; !ok {
-			t.Errorf("version() is missing key %q", k)
+	for _, k := range []Keyword{KW("go-version"), KW("build"), KW("dependencies")} {
+		if _, ok := v.Items[k]; !ok {
+			t.Errorf("version() is missing key :%s", k)
 		}
 	}
 }

@@ -13,12 +13,12 @@ import (
 	_ "modernc.org/sqlite"
 )
 
-func kw(name string) string { return types.NewKeyword(name) }
+func kw(name string) types.Keyword { return types.KW(name) }
 
 func paramMap(kv map[string]types.MalType) []types.MalType {
-	hm := types.HashMap{Val: map[string]types.MalType{}}
+	hm := types.HashMap{Items: map[types.MalType]types.MalType{}}
 	for k, v := range kv {
-		hm.Val[kw(k)] = v
+		hm.Items[kw(k)] = v
 	}
 	return []types.MalType{hm}
 }
@@ -120,7 +120,7 @@ func TestEndToEnd(t *testing.T) {
 	if !ok {
 		t.Fatalf("sql-exec returned %T, want HashMap", ins)
 	}
-	if ra := hm.Val[kw("rows-affected")]; ra != 1 {
+	if ra := hm.Items[kw("rows-affected")]; ra != 1 {
 		t.Errorf("rows-affected = %v, want 1", ra)
 	}
 
@@ -136,13 +136,13 @@ func TestEndToEnd(t *testing.T) {
 		t.Fatalf("got %d rows, want 2", len(vec.Val))
 	}
 	first := vec.Val[0].(types.HashMap)
-	if first.Val[kw("id")] != 1 || first.Val[kw("name")] != "ada" {
-		t.Errorf("row 0 = %v, want {:id 1 :name ada}", first.Val)
+	if first.Items[kw("id")] != 1 || first.Items[kw("name")] != "ada" {
+		t.Errorf("row 0 = %v, want {:id 1 :name ada}", first.Items)
 	}
 
 	// query-one with a named param
 	one := eval(t, ns, `(sql-query-one db "SELECT name FROM acct WHERE id = :id" {:id 2})`)
-	if got := one.(types.HashMap).Val[kw("name")]; got != "bob" {
+	if got := one.(types.HashMap).Items[kw("name")]; got != "bob" {
 		t.Errorf("query-one name = %v, want bob", got)
 	}
 

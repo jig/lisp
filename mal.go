@@ -127,7 +127,7 @@ func READ(sourceCode string, cursor *Position, ns EnvType) (MalType, error) {
 // READWithPreamble is used to read code (actually decode) on transmission. Use [AddPreamble]
 // when calling from Go code.
 func READWithPreamble(str string, cursor *Position, ns EnvType) (MalType, error) {
-	placeholderMap := &HashMap{Val: map[string]MalType{}}
+	placeholderMap := &HashMap{Items: map[MalType]MalType{}}
 	i := 0
 	for ; ; i++ {
 		var line string
@@ -152,7 +152,7 @@ func READWithPreamble(str string, cursor *Position, ns EnvType) (MalType, error)
 			Col: 1,
 		}, nil, ns)
 		placeholderKey := lineItems[0][1][3:]
-		placeholderMap.Val[placeholderKey] = item
+		placeholderMap.Items[placeholderKey] = item
 	}
 }
 
@@ -312,8 +312,8 @@ func fillExpansionCursors(ast MalType, fallback *Position) MalType {
 		if n.Cursor != nil {
 			return n
 		}
-		for k, v := range n.Val {
-			n.Val[k] = fillExpansionCursors(v, fallback)
+		for k, v := range n.Items {
+			n.Items[k] = fillExpansionCursors(v, fallback)
 		}
 		n.Cursor = fallback.Copy()
 		return n
@@ -366,14 +366,14 @@ func eval_ast(ctx context.Context, ast MalType, env EnvType) (MalType, error) {
 		return Vector{Val: lst, Cursor: origVec.Cursor}, nil
 	} else if Q[HashMap](ast) {
 		m := ast.(HashMap)
-		new_hm := HashMap{Val: map[string]MalType{}, Cursor: m.Cursor}
-		for k, v := range m.Val {
+		new_hm := HashMap{Items: map[MalType]MalType{}, Cursor: m.Cursor}
+		for k, v := range m.Items {
 			kv, e2 := evalInternal(ctx, v, env)
 			if e2 != nil {
 				// Preserve error and add context about which key failed
 				return nil, e2
 			}
-			new_hm.Val[k] = kv
+			new_hm.Items[k] = kv
 		}
 		return new_hm, nil
 	} else {

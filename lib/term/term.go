@@ -119,18 +119,17 @@ var attrs = []struct {
 // as SGR codes; base is 38 for foreground, 48 for background.
 func colorCodes(v MalType, base int) ([]string, error) {
 	switch t := v.(type) {
-	case string:
-		if Keyword_Q(t) {
-			name := t[len("ʞ"):]
-			code, ok := namedColors[name]
-			if !ok {
-				return nil, fmt.Errorf("unknown color :%s", name)
-			}
-			if base == 48 {
-				code += 10
-			}
-			return []string{strconv.Itoa(code)}, nil
+	case Keyword:
+		name := string(t)
+		code, ok := namedColors[name]
+		if !ok {
+			return nil, fmt.Errorf("unknown color :%s", name)
 		}
+		if base == 48 {
+			code += 10
+		}
+		return []string{strconv.Itoa(code)}, nil
+	case string:
 		if len(t) == 7 && t[0] == '#' {
 			r, errR := strconv.ParseUint(t[1:3], 16, 8)
 			g, errG := strconv.ParseUint(t[3:5], 16, 8)
@@ -156,7 +155,7 @@ func termStyle(s string, opts MalType) (MalType, error) {
 	if !ok {
 		return nil, fmt.Errorf("term-style: options must be a map, got %T", opts)
 	}
-	codes, err := sgrCodes(hm.Val)
+	codes, err := sgrCodes(hm.Items)
 	if err != nil {
 		return nil, err
 	}
@@ -168,7 +167,7 @@ func termStyle(s string, opts MalType) (MalType, error) {
 
 // sgrCodes translates the options map into an SGR code sequence. Unknown
 // options error, so typos do not silently produce unstyled output.
-func sgrCodes(opts map[string]MalType) ([]string, error) {
+func sgrCodes(opts map[MalType]MalType) ([]string, error) {
 	known := map[string]bool{"fg": true, "bg": true}
 	var codes []string
 	for _, a := range attrs {
@@ -198,9 +197,9 @@ func sgrCodes(opts map[string]MalType) ([]string, error) {
 		codes = append(codes, c...)
 	}
 	for k := range opts {
-		name := k
-		if Keyword_Q(k) {
-			name = k[len("ʞ"):]
+		name, _ := k.(string)
+		if kw, ok := k.(Keyword); ok {
+			name = string(kw)
 		}
 		if !known[name] {
 			return nil, fmt.Errorf("term-style: unknown option :%s", name)

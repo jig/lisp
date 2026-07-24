@@ -258,7 +258,47 @@ Plan:
   - Same breaking window: arbitrary-value sets / arbitrary-key maps (Tier 2)
     if desired — they require exactly this key-type change.
 
-## 7. Conclusion
+## 7. Prototype status (branch `proto/keyword-type`, 2026-07-24)
+
+Option B is implemented end to end: `types.Keyword` (+ `types.KW`
+constructor, `NewKeyword` kept as a deprecated alias returning `Keyword`),
+`HashMap.Val`/`Set.Val` renamed to **`Items`** with `map[MalType]…` keys,
+`ValidKey` construction-time validation (string|Keyword), `KeyLess` total
+order (strings first, then keywords — the grouping the sorted legacy
+encoding produced). Full test suite green (31 packages, both tag sets);
+MAL1 and a map-heavy lisp loop benchmark are within noise of `develop`,
+as predicted in §5.
+
+Findings and decisions made while implementing:
+
+- **JSON round-trip is no longer lossless, by choice.** `json-encode`
+  emits keyword keys/values as bare names and `json-decode` keeps
+  producing plain string keys, so keyword→JSON→decode returns strings
+  (Clojure parity). The old lossless round-trip existed only because the
+  ʞ prefix leaked into the JSON — behaviour the marshaling step test
+  itself marked `TODO`. Tests updated; a `:key-fn`-style keywordizing
+  decode could be added later if wanted.
+- The reader's `ʞ` unescape sentinel was replaced by a single-pass
+  unescaper (the 0.3.x fix folded in): literal `ʞ` in strings survives.
+- Builtin signature changes beyond the plan: `keyword` takes
+  `MalType` (string or keyword), `contains?` takes a `MalType` key,
+  `get` gained per-container key-type errors, web's `web-log` level is
+  `MalType`. `AddPreamble` keeps `map[string]MalType` (placeholder names
+  are not lisp keys).
+- `(seq :ab)` now errors (keywords no longer fall into the string case) —
+  the §1 bug fixed for free.
+- The data printer (state-save canonical format) sorts by *printed* key,
+  so state files keep their exact key order across the migration.
+- gopls field-rename covered 33 files but missed tag-gated files
+  (`debugadapter`, `command/coverage_debug.go`) — remember `-tags` builds
+  when refactoring.
+
+Not done yet (for the real 0.4 PR): CHANGELOG entry and migration guide,
+LANGUAGE.md wording, docgen/docs sweep, deciding whether `lnotation`
+gains keyword-key helpers, Tier-2 arbitrary sets/maps (now a small step:
+relax `ValidKey` and extend `KeyLess`).
+
+## 8. Conclusion
 
 Feasible and desirable: the prefix encoding causes real correctness bugs
 (data-driven type confusion, JSON leakage, reader corruption), not just

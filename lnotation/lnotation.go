@@ -37,7 +37,7 @@ func V[T any](args []T) Vector {
 
 // M converts Go map to lisp HashMap
 func HM(arg map[string]interface{}) HashMap {
-	result := map[string]MalType{}
+	result := map[MalType]MalType{}
 	for k, v := range arg {
 		switch v := v.(type) {
 		case map[string]interface{}:
@@ -46,13 +46,13 @@ func HM(arg map[string]interface{}) HashMap {
 			result[k] = v
 		}
 	}
-	return HashMap{Val: result}
+	return HashMap{Items: result}
 }
 
 func SET(args []string) Set {
-	result := map[string]struct{}{}
+	result := map[MalType]struct{}{}
 	for _, k := range args {
 		result[k] = struct{}{}
 	}
-	return Set{Val: result}
+	return Set{Items: result}
 }

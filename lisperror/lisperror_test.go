@@ -33,7 +33,7 @@ func TestErrorFormat(t *testing.T) {
 // TestErrorNonErrorPayload covers the branch that renders a thrown
 // non-error value (e.g. (throw {:a 1})) with the Lisp printer.
 func TestErrorNonErrorPayload(t *testing.T) {
-	e := lisperror.NewLispError(types.HashMap{Val: map[string]types.MalType{"ʞa": 1}}, nil)
+	e := lisperror.NewLispError(types.HashMap{Items: map[types.MalType]types.MalType{types.KW("a"): 1}}, nil)
 	if got := e.Error(); got != "{:a 1}" {
 		t.Fatalf("payload Error = %q, want %q", got, "{:a 1}")
 	}
@@ -83,11 +83,11 @@ func TestMarshalHashMap(t *testing.T) {
 	if !ok {
 		t.Fatalf("MarshalHashMap returned %T, want HashMap", m)
 	}
-	if !strings.Contains(hm.Val["ʞerr"].(string), "boom") {
-		t.Fatalf("ʞerr = %v, want it to contain boom", hm.Val["ʞerr"])
+	if !strings.Contains(hm.Items[types.KW("err")].(string), "boom") {
+		t.Fatalf(":err = %v, want it to contain boom", hm.Items[types.KW("err")])
 	}
-	if _, ok := hm.Val["ʞpos"]; !ok {
-		t.Fatal("ʞpos missing for an error with a cursor")
+	if _, ok := hm.Items[types.KW("pos")]; !ok {
+		t.Fatal(":pos missing for an error with a cursor")
 	}
 }
 

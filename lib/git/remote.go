@@ -25,7 +25,7 @@ import (
 // for SSH URLs go-git itself falls back to agent auth with the URL's
 // user. When no host-key option is given go-git uses the default
 // known_hosts files — the secure default.
-func clientOpts(o map[string]MalType) ([]client.Option, error) {
+func clientOpts(o map[MalType]MalType) ([]client.Option, error) {
 	v, ok := optGet(o, "auth")
 	if !ok || v == nil {
 		return nil, nil
@@ -41,7 +41,7 @@ func clientOpts(o map[string]MalType) ([]client.Option, error) {
 	if !ok {
 		return nil, fmt.Errorf(":auth must be :ssh-agent or a map, got %T", v)
 	}
-	auth := hm.Val
+	auth := hm.Items
 	if optBool(auth, "ssh-agent") {
 		user, _, err := optString(auth, "user")
 		if err != nil {
@@ -110,7 +110,7 @@ func clientOpts(o map[string]MalType) ([]client.Option, error) {
 }
 
 // refSpecs converts a :refspecs vector of strings.
-func refSpecs(o map[string]MalType, name string) ([]gitcfg.RefSpec, error) {
+func refSpecs(o map[MalType]MalType, name string) ([]gitcfg.RefSpec, error) {
 	v, ok := optGet(o, name)
 	if !ok || v == nil {
 		return nil, nil

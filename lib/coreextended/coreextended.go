@@ -43,10 +43,9 @@ func formatArg(v MalType) any {
 		// float32 is the reader's float type; float64 arrives from Go libs
 		return t
 	case string:
-		if Keyword_Q(t) {
-			return lispArg{t}
-		}
 		return t
+	case Keyword:
+		return lispArg{t}
 	default:
 		if _, ok := t.(fmt.Formatter); ok {
 			return t

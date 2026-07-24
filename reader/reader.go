@@ -131,14 +131,7 @@ func read_atom(rdr *tokenReader) (MalType, error) {
 		}
 		return int(i), nil
 	case scanner.String:
-		str := (*token)[1 : len(*token)-1]
-		return strings.Replace(
-			strings.Replace(
-				strings.Replace(
-					strings.Replace(str, `\\`, "\u029e", -1),
-					`\"`, `"`, -1),
-				`\n`, "\n", -1),
-			"\u029e", "\\", -1), nil
+		return unescapeString((*token)[1 : len(*token)-1]), nil
 	case scanner.RawString:
 		if *token == "¬" {
 			return nil, lisperror.NewLispError(errors.New("expected '¬', got EOF"), tokenStruct.GetPosition())
@@ -169,6 +162,35 @@ func read_atom(rdr *tokenReader) (MalType, error) {
 			Cursor: tokenStruct.GetPosition(),
 		}, nil
 	}
+}
+
+// unescapeString resolves \\, \" and \n escapes in a single pass. (The
+// historical implementation round-tripped through a sentinel rune,
+// which corrupted strings legitimately containing that rune.)
+func unescapeString(s string) string {
+	var b strings.Builder
+	b.Grow(len(s))
+	for i := 0; i < len(s); i++ {
+		c := s[i]
+		if c == '\\' && i+1 < len(s) {
+			switch s[i+1] {
+			case '\\':
+				b.WriteByte('\\')
+				i++
+				continue
+			case '"':
+				b.WriteByte('"')
+				i++
+				continue
+			case 'n':
+				b.WriteByte('\n')
+				i++
+				continue
+			}
+		}
+		b.WriteByte(c)
+	}
+	return b.String()
 }
 
 func read_list(rdr *tokenReader, start string, end string, placeholderValues *HashMap, ns EnvType) (MalType, error) {
@@ -268,7 +290,7 @@ func read_placeholder(rdr *tokenReader, placeholderValues *HashMap, ns EnvType) 
 	if placeholderValues == nil {
 		return nil, lisperror.NewLispError(fmt.Errorf("placeholder %s used but no placeholder values provided", tokenStruct.Value), tokenStruct.GetPosition())
 	}
-	return placeholderValues.Val[tokenStruct.Value], nil
+	return placeholderValues.Items[tokenStruct.Value], nil
 }
 
 func read_form(rdr *tokenReader, placeholderValues *HashMap, ns EnvType) (MalType, error) {

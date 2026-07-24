@@ -237,19 +237,18 @@ func (l *moduleLoader) evalModule(ctx context.Context, absPath string) (types.En
 }
 
 // parseRequireOptions handles the optional `:as "alias"` and
-// `:refer ["name" …]` argument pairs. Keywords arrive from the reader
-// as strings with the "ʞ" prefix.
+// `:refer ["name" …]` argument pairs.
 func parseRequireOptions(module string, opts []types.MalType) (prefix string, refers []string, referAll bool, err error) {
 	prefix = module
 	for i := 0; i < len(opts); i += 2 {
-		key, ok := opts[i].(string)
-		if !ok || !strings.HasPrefix(key, "ʞ") {
+		key, ok := opts[i].(types.Keyword)
+		if !ok {
 			return "", nil, false, fmt.Errorf("require: expected :as or :refer, got %v", opts[i])
 		}
 		if i+1 >= len(opts) {
-			return "", nil, false, fmt.Errorf("require: %s requires a value", ":"+strings.TrimPrefix(key, "ʞ"))
+			return "", nil, false, fmt.Errorf("require: :%s requires a value", key)
 		}
-		switch strings.TrimPrefix(key, "ʞ") {
+		switch key {
 		case "as":
 			alias, ok := opts[i+1].(string)
 			if !ok || alias == "" {
@@ -258,7 +257,7 @@ func parseRequireOptions(module string, opts []types.MalType) (prefix string, re
 			prefix = alias
 		case "refer":
 			// :refer :all imports every definition of the module unqualified.
-			if kw, ok := opts[i+1].(string); ok && kw == types.NewKeyword("all") {
+			if kw, ok := opts[i+1].(types.Keyword); ok && kw == types.KW("all") {
 				referAll = true
 				continue
 			}
@@ -274,7 +273,7 @@ func parseRequireOptions(module string, opts []types.MalType) (prefix string, re
 				refers = append(refers, name)
 			}
 		default:
-			return "", nil, false, fmt.Errorf("require: unknown option :%s", strings.TrimPrefix(key, "ʞ"))
+			return "", nil, false, fmt.Errorf("require: unknown option :%s", key)
 		}
 	}
 	return prefix, refers, referAll, nil

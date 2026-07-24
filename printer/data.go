@@ -229,8 +229,8 @@ type mapEntry struct {
 }
 
 func (p dataPrinter) sortedMapEntries(value types.HashMap) []mapEntry {
-	entries := make([]mapEntry, 0, len(value.Val))
-	for key, item := range value.Val {
+	entries := make([]mapEntry, 0, len(value.Items))
+	for key, item := range value.Items {
 		entries = append(entries, mapEntry{keyFlat: p.flat(key), value: item})
 	}
 	sort.Slice(entries, func(i, j int) bool {
@@ -240,8 +240,8 @@ func (p dataPrinter) sortedMapEntries(value types.HashMap) []mapEntry {
 }
 
 func (p dataPrinter) sortedSetEntries(value types.Set) []string {
-	entries := make([]string, 0, len(value.Val))
-	for entry := range value.Val {
+	entries := make([]string, 0, len(value.Items))
+	for entry := range value.Items {
 		entries = append(entries, p.flat(entry))
 	}
 	sort.Strings(entries)
@@ -266,9 +266,9 @@ func isEmptyCollection(value types.MalType) bool {
 	case types.Vector:
 		return len(value.Val) == 0
 	case types.HashMap:
-		return len(value.Val) == 0
+		return len(value.Items) == 0
 	case types.Set:
-		return len(value.Val) == 0
+		return len(value.Items) == 0
 	default:
 		return false
 	}

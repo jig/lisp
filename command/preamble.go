@@ -107,7 +107,11 @@ func runScript(ctx context.Context, env types.EnvType, fileName string, preamble
 		return nil, err
 	}
 
-	ast, err := reader.Read_program(content, types.NewCursorFile(fileName), &types.HashMap{Val: values}, env)
+	items := make(map[types.MalType]types.MalType, len(values))
+	for k, v := range values {
+		items[k] = v
+	}
+	ast, err := reader.Read_program(content, types.NewCursorFile(fileName), &types.HashMap{Items: items}, env)
 	if err != nil {
 		return nil, err
 	}

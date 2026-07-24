@@ -76,7 +76,7 @@ type analysis struct {
 // run time (--preamble flags or Go embedding), so the editor treats
 // them as nil rather than flagging every placeholder-bearing file as
 // a parse error.
-var emptyPlaceholders = &types.HashMap{Val: map[string]types.MalType{}}
+var emptyPlaceholders = &types.HashMap{Items: map[types.MalType]types.MalType{}}
 
 // preambleLineRE matches one in-file placeholder default line.
 var preambleLineRE = regexp.MustCompile(`^;; (\$[-\w\d]+)\s+(.+)$`)
@@ -144,7 +144,7 @@ func (a *analysis) scan(form types.MalType) {
 				a.scan(c)
 			}
 		case types.HashMap:
-			for _, v := range n.Val {
+			for _, v := range n.Items {
 				a.scan(v)
 			}
 		}
@@ -223,16 +223,16 @@ func (a *analysis) scan(form types.MalType) {
 				ref := requireRef{module: mod, headPos: head.Cursor}
 				opts := tail(list.Val, 2)
 				for i := 0; i+1 < len(opts); i += 2 {
-					key, ok := opts[i].(string)
+					key, ok := opts[i].(types.Keyword)
 					if !ok {
 						continue
 					}
 					switch key {
-					case "ʞas": // keyword :as
+					case "as":
 						if alias, ok := opts[i+1].(string); ok {
 							ref.alias = alias
 						}
-					case "ʞrefer": // keyword :refer
+					case "refer":
 						switch v := opts[i+1].(type) {
 						case types.Vector:
 							for _, e := range v.Val {
@@ -240,9 +240,9 @@ func (a *analysis) scan(form types.MalType) {
 									ref.refers = append(ref.refers, name)
 								}
 							}
-						case string:
+						case types.Keyword:
 							// :refer :all imports every definition unqualified
-							if v == types.NewKeyword("all") {
+							if v == "all" {
 								ref.referAll = true
 							}
 						}
@@ -493,7 +493,7 @@ func (b *semBuilder) walk(form types.MalType) {
 			b.walk(c)
 		}
 	case types.HashMap:
-		for _, v := range n.Val {
+		for _, v := range n.Items {
 			b.walk(v)
 		}
 	case types.List:

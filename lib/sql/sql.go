@@ -130,17 +130,17 @@ func sqlExec(ctx context.Context, target MalType, query string, params ...MalTyp
 	if err != nil {
 		return nil, err
 	}
-	out := HashMap{Val: map[string]MalType{}}
+	out := HashMap{Items: map[MalType]MalType{}}
 	if ra, err := res.RowsAffected(); err == nil {
-		out.Val[NewKeyword("rows-affected")] = int(ra)
+		out.Items[NewKeyword("rows-affected")] = int(ra)
 	} else {
-		out.Val[NewKeyword("rows-affected")] = nil
+		out.Items[NewKeyword("rows-affected")] = nil
 	}
 	if li, err := res.LastInsertId(); err == nil {
-		out.Val[NewKeyword("last-insert-id")] = int(li)
+		out.Items[NewKeyword("last-insert-id")] = int(li)
 	} else {
 		// Not all drivers (e.g. PostgreSQL) support LastInsertId; use RETURNING.
-		out.Val[NewKeyword("last-insert-id")] = nil
+		out.Items[NewKeyword("last-insert-id")] = nil
 	}
 	return out, nil
 }
@@ -218,9 +218,9 @@ func rowsToVector(rows *stdsql.Rows) (MalType, error) {
 		if err := rows.Scan(ptrs...); err != nil {
 			return nil, err
 		}
-		row := HashMap{Val: make(map[string]MalType, len(cols))}
+		row := HashMap{Items: make(map[MalType]MalType, len(cols))}
 		for i, col := range cols {
-			row.Val[NewKeyword(col)] = fromDriver(cells[i])
+			row.Items[NewKeyword(col)] = fromDriver(cells[i])
 		}
 		out = append(out, row)
 	}
@@ -263,10 +263,9 @@ func toDriver(v MalType) any {
 	switch t := v.(type) {
 	case nil:
 		return nil
+	case Keyword:
+		return string(t)
 	case string:
-		if Keyword_Q(t) {
-			return t[len("ʞ"):]
-		}
 		return t
 	default:
 		return t // int, float64, bool, []byte pass through
@@ -275,7 +274,7 @@ func toDriver(v MalType) any {
 
 // lookup finds a named parameter, accepting either a keyword key (:name,
 // the idiomatic form) or a plain string key ("name").
-func lookup(args map[string]MalType, name string) (MalType, bool) {
+func lookup(args map[MalType]MalType, name string) (MalType, bool) {
 	if v, ok := args[NewKeyword(name)]; ok {
 		return v, true
 	}
@@ -284,7 +283,7 @@ func lookup(args map[string]MalType, name string) (MalType, bool) {
 }
 
 // namedArgs extracts the optional trailing parameter map.
-func namedArgs(params []MalType) (map[string]MalType, error) {
+func namedArgs(params []MalType) (map[MalType]MalType, error) {
 	switch len(params) {
 	case 0:
 		return nil, nil
@@ -293,7 +292,7 @@ func namedArgs(params []MalType) (map[string]MalType, error) {
 		if !ok {
 			return nil, fmt.Errorf("SQL parameters must be a map, got %T", params[0])
 		}
-		return hm.Val, nil
+		return hm.Items, nil
 	default:
 		return nil, fmt.Errorf("expected a single parameter map, got %d arguments", len(params))
 	}

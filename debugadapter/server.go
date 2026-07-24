@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"strings"
 	"sync/atomic"
 	"time"
 
@@ -528,19 +527,23 @@ func (s *Server) childrenOf(v types.MalType) []Variable {
 		}
 		return out
 	case types.HashMap:
-		out := make([]Variable, 0, len(v.Val))
-		for k, val := range v.Val {
-			displayKey := k
-			if strings.HasPrefix(k, "ʞ") {
-				displayKey = ":" + strings.TrimPrefix(k, "ʞ")
+		out := make([]Variable, 0, len(v.Items))
+		for k, val := range v.Items {
+			displayKey, _ := k.(string)
+			if kw, ok := k.(types.Keyword); ok {
+				displayKey = ":" + string(kw)
 			}
 			out = append(out, s.formatVariable(displayKey, val))
 		}
 		return out
 	case types.Set:
-		out := make([]Variable, 0, len(v.Val))
-		for k := range v.Val {
-			out = append(out, s.formatVariable(k, k))
+		out := make([]Variable, 0, len(v.Items))
+		for k := range v.Items {
+			name, _ := k.(string)
+			if kw, ok := k.(types.Keyword); ok {
+				name = ":" + string(kw)
+			}
+			out = append(out, s.formatVariable(name, k))
 		}
 		return out
 	}

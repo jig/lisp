@@ -90,20 +90,20 @@ func TestTamperedPayload(t *testing.T) {
 }
 
 func TestClientOpts(t *testing.T) {
-	opt := func(kv ...MalType) map[string]MalType {
-		auth := HashMap{Val: map[string]MalType{}}
+	opt := func(kv ...MalType) map[MalType]MalType {
+		auth := HashMap{Items: map[MalType]MalType{}}
 		for i := 0; i < len(kv); i += 2 {
-			auth.Val[kv[i].(string)] = kv[i+1]
+			auth.Items[kv[i]] = kv[i+1]
 		}
-		return map[string]MalType{NewKeyword("auth"): auth}
+		return map[MalType]MalType{NewKeyword("auth"): auth}
 	}
 
 	// absent :auth → no options
-	if opts, err := clientOpts(map[string]MalType{}); err != nil || opts != nil {
+	if opts, err := clientOpts(map[MalType]MalType{}); err != nil || opts != nil {
 		t.Fatalf("no auth: got %v, %v", opts, err)
 	}
 	// bad shapes error
-	for name, o := range map[string]map[string]MalType{
+	for name, o := range map[string]map[MalType]MalType{
 		"non-map":    {NewKeyword("auth"): 42},
 		"empty map":  opt(),
 		"bad ssh":    opt(NewKeyword("ssh-key"), "not a pem"),
@@ -114,7 +114,7 @@ func TestClientOpts(t *testing.T) {
 		}
 	}
 	// valid shapes yield exactly one client option
-	for name, o := range map[string]map[string]MalType{
+	for name, o := range map[string]map[MalType]MalType{
 		"basic":  opt(NewKeyword("username"), "u", NewKeyword("password"), "p"),
 		"token":  opt(NewKeyword("token"), "t"),
 		"bearer": opt(NewKeyword("bearer"), "t"),

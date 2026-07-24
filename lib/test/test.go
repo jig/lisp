@@ -165,7 +165,7 @@ func testsAsData(tests []*Test) MalType {
 	for _, t := range tests {
 		checks := make([]MalType, 0, len(t.Checks))
 		for _, c := range t.Checks {
-			m := map[string]MalType{
+			m := map[MalType]MalType{
 				NewKeyword("form"): c.Form,
 				NewKeyword("ok"):   c.OK,
 			}
@@ -179,9 +179,9 @@ func testsAsData(tests []*Test) MalType {
 			if c.Message != "" {
 				m[NewKeyword("message")] = c.Message
 			}
-			checks = append(checks, HashMap{Val: m})
+			checks = append(checks, HashMap{Items: m})
 		}
-		m := map[string]MalType{
+		m := map[MalType]MalType{
 			NewKeyword("name"):   t.Name,
 			NewKeyword("ok"):     t.OK(),
 			NewKeyword("checks"): Vector{Val: checks},
@@ -189,7 +189,7 @@ func testsAsData(tests []*Test) MalType {
 		if t.Err != "" {
 			m[NewKeyword("error")] = t.Err
 		}
-		out = append(out, HashMap{Val: m})
+		out = append(out, HashMap{Items: m})
 	}
 	return Vector{Val: out}
 }
@@ -408,7 +408,7 @@ func ExpandAre(argv MalType, expr MalType, rows MalType) (MalType, error) {
 	}
 	forms := []MalType{Symbol{Val: "do"}}
 	for i := 0; i < len(vals); i += len(syms) {
-		subst := map[string]MalType{}
+		subst := map[MalType]MalType{}
 		for j, name := range syms {
 			subst[name] = vals[i+j]
 		}
@@ -418,7 +418,7 @@ func ExpandAre(argv MalType, expr MalType, rows MalType) (MalType, error) {
 }
 
 // substitute returns expr with every symbol found in subst replaced.
-func substitute(expr MalType, subst map[string]MalType) MalType {
+func substitute(expr MalType, subst map[MalType]MalType) MalType {
 	switch e := expr.(type) {
 	case Symbol:
 		if v, ok := subst[e.Val]; ok {
@@ -438,11 +438,11 @@ func substitute(expr MalType, subst map[string]MalType) MalType {
 		}
 		return Vector{Val: out, Cursor: e.Cursor}
 	case HashMap:
-		out := make(map[string]MalType, len(e.Val))
-		for k, v := range e.Val {
+		out := make(map[MalType]MalType, len(e.Items))
+		for k, v := range e.Items {
 			out[k] = substitute(v, subst)
 		}
-		return HashMap{Val: out, Cursor: e.Cursor}
+		return HashMap{Items: out, Cursor: e.Cursor}
 	default:
 		return expr
 	}

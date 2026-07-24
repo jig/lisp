@@ -400,14 +400,14 @@ func gitStatus(rv MalType) (MalType, error) {
 	if err != nil {
 		return nil, err
 	}
-	files := HashMap{Val: map[string]MalType{}}
+	files := HashMap{Items: map[MalType]MalType{}}
 	for path, fs := range status {
-		files.Val[path] = HashMap{Val: map[string]MalType{
+		files.Items[path] = HashMap{Items: map[MalType]MalType{
 			NewKeyword("staging"):  statusKeyword(fs.Staging),
 			NewKeyword("worktree"): statusKeyword(fs.Worktree),
 		}}
 	}
-	return HashMap{Val: map[string]MalType{
+	return HashMap{Items: map[MalType]MalType{
 		NewKeyword("clean"): status.IsClean(),
 		NewKeyword("files"): files,
 	}}, nil
@@ -422,7 +422,7 @@ func gitHead(rv MalType) (MalType, error) {
 	if err != nil {
 		return nil, err
 	}
-	return HashMap{Val: map[string]MalType{
+	return HashMap{Items: map[MalType]MalType{
 		NewKeyword("name"):   head.Name().String(),
 		NewKeyword("branch"): head.Name().Short(),
 		NewKeyword("hash"):   head.Hash().String(),
@@ -481,7 +481,7 @@ func gitBranches(rv MalType) (MalType, error) {
 	defer iter.Close()
 	out := []MalType{}
 	err = iter.ForEach(func(ref *plumbing.Reference) error {
-		out = append(out, HashMap{Val: map[string]MalType{
+		out = append(out, HashMap{Items: map[MalType]MalType{
 			NewKeyword("name"): ref.Name().Short(),
 			NewKeyword("hash"): ref.Hash().String(),
 			NewKeyword("head"): head != nil && ref.Name() == head.Name(),
@@ -551,7 +551,7 @@ func gitRemotes(rv MalType) (MalType, error) {
 		for _, u := range remote.Config().URLs {
 			urls = append(urls, u)
 		}
-		out = append(out, HashMap{Val: map[string]MalType{
+		out = append(out, HashMap{Items: map[MalType]MalType{
 			NewKeyword("name"): remote.Config().Name,
 			NewKeyword("urls"): Vector{Val: urls},
 		}})
@@ -600,7 +600,7 @@ func gitTag(rv MalType, name string, params ...MalType) (MalType, error) {
 			return nil, err
 		}
 	}
-	return HashMap{Val: map[string]MalType{
+	return HashMap{Items: map[MalType]MalType{
 		NewKeyword("name"):      name,
 		NewKeyword("hash"):      ref.Hash().String(),
 		NewKeyword("target"):    hash.String(),
@@ -626,7 +626,7 @@ func gitTags(rv MalType) (MalType, error) {
 			target = tag.Target
 			annotated = true
 		}
-		out = append(out, HashMap{Val: map[string]MalType{
+		out = append(out, HashMap{Items: map[MalType]MalType{
 			NewKeyword("name"):      ref.Name().Short(),
 			NewKeyword("hash"):      ref.Hash().String(),
 			NewKeyword("target"):    target.String(),
@@ -660,7 +660,7 @@ func commitMap(c *object.Commit) MalType {
 	for _, p := range c.ParentHashes {
 		parents = append(parents, p.String())
 	}
-	return HashMap{Val: map[string]MalType{
+	return HashMap{Items: map[MalType]MalType{
 		NewKeyword("hash"):      c.Hash.String(),
 		NewKeyword("message"):   c.Message,
 		NewKeyword("author"):    signatureMap(c.Author),
@@ -671,7 +671,7 @@ func commitMap(c *object.Commit) MalType {
 }
 
 func signatureMap(s object.Signature) MalType {
-	return HashMap{Val: map[string]MalType{
+	return HashMap{Items: map[MalType]MalType{
 		NewKeyword("name"):  s.Name,
 		NewKeyword("email"): s.Email,
 		NewKeyword("when"):  s.When.Format(time.RFC3339),
@@ -702,7 +702,7 @@ func statusKeyword(code gogit.StatusCode) MalType {
 }
 
 // trailingOpts extracts the optional trailing options hashmap.
-func trailingOpts(params []MalType) (map[string]MalType, error) {
+func trailingOpts(params []MalType) (map[MalType]MalType, error) {
 	switch len(params) {
 	case 0:
 		return nil, nil
@@ -711,7 +711,7 @@ func trailingOpts(params []MalType) (map[string]MalType, error) {
 		if !ok {
 			return nil, fmt.Errorf("options must be a map, got %T", params[0])
 		}
-		return hm.Val, nil
+		return hm.Items, nil
 	default:
 		return nil, fmt.Errorf("expected a single options map, got %d arguments", len(params))
 	}
@@ -719,7 +719,7 @@ func trailingOpts(params []MalType) (map[string]MalType, error) {
 
 // optGet finds an option, accepting a keyword key (:name, the idiomatic
 // form) or a plain string key ("name").
-func optGet(o map[string]MalType, name string) (MalType, bool) {
+func optGet(o map[MalType]MalType, name string) (MalType, bool) {
 	if v, ok := o[NewKeyword(name)]; ok {
 		return v, true
 	}
@@ -727,7 +727,7 @@ func optGet(o map[string]MalType, name string) (MalType, bool) {
 	return v, ok
 }
 
-func optString(o map[string]MalType, name string) (string, bool, error) {
+func optString(o map[MalType]MalType, name string) (string, bool, error) {
 	v, ok := optGet(o, name)
 	if !ok || v == nil {
 		return "", false, nil
@@ -739,7 +739,7 @@ func optString(o map[string]MalType, name string) (string, bool, error) {
 	return s, true, nil
 }
 
-func optBool(o map[string]MalType, name string) bool {
+func optBool(o map[MalType]MalType, name string) bool {
 	v, ok := optGet(o, name)
 	if !ok {
 		return false
@@ -748,7 +748,7 @@ func optBool(o map[string]MalType, name string) bool {
 	return ok && b
 }
 
-func optInt(o map[string]MalType, name string, def int) (int, error) {
+func optInt(o map[MalType]MalType, name string, def int) (int, error) {
 	v, ok := optGet(o, name)
 	if !ok || v == nil {
 		return def, nil
@@ -760,7 +760,7 @@ func optInt(o map[string]MalType, name string, def int) (int, error) {
 	return n, nil
 }
 
-func optHashMap(o map[string]MalType, name string) (map[string]MalType, bool, error) {
+func optHashMap(o map[MalType]MalType, name string) (map[MalType]MalType, bool, error) {
 	v, ok := optGet(o, name)
 	if !ok || v == nil {
 		return nil, false, nil
@@ -769,11 +769,11 @@ func optHashMap(o map[string]MalType, name string) (map[string]MalType, bool, er
 	if !ok {
 		return nil, false, fmt.Errorf(":%s must be a map, got %T", name, v)
 	}
-	return hm.Val, true, nil
+	return hm.Items, true, nil
 }
 
 // optSignature builds an author/committer signature from {:name :email}.
-func optSignature(o map[string]MalType, name string) (*object.Signature, error) {
+func optSignature(o map[MalType]MalType, name string) (*object.Signature, error) {
 	m, ok, err := optHashMap(o, name)
 	if err != nil || !ok {
 		return nil, err
