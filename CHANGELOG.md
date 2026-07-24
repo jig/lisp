@@ -8,10 +8,9 @@ migration note.
 
 ## 0.4.0 (unreleased)
 
-Everything since v0.2.24 ships in one release. The headline change is
-the keyword representation — a compile-time break for Go embedders
-(see the Migration section below); lisp code is almost entirely
-unaffected.
+On top of v0.3.0. The headline change is the keyword
+representation — a compile-time break for Go embedders (see the
+Migration section below); lisp code is almost entirely unaffected.
 
 ### ⚠️ Changed — keywords are a first-class type
 
@@ -53,6 +52,30 @@ and radix big ints remain invalid keys — the first are not hashable,
 the latter two only compare by identity — and error at construction.
 `json-encode` of a map with non-string/keyword keys errors (JSON
 objects require string keys).
+
+### ⚠️ Changed — `reduce-kv` folds an associative collection
+
+`reduce-kv` now matches Clojure: it takes a hash-map (calling
+`(f acc k v)` for every entry) or a vector (`(f acc idx v)` per
+element); `nil` folds to `init`. The previous form — a *flat* sequence
+`k1 v1 k2 v2 …` — is gone. New entry accessors `key` and `val` read a
+`[k v]` entry. Migration: `(reduce-kv f init (list k1 v1 …))` becomes
+`(reduce-kv f init (apply hash-map (list k1 v1 …)))`, or restructure
+the data as a map up front.
+
+### Added — destructuring in `loop`/`recur`
+
+`loop` bindings accept the same vector patterns as `fn` parameters and
+`let` bindings (introduced in v0.3.0), re-destructuring on every
+`recur`. Sequential destructuring now covers every binding form. Also
+new: `key`/`val` entry accessors in `coreextended`.
+
+### Fixed — preamble placeholder parse errors surface
+
+`READWithPreamble` used to silently bind `nil` for a placeholder whose
+value did not parse, deferring the failure to an unrelated error deep
+inside the program; it now returns a read error naming the
+placeholder.
 
 ### Migration (embedders — Go code using jig/lisp)
 
@@ -100,6 +123,8 @@ A quick sweep finds the risky spots:
 grep -rn 'ʞ' --include='*.go' .
 grep -rn 'case string\|\.(string)\|Keyword_Q' --include='*.go' .
 ```
+
+## v0.3.0 — 2026-07-24
 
 ### ⚠️ Changed — file I/O moved from `core` to `system`
 
@@ -265,23 +290,6 @@ Migration: hex/octal/binary literals used *arithmetically* must become
 decimal (or be wrapped in your own conversion); literals used as
 identifiers or bit patterns keep working and now survive any width.
 
-### ⚠️ Changed — `reduce-kv` folds an associative collection
-
-`reduce-kv` now matches Clojure: it takes a hash-map (calling
-`(f acc k v)` for every entry) or a vector (`(f acc idx v)` per
-element); `nil` folds to `init`. The previous form — a *flat* sequence
-`k1 v1 k2 v2 …` — is gone. New entry accessors `key` and `val` read a
-`[k v]` entry. Migration: `(reduce-kv f init (list k1 v1 …))` becomes
-`(reduce-kv f init (apply hash-map (list k1 v1 …)))`, or restructure
-the data as a map up front.
-
-### Fixed — preamble placeholder parse errors surface
-
-`READWithPreamble` used to silently bind `nil` for a placeholder whose
-value did not parse, deferring the failure to an unrelated error deep
-inside the program; it now returns a read error naming the
-placeholder.
-
 ### Added — seqable hash-maps and sets, sequential destructuring
 
 Hash-maps and sets are now **seqable**, as in Clojure. A hash-map seqs
@@ -309,13 +317,12 @@ Binding forms gained **sequential destructuring**: a vector pattern in
 and recursively (`(fn [[k v]] …)`, `(let [[a [b c]] x] …)`), missing
 elements bind `nil`, extra elements are ignored, and `&` binds the
 remainder as a list. Top-level `fn` arity checking stays strict.
-`loop`/`recur` accept the same patterns, re-destructuring on every
-iteration.
+`loop`/`recur` bindings remain symbol-only for now.
 
 ⚠️ One behaviour change: `(seq #{})` now returns `nil` (Clojure
 parity), where it previously returned `()`. `(seq {})` is also `nil`.
 
-### Other notable additions
+### Other notable additions since v0.2.24
 
 Non-breaking, for context (see `git log v0.2.24..` for the full list):
 
