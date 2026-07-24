@@ -136,6 +136,9 @@ var coreDocs = []struct{ name, arglist, doc string }{
 	{"time-ns", "[]", "Current time in nanoseconds since the epoch."},
 	{"time-format", "[ms]", "Formats epoch milliseconds (as of time-ms) as an RFC 3339 UTC timestamp with millisecond precision."},
 	{"time-parse", "[string]", "Parses an RFC 3339 timestamp and returns epoch milliseconds (as of time-ms)."},
+	{"time-add", "[ms deltas]", "Shifts epoch milliseconds ms by the deltas hash-map. :years :months :days are calendar-aware (via UTC); :hours :minutes :seconds :milliseconds add a fixed duration. Missing keys are 0, values may be negative; an unknown key or non-integer value errors."},
+	{"time-before?", "[t1 t2]", "Reports whether epoch milliseconds t1 is strictly before t2."},
+	{"time-after?", "[t1 t2]", "Reports whether epoch milliseconds t1 is strictly after t2."},
 	{"version", "[]", "Interpreter build information as a hash-map."},
 
 	// Bytes, base64 & JSON

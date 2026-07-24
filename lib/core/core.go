@@ -109,6 +109,9 @@ func Load(env EnvType) {
 	call.Call(env, time_ns)
 	call.Call(env, time_format)
 	call.Call(env, time_parse)
+	call.Call(env, time_add)
+	call.CallOverrideFN(env, "time-before?", time_before)
+	call.CallOverrideFN(env, "time-after?", time_after)
 	call.Call(env, uUid)
 	call.Call(env, pr_str)
 	call.Call(env, str)
@@ -771,6 +774,57 @@ func time_parse(s string) (int, error) {
 		return 0, err
 	}
 	return int(t.UnixMilli()), nil
+}
+
+// time_add returns the instant millis (Unix milliseconds, UTC) shifted by
+// the deltas in hm. :years :months :days go through time.AddDate, which is
+// calendar-aware (variable month lengths, leap years) and normalise overflow
+// like time.AddDate (Jan 31 + 1 month → March 2, Feb 29 + 1 year → March 1);
+// :hours :minutes :seconds :milliseconds add a fixed duration. Any key may be omitted (0) or
+// negative (shift backwards); an unknown key, or a value that is not an int,
+// is an error. Times cross the lisp boundary as Unix-millisecond ints,
+// matching core's time-ms/time-format. hm is read, never mutated.
+func time_add(millis int, hm HashMap) (int, error) {
+	var d struct{ years, months, days, hours, minutes, seconds, millis int }
+	fields := map[string]*int{
+		NewKeyword("years"):        &d.years,
+		NewKeyword("months"):       &d.months,
+		NewKeyword("days"):         &d.days,
+		NewKeyword("hours"):        &d.hours,
+		NewKeyword("minutes"):      &d.minutes,
+		NewKeyword("seconds"):      &d.seconds,
+		NewKeyword("milliseconds"): &d.millis,
+	}
+	for key, v := range hm.Val {
+		p, ok := fields[key]
+		if !ok {
+			return 0, fmt.Errorf("time-add: unsupported parameter %q", strings.TrimPrefix(key, "ʞ"))
+		}
+		n, ok := v.(int)
+		if !ok {
+			return 0, fmt.Errorf("time-add: %s must be an integer (was %T)", strings.TrimPrefix(key, "ʞ"), v)
+		}
+		*p = n
+	}
+	t := time.UnixMilli(int64(millis)).UTC().
+		AddDate(d.years, d.months, d.days).
+		Add(time.Duration(d.hours)*time.Hour +
+			time.Duration(d.minutes)*time.Minute +
+			time.Duration(d.seconds)*time.Second +
+			time.Duration(d.millis)*time.Millisecond)
+	return int(t.UnixMilli()), nil
+}
+
+// time_before reports whether t1 is strictly before t2 (both Unix
+// milliseconds). Lisp name: time-before? (predicate convention).
+func time_before(t1, t2 int) (bool, error) {
+	return t1 < t2, nil
+}
+
+// time_after reports whether t1 is strictly after t2 (both Unix
+// milliseconds). Lisp name: time-after? (predicate convention).
+func time_after(t1, t2 int) (bool, error) {
+	return t1 > t2, nil
 }
 
 // Hash Map, Set, Vector functions
