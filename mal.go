@@ -147,11 +147,20 @@ func READWithPreamble(str string, cursor *Position, ns EnvType) (MalType, error)
 			})
 		}
 		placeholderValue := lineItems[0][2]
-		item, _ := reader.Read_str(placeholderValue, &Position{
+		placeholderKey := lineItems[0][1][3:]
+		// A placeholder that does not parse is an error: silently binding
+		// it to nil defers the failure to an unrelated "symbol not found"
+		// (or worse, a wrong nil) deep inside the evaluated program.
+		item, err := reader.Read_str(placeholderValue, &Position{
 			Row: i + 1,
 			Col: 1,
 		}, nil, ns)
-		placeholderKey := lineItems[0][1][3:]
+		if err != nil {
+			return nil, lisperror.NewLispError(fmt.Errorf("invalid preamble value for %s: %s", placeholderKey, err), &Position{
+				Row: i + 1,
+				Col: 1,
+			})
+		}
 		placeholderMap.Items[placeholderKey] = item
 	}
 }
@@ -648,17 +657,16 @@ func evalInternal(ctx context.Context, ast MalType, env EnvType) (res MalType, e
 				return nil, lisperror.NewLispError(errors.New("loop: odd elements on binding vector"), a1)
 			}
 			loop_env := NewSubordinateEnv(env)
-			syms := make([]Symbol, 0, len(arr1)/2)
+			patterns := make([]MalType, 0, len(arr1)/2)
 			for i := 0; i < len(arr1); i += 2 {
-				if !Q[Symbol](arr1[i]) {
-					return nil, lisperror.NewLispError(errors.New("loop: non-symbol bind value"), a1)
-				}
 				val, e := evalInternal(ctx, arr1[i+1], loop_env)
 				if e != nil {
 					return nil, e
 				}
-				loop_env.Set(arr1[i].(Symbol), val)
-				syms = append(syms, arr1[i].(Symbol))
+				if e := Bind(loop_env, arr1[i], val); e != nil {
+					return nil, lisperror.NewLispError(fmt.Errorf("loop: %s", e), a1)
+				}
+				patterns = append(patterns, arr1[i])
 			}
 			astRef := ast.(List)
 			for {
@@ -670,11 +678,13 @@ func evalInternal(ctx context.Context, ast MalType, env EnvType) (res MalType, e
 				if !ok {
 					return res, nil
 				}
-				if len(rv.args) != len(syms) {
-					return nil, lisperror.NewLispError(fmt.Errorf("recur: got %d arguments but loop has %d bindings", len(rv.args), len(syms)), ast)
+				if len(rv.args) != len(patterns) {
+					return nil, lisperror.NewLispError(fmt.Errorf("recur: got %d arguments but loop has %d bindings", len(rv.args), len(patterns)), ast)
 				}
-				for i, sym := range syms {
-					loop_env.Set(sym, rv.args[i])
+				for i, p := range patterns {
+					if e := Bind(loop_env, p, rv.args[i]); e != nil {
+						return nil, lisperror.NewLispError(fmt.Errorf("recur: %s", e), ast)
+					}
 				}
 			}
 		case "recur":

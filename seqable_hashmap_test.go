@@ -138,6 +138,68 @@ func TestSequentialDestructuring(t *testing.T) {
 	}
 }
 
+// loop bindings accept the same vector patterns as fn and let, and
+// recur re-destructures on every iteration.
+func TestLoopDestructuring(t *testing.T) {
+	ns := seqEnv(t)
+	cases := []struct{ src, want string }{
+		{"(loop [[a b] [1 10] n 0] (if (< n 3) (recur [b (+ a b)] (+ n 1)) [a b]))", "[21 32]"},
+		{"(loop [[x & xs] [1 2 3] acc 0] (if (nil? x) acc (recur xs (+ acc x))))", "6"},
+		{"(loop [[k v] (first {:a 41})] [k (+ v 1)])", "[:a 42]"},
+	}
+	for _, c := range cases {
+		res, err := REPL(context.Background(), ns, c.src, types.NewCursorFile(t.Name()))
+		if err != nil {
+			t.Errorf("eval %q: %v", c.src, err)
+			continue
+		}
+		if res.(string) != c.want {
+			t.Errorf("eval %q = %s, want %s", c.src, res, c.want)
+		}
+	}
+}
+
+// key/val read map entries; reduce-kv folds associative collections with
+// (f acc k v) as in Clojure (index/element for vectors).
+func TestEntryAccessorsAndReduceKV(t *testing.T) {
+	ns := seqEnv(t)
+	cases := []struct{ src, want string }{
+		{"(key (first {:a 1}))", ":a"},
+		{"(val (first {:a 1}))", "1"},
+		{"(reduce-kv (fn [acc k v] (+ acc v)) 0 {:a 1 :b 2})", "3"},
+		{"(reduce-kv (fn [acc k v] (assoc acc v k)) {} {:a 1 :b 2})", "{1 :a 2 :b}"},
+		{"(reduce-kv (fn [acc i v] (+ acc (* i v))) 0 [10 20 30])", "80"},
+		{"(reduce-kv (fn [acc k v] (+ acc v)) 7 {})", "7"},
+		{"(reduce-kv (fn [acc k v] (+ acc v)) 7 nil)", "7"},
+	}
+	for _, c := range cases {
+		res, err := REPL(context.Background(), ns, c.src, types.NewCursorFile(t.Name()))
+		if err != nil {
+			t.Errorf("eval %q: %v", c.src, err)
+			continue
+		}
+		if res.(string) != c.want {
+			t.Errorf("eval %q = %s, want %s", c.src, res, c.want)
+		}
+	}
+	if _, err := REPL(context.Background(), ns, "(reduce-kv (fn [acc k v] acc) 0 \"nope\")", types.NewCursorFile(t.Name())); err == nil {
+		t.Error("reduce-kv on a string: expected an error, got none")
+	}
+}
+
+// A preamble placeholder that does not parse must surface as a read
+// error, not silently bind nil (which used to defer the failure to an
+// unrelated error deep inside the program).
+func TestPreambleParseErrorSurfaces(t *testing.T) {
+	_, err := READWithPreamble(";; $X {0 hello\n\n(+ 1 1)", types.NewCursorFile(t.Name()), nil)
+	if err == nil {
+		t.Fatal("expected an error for an unparseable placeholder, got none")
+	}
+	if !strings.Contains(err.Error(), "invalid preamble value for $X") {
+		t.Fatalf("error %q, want it to mention the placeholder $X", err)
+	}
+}
+
 // Maps and sets seq but are not indexed: nth must reject them instead of
 // returning a nondeterministic element (Clojure errors here too).
 func TestNthRejectsMapsAndSets(t *testing.T) {

@@ -57,7 +57,7 @@ var coreDocs = []struct{ name, arglist, doc string }{
 	{"conj", "[coll & items]", "Adds items to a collection (position depends on the collection type)."},
 	{"first", "[coll]", "First element of coll, or nil."},
 	{"rest", "[coll]", "All but the first element of coll, as a list."},
-	{"nth", "[coll n]", "The element of coll at zero-based index n."},
+	{"nth", "[coll n]", "The element of coll at zero-based index n (lists, vectors and [k v] entries; not hash-maps or sets, which are unordered)."},
 	{"count", "[coll]", "Number of elements in coll."},
 	{"get", "[coll key]", "Value at key in a map/vector, or nil."},
 	{"get-in", "[coll keys]", "Nested value reached by following the vector of keys."},
@@ -74,7 +74,7 @@ var coreDocs = []struct{ name, arglist, doc string }{
 	{"take", "[n coll]", "First n elements of coll."},
 	{"drop", "[n coll]", "coll without its first n elements."},
 	{"empty?", "[coll]", "Whether coll has no elements."},
-	{"seq", "[coll]", "coll as a sequence, or nil when empty."},
+	{"seq", "[coll]", "coll as a sequence, or nil when empty. Hash-maps seq as [key value] entry vectors and sets as their elements, both in sorted order."},
 	{"vec", "[coll]", "coll as a vector."},
 
 	// Strings & symbols
@@ -85,7 +85,7 @@ var coreDocs = []struct{ name, arglist, doc string }{
 	{"starts-with?", "[s prefix]", "Whether string s starts with prefix."},
 	{"ends-with?", "[s suffix]", "Whether string s ends with suffix."},
 	{"read-string", "[string]", "Reads the first lisp form from string."},
-	{"keyword", "[name]", "Creates a keyword from a string."},
+	{"keyword", "[name]", "Creates a keyword from a string; returns a keyword unchanged."},
 	{"symbol", "[name]", "Creates a symbol from a string."},
 
 	// I/O
@@ -146,7 +146,7 @@ var coreDocs = []struct{ name, arglist, doc string }{
 	{"unbase64", "[string]", "Decodes a base64 string to a byte string."},
 	{"str2binary", "[string]", "Converts a string to a byte string."},
 	{"binary2str", "[bytes]", "Converts a byte string to a string."},
-	{"json-encode", "[obj]", "Encodes a lisp value (or Go object) to a JSON string."},
+	{"json-encode", "[obj]", "Encodes a lisp value (or Go object) to a JSON string. Keyword keys and values serialise as their bare name (:a → \"a\")."},
 	{"json-decode", "[factory json]", "Decodes a JSON string into a lisp value."},
 	{"hash-map-decode", "[factory json]", "Decodes JSON into a Go-backed hash-map."},
 

@@ -50,16 +50,35 @@
       init
       (reduce f (f init (first xs)) (rest xs))))
 
+  (defn key
+    "Returns the key of a [k v] map entry (as produced by seq on a hash-map)."
+    [entry]
+    (nth entry 0))
+
+  (defn val
+    "Returns the value of a [k v] map entry (as produced by seq on a hash-map)."
+    [entry]
+    (nth entry 1))
+
   (defn reduce-kv
-    "Left fold over a sequence of key/value pairs: applies (f acc k v) across xs."
-    [f init xs]
-    ;; f      : Accumulator Element -> Accumulator
+    "Left fold over an associative collection: applies (f acc k v) for every
+     entry of a hash-map, or (f acc idx v) for every element of a vector.
+     nil folds to init."
+    [f init m]
+    ;; f      : Accumulator Key Value -> Accumulator
     ;; init   : Accumulator
-    ;; xs     : sequence of key-value pairs k1-v1 k2-v2...
+    ;; m      : hash-map (entries) | vector (index/element) | nil
     ;; return : Accumulator
-    (if (empty? xs)
+    (if (nil? m)
       init
-      (reduce-kv f (f init (nth xs 0) (nth xs 1)) (rest (rest xs)))))
+      (if (map? m)
+        (reduce (fn [acc [k v]] (f acc k v)) init (seq m))
+        (if (vector? m)
+          (loop [i 0 acc init]
+            (if (< i (count m))
+              (recur (+ i 1) (f acc i (nth m i)))
+              acc))
+          (throw (str "reduce-kv requires a hash-map, vector or nil (got " (type? m) ")"))))))
 
   ;; The natural implementation for 'foldr' is not tail-recursive, and
   ;; the one based on 'reduce' constructs many intermediate functions, so we
