@@ -293,10 +293,11 @@ Findings and decisions made while implementing:
   (`debugadapter`, `command/coverage_debug.go`) — remember `-tags` builds
   when refactoring.
 
-Not done yet (for the real 0.4 PR): CHANGELOG entry and migration guide,
-LANGUAGE.md wording, docgen/docs sweep, deciding whether `lnotation`
-gains keyword-key helpers, Tier-2 arbitrary sets/maps (now a small step:
-relax `ValidKey` and extend `KeyLess`).
+CHANGELOG now carries the 0.4 section with the embedder migration
+guide. Still pending for the real 0.4 PR: LANGUAGE.md wording,
+docgen/docs sweep, deciding whether `lnotation` gains keyword-key
+helpers, Tier-2 arbitrary sets/maps (now a small step: relax
+`ValidKey` and extend `KeyLess`).
 
 ## 8. Conclusion
 
