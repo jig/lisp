@@ -20,7 +20,7 @@ func Example_configInLisp() {
 		ns,
 	)
 
-	fmt.Println("sessions:", config.(types.HashMap).Val[types.NewKeyword("sessions")])
+	fmt.Println("sessions:", config.(types.HashMap).Items[types.KW("sessions")])
 
 	// Output:
 	// sessions: 10

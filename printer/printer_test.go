@@ -25,13 +25,13 @@ func TestPrStr(t *testing.T) {
 		{"nil", nil, "nil"},
 		{"int", 42, "42"},
 		{"symbol", types.Symbol{Val: "foo"}, "foo"},
-		{"keyword", "ʞfoo", ":foo"},
+		{"keyword", types.KW("foo"), ":foo"},
 		{"list", types.List{Val: []types.MalType{1, 2, 3}}, "(1 2 3)"},
 		{"vector", types.Vector{Val: []types.MalType{1, 2, 3}}, "[1 2 3]"},
 		{"empty-list", types.List{}, "()"},
 		{"nested", types.List{Val: []types.MalType{types.Vector{Val: []types.MalType{1}}, 2}}, "([1] 2)"},
-		{"hashmap-1", types.HashMap{Val: map[string]types.MalType{"ʞa": 1}}, "{:a 1}"},
-		{"set-1", types.Set{Val: map[string]struct{}{"ʞa": {}}}, "#{:a}"},
+		{"hashmap-1", types.HashMap{Items: map[types.MalType]types.MalType{types.KW("a"): 1}}, "{:a 1}"},
+		{"set-1", types.Set{Items: map[types.MalType]struct{}{types.KW("a"): {}}}, "#{:a}"},
 		{"go-error", errors.New("boom"), `«go-error "boom"»`},
 		{"malfunc", types.MalFunc{
 			Params: types.Vector{Val: []types.MalType{types.Symbol{Val: "x"}}},
@@ -165,7 +165,7 @@ func TestPrList(t *testing.T) {
 // TestPrStrHashMapMulti keeps the multi-entry case non-flaky: map order
 // is unspecified, so assert structure, not exact order.
 func TestPrStrHashMapMulti(t *testing.T) {
-	got := printer.Pr_str(types.HashMap{Val: map[string]types.MalType{"ʞa": 1, "ʞb": 2}}, true)
+	got := printer.Pr_str(types.HashMap{Items: map[types.MalType]types.MalType{types.KW("a"): 1, types.KW("b"): 2}}, true)
 	if !strings.HasPrefix(got, "{") || !strings.HasSuffix(got, "}") {
 		t.Fatalf("not brace-wrapped: %q", got)
 	}
@@ -177,14 +177,14 @@ func TestPrStrHashMapMulti(t *testing.T) {
 }
 
 func TestPrDataDeterministicMixedCollections(t *testing.T) {
-	value := types.HashMap{Val: map[string]types.MalType{
-		"ʞz": types.HashMap{Val: map[string]types.MalType{"ʞb": 2, "ʞa": 1}},
+	value := types.HashMap{Items: map[types.MalType]types.MalType{
+		types.KW("z"): types.HashMap{Items: map[types.MalType]types.MalType{types.KW("b"): 2, types.KW("a"): 1}},
 		"a": types.List{Val: []types.MalType{
 			types.Symbol{Val: "quote"},
 			types.Vector{Val: []types.MalType{3, 2, 1}},
 		}},
-		"ʞa": types.Set{Val: map[string]struct{}{"beta": {}, "ʞalpha": {}, "alpha": {}}},
-		"z":  nil,
+		types.KW("a"): types.Set{Items: map[types.MalType]struct{}{"beta": {}, types.KW("alpha"): {}, "alpha": {}}},
+		"z":           nil,
 	}}
 	want := `{"a" '[3 2 1] "z" nil :a #{"alpha" "beta" :alpha} :z {:a 1 :b 2}}`
 
@@ -197,18 +197,18 @@ func TestPrDataDeterministicMixedCollections(t *testing.T) {
 
 func TestPrDataNestedWidthAwareLayout(t *testing.T) {
 	value := types.Vector{Val: []types.MalType{
-		types.HashMap{Val: map[string]types.MalType{
-			"ʞvalues": types.Vector{Val: []types.MalType{1, 2, 3, 4}},
-			"ʞname":   "alpha",
+		types.HashMap{Items: map[types.MalType]types.MalType{
+			types.KW("values"): types.Vector{Val: []types.MalType{1, 2, 3, 4}},
+			types.KW("name"):   "alpha",
 		}},
-		types.HashMap{Val: map[string]types.MalType{
+		types.HashMap{Items: map[types.MalType]types.MalType{
 			// A quote long enough to wrap: reader-macro sugar (') is
 			// printed, and the wrapped form aligns under it.
-			"ʞquoted": types.List{Val: []types.MalType{
+			types.KW("quoted"): types.List{Val: []types.MalType{
 				types.Symbol{Val: "quote"},
 				types.Vector{Val: []types.MalType{100, 200, 300, 400}},
 			}},
-			"ʞname": "beta",
+			types.KW("name"): "beta",
 		}},
 	}}
 	want := `[{:name "alpha"

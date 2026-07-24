@@ -8,7 +8,6 @@ import (
 	"math/big"
 	"reflect"
 	"sort"
-	"strings"
 )
 
 type Token struct {
@@ -64,17 +63,67 @@ type Symbol struct {
 	Cursor *Position
 }
 
-// Keywords
-func NewKeyword(s string) string {
-	return "\u029e" + s
+// Keyword is a lisp keyword (:foo). It is a distinct Go type, so a
+// keyword can never be confused with a string carrying the same
+// characters \u2014 unlike the historical representation (a string with a
+// "\u029e" prefix), where any external string starting with that rune
+// became a keyword.
+type Keyword string
+
+func (k Keyword) MarshalJSON() ([]byte, error) {
+	return json.Marshal(string(k))
+}
+
+// KW builds the keyword :s from its name (without the colon).
+func KW(s string) Keyword {
+	return Keyword(s)
+}
+
+// NewKeyword builds the keyword :s from its name (without the colon).
+//
+// Deprecated: use KW. NewKeyword returned the prefixed-string
+// representation before 0.4 and is kept so embedder code keeps
+// compiling; it now returns a Keyword.
+func NewKeyword(s string) Keyword {
+	return Keyword(s)
 }
 
 func Keyword_Q(obj MalType) bool {
-	return Q[string](obj) && strings.HasPrefix(obj.(string), "\u029e")
+	return Q[Keyword](obj)
 }
 
 func String_Q(obj MalType) bool {
-	return Q[string](obj) && !strings.HasPrefix(obj.(string), "\u029e")
+	return Q[string](obj)
+}
+
+// ValidKey reports whether obj can be a hash-map key or a set element:
+// a string or a keyword. Restricting keys keeps every map operation
+// panic-free (both types are comparable) and gives them a total order
+// (KeyLess) for deterministic sequencing and printing.
+func ValidKey(obj MalType) bool {
+	switch obj.(type) {
+	case string, Keyword:
+		return true
+	}
+	return false
+}
+
+// KeyLess is the total order over valid hash-map keys and set elements:
+// strings first, then keywords, each lexicographically. (Strings-first
+// matches the order the sorted legacy encoding produced, keywords
+// carrying a prefix above ASCII.)
+func KeyLess(a, b MalType) bool {
+	as, aIsStr := a.(string)
+	bs, bIsStr := b.(string)
+	if aIsStr != bIsStr {
+		return aIsStr
+	}
+	if aIsStr {
+		return as < bs
+	}
+	ak, _ := a.(Keyword)
+	bk, _ := b.(Keyword)
+	return ak < bk
 }
 
 type ExternalCall func(context.Context, []MalType) (MalType, error)
@@ -168,28 +217,20 @@ func GetSlice(seq MalType) ([]MalType, error) {
 		// them disagree and a first/rest traversal (reduce, filter) drops
 		// or repeats entries. Clojure gets the same coherence from its
 		// maps' stable iteration order.
-		keys := make([]string, 0, len(seq.Val))
-		for k := range seq.Val {
-			keys = append(keys, k)
-		}
-		sort.Strings(keys)
+		keys := sortedKeys(seq.Items)
 		entries := make([]MalType, 0, len(keys))
 		for _, k := range keys {
-			entries = append(entries, Vector{Val: []MalType{k, seq.Val[k]}})
+			entries = append(entries, Vector{Val: []MalType{k, seq.Items[k]}})
 		}
 		return entries, nil
 	case Set:
 		// A set seqs as its elements, as stored, in sorted order — see
 		// the hash-map case for why the order must be deterministic.
-		keys := make([]string, 0, len(seq.Val))
-		for k := range seq.Val {
-			keys = append(keys, k)
-		}
-		sort.Strings(keys)
-		elems := make([]MalType, 0, len(keys))
-		for _, k := range keys {
+		elems := make([]MalType, 0, len(seq.Items))
+		for k := range seq.Items {
 			elems = append(elems, k)
 		}
+		sort.Slice(elems, func(i, j int) bool { return KeyLess(elems[i], elems[j]) })
 		return elems, nil
 	default:
 		return nil, errors.New("GetSlice called on non-sequence")
@@ -198,9 +239,22 @@ func GetSlice(seq MalType) ([]MalType, error) {
 
 // Hash Maps
 type HashMap struct {
-	Val    map[string]MalType
+	// Items maps keys to values. Keys are restricted to string and
+	// Keyword (see ValidKey); every constructor validates, so map
+	// operations never hit a non-comparable key.
+	Items  map[MalType]MalType
 	Meta   MalType
 	Cursor *Position
+}
+
+// sortedKeys returns m's keys in KeyLess order.
+func sortedKeys[V any](m map[MalType]V) []MalType {
+	keys := make([]MalType, 0, len(m))
+	for k := range m {
+		keys = append(keys, k)
+	}
+	sort.Slice(keys, func(i, j int) bool { return KeyLess(keys[i], keys[j]) })
+	return keys
 }
 
 func NewHashMap(cursor *Position, seq MalType) (MalType, error) {
@@ -211,20 +265,21 @@ func NewHashMap(cursor *Position, seq MalType) (MalType, error) {
 	if len(lst)%2 == 1 {
 		return nil, errors.New("odd number of arguments to NewHashMap")
 	}
-	m := map[string]MalType{}
+	m := map[MalType]MalType{}
 	for i := 0; i < len(lst); i += 2 {
-		str, ok := lst[i].(string)
-		if !ok {
-			return nil, fmt.Errorf("expected hash-map key string (found %T)", lst[i])
+		if !ValidKey(lst[i]) {
+			return nil, fmt.Errorf("expected hash-map key string or keyword (found %T)", lst[i])
 		}
-		m[str] = lst[i+1]
+		m[lst[i]] = lst[i+1]
 	}
-	return HashMap{Val: m, Cursor: cursor}, nil
+	return HashMap{Items: m, Cursor: cursor}, nil
 }
 
 // Sets
 type Set struct {
-	Val    map[string]struct{}
+	// Items holds the elements, restricted to string and Keyword as
+	// hash-map keys are (see ValidKey).
+	Items  map[MalType]struct{}
 	Meta   MalType
 	Cursor *Position
 }
@@ -239,15 +294,14 @@ func NewSet(seq MalType) (Set, error) {
 		return Set{}, e
 	}
 
-	m := map[string]struct{}{}
+	m := map[MalType]struct{}{}
 	for _, item := range lst {
-		sItem, ok := item.(string)
-		if !ok {
+		if !ValidKey(item) {
 			return Set{}, errors.New("set items must be strings or keywords")
 		}
-		m[sItem] = struct{}{}
+		m[item] = struct{}{}
 	}
-	return Set{Val: m}, nil
+	return Set{Items: m}, nil
 }
 
 // Dereferable type
@@ -302,8 +356,8 @@ func Equal_Q(a, b MalType) bool {
 		}
 		return true
 	case HashMap:
-		am := a.(HashMap).Val
-		bm := b.(HashMap).Val
+		am := a.(HashMap).Items
+		bm := b.(HashMap).Items
 		if len(am) != len(bm) {
 			return false
 		}
@@ -314,8 +368,8 @@ func Equal_Q(a, b MalType) bool {
 		}
 		return true
 	case Set:
-		am := a.(Set).Val
-		bm := b.(Set).Val
+		am := a.(Set).Items
+		bm := b.(Set).Items
 		if len(am) != len(bm) {
 			return false
 		}
@@ -338,8 +392,23 @@ func Equal_Q(a, b MalType) bool {
 	}
 }
 
+// MarshalJSON serialises keyword keys as their bare name (:a → "a"),
+// as Clojure JSON emitters do. (Before 0.4 the internal ʞ prefix leaked
+// into the JSON output.) A map holding both :x and "x" produces
+// duplicate JSON keys — of which one survives, unspecified.
 func (hm HashMap) MarshalJSON() ([]byte, error) {
-	return json.Marshal(hm.Val)
+	m := make(map[string]MalType, len(hm.Items))
+	for k, v := range hm.Items {
+		switch k := k.(type) {
+		case string:
+			m[k] = v
+		case Keyword:
+			m[string(k)] = v
+		default:
+			return nil, fmt.Errorf("cannot JSON-encode a hash-map key of type %T", k)
+		}
+	}
+	return json.Marshal(m)
 }
 
 func (v Vector) MarshalJSON() ([]byte, error) {
@@ -361,8 +430,8 @@ func (s Set) MarshalJSON() ([]byte, error) {
 func ConvertFrom(from MalType) ([]MalType, MalType, error) {
 	switch from := from.(type) {
 	case Set:
-		keys := make([]MalType, 0, len(from.Val))
-		for k := range from.Val {
+		keys := make([]MalType, 0, len(from.Items))
+		for k := range from.Items {
 			keys = append(keys, k)
 		}
 		return keys, from.Meta, nil
@@ -381,9 +450,12 @@ func ConvertFrom(from MalType) ([]MalType, MalType, error) {
 func ConvertTo(from []MalType, _to MalType, meta MalType) (MalType, error) {
 	switch _to.(type) {
 	case Set:
-		to := Set{Val: map[string]struct{}{}}
+		to := Set{Items: map[MalType]struct{}{}}
 		for _, k := range from {
-			to.Val[k.(string)] = struct{}{}
+			if !ValidKey(k) {
+				return nil, errors.New("set items must be strings or keywords")
+			}
+			to.Items[k] = struct{}{}
 		}
 		return to, nil
 	case List:

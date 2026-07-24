@@ -45,7 +45,20 @@ func HeaderWeb() string { return headerWeb }
 
 // --- value helpers -------------------------------------------------------
 
-func kw(s string) string { return NewKeyword(s) }
+func kw(s string) Keyword { return KW(s) }
+
+// kwName returns a keyword's name (:get → "get"), a string verbatim,
+// and anything else rendered via toStr.
+func kwName(v MalType) string {
+	switch v := v.(type) {
+	case Keyword:
+		return string(v)
+	case string:
+		return v
+	default:
+		return toStr(v)
+	}
+}
 
 // hget reads a keyword-keyed value from a hash-map.
 func hget(m MalType, key string) (MalType, bool) {
@@ -53,7 +66,7 @@ func hget(m MalType, key string) (MalType, bool) {
 	if !ok {
 		return nil, false
 	}
-	v, ok := hm.Val[kw(key)]
+	v, ok := hm.Items[kw(key)]
 	return v, ok
 }
 
@@ -89,8 +102,8 @@ func toStr(v MalType) string {
 
 // headerName turns a hash-map key (a plain string or a keyword) into an
 // HTTP header name.
-func headerName(k string) string {
-	return http.CanonicalHeaderKey(strings.TrimPrefix(k, "ʞ"))
+func headerName(k MalType) string {
+	return http.CanonicalHeaderKey(kwName(k))
 }
 
 // --- JSON <-> Lisp (for JWT claims) --------------------------------------
@@ -101,11 +114,11 @@ func headerName(k string) string {
 func jsonToMal(v any) MalType {
 	switch v := v.(type) {
 	case map[string]any:
-		out := make(map[string]MalType, len(v))
+		out := make(map[MalType]MalType, len(v))
 		for k, val := range v {
 			out[kw(k)] = jsonToMal(val)
 		}
-		return HashMap{Val: out}
+		return HashMap{Items: out}
 	case []any:
 		out := make([]MalType, len(v))
 		for i, e := range v {
@@ -125,16 +138,17 @@ func jsonToMal(v any) MalType {
 // malToJSON converts Lisp data to a Go value ready for json.Marshal,
 // producing clean JSON for HTTP clients: keyword map keys and keyword
 // values lose their sigil (:id → "id", :active → "active"), since JSON
-// has no keyword type. This is what a REST client expects, unlike the
-// core json-encode which preserves keywords for lossless round-tripping.
+// has no keyword type — the same convention core's json-encode follows.
 func malToJSON(v MalType) any {
 	switch v := v.(type) {
+	case Keyword:
+		return string(v)
 	case string:
-		return strings.TrimPrefix(v, "ʞ")
+		return v
 	case HashMap:
-		m := make(map[string]any, len(v.Val))
-		for k, val := range v.Val {
-			m[strings.TrimPrefix(k, "ʞ")] = malToJSON(val)
+		m := make(map[string]any, len(v.Items))
+		for k, val := range v.Items {
+			m[kwName(k)] = malToJSON(val)
 		}
 		return m
 	case List:
@@ -174,13 +188,13 @@ func requestMap(r *http.Request) (HashMap, error) {
 		return HashMap{}, err
 	}
 
-	headers := make(map[string]MalType, len(r.Header))
+	headers := make(map[MalType]MalType, len(r.Header))
 	for name, vals := range r.Header {
 		if len(vals) > 0 {
 			headers[strings.ToLower(name)] = vals[0]
 		}
 	}
-	query := make(map[string]MalType)
+	query := make(map[MalType]MalType)
 	for name, vals := range r.URL.Query() {
 		if len(vals) > 0 {
 			query[name] = vals[0]
@@ -192,16 +206,16 @@ func requestMap(r *http.Request) (HashMap, error) {
 		scheme = "https"
 	}
 
-	m := map[string]MalType{
-		kw("method"):      NewKeyword(strings.ToLower(r.Method)),
+	m := map[MalType]MalType{
+		kw("method"):      KW(strings.ToLower(r.Method)),
 		kw("uri"):         r.URL.Path,
-		kw("query"):       HashMap{Val: query},
-		kw("headers"):     HashMap{Val: headers},
+		kw("query"):       HashMap{Items: query},
+		kw("headers"):     HashMap{Items: headers},
 		kw("body"):        string(body),
 		kw("remote-addr"): r.RemoteAddr,
-		kw("scheme"):      NewKeyword(scheme),
+		kw("scheme"):      KW(scheme),
 		kw("protocol"):    r.Proto,
-		kw("path-params"): HashMap{Val: map[string]MalType{}},
+		kw("path-params"): HashMap{Items: map[MalType]MalType{}},
 	}
 
 	// mTLS: when the transport verified a client certificate, expose its
@@ -212,7 +226,7 @@ func requestMap(r *http.Request) (HashMap, error) {
 		for i, s := range leaf.DNSNames {
 			sans[i] = s
 		}
-		m[kw("mtls")] = HashMap{Val: map[string]MalType{
+		m[kw("mtls")] = HashMap{Items: map[MalType]MalType{
 			kw("subject-cn"): leaf.Subject.CommonName,
 			kw("subject"):    leaf.Subject.String(),
 			kw("issuer-cn"):  leaf.Issuer.CommonName,
@@ -221,7 +235,7 @@ func requestMap(r *http.Request) (HashMap, error) {
 			kw("verified"):   true,
 		}}
 	}
-	return HashMap{Val: m}, nil
+	return HashMap{Items: m}, nil
 }
 
 // writeResponse writes a Ring response hash-map to the ResponseWriter.
@@ -238,7 +252,7 @@ func writeResponse(w http.ResponseWriter, resp MalType) {
 	}
 	if h, ok := hget(hm, "headers"); ok {
 		if hh, ok := h.(HashMap); ok {
-			for k, v := range hh.Val {
+			for k, v := range hh.Items {
 				w.Header().Set(headerName(k), toStr(v))
 			}
 		}
@@ -293,7 +307,7 @@ func tlsConfig(config MalType) (*tls.Config, error) {
 		cfg.ClientAuth = tls.RequireAndVerifyClientCert // default when a CA is given
 	}
 	if v, ok := hget(tlsMap, "client-auth"); ok {
-		name := strings.TrimPrefix(toStr(v), "ʞ")
+		name := kwName(v)
 		at, ok := clientAuthTypes[name]
 		if !ok {
 			return nil, fmt.Errorf("web-serve: unknown :client-auth %q", name)
@@ -402,9 +416,9 @@ func compileRoutes(routes MalType) ([]route, error) {
 		if !ok {
 			return nil, errors.New("web-router: route methods must be a hash-map")
 		}
-		methods := make(map[string]MalType, len(mm.Val))
-		for k, v := range mm.Val {
-			methods[strings.ToLower(strings.TrimPrefix(k, "ʞ"))] = v
+		methods := make(map[string]MalType, len(mm.Items))
+		for k, v := range mm.Items {
+			methods[strings.ToLower(kwName(k))] = v
 		}
 		out = append(out, route{segments: splitPath(path), methods: methods})
 	}
@@ -421,11 +435,11 @@ func splitPath(p string) []string {
 
 // matchRoute matches a request path against a compiled route, returning
 // the captured path params on success.
-func matchRoute(r route, path []string) (map[string]MalType, bool) {
+func matchRoute(r route, path []string) (map[MalType]MalType, bool) {
 	if len(r.segments) != len(path) {
 		return nil, false
 	}
-	params := map[string]MalType{}
+	params := map[MalType]MalType{}
 	for i, seg := range r.segments {
 		if strings.HasPrefix(seg, ":") {
 			params[kw(seg[1:])] = path[i]
@@ -440,9 +454,9 @@ func matchRoute(r route, path []string) (map[string]MalType, bool) {
 
 // notFound and methodNotAllowed are the router's built-in fallbacks.
 func statusResponse(status int, msg string) HashMap {
-	return HashMap{Val: map[string]MalType{
+	return HashMap{Items: map[MalType]MalType{
 		kw("status"):  status,
-		kw("headers"): HashMap{Val: map[string]MalType{"content-type": "text/plain; charset=utf-8"}},
+		kw("headers"): HashMap{Items: map[MalType]MalType{"content-type": "text/plain; charset=utf-8"}},
 		kw("body"):    msg,
 	}}
 }
@@ -460,7 +474,7 @@ func webRouter(routes MalType) (MalType, error) {
 		}
 		req := args[0]
 		path := splitPath(hgetStr(req, "uri", "/"))
-		method := strings.TrimPrefix(toStr(mustGet(req, "method")), "ʞ")
+		method := kwName(mustGet(req, "method"))
 		pathMatched := false
 		for _, rt := range compiled {
 			params, ok := matchRoute(rt, path)
@@ -474,10 +488,10 @@ func webRouter(routes MalType) (MalType, error) {
 			}
 			// assoc :path-params into the request and dispatch.
 			reqHM := req.(HashMap)
-			merged := make(map[string]MalType, len(reqHM.Val)+1)
-			maps.Copy(merged, reqHM.Val)
-			merged[kw("path-params")] = HashMap{Val: params}
-			return Apply(ctx, handler, []MalType{HashMap{Val: merged}})
+			merged := make(map[MalType]MalType, len(reqHM.Items)+1)
+			maps.Copy(merged, reqHM.Items)
+			merged[kw("path-params")] = HashMap{Items: params}
+			return Apply(ctx, handler, []MalType{HashMap{Items: merged}})
 		}
 		if pathMatched {
 			return statusResponse(http.StatusMethodNotAllowed, "405 method not allowed"), nil
@@ -575,10 +589,9 @@ var webLogger = slog.New(slog.NewJSONHandler(os.Stderr, nil))
 // sigil, strings/numbers pass through, everything else is printed.
 func logValue(v MalType) any {
 	switch v := v.(type) {
+	case Keyword:
+		return string(v)
 	case string:
-		if strings.HasPrefix(v, "ʞ") {
-			return strings.TrimPrefix(v, "ʞ")
-		}
 		return v
 	case int, float32, float64, bool, nil:
 		return v
@@ -589,16 +602,16 @@ func logValue(v MalType) any {
 
 // webLog logs msg at level with alternating key/value attributes:
 // (web-log :info "message" "key" value …).
-func webLog(level, msg string, kv ...MalType) (MalType, error) {
+func webLog(level MalType, msg string, kv ...MalType) (MalType, error) {
 	attrs := make([]any, 0, len(kv))
 	for i, v := range kv {
 		if i%2 == 0 {
-			attrs = append(attrs, strings.TrimPrefix(toStr(v), "ʞ"))
+			attrs = append(attrs, kwName(v))
 		} else {
 			attrs = append(attrs, logValue(v))
 		}
 	}
-	switch strings.TrimPrefix(level, "ʞ") {
+	switch kwName(level) {
 	case "debug":
 		webLogger.Debug(msg, attrs...)
 	case "warn":

@@ -86,7 +86,7 @@ func coverableLines(path string) (map[int]bool, error) {
 			}
 		case types.HashMap:
 			mark(f.Cursor)
-			for _, c := range f.Val {
+			for _, c := range f.Items {
 				walk(c)
 			}
 		case types.Symbol:

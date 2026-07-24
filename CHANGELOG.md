@@ -6,6 +6,82 @@ pre-1.0, so minor tags can carry behaviour changes; the ones that may
 need action when upgrading are called out under **Changed** with a
 migration note.
 
+## 0.4 (unreleased, branch `proto/keyword-type`)
+
+### ⚠️ Changed — keywords are a first-class type
+
+Keywords are now a dedicated Go type, `types.Keyword`, instead of a
+string carrying a `ʞ` (U+029E) prefix. Hash-map keys and set elements
+are `map[types.MalType]…`, restricted to strings and keywords
+(validated at construction). **Lisp code is unaffected** — `:foo`
+reads, prints, compares and hashes exactly as before — but the type
+split fixes real bugs:
+
+- External data can no longer forge keywords: a JSON value `"ʞx"`
+  used to *become* the keyword `:x` (`keyword?` true, `string?`
+  false); it now stays a string. This closed a data-driven type
+  confusion affecting every input path (`json-decode`, `lib/web`,
+  `lib/sql`, files) and `--integrity` runs.
+- `(json-encode {:a 1})` returns `{"a":1}` — the internal prefix no
+  longer leaks (`{"ʞa":1}` before).
+- A literal `ʞ` inside a string survives reading; the reader used the
+  same rune as an unescape sentinel and silently corrupted it to `\`.
+- `(seq :ab)` errors instead of splitting the keyword as a string.
+
+**JSON round-trips are no longer lossless, by design**: keyword keys
+and values serialise as their bare name, and `json-decode` keeps
+producing plain string keys (as in Clojure), so
+`(get (json-decode {} (json-encode {:a 1})) :a)` must become
+`(get … "a")`. The old losslessness existed only because the prefix
+leaked into the wire format.
+
+### Migration (embedders — Go code using jig/lisp)
+
+Scripts and lisp data files need no changes. Go code embedding the
+interpreter recompiles against three deliberate compile-time breaks:
+
+1. **`HashMap.Val` and `Set.Val` are renamed to `Items`**, with key
+   type `map[types.MalType]MalType` / `map[types.MalType]struct{}`.
+   Every literal and access breaks loudly on purpose: with the old
+   field name kept, `hm.Val["ʞa"]` would have compiled against the new
+   key type and silently returned `nil`.
+2. **`"ʞ…"` string literals** used as keys or values must become
+   `types.KW("…")`. Fixing the `Items` errors leads the compiler to
+   each one.
+3. **`types.NewKeyword` returns `types.Keyword`** (kept as a
+   deprecated alias of the new constructor `types.KW`); assignments to
+   `string` variables and comparisons against strings stop compiling.
+
+Unchanged: `List.Val`/`Vector.Val`, `Symbol`, `REPL`/`EVAL`/`READ`,
+`AddPreamble` (placeholder names stay `map[string]MalType`), and all
+of `lnotation` (`L`/`S`/`LS`/`V`/`HM`/`SET`).
+`marshalingexample_test.go` shows a typical embedder marshaler before
+and after.
+
+After the compiler is happy, audit for the changes that *don't* break
+compilation:
+
+- `case string:` branches in type switches that used to receive
+  keywords: keywords no longer match — add `case types.Keyword:`.
+- Custom builtins registered through `lib/call` with `string`
+  parameters that lisp code calls with keywords: they now return a
+  lisp error at call time (`reflect: Call using types.Keyword as type
+  string`) — widen the parameter to `types.Keyword` or
+  `types.MalType`.
+- `key.(string)` assertions with `, ok` over map keys: they now fail
+  (silently, if only `ok` is checked) for keyword keys.
+- `types.Keyword_Q(someGoString)` is now always false; `%T` prints
+  `types.Keyword`.
+- Keyword-keyed JSON round-trips: switch post-decode lookups to
+  string keys (see above).
+
+A quick sweep finds the risky spots:
+
+```sh
+grep -rn 'ʞ' --include='*.go' .
+grep -rn 'case string\|\.(string)\|Keyword_Q' --include='*.go' .
+```
+
 ## Unreleased (since v0.2.24)
 
 ### ⚠️ Changed — file I/O moved from `core` to `system`

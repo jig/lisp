@@ -412,7 +412,7 @@ func envArglistDoc(v types.MalType) (arglist, doc string) {
 		return t.Arglist, t.Doc
 	case types.MalFunc:
 		if hm, ok := t.Meta.(types.HashMap); ok {
-			if s, ok := hm.Val["ʞdoc"].(string); ok {
+			if s, ok := hm.Items[types.KW("doc")].(string); ok {
 				doc = s
 			}
 		}

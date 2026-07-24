@@ -22,9 +22,9 @@ type LispMarshalExample struct {
 
 func (lec LispMarshalExample) MarshalHashMap() (types.MalType, error) {
 	return types.HashMap{
-		Val: map[string]types.MalType{
-			"ʞa": lec.Val.A,
-			"ʞb": lec.Val.B,
+		Items: map[types.MalType]types.MalType{
+			types.KW("a"): lec.Val.A,
+			types.KW("b"): lec.Val.B,
 		},
 	}, nil
 }
@@ -40,8 +40,8 @@ func new_marshalexample() (types.MalType, error) {
 func (lec LispMarshalExampleFactory) FromHashMap(_hm types.MalType) (types.MalType, error) {
 	hm := _hm.(types.HashMap)
 	ex := MarshalExample{
-		A: hm.Val["ʞa"].(int),
-		B: hm.Val["ʞb"].(string),
+		A: hm.Items[types.KW("a")].(int),
+		B: hm.Items[types.KW("b")].(string),
 	}
 	return LispMarshalExample{ex}, nil
 }

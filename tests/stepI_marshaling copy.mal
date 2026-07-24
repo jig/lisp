@@ -2,42 +2,42 @@
 ;=>"{}"
 
 (json-encode {:a 1})
-;=>¬{"ʞa":1}¬
+;=>¬{"a":1}¬
 
-(get (json-decode {} (json-encode {:a 1 :b 2})) :a)
+
+;; JSON has no keyword type: keyword keys serialise as their bare name
+;; and come back from json-decode as plain strings (as in Clojure).
+(get (json-decode {} (json-encode {:a 1 :b 2})) "a")
 ;=>1
-(get (json-decode {} (json-encode {:a 1 :b 2})) :b)
+(get (json-decode {} (json-encode {:a 1 :b 2})) "b")
 ;=>2
 
-(get (json-decode {} (json-encode {:a 1 :b {}})) :b)
+(get (json-decode {} (json-encode {:a 1 :b {}})) "b")
 ;=>{}
 
-(get-in (json-decode {} (json-encode {:a 1 :b {:c 3}})) [:b :c])
+(get-in (json-decode {} (json-encode {:a 1 :b {:c 3}})) ["b" "c"])
 ;=>3
 
 (json-encode #{})
 ;=>"[]"
 
-;; TODO(jig): conversion of keywords to JSON
 (json-encode #{:a})
-;=>"[\"ʞa\"]"
+;=>"[\"a\"]"
 
-(get (json-decode #{} (json-encode #{:a :b})) :a)
-;=>:a
+(get (json-decode #{} (json-encode #{:a :b})) "a")
+;=>"a"
 
-(contains? (json-decode #{} (json-encode #{:a :b})) :a)
+(contains? (json-decode #{} (json-encode #{:a :b})) "a")
 ;=>true
 
 (json-encode [])
 ;=>"[]"
 
-;; TODO(jig): conversion of keywords to JSON
 (json-encode [:a])
-;=>"[\"ʞa\"]"
+;=>"[\"a\"]"
 
-;; TODO(jig): conversion of keywords to JSON
 (json-encode [:a :b])
-;=>"[\"ʞa\",\"ʞb\"]"
+;=>"[\"a\",\"b\"]"
 
 (json-encode 1984)
 ;=>"1984"

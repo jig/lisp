@@ -85,9 +85,9 @@ func ed25519_generate() (MalType, error) {
 	if err != nil {
 		return nil, err
 	}
-	return HashMap{Val: map[string]MalType{
-		NewKeyword("public"):  base64.StdEncoding.EncodeToString(pub),
-		NewKeyword("private"): base64.StdEncoding.EncodeToString(priv),
+	return HashMap{Items: map[MalType]MalType{
+		KW("public"):  base64.StdEncoding.EncodeToString(pub),
+		KW("private"): base64.StdEncoding.EncodeToString(priv),
 	}}, nil
 }
 

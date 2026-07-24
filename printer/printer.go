@@ -56,15 +56,15 @@ func Pr_str(obj types.MalType, print_readably bool) string {
 	case types.HashMap:
 		return hashMapToString(tobj, print_readably)
 	case types.Set:
-		str_list := make([]string, 0, len(tobj.Val))
-		for k := range tobj.Val {
+		str_list := make([]string, 0, len(tobj.Items))
+		for k := range tobj.Items {
 			str_list = append(str_list, Pr_str(k, print_readably))
 		}
 		return "#{" + strings.Join(str_list, " ") + "}"
+	case types.Keyword:
+		return ":" + string(tobj)
 	case string:
-		if strings.HasPrefix(tobj, "\u029e") {
-			return ":" + tobj[2:]
-		} else if print_readably {
+		if print_readably {
 			if strings.HasPrefix(tobj, `{"`) && strings.HasSuffix(tobj, `}`) {
 				return `¬` + strings.Replace(tobj, `¬`, `¬¬`, -1) + `¬`
 			} else {
@@ -135,8 +135,8 @@ func bigIntToHex(i *big.Int) string {
 }
 
 func hashMapToString(tobj types.HashMap, print_readably bool) string {
-	str_list := make([]string, 0, len(tobj.Val)*2)
-	for k, v := range tobj.Val {
+	str_list := make([]string, 0, len(tobj.Items)*2)
+	for k, v := range tobj.Items {
 		str_list = append(str_list, Pr_str(k, print_readably))
 		str_list = append(str_list, Pr_str(v, print_readably))
 	}

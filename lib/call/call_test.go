@@ -95,7 +95,7 @@ func TestPackageRegister(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	set := hm.(types.HashMap).Val["github.com/jig/lisp/lib/call"].(types.Set).Val
+	set := hm.(types.HashMap).Items["github.com/jig/lisp/lib/call"].(types.Set).Items
 	if len(set) != 4 {
 		t.Fatal("test failed")
 	}
@@ -254,9 +254,9 @@ func count(seq types.MalType) (types.MalType, error) {
 	case types.Vector:
 		return len(seq.Val), nil
 	case types.HashMap:
-		return len(seq.Val), nil
+		return len(seq.Items), nil
 	case types.Set:
-		return len(seq.Val), nil
+		return len(seq.Items), nil
 	case nil:
 		return 0, nil
 	default:
@@ -271,9 +271,9 @@ func empty_Q(seq types.MalType) (types.MalType, error) {
 	case types.Vector:
 		return len(seq.Val) == 0, nil
 	case types.HashMap:
-		return len(seq.Val) == 0, nil
+		return len(seq.Items) == 0, nil
 	case types.Set:
-		return len(seq.Val) == 0, nil
+		return len(seq.Items) == 0, nil
 	case nil:
 		return true, nil
 	default:

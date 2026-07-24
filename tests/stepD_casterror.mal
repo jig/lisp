@@ -7,7 +7,7 @@
 ;=>nil
 
 (+ 1 :hello)
-;/^.*not a number \(was of type string\)"
+;/^.*not a number \(was of type types.Keyword\)"
 ;=>nil
 
 (+ 1 "hello")

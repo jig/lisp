@@ -36,7 +36,7 @@ func TestPlaceholders(t *testing.T) {
 		str,
 		nil,
 		&HashMap{
-			Val: map[string]MalType{
+			Items: map[MalType]MalType{
 				"$0":      "hello",
 				"$1":      "{\"key\": \"value\"}",
 				"$NUMBER": 44,
@@ -150,10 +150,10 @@ func TestREADWithPreamble(t *testing.T) {
 		if !ok {
 			t.Fatal("no {\"key\": \"value\"}")
 		}
-		if len(h.Val) != 1 {
+		if len(h.Items) != 1 {
 			t.Fatal("pum")
 		}
-		if h.Val["key"].(string) != "value" {
+		if h.Items["key"].(string) != "value" {
 			t.Fatal("pum2")
 		}
 
@@ -642,10 +642,10 @@ func TestHashMapMarshalers(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if goStruct.(HashMap).Val["ʞa"] != 1984 {
+		if goStruct.(HashMap).Items[KW("a")] != 1984 {
 			t.Fatal("no 1984")
 		}
-		if goStruct.(HashMap).Val["ʞb"] != "I am B" {
+		if goStruct.(HashMap).Items[KW("b")] != "I am B" {
 			t.Fatal("no B")
 		}
 	}

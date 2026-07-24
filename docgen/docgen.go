@@ -175,7 +175,7 @@ func malFuncDoc(f types.MalFunc) string {
 	if !ok {
 		return ""
 	}
-	if d, ok := hm.Val[types.NewKeyword("doc")].(string); ok {
+	if d, ok := hm.Items[types.KW("doc")].(string); ok {
 		return d
 	}
 	return ""

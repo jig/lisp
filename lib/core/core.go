@@ -73,11 +73,14 @@ func Load(env EnvType) {
 	call.Call(env, mAp)
 	call.Call(env, throw)
 	call.CallOverrideFN(env, "symbol", func(a string) (Symbol, error) { return Symbol{Val: a}, nil })
-	call.CallOverrideFN(env, "keyword", func(a string) (string, error) {
-		if Keyword_Q(a) {
+	call.CallOverrideFN(env, "keyword", func(a MalType) (Keyword, error) {
+		switch a := a.(type) {
+		case Keyword:
 			return a, nil
-		} else {
-			return NewKeyword(a), nil
+		case string:
+			return KW(a), nil
+		default:
+			return "", fmt.Errorf("keyword requires a string or a keyword (found %T)", a)
 		}
 	})
 	call.Call(env, sPew)
@@ -336,29 +339,29 @@ func version() (HashMap, error) {
 	if !ok {
 		return HashMap{}, nil
 	}
-	build := map[string]MalType{}
+	build := map[MalType]MalType{}
 	for _, s := range bi.Settings {
 		build[s.Key] = s.Value
 	}
-	deps := map[string]MalType{}
+	deps := map[MalType]MalType{}
 	for _, d := range bi.Deps {
 		if d.Replace == nil {
-			deps[d.Path] = HashMap{Val: map[string]MalType{
-				"ʞversion": d.Version,
-				"ʞsum":     d.Sum,
+			deps[d.Path] = HashMap{Items: map[MalType]MalType{
+				KW("version"): d.Version,
+				KW("sum"):     d.Sum,
 			}}
 		} else {
-			deps[d.Path] = HashMap{Val: map[string]MalType{
-				"ʞversion": d.Version,
-				"ʞsum":     d.Sum,
-				"ʞreplace": d.Replace,
+			deps[d.Path] = HashMap{Items: map[MalType]MalType{
+				KW("version"): d.Version,
+				KW("sum"):     d.Sum,
+				KW("replace"): d.Replace,
 			}}
 		}
 	}
-	return HashMap{Val: map[string]MalType{
-		"ʞgo-version":   bi.GoVersion,
-		"ʞbuild":        HashMap{Val: build},
-		"ʞdependencies": HashMap{Val: deps},
+	return HashMap{Items: map[MalType]MalType{
+		KW("go-version"):   bi.GoVersion,
+		KW("build"):        HashMap{Items: build},
+		KW("dependencies"): HashMap{Items: deps},
 	}}, nil
 }
 
@@ -424,10 +427,9 @@ func istype(arg MalType) (string, error) {
 		return "boolean", nil
 	case Symbol:
 		return "symbol", nil
+	case Keyword:
+		return "keyword", nil
 	case string:
-		if len(arg) != 0 && strings.HasPrefix(arg, "ʞ") {
-			return "keyword", nil
-		}
 		return "string", nil
 	case MalFunc:
 		return "function", nil
@@ -786,23 +788,23 @@ func time_parse(s string) (int, error) {
 // matching core's time-ms/time-format. hm is read, never mutated.
 func time_add(millis int, hm HashMap) (int, error) {
 	var d struct{ years, months, days, hours, minutes, seconds, millis int }
-	fields := map[string]*int{
-		NewKeyword("years"):        &d.years,
-		NewKeyword("months"):       &d.months,
-		NewKeyword("days"):         &d.days,
-		NewKeyword("hours"):        &d.hours,
-		NewKeyword("minutes"):      &d.minutes,
-		NewKeyword("seconds"):      &d.seconds,
-		NewKeyword("milliseconds"): &d.millis,
+	fields := map[MalType]*int{
+		KW("years"):        &d.years,
+		KW("months"):       &d.months,
+		KW("days"):         &d.days,
+		KW("hours"):        &d.hours,
+		KW("minutes"):      &d.minutes,
+		KW("seconds"):      &d.seconds,
+		KW("milliseconds"): &d.millis,
 	}
-	for key, v := range hm.Val {
+	for key, v := range hm.Items {
 		p, ok := fields[key]
 		if !ok {
-			return 0, fmt.Errorf("time-add: unsupported parameter %q", strings.TrimPrefix(key, "ʞ"))
+			return 0, fmt.Errorf("time-add: unsupported parameter %q", key)
 		}
 		n, ok := v.(int)
 		if !ok {
-			return 0, fmt.Errorf("time-add: %s must be an integer (was %T)", strings.TrimPrefix(key, "ʞ"), v)
+			return 0, fmt.Errorf("time-add: %v must be an integer (was %T)", key, v)
 		}
 		*p = n
 	}
@@ -829,17 +831,17 @@ func time_after(t1, t2 int) (bool, error) {
 
 // Hash Map, Set, Vector functions
 func copy_hash_map(hm HashMap) HashMap {
-	new_hm := HashMap{Val: map[string]MalType{}}
-	for k, v := range hm.Val {
-		new_hm.Val[k] = v
+	new_hm := HashMap{Items: map[MalType]MalType{}}
+	for k, v := range hm.Items {
+		new_hm.Items[k] = v
 	}
 	return new_hm
 }
 
 func copy_set(s Set) Set {
-	new_s := Set{Val: map[string]struct{}{}}
-	for k, v := range s.Val {
-		new_s.Val[k] = v
+	new_s := Set{Items: map[MalType]struct{}{}}
+	for k, v := range s.Items {
+		new_s.Items[k] = v
 	}
 	return new_s
 }
@@ -863,10 +865,10 @@ func assoc(a ...MalType) (MalType, error) {
 		new_hm := copy_hash_map(ms)
 		for i := 1; i < len(a); i += 2 {
 			key := a[i]
-			if !Q[string](key) {
-				return nil, errors.New("assoc called with non-string key")
+			if !ValidKey(key) {
+				return nil, errors.New("assoc called with non-string non-keyword key")
 			}
-			new_hm.Val[key.(string)] = a[i+1]
+			new_hm.Items[key] = a[i+1]
 		}
 		return new_hm, nil
 	case Vector:
@@ -889,10 +891,10 @@ func assoc(a ...MalType) (MalType, error) {
 		}
 		new_s := copy_set(ms)
 		for _, value := range a[1:] {
-			if !Q[string](value) {
-				return nil, errors.New("assoc called with non-string key")
+			if !ValidKey(value) {
+				return nil, errors.New("assoc called with non-string non-keyword key")
 			}
-			new_s.Val[value.(string)] = struct{}{}
+			new_s.Items[value] = struct{}{}
 		}
 		return new_s, nil
 	default:
@@ -910,19 +912,19 @@ func dissoc(a ...MalType) (MalType, error) {
 		new_hm := copy_hash_map(ms)
 		for i := 1; i < len(a); i += 1 {
 			key := a[i]
-			if !Q[string](key) {
-				return nil, errors.New("dissoc called with non-string key")
+			if !ValidKey(key) {
+				return nil, errors.New("dissoc called with non-string non-keyword key")
 			}
-			delete(new_hm.Val, key.(string))
+			delete(new_hm.Items, key)
 		}
 		return new_hm, nil
 	case Set:
 		new_s := copy_set(ms)
 		for _, value := range a[1:] {
-			if !Q[string](value) {
-				return nil, errors.New("dissoc called with non-string key")
+			if !ValidKey(value) {
+				return nil, errors.New("dissoc called with non-string non-keyword key")
 			}
-			delete(new_s.Val, value.(string))
+			delete(new_s.Items, value)
 		}
 		return new_s, nil
 	default:
@@ -935,22 +937,36 @@ func get(hm, key MalType) (MalType, error) {
 		return nil, nil
 	}
 	switch key.(type) {
-	case string:
+	case string, Keyword:
 	case int:
 	default:
-		return nil, errors.New("get called with non-string key nor a non-int key")
+		return nil, errors.New("get called with non-string, non-keyword, non-int key")
 	}
 	ms := hm
 	switch ms := ms.(type) {
 	case HashMap:
-		return ms.Val[key.(string)], nil
+		if !ValidKey(key) {
+			return nil, errors.New("get on a hash-map requires a string or keyword key")
+		}
+		return ms.Items[key], nil
 	case Vector:
-		return ms.Val[key.(int)], nil
+		i, ok := key.(int)
+		if !ok {
+			return nil, errors.New("get on a vector requires an int key")
+		}
+		return ms.Val[i], nil
 	case List:
-		return ms.Val[key.(int)], nil
+		i, ok := key.(int)
+		if !ok {
+			return nil, errors.New("get on a list requires an int key")
+		}
+		return ms.Val[i], nil
 	case Set:
-		if _, ok := ms.Val[key.(string)]; ok {
-			return key.(string), nil
+		if !ValidKey(key) {
+			return nil, errors.New("get on a set requires a string or keyword key")
+		}
+		if _, ok := ms.Items[key]; ok {
+			return key, nil
 		}
 		return nil, nil
 	default:
@@ -982,7 +998,7 @@ func _getIn(argMapOrVector MalType, posVector Vector) (MalType, error) {
 		var branch MalType
 		switch argMapOrVector := argMapOrVector.(type) {
 		case HashMap:
-			branch = argMapOrVector.Val[index.(string)]
+			branch = argMapOrVector.Items[index]
 			if branch == nil {
 				branch = HashMap{}
 			}
@@ -1011,7 +1027,7 @@ func update(ctx context.Context, hm, pos, f MalType) (MalType, error) {
 func _update(ctx context.Context, argMapOrVector, index, f MalType) (MalType, error) {
 	switch argMapOrVector := argMapOrVector.(type) {
 	case HashMap:
-		res, err := Apply(ctx, f, []MalType{argMapOrVector.Val[index.(string)]})
+		res, err := Apply(ctx, f, []MalType{argMapOrVector.Items[index]})
 		if err != nil {
 			return nil, err
 		}
@@ -1047,7 +1063,7 @@ func _updateIn(ctx context.Context, seq MalType, posVector Vector, f MalType) (M
 		var branch MalType
 		switch seq := seq.(type) {
 		case HashMap:
-			branch = seq.Val[index.(string)]
+			branch = seq.Items[index]
 			if branch == nil {
 				branch = HashMap{}
 			}
@@ -1089,7 +1105,7 @@ func _assocIn(argMapOrVector MalType, posVector Vector, newValue MalType) (MalTy
 		var branch MalType
 		switch argMapOrVector := argMapOrVector.(type) {
 		case HashMap:
-			branch = argMapOrVector.Val[index.(string)]
+			branch = argMapOrVector.Items[index]
 			if branch == nil {
 				branch = HashMap{}
 			}
@@ -1107,16 +1123,16 @@ func _assocIn(argMapOrVector MalType, posVector Vector, newValue MalType) (MalTy
 	}
 }
 
-func contains_Q(hm MalType, key string) (bool, error) {
+func contains_Q(hm MalType, key MalType) (bool, error) {
 	if Nil_Q(hm) {
 		return false, nil
 	}
 	switch hm := hm.(type) {
 	case HashMap:
-		_, ok := hm.Val[key]
+		_, ok := hm.Items[key]
 		return ok, nil
 	case Set:
-		_, ok := hm.Val[key]
+		_, ok := hm.Items[key]
 		return ok, nil
 	default:
 		return false, errors.New("get called on non-hash map and a non-set")
@@ -1127,7 +1143,7 @@ func keys(hm MalType) (List, error) {
 	switch hm := hm.(type) {
 	case HashMap:
 		slc := []MalType{}
-		for k := range hm.Val {
+		for k := range hm.Items {
 			slc = append(slc, k)
 		}
 		return List{Val: slc}, nil
@@ -1141,7 +1157,7 @@ func vals(hm MalType) (List, error) {
 		return List{}, errors.New("vals called on non-hash map")
 	}
 	slc := []MalType{}
-	for _, v := range hm.(HashMap).Val {
+	for _, v := range hm.(HashMap).Items {
 		slc = append(slc, v)
 	}
 	return List{Val: slc}, nil
@@ -1242,9 +1258,9 @@ func empty_Q(seq MalType) (bool, error) {
 	case Vector:
 		return len(seq.Val) == 0, nil
 	case HashMap:
-		return len(seq.Val) == 0, nil
+		return len(seq.Items) == 0, nil
 	case Set:
-		return len(seq.Val) == 0, nil
+		return len(seq.Items) == 0, nil
 	case nil:
 		return true, nil
 	default:
@@ -1259,9 +1275,9 @@ func count(seq MalType) (int, error) {
 	case Vector:
 		return len(seq.Val), nil
 	case HashMap:
-		return len(seq.Val), nil
+		return len(seq.Items), nil
 	case Set:
-		return len(seq.Val), nil
+		return len(seq.Items), nil
 	case nil:
 		return 0, nil
 	default:
@@ -1336,19 +1352,19 @@ func conj(a ...MalType) (MalType, error) {
 		}
 		for i := 1; i < len(a); i += 2 {
 			key := a[i]
-			if !Q[string](key) {
-				return nil, errors.New("conj called with non-string key")
+			if !ValidKey(key) {
+				return nil, errors.New("conj called with non-string non-keyword key")
 			}
-			new_hm.Val[key.(string)] = a[i+1]
+			new_hm.Items[key] = a[i+1]
 		}
 		return new_hm, nil
 	case Set:
 		new_s := copy_set(seq)
 		for _, key := range a[1:] {
-			if !Q[string](key) {
-				return nil, errors.New("conj called with non-string key")
+			if !ValidKey(key) {
+				return nil, errors.New("conj called with non-string non-keyword key")
 			}
-			new_s.Val[key.(string)] = struct{}{}
+			new_s.Items[key] = struct{}{}
 		}
 		return new_s, nil
 	default:
@@ -1374,8 +1390,8 @@ func isMapEntry(v MalType) bool {
 // in place. Keys must be strings or keywords, as elsewhere for maps.
 func conjMapEntry(hm HashMap, entry MalType) error {
 	if e, ok := entry.(HashMap); ok {
-		for k, v := range e.Val {
-			hm.Val[k] = v
+		for k, v := range e.Items {
+			hm.Items[k] = v
 		}
 		return nil
 	}
@@ -1384,10 +1400,10 @@ func conjMapEntry(hm HashMap, entry MalType) error {
 		return errors.New("conj: map entry must be a [key value] pair or a map")
 	}
 	key := slc[0]
-	if !Q[string](key) {
-		return errors.New("conj called with non-string key")
+	if !ValidKey(key) {
+		return errors.New("conj called with non-string non-keyword key")
 	}
-	hm.Val[key.(string)] = slc[1]
+	hm.Items[key] = slc[1]
 	return nil
 }
 
@@ -1404,13 +1420,13 @@ func seq(seq MalType) (MalType, error) {
 		}
 		return List{Val: arg.Val}, nil
 	case HashMap:
-		if len(arg.Val) == 0 {
+		if len(arg.Items) == 0 {
 			return nil, nil
 		}
 		slc, _ := GetSlice(arg)
 		return List{Val: slc}, nil
 	case Set:
-		if len(arg.Val) == 0 {
+		if len(arg.Items) == 0 {
 			return nil, nil
 		}
 		slc, _ := GetSlice(arg)
@@ -1438,9 +1454,9 @@ func with_meta(obj, meta MalType) (MalType, error) {
 	case Vector:
 		return Vector{Val: tobj.Val, Meta: meta}, nil
 	case HashMap:
-		return HashMap{Val: tobj.Val, Meta: meta}, nil
+		return HashMap{Items: tobj.Items, Meta: meta}, nil
 	case Set:
-		return Set{Val: tobj.Val, Meta: meta}, nil
+		return Set{Items: tobj.Items, Meta: meta}, nil
 	case Func:
 		return Func{Fn: tobj.Fn, Meta: meta, Doc: tobj.Doc, Arglist: tobj.Arglist, Cursor: tobj.Cursor}, nil
 	case MalFunc:
@@ -1484,7 +1500,7 @@ func docString(v MalType) (MalType, error) {
 		}
 	case MalFunc:
 		if hm, ok := f.Meta.(HashMap); ok {
-			if d, ok := hm.Val["ʞdoc"]; ok {
+			if d, ok := hm.Items[KW("doc")]; ok {
 				return d, nil
 			}
 		}
@@ -1539,17 +1555,20 @@ func split(str, sep string) (Vector, error) {
 }
 
 func rename_keys(data, alternative HashMap) (HashMap, error) {
-	output := map[string]MalType{}
-	for k, v := range data.Val {
-		newKey, ok := alternative.Val[k]
+	output := map[MalType]MalType{}
+	for k, v := range data.Items {
+		newKey, ok := alternative.Items[k]
 		if ok {
-			output[newKey.(string)] = v
+			if !ValidKey(newKey) {
+				return HashMap{}, errors.New("rename-keys: new key must be a string or keyword")
+			}
+			output[newKey] = v
 		} else {
 			output[k] = v
 		}
 	}
 	return HashMap{
-		Val:    output,
+		Items:  output,
 		Meta:   data.Meta,
 		Cursor: data.Cursor,
 	}, nil
@@ -1616,17 +1635,17 @@ func mErge(_hm0, _hm1 MalType) (MalType, error) {
 			return nil, errors.New("expected hash map")
 		}
 	}
-	if hm0.Val == nil && hm1.Val == nil {
+	if hm0.Items == nil && hm1.Items == nil {
 		return nil, nil
 	}
 	merged := HashMap{
-		Val: make(map[string]MalType),
+		Items: make(map[MalType]MalType),
 	}
-	for k, v := range hm0.Val {
-		merged.Val[k] = v
+	for k, v := range hm0.Items {
+		merged.Items[k] = v
 	}
-	for k, v := range hm1.Val {
-		merged.Val[k] = v
+	for k, v := range hm1.Items {
+		merged.Items[k] = v
 	}
 	return merged, nil
 }
@@ -1706,17 +1725,17 @@ func JSON_Decode(obj, bytesIn MalType) (MalType, error) {
 
 func map2hashmap(m map[string]interface{}) HashMap {
 	hm := HashMap{
-		Val:  map[string]MalType{},
-		Meta: nil,
+		Items: map[MalType]MalType{},
+		Meta:  nil,
 	}
 	for k, v := range m {
 		switch v := v.(type) {
 		case map[string]interface{}:
-			hm.Val[k] = map2hashmap(v)
+			hm.Items[k] = map2hashmap(v)
 		case []interface{}:
-			hm.Val[k] = array2vector(v)
+			hm.Items[k] = array2vector(v)
 		default:
-			hm.Val[k] = v
+			hm.Items[k] = v
 		}
 	}
 	return hm

@@ -314,7 +314,7 @@ func signerOf(v MalType) string {
 	if !ok {
 		return ""
 	}
-	s, _ := m.Val[NewKeyword("signer")].(string)
+	s, _ := m.Items[KW("signer")].(string)
 	return s
 }
 
@@ -338,12 +338,12 @@ func verifySignature(obj payloadEncoder, armored, allowedKeys string) (MalType, 
 	if err := sshsig.Verify(rd, sig, pub, sig.HashAlgorithm, gitNamespace); err != nil {
 		return nil, err
 	}
-	return HashMap{Val: map[string]MalType{
-		NewKeyword("valid"):          true,
-		NewKeyword("key-type"):       pub.Type(),
-		NewKeyword("fingerprint"):    gossh.FingerprintSHA256(pub),
-		NewKeyword("hash-algorithm"): string(sig.HashAlgorithm),
-		NewKeyword("signer"):         comment,
+	return HashMap{Items: map[MalType]MalType{
+		KW("valid"):          true,
+		KW("key-type"):       pub.Type(),
+		KW("fingerprint"):    gossh.FingerprintSHA256(pub),
+		KW("hash-algorithm"): string(sig.HashAlgorithm),
+		KW("signer"):         comment,
 	}}, nil
 }
 

@@ -144,15 +144,15 @@ func call(overrideFN *string, namespace types.EnvType, fIn types.MalType, args .
 
 	_, err := namespace.Update(types.Symbol{Val: "_PACKAGES_"}, func(_hm types.MalType) (types.MalType, error) {
 		if _hm == nil {
-			_hm = types.HashMap{Val: make(map[string]types.MalType)}
+			_hm = types.HashMap{Items: make(map[types.MalType]types.MalType)}
 		}
 		hm := _hm.(types.HashMap)
-		set, ok := hm.Val[packageName].(types.Set)
+		set, ok := hm.Items[packageName].(types.Set)
 		if !ok {
-			set = types.Set{Val: make(map[string]struct{})}
+			set = types.Set{Items: make(map[types.MalType]struct{})}
 		}
-		set.Val[functionName] = struct{}{}
-		hm.Val[packageName] = set
+		set.Items[functionName] = struct{}{}
+		hm.Items[packageName] = set
 		return hm, nil
 	})
 	if err != nil {

@@ -400,16 +400,16 @@ func gitStatus(rv MalType) (MalType, error) {
 	if err != nil {
 		return nil, err
 	}
-	files := HashMap{Val: map[string]MalType{}}
+	files := HashMap{Items: map[MalType]MalType{}}
 	for path, fs := range status {
-		files.Val[path] = HashMap{Val: map[string]MalType{
-			NewKeyword("staging"):  statusKeyword(fs.Staging),
-			NewKeyword("worktree"): statusKeyword(fs.Worktree),
+		files.Items[path] = HashMap{Items: map[MalType]MalType{
+			KW("staging"):  statusKeyword(fs.Staging),
+			KW("worktree"): statusKeyword(fs.Worktree),
 		}}
 	}
-	return HashMap{Val: map[string]MalType{
-		NewKeyword("clean"): status.IsClean(),
-		NewKeyword("files"): files,
+	return HashMap{Items: map[MalType]MalType{
+		KW("clean"): status.IsClean(),
+		KW("files"): files,
 	}}, nil
 }
 
@@ -422,10 +422,10 @@ func gitHead(rv MalType) (MalType, error) {
 	if err != nil {
 		return nil, err
 	}
-	return HashMap{Val: map[string]MalType{
-		NewKeyword("name"):   head.Name().String(),
-		NewKeyword("branch"): head.Name().Short(),
-		NewKeyword("hash"):   head.Hash().String(),
+	return HashMap{Items: map[MalType]MalType{
+		KW("name"):   head.Name().String(),
+		KW("branch"): head.Name().Short(),
+		KW("hash"):   head.Hash().String(),
 	}}, nil
 }
 
@@ -481,10 +481,10 @@ func gitBranches(rv MalType) (MalType, error) {
 	defer iter.Close()
 	out := []MalType{}
 	err = iter.ForEach(func(ref *plumbing.Reference) error {
-		out = append(out, HashMap{Val: map[string]MalType{
-			NewKeyword("name"): ref.Name().Short(),
-			NewKeyword("hash"): ref.Hash().String(),
-			NewKeyword("head"): head != nil && ref.Name() == head.Name(),
+		out = append(out, HashMap{Items: map[MalType]MalType{
+			KW("name"): ref.Name().Short(),
+			KW("hash"): ref.Hash().String(),
+			KW("head"): head != nil && ref.Name() == head.Name(),
 		}})
 		return nil
 	})
@@ -551,9 +551,9 @@ func gitRemotes(rv MalType) (MalType, error) {
 		for _, u := range remote.Config().URLs {
 			urls = append(urls, u)
 		}
-		out = append(out, HashMap{Val: map[string]MalType{
-			NewKeyword("name"): remote.Config().Name,
-			NewKeyword("urls"): Vector{Val: urls},
+		out = append(out, HashMap{Items: map[MalType]MalType{
+			KW("name"): remote.Config().Name,
+			KW("urls"): Vector{Val: urls},
 		}})
 	}
 	return Vector{Val: out}, nil
@@ -600,11 +600,11 @@ func gitTag(rv MalType, name string, params ...MalType) (MalType, error) {
 			return nil, err
 		}
 	}
-	return HashMap{Val: map[string]MalType{
-		NewKeyword("name"):      name,
-		NewKeyword("hash"):      ref.Hash().String(),
-		NewKeyword("target"):    hash.String(),
-		NewKeyword("annotated"): annotated,
+	return HashMap{Items: map[MalType]MalType{
+		KW("name"):      name,
+		KW("hash"):      ref.Hash().String(),
+		KW("target"):    hash.String(),
+		KW("annotated"): annotated,
 	}}, nil
 }
 
@@ -626,11 +626,11 @@ func gitTags(rv MalType) (MalType, error) {
 			target = tag.Target
 			annotated = true
 		}
-		out = append(out, HashMap{Val: map[string]MalType{
-			NewKeyword("name"):      ref.Name().Short(),
-			NewKeyword("hash"):      ref.Hash().String(),
-			NewKeyword("target"):    target.String(),
-			NewKeyword("annotated"): annotated,
+		out = append(out, HashMap{Items: map[MalType]MalType{
+			KW("name"):      ref.Name().Short(),
+			KW("hash"):      ref.Hash().String(),
+			KW("target"):    target.String(),
+			KW("annotated"): annotated,
 		}})
 		return nil
 	})
@@ -660,49 +660,49 @@ func commitMap(c *object.Commit) MalType {
 	for _, p := range c.ParentHashes {
 		parents = append(parents, p.String())
 	}
-	return HashMap{Val: map[string]MalType{
-		NewKeyword("hash"):      c.Hash.String(),
-		NewKeyword("message"):   c.Message,
-		NewKeyword("author"):    signatureMap(c.Author),
-		NewKeyword("committer"): signatureMap(c.Committer),
-		NewKeyword("parents"):   Vector{Val: parents},
-		NewKeyword("signed"):    c.Signature != "" || c.SignatureSHA256 != "",
+	return HashMap{Items: map[MalType]MalType{
+		KW("hash"):      c.Hash.String(),
+		KW("message"):   c.Message,
+		KW("author"):    signatureMap(c.Author),
+		KW("committer"): signatureMap(c.Committer),
+		KW("parents"):   Vector{Val: parents},
+		KW("signed"):    c.Signature != "" || c.SignatureSHA256 != "",
 	}}
 }
 
 func signatureMap(s object.Signature) MalType {
-	return HashMap{Val: map[string]MalType{
-		NewKeyword("name"):  s.Name,
-		NewKeyword("email"): s.Email,
-		NewKeyword("when"):  s.When.Format(time.RFC3339),
+	return HashMap{Items: map[MalType]MalType{
+		KW("name"):  s.Name,
+		KW("email"): s.Email,
+		KW("when"):  s.When.Format(time.RFC3339),
 	}}
 }
 
 func statusKeyword(code gogit.StatusCode) MalType {
 	switch code {
 	case gogit.Unmodified:
-		return NewKeyword("unmodified")
+		return KW("unmodified")
 	case gogit.Untracked:
-		return NewKeyword("untracked")
+		return KW("untracked")
 	case gogit.Modified:
-		return NewKeyword("modified")
+		return KW("modified")
 	case gogit.Added:
-		return NewKeyword("added")
+		return KW("added")
 	case gogit.Deleted:
-		return NewKeyword("deleted")
+		return KW("deleted")
 	case gogit.Renamed:
-		return NewKeyword("renamed")
+		return KW("renamed")
 	case gogit.Copied:
-		return NewKeyword("copied")
+		return KW("copied")
 	case gogit.UpdatedButUnmerged:
-		return NewKeyword("unmerged")
+		return KW("unmerged")
 	default:
-		return NewKeyword("unknown")
+		return KW("unknown")
 	}
 }
 
 // trailingOpts extracts the optional trailing options hashmap.
-func trailingOpts(params []MalType) (map[string]MalType, error) {
+func trailingOpts(params []MalType) (map[MalType]MalType, error) {
 	switch len(params) {
 	case 0:
 		return nil, nil
@@ -711,7 +711,7 @@ func trailingOpts(params []MalType) (map[string]MalType, error) {
 		if !ok {
 			return nil, fmt.Errorf("options must be a map, got %T", params[0])
 		}
-		return hm.Val, nil
+		return hm.Items, nil
 	default:
 		return nil, fmt.Errorf("expected a single options map, got %d arguments", len(params))
 	}
@@ -719,15 +719,15 @@ func trailingOpts(params []MalType) (map[string]MalType, error) {
 
 // optGet finds an option, accepting a keyword key (:name, the idiomatic
 // form) or a plain string key ("name").
-func optGet(o map[string]MalType, name string) (MalType, bool) {
-	if v, ok := o[NewKeyword(name)]; ok {
+func optGet(o map[MalType]MalType, name string) (MalType, bool) {
+	if v, ok := o[KW(name)]; ok {
 		return v, true
 	}
 	v, ok := o[name]
 	return v, ok
 }
 
-func optString(o map[string]MalType, name string) (string, bool, error) {
+func optString(o map[MalType]MalType, name string) (string, bool, error) {
 	v, ok := optGet(o, name)
 	if !ok || v == nil {
 		return "", false, nil
@@ -739,7 +739,7 @@ func optString(o map[string]MalType, name string) (string, bool, error) {
 	return s, true, nil
 }
 
-func optBool(o map[string]MalType, name string) bool {
+func optBool(o map[MalType]MalType, name string) bool {
 	v, ok := optGet(o, name)
 	if !ok {
 		return false
@@ -748,7 +748,7 @@ func optBool(o map[string]MalType, name string) bool {
 	return ok && b
 }
 
-func optInt(o map[string]MalType, name string, def int) (int, error) {
+func optInt(o map[MalType]MalType, name string, def int) (int, error) {
 	v, ok := optGet(o, name)
 	if !ok || v == nil {
 		return def, nil
@@ -760,7 +760,7 @@ func optInt(o map[string]MalType, name string, def int) (int, error) {
 	return n, nil
 }
 
-func optHashMap(o map[string]MalType, name string) (map[string]MalType, bool, error) {
+func optHashMap(o map[MalType]MalType, name string) (map[MalType]MalType, bool, error) {
 	v, ok := optGet(o, name)
 	if !ok || v == nil {
 		return nil, false, nil
@@ -769,11 +769,11 @@ func optHashMap(o map[string]MalType, name string) (map[string]MalType, bool, er
 	if !ok {
 		return nil, false, fmt.Errorf(":%s must be a map, got %T", name, v)
 	}
-	return hm.Val, true, nil
+	return hm.Items, true, nil
 }
 
 // optSignature builds an author/committer signature from {:name :email}.
-func optSignature(o map[string]MalType, name string) (*object.Signature, error) {
+func optSignature(o map[MalType]MalType, name string) (*object.Signature, error) {
 	m, ok, err := optHashMap(o, name)
 	if err != nil || !ok {
 		return nil, err

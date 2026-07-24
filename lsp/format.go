@@ -217,7 +217,7 @@ func formatDiagnostics(anal *analysis, content string) []Diagnostic {
 				walk(c)
 			}
 		case types.HashMap:
-			for _, v := range n.Val {
+			for _, v := range n.Items {
 				walk(v)
 			}
 		case types.List:

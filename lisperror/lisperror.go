@@ -160,8 +160,8 @@ func (e LispError) AddStackFrame(pos *Position, functionName string) LispError {
 
 func (e LispError) MarshalHashMap() (MalType, error) {
 	hm := HashMap{
-		Val: map[string]MalType{
-			"ʞtype": fmt.Sprintf("%T", e),
+		Items: map[MalType]MalType{
+			KW("type"): fmt.Sprintf("%T", e),
 		},
 	}
 
@@ -171,13 +171,13 @@ func (e LispError) MarshalHashMap() (MalType, error) {
 		if err != nil {
 			return nil, err
 		}
-		hm.Val["ʞerr"] = pHm
+		hm.Items[KW("err")] = pHm
 	default:
-		hm.Val["ʞerr"] = printer.Pr_str(ee, true)
+		hm.Items[KW("err")] = printer.Pr_str(ee, true)
 	}
 
 	if e.cursor != nil {
-		hm.Val["ʞpos"] = e.cursor.String()
+		hm.Items[KW("pos")] = e.cursor.String()
 	}
 
 	return hm, nil
