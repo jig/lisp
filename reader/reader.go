@@ -139,7 +139,7 @@ func read_atom(rdr *tokenReader) (MalType, error) {
 		str := (*token)[2 : len(*token)-2]
 		return strings.Replace(str, `¬¬`, `¬`, -1), nil
 	case scanner.Keyword:
-		return NewKeyword((*token)[1:len(*token)]), nil
+		return KW((*token)[1:len(*token)]), nil
 	case scanner.Float:
 		f, err := strconv.ParseFloat(*token, 32)
 		if err != nil {

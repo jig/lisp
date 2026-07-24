@@ -49,9 +49,9 @@ func TestVerifyJWT(t *testing.T) {
 	}
 
 	config := HashMap{Items: map[MalType]MalType{
-		NewKeyword("jwks-uri"): srv.URL,
-		NewKeyword("issuer"):   issuer,
-		NewKeyword("audience"): audience,
+		KW("jwks-uri"): srv.URL,
+		KW("issuer"):   issuer,
+		KW("audience"): audience,
 	}}
 
 	claims, err := web.VerifyJWT(signed, config)
@@ -62,26 +62,26 @@ func TestVerifyJWT(t *testing.T) {
 	if !ok {
 		t.Fatalf("claims not a hash-map: %T", claims)
 	}
-	if got := hm.Items[NewKeyword("sub")]; got != "user-123" {
+	if got := hm.Items[KW("sub")]; got != "user-123" {
 		t.Fatalf(":sub = %v", got)
 	}
-	if got := hm.Items[NewKeyword("preferred_username")]; got != "alice" {
+	if got := hm.Items[KW("preferred_username")]; got != "alice" {
 		t.Fatalf(":preferred_username = %v", got)
 	}
 	// nested claims convert too
-	ra, ok := hm.Items[NewKeyword("realm_access")].(HashMap)
+	ra, ok := hm.Items[KW("realm_access")].(HashMap)
 	if !ok {
 		t.Fatalf("realm_access not a hash-map")
 	}
-	roles, ok := ra.Items[NewKeyword("roles")].(Vector)
+	roles, ok := ra.Items[KW("roles")].(Vector)
 	if !ok || len(roles.Val) != 2 || roles.Val[0] != "admin" {
-		t.Fatalf("roles = %v", ra.Items[NewKeyword("roles")])
+		t.Fatalf("roles = %v", ra.Items[KW("roles")])
 	}
 
 	// a wrong audience is rejected
 	badCfg := HashMap{Items: map[MalType]MalType{
-		NewKeyword("jwks-uri"): srv.URL,
-		NewKeyword("audience"): "someone-else",
+		KW("jwks-uri"): srv.URL,
+		KW("audience"): "someone-else",
 	}}
 	if _, err := web.VerifyJWT(signed, badCfg); err == nil {
 		t.Fatal("expected audience mismatch to fail")

@@ -149,7 +149,7 @@ func spit(fileName, contents string, opts ...MalType) error {
 	appendMode := false
 	for i := 0; i < len(opts); i += 2 {
 		switch opts[i] {
-		case NewKeyword("append"):
+		case KW("append"):
 			b, ok := opts[i+1].(bool)
 			if !ok {
 				return fmt.Errorf("spit: :append expects a boolean (it was %T)", opts[i+1])

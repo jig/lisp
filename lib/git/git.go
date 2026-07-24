@@ -403,13 +403,13 @@ func gitStatus(rv MalType) (MalType, error) {
 	files := HashMap{Items: map[MalType]MalType{}}
 	for path, fs := range status {
 		files.Items[path] = HashMap{Items: map[MalType]MalType{
-			NewKeyword("staging"):  statusKeyword(fs.Staging),
-			NewKeyword("worktree"): statusKeyword(fs.Worktree),
+			KW("staging"):  statusKeyword(fs.Staging),
+			KW("worktree"): statusKeyword(fs.Worktree),
 		}}
 	}
 	return HashMap{Items: map[MalType]MalType{
-		NewKeyword("clean"): status.IsClean(),
-		NewKeyword("files"): files,
+		KW("clean"): status.IsClean(),
+		KW("files"): files,
 	}}, nil
 }
 
@@ -423,9 +423,9 @@ func gitHead(rv MalType) (MalType, error) {
 		return nil, err
 	}
 	return HashMap{Items: map[MalType]MalType{
-		NewKeyword("name"):   head.Name().String(),
-		NewKeyword("branch"): head.Name().Short(),
-		NewKeyword("hash"):   head.Hash().String(),
+		KW("name"):   head.Name().String(),
+		KW("branch"): head.Name().Short(),
+		KW("hash"):   head.Hash().String(),
 	}}, nil
 }
 
@@ -482,9 +482,9 @@ func gitBranches(rv MalType) (MalType, error) {
 	out := []MalType{}
 	err = iter.ForEach(func(ref *plumbing.Reference) error {
 		out = append(out, HashMap{Items: map[MalType]MalType{
-			NewKeyword("name"): ref.Name().Short(),
-			NewKeyword("hash"): ref.Hash().String(),
-			NewKeyword("head"): head != nil && ref.Name() == head.Name(),
+			KW("name"): ref.Name().Short(),
+			KW("hash"): ref.Hash().String(),
+			KW("head"): head != nil && ref.Name() == head.Name(),
 		}})
 		return nil
 	})
@@ -552,8 +552,8 @@ func gitRemotes(rv MalType) (MalType, error) {
 			urls = append(urls, u)
 		}
 		out = append(out, HashMap{Items: map[MalType]MalType{
-			NewKeyword("name"): remote.Config().Name,
-			NewKeyword("urls"): Vector{Val: urls},
+			KW("name"): remote.Config().Name,
+			KW("urls"): Vector{Val: urls},
 		}})
 	}
 	return Vector{Val: out}, nil
@@ -601,10 +601,10 @@ func gitTag(rv MalType, name string, params ...MalType) (MalType, error) {
 		}
 	}
 	return HashMap{Items: map[MalType]MalType{
-		NewKeyword("name"):      name,
-		NewKeyword("hash"):      ref.Hash().String(),
-		NewKeyword("target"):    hash.String(),
-		NewKeyword("annotated"): annotated,
+		KW("name"):      name,
+		KW("hash"):      ref.Hash().String(),
+		KW("target"):    hash.String(),
+		KW("annotated"): annotated,
 	}}, nil
 }
 
@@ -627,10 +627,10 @@ func gitTags(rv MalType) (MalType, error) {
 			annotated = true
 		}
 		out = append(out, HashMap{Items: map[MalType]MalType{
-			NewKeyword("name"):      ref.Name().Short(),
-			NewKeyword("hash"):      ref.Hash().String(),
-			NewKeyword("target"):    target.String(),
-			NewKeyword("annotated"): annotated,
+			KW("name"):      ref.Name().Short(),
+			KW("hash"):      ref.Hash().String(),
+			KW("target"):    target.String(),
+			KW("annotated"): annotated,
 		}})
 		return nil
 	})
@@ -661,43 +661,43 @@ func commitMap(c *object.Commit) MalType {
 		parents = append(parents, p.String())
 	}
 	return HashMap{Items: map[MalType]MalType{
-		NewKeyword("hash"):      c.Hash.String(),
-		NewKeyword("message"):   c.Message,
-		NewKeyword("author"):    signatureMap(c.Author),
-		NewKeyword("committer"): signatureMap(c.Committer),
-		NewKeyword("parents"):   Vector{Val: parents},
-		NewKeyword("signed"):    c.Signature != "" || c.SignatureSHA256 != "",
+		KW("hash"):      c.Hash.String(),
+		KW("message"):   c.Message,
+		KW("author"):    signatureMap(c.Author),
+		KW("committer"): signatureMap(c.Committer),
+		KW("parents"):   Vector{Val: parents},
+		KW("signed"):    c.Signature != "" || c.SignatureSHA256 != "",
 	}}
 }
 
 func signatureMap(s object.Signature) MalType {
 	return HashMap{Items: map[MalType]MalType{
-		NewKeyword("name"):  s.Name,
-		NewKeyword("email"): s.Email,
-		NewKeyword("when"):  s.When.Format(time.RFC3339),
+		KW("name"):  s.Name,
+		KW("email"): s.Email,
+		KW("when"):  s.When.Format(time.RFC3339),
 	}}
 }
 
 func statusKeyword(code gogit.StatusCode) MalType {
 	switch code {
 	case gogit.Unmodified:
-		return NewKeyword("unmodified")
+		return KW("unmodified")
 	case gogit.Untracked:
-		return NewKeyword("untracked")
+		return KW("untracked")
 	case gogit.Modified:
-		return NewKeyword("modified")
+		return KW("modified")
 	case gogit.Added:
-		return NewKeyword("added")
+		return KW("added")
 	case gogit.Deleted:
-		return NewKeyword("deleted")
+		return KW("deleted")
 	case gogit.Renamed:
-		return NewKeyword("renamed")
+		return KW("renamed")
 	case gogit.Copied:
-		return NewKeyword("copied")
+		return KW("copied")
 	case gogit.UpdatedButUnmerged:
-		return NewKeyword("unmerged")
+		return KW("unmerged")
 	default:
-		return NewKeyword("unknown")
+		return KW("unknown")
 	}
 }
 
@@ -720,7 +720,7 @@ func trailingOpts(params []MalType) (map[MalType]MalType, error) {
 // optGet finds an option, accepting a keyword key (:name, the idiomatic
 // form) or a plain string key ("name").
 func optGet(o map[MalType]MalType, name string) (MalType, bool) {
-	if v, ok := o[NewKeyword(name)]; ok {
+	if v, ok := o[KW(name)]; ok {
 		return v, true
 	}
 	v, ok := o[name]

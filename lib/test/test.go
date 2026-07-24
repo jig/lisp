@@ -166,28 +166,28 @@ func testsAsData(tests []*Test) MalType {
 		checks := make([]MalType, 0, len(t.Checks))
 		for _, c := range t.Checks {
 			m := map[MalType]MalType{
-				NewKeyword("form"): c.Form,
-				NewKeyword("ok"):   c.OK,
+				KW("form"): c.Form,
+				KW("ok"):   c.OK,
 			}
 			if c.Err != "" {
-				m[NewKeyword("error")] = c.Err
+				m[KW("error")] = c.Err
 			}
 			if !c.OK && c.Expected != "" {
-				m[NewKeyword("expected")] = c.Expected
-				m[NewKeyword("actual")] = c.Actual
+				m[KW("expected")] = c.Expected
+				m[KW("actual")] = c.Actual
 			}
 			if c.Message != "" {
-				m[NewKeyword("message")] = c.Message
+				m[KW("message")] = c.Message
 			}
 			checks = append(checks, HashMap{Items: m})
 		}
 		m := map[MalType]MalType{
-			NewKeyword("name"):   t.Name,
-			NewKeyword("ok"):     t.OK(),
-			NewKeyword("checks"): Vector{Val: checks},
+			KW("name"):   t.Name,
+			KW("ok"):     t.OK(),
+			KW("checks"): Vector{Val: checks},
 		}
 		if t.Err != "" {
-			m[NewKeyword("error")] = t.Err
+			m[KW("error")] = t.Err
 		}
 		out = append(out, HashMap{Items: m})
 	}

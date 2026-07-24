@@ -132,15 +132,15 @@ func sqlExec(ctx context.Context, target MalType, query string, params ...MalTyp
 	}
 	out := HashMap{Items: map[MalType]MalType{}}
 	if ra, err := res.RowsAffected(); err == nil {
-		out.Items[NewKeyword("rows-affected")] = int(ra)
+		out.Items[KW("rows-affected")] = int(ra)
 	} else {
-		out.Items[NewKeyword("rows-affected")] = nil
+		out.Items[KW("rows-affected")] = nil
 	}
 	if li, err := res.LastInsertId(); err == nil {
-		out.Items[NewKeyword("last-insert-id")] = int(li)
+		out.Items[KW("last-insert-id")] = int(li)
 	} else {
 		// Not all drivers (e.g. PostgreSQL) support LastInsertId; use RETURNING.
-		out.Items[NewKeyword("last-insert-id")] = nil
+		out.Items[KW("last-insert-id")] = nil
 	}
 	return out, nil
 }
@@ -220,7 +220,7 @@ func rowsToVector(rows *stdsql.Rows) (MalType, error) {
 		}
 		row := HashMap{Items: make(map[MalType]MalType, len(cols))}
 		for i, col := range cols {
-			row.Items[NewKeyword(col)] = fromDriver(cells[i])
+			row.Items[KW(col)] = fromDriver(cells[i])
 		}
 		out = append(out, row)
 	}
@@ -275,7 +275,7 @@ func toDriver(v MalType) any {
 // lookup finds a named parameter, accepting either a keyword key (:name,
 // the idiomatic form) or a plain string key ("name").
 func lookup(args map[MalType]MalType, name string) (MalType, bool) {
-	if v, ok := args[NewKeyword(name)]; ok {
+	if v, ok := args[KW(name)]; ok {
 		return v, true
 	}
 	v, ok := args[name]

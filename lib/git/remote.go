@@ -30,7 +30,7 @@ func clientOpts(o map[MalType]MalType) ([]client.Option, error) {
 	if !ok || v == nil {
 		return nil, nil
 	}
-	if v == NewKeyword("ssh-agent") {
+	if v == KW("ssh-agent") {
 		auth, err := transportssh.NewSSHAgentAuth(transportssh.DefaultUsername)
 		if err != nil {
 			return nil, err
@@ -137,10 +137,10 @@ func refSpecs(o map[MalType]MalType, name string) ([]gitcfg.RefSpec, error) {
 // upToDate maps go-git's already-up-to-date sentinel to a normal value.
 func upToDate(err error) (MalType, error) {
 	if err == nil {
-		return NewKeyword("ok"), nil
+		return KW("ok"), nil
 	}
 	if errors.Is(err, gogit.NoErrAlreadyUpToDate) {
-		return NewKeyword("up-to-date"), nil
+		return KW("up-to-date"), nil
 	}
 	return nil, err
 }

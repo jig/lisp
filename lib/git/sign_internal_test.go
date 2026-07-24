@@ -95,7 +95,7 @@ func TestClientOpts(t *testing.T) {
 		for i := 0; i < len(kv); i += 2 {
 			auth.Items[kv[i]] = kv[i+1]
 		}
-		return map[MalType]MalType{NewKeyword("auth"): auth}
+		return map[MalType]MalType{KW("auth"): auth}
 	}
 
 	// absent :auth → no options
@@ -104,10 +104,10 @@ func TestClientOpts(t *testing.T) {
 	}
 	// bad shapes error
 	for name, o := range map[string]map[MalType]MalType{
-		"non-map":    {NewKeyword("auth"): 42},
+		"non-map":    {KW("auth"): 42},
 		"empty map":  opt(),
-		"bad ssh":    opt(NewKeyword("ssh-key"), "not a pem"),
-		"typed keys": opt(NewKeyword("username"), 7),
+		"bad ssh":    opt(KW("ssh-key"), "not a pem"),
+		"typed keys": opt(KW("username"), 7),
 	} {
 		if _, err := clientOpts(o); err == nil {
 			t.Errorf("%s: expected an error", name)
@@ -115,9 +115,9 @@ func TestClientOpts(t *testing.T) {
 	}
 	// valid shapes yield exactly one client option
 	for name, o := range map[string]map[MalType]MalType{
-		"basic":  opt(NewKeyword("username"), "u", NewKeyword("password"), "p"),
-		"token":  opt(NewKeyword("token"), "t"),
-		"bearer": opt(NewKeyword("bearer"), "t"),
+		"basic":  opt(KW("username"), "u", KW("password"), "p"),
+		"token":  opt(KW("token"), "t"),
+		"bearer": opt(KW("bearer"), "t"),
 	} {
 		opts, err := clientOpts(o)
 		if err != nil || len(opts) != 1 {

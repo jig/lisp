@@ -138,8 +138,7 @@ func jsonToMal(v any) MalType {
 // malToJSON converts Lisp data to a Go value ready for json.Marshal,
 // producing clean JSON for HTTP clients: keyword map keys and keyword
 // values lose their sigil (:id → "id", :active → "active"), since JSON
-// has no keyword type. This is what a REST client expects, unlike the
-// core json-encode which preserves keywords for lossless round-tripping.
+// has no keyword type — the same convention core's json-encode follows.
 func malToJSON(v MalType) any {
 	switch v := v.(type) {
 	case Keyword:
@@ -208,13 +207,13 @@ func requestMap(r *http.Request) (HashMap, error) {
 	}
 
 	m := map[MalType]MalType{
-		kw("method"):      NewKeyword(strings.ToLower(r.Method)),
+		kw("method"):      KW(strings.ToLower(r.Method)),
 		kw("uri"):         r.URL.Path,
 		kw("query"):       HashMap{Items: query},
 		kw("headers"):     HashMap{Items: headers},
 		kw("body"):        string(body),
 		kw("remote-addr"): r.RemoteAddr,
-		kw("scheme"):      NewKeyword(scheme),
+		kw("scheme"):      KW(scheme),
 		kw("protocol"):    r.Proto,
 		kw("path-params"): HashMap{Items: map[MalType]MalType{}},
 	}

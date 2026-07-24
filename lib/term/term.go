@@ -172,7 +172,7 @@ func sgrCodes(opts map[MalType]MalType) ([]string, error) {
 	var codes []string
 	for _, a := range attrs {
 		known[a.name] = true
-		if v, ok := opts[NewKeyword(a.name)]; ok {
+		if v, ok := opts[KW(a.name)]; ok {
 			b, isBool := v.(bool)
 			if !isBool {
 				return nil, fmt.Errorf(":%s must be a boolean, got %T", a.name, v)
@@ -182,14 +182,14 @@ func sgrCodes(opts map[MalType]MalType) ([]string, error) {
 			}
 		}
 	}
-	if v, ok := opts[NewKeyword("fg")]; ok && v != nil {
+	if v, ok := opts[KW("fg")]; ok && v != nil {
 		c, err := colorCodes(v, 38)
 		if err != nil {
 			return nil, err
 		}
 		codes = append(codes, c...)
 	}
-	if v, ok := opts[NewKeyword("bg")]; ok && v != nil {
+	if v, ok := opts[KW("bg")]; ok && v != nil {
 		c, err := colorCodes(v, 48)
 		if err != nil {
 			return nil, err
