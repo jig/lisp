@@ -6,7 +6,12 @@ pre-1.0, so minor tags can carry behaviour changes; the ones that may
 need action when upgrading are called out under **Changed** with a
 migration note.
 
-## 0.4 (unreleased, branch `proto/keyword-type`)
+## 0.4.0 (unreleased)
+
+Everything since v0.2.24 ships in one release. The headline change is
+the keyword representation — a compile-time break for Go embedders
+(see the Migration section below); lisp code is almost entirely
+unaffected.
 
 ### ⚠️ Changed — keywords are a first-class type
 
@@ -95,8 +100,6 @@ A quick sweep finds the risky spots:
 grep -rn 'ʞ' --include='*.go' .
 grep -rn 'case string\|\.(string)\|Keyword_Q' --include='*.go' .
 ```
-
-## Unreleased (since v0.2.24)
 
 ### ⚠️ Changed — file I/O moved from `core` to `system`
 
@@ -262,6 +265,23 @@ Migration: hex/octal/binary literals used *arithmetically* must become
 decimal (or be wrapped in your own conversion); literals used as
 identifiers or bit patterns keep working and now survive any width.
 
+### ⚠️ Changed — `reduce-kv` folds an associative collection
+
+`reduce-kv` now matches Clojure: it takes a hash-map (calling
+`(f acc k v)` for every entry) or a vector (`(f acc idx v)` per
+element); `nil` folds to `init`. The previous form — a *flat* sequence
+`k1 v1 k2 v2 …` — is gone. New entry accessors `key` and `val` read a
+`[k v]` entry. Migration: `(reduce-kv f init (list k1 v1 …))` becomes
+`(reduce-kv f init (apply hash-map (list k1 v1 …)))`, or restructure
+the data as a map up front.
+
+### Fixed — preamble placeholder parse errors surface
+
+`READWithPreamble` used to silently bind `nil` for a placeholder whose
+value did not parse, deferring the failure to an unrelated error deep
+inside the program; it now returns a read error naming the
+placeholder.
+
 ### Added — seqable hash-maps and sets, sequential destructuring
 
 Hash-maps and sets are now **seqable**, as in Clojure. A hash-map seqs
@@ -289,12 +309,13 @@ Binding forms gained **sequential destructuring**: a vector pattern in
 and recursively (`(fn [[k v]] …)`, `(let [[a [b c]] x] …)`), missing
 elements bind `nil`, extra elements are ignored, and `&` binds the
 remainder as a list. Top-level `fn` arity checking stays strict.
-`loop`/`recur` bindings remain symbol-only for now.
+`loop`/`recur` accept the same patterns, re-destructuring on every
+iteration.
 
 ⚠️ One behaviour change: `(seq #{})` now returns `nil` (Clojure
 parity), where it previously returned `()`. `(seq {})` is also `nil`.
 
-### Other notable additions since v0.2.24
+### Other notable additions
 
 Non-breaking, for context (see `git log v0.2.24..` for the full list):
 

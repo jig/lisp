@@ -633,7 +633,7 @@ func Load(env EnvType) {
 		"Emits a structured JSON log line to stderr at level (:debug/:info/:warn/:error) with alternating key/value attributes.")
 	call.CallOverrideFN(env, "web-encode-json", webEncodeJSON)
 	call.Doc(env, "web-encode-json", "[value]",
-		"Encodes Lisp data as JSON for an HTTP response: keyword keys and values become plain strings (:id → \"id\"), unlike core json-encode.")
+		"Encodes Lisp data as JSON for an HTTP response: keyword keys and values become plain strings (:id → \"id\"), as core json-encode also does.")
 	call.Doc(env, "web-serve", "[config]",
 		"Starts an HTTP(S) server and blocks until interrupted. config is a hash-map: :handler (a Ring handler fn), :port or :addr, and optional :tls {:cert :key :client-ca :client-auth} for HTTPS/mTLS.")
 	call.CallOverrideFN(env, "web-router", webRouter)

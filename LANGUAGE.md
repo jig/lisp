@@ -103,8 +103,8 @@ look like JSON objects (`{"…"}`) print back with `¬` delimiters.
 | ------- | ---- | ----- |
 | `(a b c)` | list | Also a call form when evaluated (see below). |
 | `[a b c]` | vector | Indexed; the usual choice for data. |
-| `{:k v :k2 v2}` | hash-map | Alternating key/value pairs. |
-| `#{a b}` | set | **Strings and keywords only** (hashed, unordered). |
+| `{:k v :k2 v2}` | hash-map | Alternating key/value pairs; keys are immutable scalars (nil, booleans, numbers, strings, keywords). |
+| `#{a b}` | set | Members are immutable scalars, like hash-map keys (hashed, unordered). |
 
 ### Comments and reader macros
 
@@ -152,9 +152,9 @@ Handled directly by the evaluator (they control when their arguments are evaluat
 | Name | Arguments | Description |
 | ---- | --------- | ----------- |
 | `def` | `[symbol value]` | Binds symbol to the evaluated value in the current environment. |
-| `fn` | `[params & body]` | Creates an anonymous function with the given parameter vector and body. |
+| `fn` | `[params & body]` | Creates an anonymous function with the given parameter vector and body. Parameters are symbols or vector patterns (sequential destructuring); & collects the remaining arguments. |
 | `defmacro` | `[name fn]` | Binds name to a macro (a function expanded at evaluation time). |
-| `let` | `[bindings & body]` | Evaluates body in a new scope with the vector's symbol/value bindings; returns the last body form. |
+| `let` | `[bindings & body]` | Evaluates body in a new scope with the vector's binding/value pairs; returns the last body form. A binding is a symbol or a vector pattern (sequential destructuring: [a b], [a [b c]], [x & rest]). |
 | `do` | `[& body]` | Evaluates each form in order and returns the value of the last. |
 | `if` | `[test then else]` | Evaluates test; returns then when it is truthy, else otherwise (else is optional). |
 | `quote` | `[form]` | Returns form unevaluated. |
@@ -163,7 +163,7 @@ Handled directly by the evaluator (they control when their arguments are evaluat
 | `try` | `[expr & clauses]` | Evaluates expr, dispatching to a (catch …) and/or (finally …) clause on error. |
 | `catch` | `[binding & body]` | Inside try: binds the caught error and evaluates body. |
 | `finally` | `[& body]` | Inside try: body is always evaluated for side effects, error or not. |
-| `loop` | `[bindings & body]` | Like let, but a recursion point: recur in tail position rebinds the bindings and jumps back, in constant stack. |
+| `loop` | `[bindings & body]` | Like let (patterns included), but a recursion point: recur in tail position rebinds the bindings and jumps back, in constant stack. |
 | `recur` | `[& args]` | In tail position, rebinds the nearest recursion point — the enclosing loop's bindings, or the enclosing function's parameters — to args and iterates. |
 | `context` | `[& body]` | Provides a Go context to the enclosed forms. |
 
@@ -218,9 +218,9 @@ Arithmetic, collections, predicates, strings, JSON, errors — always loaded.
 | `hash-set` | `[& items]` | Creates a set of the given items. |
 | `inc` | `[x]` | Returns x + 1. |
 | `json-decode` | `[factory json]` | Decodes a JSON string into a lisp value. |
-| `json-encode` | `[obj]` | Encodes a lisp value (or Go object) to a JSON string. |
+| `json-encode` | `[obj]` | Encodes a lisp value (or Go object) to a JSON string. Keyword keys and values serialise as their bare name (:a → "a"). |
 | `keys` | `[map]` | Vector of the map's keys. |
-| `keyword` | `[name]` | Creates a keyword from a string. |
+| `keyword` | `[name]` | Creates a keyword from a string; returns a keyword unchanged. |
 | `keyword?` | `[x]` | Whether x is a keyword. |
 | `list` | `[& items]` | Creates a list of the given items. |
 | `list?` | `[x]` | Whether x is a list. |
@@ -234,7 +234,7 @@ Arithmetic, collections, predicates, strings, JSON, errors — always loaded.
 | `nil?` | `[x]` | Whether x is nil. |
 | `not` | `[a]` | Logical negation: false when a is truthy, true otherwise. |
 | `not=` | `[a b]` | Logical negation of =. |
-| `nth` | `[coll n]` | The element of coll at zero-based index n. |
+| `nth` | `[coll n]` | The element of coll at zero-based index n (lists, vectors and [k v] entries; not hash-maps or sets, which are unordered). |
 | `number?` | `[x]` | Whether x is a number. |
 | `or ⁽ᵐ⁾` | `[& xs]` | Evaluates its arguments in order, returning the first truthy one, or nil. |
 | `panic` | `[value]` | Raises value as a Go panic. |
@@ -247,7 +247,7 @@ Arithmetic, collections, predicates, strings, JSON, errors — always loaded.
 | `read-string` | `[string]` | Reads the first lisp form from string. |
 | `rename-keys` | `[map keymap]` | Copy of map with keys renamed according to keymap. |
 | `rest` | `[coll]` | All but the first element of coll, as a list. |
-| `seq` | `[coll]` | coll as a sequence, or nil when empty. |
+| `seq` | `[coll]` | coll as a sequence, or nil when empty. Hash-maps seq as [key value] entry vectors and sets as their elements, both in sorted order. |
 | `sequential?` | `[x]` | Whether x is a list or vector. |
 | `set` | `[coll]` | Creates a set from the elements of coll. |
 | `set?` | `[x]` | Whether x is a set. |
@@ -346,6 +346,7 @@ Higher-order helpers written in lisp (the prelude): reduce, map, partial, protoc
 | `format` | `[fmt & args]` | Formats args into fmt using Go verbs (%s %d %f %v %q %x ...); collections and keywords render in their lisp form. Returns the string. |
 | `identity` | `[x]` | Returns its argument unchanged. |
 | `into` | `[to from]` | Pours every item of from into to using conj; the result keeps to's type. |
+| `key` | `[entry]` | Returns the key of a [k v] map entry (as produced by seq on a hash-map). |
 | `max` | `[a & more]` | Largest of one or more numbers. |
 | `memoize` | `[f]` | Returns a caching version of f: results are stored by argument and reused. |
 | `min` | `[a & more]` | Smallest of one or more numbers. |
@@ -358,7 +359,7 @@ Higher-order helpers written in lisp (the prelude): reduce, map, partial, protoc
 | `printf` | `[fmt & args]` | Prints (format fmt args...) without a trailing newline; returns nil. |
 | `quot` | `[a b]` | Integer quotient of a divided by b, truncated toward zero. |
 | `reduce` | `[f init xs]` | Left fold: (f (.. (f (f init x1) x2) ..) xn) over the elements of xs. |
-| `reduce-kv` | `[f init xs]` | Left fold over a sequence of key/value pairs: applies (f acc k v) across xs. |
+| `reduce-kv` | `[f init m]` | Left fold over an associative collection: applies (f acc k v) for every      entry of a hash-map, or (f acc idx v) for every element of a vector.      nil folds to init. |
 | `rem` | `[a b]` | Remainder of (quot a b); the sign follows the dividend a. |
 | `remove` | `[pred xs]` | List of the items in xs for which (pred x) is falsy. |
 | `run-fn-for` | `[fn max-secs]` | Returns how many times the no-arg function fn runs in max-secs seconds (after a warm-up). |
@@ -366,6 +367,7 @@ Higher-order helpers written in lisp (the prelude): reduce, map, partial, protoc
 | `some` | `[pred xs]` | Returns the first truthy (pred x) over xs, or nil. |
 | `take-while` | `[pred xs]` | Leading items of xs while (pred x) is truthy. |
 | `time ⁽ᵐ⁾` | `[exp]` | Evaluates exp, prints the elapsed time, and returns its value. |
+| `val` | `[entry]` | Returns the value of a [k v] map entry (as produced by seq on a hash-map). |
 | `zero?` | `[n]` | Whether n equals 0. |
 
 ### system
@@ -489,7 +491,7 @@ Regular expressions (Go RE2): re-pattern, re-matches / re-find, re-seq, re-repla
 | ---- | --------- | ----------- |
 | `web--bearer-token` | `[req]` | Extracts the bearer token from a request's Authorization header, or nil. |
 | `web-bad-request` | `[& msg]` | A 400 JSON response. |
-| `web-encode-json` | `[value]` | Encodes Lisp data as JSON for an HTTP response: keyword keys and values become plain strings (:id → "id"), unlike core json-encode. |
+| `web-encode-json` | `[value]` | Encodes Lisp data as JSON for an HTTP response: keyword keys and values become plain strings (:id → "id"), as core json-encode also does. |
 | `web-json` | `[status-or-body & maybe-body]` | A JSON response: encodes body and sets content-type. (web-json data) is 200; (web-json status data) sets the status. |
 | `web-log` | `[level msg & kv]` | Emits a structured JSON log line to stderr at level (:debug/:info/:warn/:error) with alternating key/value attributes. |
 | `web-not-found` | `[& msg]` | A 404 JSON response. |
@@ -628,7 +630,17 @@ Mostly for readers coming from Clojure or from other mal implementations:
   int makes it big — but big ints and floats do not mix, machine-int
   overflow wraps (no auto-promotion), and `(= 0x0A 10)` is `false`
   (distinct types).
-- **Sets are limited:** only strings and keywords as members.
+- **Hash-map keys and set members are immutable scalars** — nil,
+  booleans, ints, floats, strings, keywords. Composite values, symbols
+  and big ints are not valid keys.
+- **Hash-maps and sets are seqable** (Clojure-style): `seq`, `map`,
+  `filter`, `reduce`, `first`/`rest` and `(into {} …)` see a hash-map
+  as `[key value]` entry vectors and a set as its elements, in sorted
+  (key-type, then value) order. `nth` on them errors: they are not
+  indexed collections.
+- **Sequential destructuring** works in `fn` parameters and `let`/`loop`
+  bindings: `(fn [[k v]] …)`, `(let [[a [b c]] x] …)`, `[x & rest]`.
+  Missing elements bind `nil`; top-level `fn` arity stays strict.
 - **`let` returns its last body form** (Clojure-like) and evaluates
   every body form; `(do)` returns `nil` (it does not error).
 - **`(range a b)`** returns a *vector* of integers `a … b-1`.

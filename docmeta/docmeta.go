@@ -32,8 +32,8 @@ func (Entry) Kind() string { return "special form" }
 // documenting anything that resolves as a value instead.
 var SpecialForms = map[string]Entry{
 	"def":         {"[symbol value]", "special-forms", "Binds symbol to the evaluated value in the current environment."},
-	"let":         {"[bindings & body]", "special-forms", "Evaluates body in a new scope with the vector's symbol/value bindings; returns the last body form."},
-	"fn":          {"[params & body]", "special-forms", "Creates an anonymous function with the given parameter vector and body."},
+	"let":         {"[bindings & body]", "special-forms", "Evaluates body in a new scope with the vector's binding/value pairs; returns the last body form. A binding is a symbol or a vector pattern (sequential destructuring: [a b], [a [b c]], [x & rest])."},
+	"fn":          {"[params & body]", "special-forms", "Creates an anonymous function with the given parameter vector and body. Parameters are symbols or vector patterns (sequential destructuring); & collects the remaining arguments."},
 	"do":          {"[& body]", "special-forms", "Evaluates each form in order and returns the value of the last."},
 	"if":          {"[test then else]", "special-forms", "Evaluates test; returns then when it is truthy, else otherwise (else is optional)."},
 	"quote":       {"[form]", "special-forms", "Returns form unevaluated."},
@@ -44,6 +44,6 @@ var SpecialForms = map[string]Entry{
 	"catch":       {"[binding & body]", "special-forms", "Inside try: binds the caught error and evaluates body."},
 	"finally":     {"[& body]", "special-forms", "Inside try: body is always evaluated for side effects, error or not."},
 	"context":     {"[& body]", "special-forms", "Provides a Go context to the enclosed forms."},
-	"loop":        {"[bindings & body]", "special-forms", "Like let, but a recursion point: recur in tail position rebinds the bindings and jumps back, in constant stack."},
+	"loop":        {"[bindings & body]", "special-forms", "Like let (patterns included), but a recursion point: recur in tail position rebinds the bindings and jumps back, in constant stack."},
 	"recur":       {"[& args]", "special-forms", "In tail position, rebinds the nearest recursion point — the enclosing loop's bindings, or the enclosing function's parameters — to args and iterates."},
 }
