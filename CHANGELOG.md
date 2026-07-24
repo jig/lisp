@@ -172,6 +172,38 @@ Migration: hex/octal/binary literals used *arithmetically* must become
 decimal (or be wrapped in your own conversion); literals used as
 identifiers or bit patterns keep working and now survive any width.
 
+### Added — seqable hash-maps and sets, sequential destructuring
+
+Hash-maps and sets are now **seqable**, as in Clojure. A hash-map seqs
+as a sequence of its entries — each a `[key value]` vector,
+destructurable and `nth`-indexable — and a set as a sequence of its
+elements. This makes `seq`, `first`, `rest`, `map`, `filter`, `reduce`,
+`apply`, `cons`, `concat`, `vec`, `into` and lazy-seqs work over both,
+so the idiomatic round-trip finally holds:
+
+```clojure
+(into {} (map (fn [[k v]] [k (- v)]) {:seconds 5 :days 2}))
+;;=> {:seconds -5 :days -2}
+```
+
+Entries come out **sorted by key** (elements sorted, for sets). A
+deterministic order is required for correctness, not just aesthetics:
+Go randomises map iteration per call and `first`/`rest` each seq the
+collection independently, so with an unstable order a `first`/`rest`
+traversal would drop or repeat entries. `nth` on a hash-map or set
+itself is rejected (they seq, but are not indexed collections —
+Clojure errors here too).
+
+Binding forms gained **sequential destructuring**: a vector pattern in
+`fn` parameters or `let` bindings destructures the value positionally
+and recursively (`(fn [[k v]] …)`, `(let [[a [b c]] x] …)`), missing
+elements bind `nil`, extra elements are ignored, and `&` binds the
+remainder as a list. Top-level `fn` arity checking stays strict.
+`loop`/`recur` bindings remain symbol-only for now.
+
+⚠️ One behaviour change: `(seq #{})` now returns `nil` (Clojure
+parity), where it previously returned `()`. `(seq {})` is also `nil`.
+
 ### Other notable additions since v0.2.24
 
 Non-breaking, for context (see `git log v0.2.24..` for the full list):

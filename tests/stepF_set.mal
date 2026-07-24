@@ -62,9 +62,10 @@
 (contains? s2 "a")
 ;=>true
 
+;; (seq empty-set) is nil, as in Clojure
 (seq s1)
-;=>()
-(= () (seq s1))
+;=>nil
+(= nil (seq s1))
 ;=>true
 
 (seq s2)
