@@ -519,6 +519,9 @@ definitions are published under a namespace prefix (Clojure style):
 
 (require "geometry" :refer ["area"])    ; import selected names unqualified
 (area 2)                                ; (geometry/area still available)
+
+(require "geometry" :refer :all)        ; import every definition unqualified
+(perimeter 2)
 ```
 
 Module-internal references stay unqualified: the module's functions
