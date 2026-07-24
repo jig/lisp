@@ -6,7 +6,7 @@ pre-1.0, so minor tags can carry behaviour changes; the ones that may
 need action when upgrading are called out under **Changed** with a
 migration note.
 
-## Unreleased (since v0.2.24)
+## v0.3.0 — 2026-07-24
 
 ### ⚠️ Changed — file I/O moved from `core` to `system`
 
