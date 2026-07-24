@@ -866,7 +866,7 @@ func assoc(a ...MalType) (MalType, error) {
 		for i := 1; i < len(a); i += 2 {
 			key := a[i]
 			if !ValidKey(key) {
-				return nil, errors.New("assoc called with non-string non-keyword key")
+				return nil, errors.New("assoc requires a scalar key (string, keyword, number, boolean or nil)")
 			}
 			new_hm.Items[key] = a[i+1]
 		}
@@ -892,7 +892,7 @@ func assoc(a ...MalType) (MalType, error) {
 		new_s := copy_set(ms)
 		for _, value := range a[1:] {
 			if !ValidKey(value) {
-				return nil, errors.New("assoc called with non-string non-keyword key")
+				return nil, errors.New("assoc requires a scalar key (string, keyword, number, boolean or nil)")
 			}
 			new_s.Items[value] = struct{}{}
 		}
@@ -913,7 +913,7 @@ func dissoc(a ...MalType) (MalType, error) {
 		for i := 1; i < len(a); i += 1 {
 			key := a[i]
 			if !ValidKey(key) {
-				return nil, errors.New("dissoc called with non-string non-keyword key")
+				return nil, errors.New("dissoc requires a scalar key (string, keyword, number, boolean or nil)")
 			}
 			delete(new_hm.Items, key)
 		}
@@ -922,7 +922,7 @@ func dissoc(a ...MalType) (MalType, error) {
 		new_s := copy_set(ms)
 		for _, value := range a[1:] {
 			if !ValidKey(value) {
-				return nil, errors.New("dissoc called with non-string non-keyword key")
+				return nil, errors.New("dissoc requires a scalar key (string, keyword, number, boolean or nil)")
 			}
 			delete(new_s.Items, value)
 		}
@@ -936,17 +936,11 @@ func get(hm, key MalType) (MalType, error) {
 	if Nil_Q(hm) {
 		return nil, nil
 	}
-	switch key.(type) {
-	case string, Keyword:
-	case int:
-	default:
-		return nil, errors.New("get called with non-string, non-keyword, non-int key")
-	}
 	ms := hm
 	switch ms := ms.(type) {
 	case HashMap:
 		if !ValidKey(key) {
-			return nil, errors.New("get on a hash-map requires a string or keyword key")
+			return nil, errors.New("get on a hash-map requires a scalar key (string, keyword, number, boolean or nil)")
 		}
 		return ms.Items[key], nil
 	case Vector:
@@ -963,7 +957,7 @@ func get(hm, key MalType) (MalType, error) {
 		return ms.Val[i], nil
 	case Set:
 		if !ValidKey(key) {
-			return nil, errors.New("get on a set requires a string or keyword key")
+			return nil, errors.New("get on a set requires a scalar key (string, keyword, number, boolean or nil)")
 		}
 		if _, ok := ms.Items[key]; ok {
 			return key, nil
@@ -1353,7 +1347,7 @@ func conj(a ...MalType) (MalType, error) {
 		for i := 1; i < len(a); i += 2 {
 			key := a[i]
 			if !ValidKey(key) {
-				return nil, errors.New("conj called with non-string non-keyword key")
+				return nil, errors.New("conj requires a scalar key (string, keyword, number, boolean or nil)")
 			}
 			new_hm.Items[key] = a[i+1]
 		}
@@ -1362,7 +1356,7 @@ func conj(a ...MalType) (MalType, error) {
 		new_s := copy_set(seq)
 		for _, key := range a[1:] {
 			if !ValidKey(key) {
-				return nil, errors.New("conj called with non-string non-keyword key")
+				return nil, errors.New("conj requires a scalar key (string, keyword, number, boolean or nil)")
 			}
 			new_s.Items[key] = struct{}{}
 		}
@@ -1387,7 +1381,7 @@ func isMapEntry(v MalType) bool {
 }
 
 // conjMapEntry adds one entry — a [key value] pair or a whole map — to hm
-// in place. Keys must be strings or keywords, as elsewhere for maps.
+// in place. Keys must be valid scalar keys, as elsewhere for maps.
 func conjMapEntry(hm HashMap, entry MalType) error {
 	if e, ok := entry.(HashMap); ok {
 		for k, v := range e.Items {
@@ -1401,7 +1395,7 @@ func conjMapEntry(hm HashMap, entry MalType) error {
 	}
 	key := slc[0]
 	if !ValidKey(key) {
-		return errors.New("conj called with non-string non-keyword key")
+		return errors.New("conj requires a scalar key (string, keyword, number, boolean or nil)")
 	}
 	hm.Items[key] = slc[1]
 	return nil

@@ -97,33 +97,63 @@ func String_Q(obj MalType) bool {
 }
 
 // ValidKey reports whether obj can be a hash-map key or a set element:
-// a string or a keyword. Restricting keys keeps every map operation
-// panic-free (both types are comparable) and gives them a total order
-// (KeyLess) for deterministic sequencing and printing.
+// any immutable scalar — nil, boolean, int, float, string or keyword.
+// Restricting keys to these keeps every map operation panic-free (all
+// are comparable Go types with value semantics) and gives them a total
+// order (KeyLess) for deterministic sequencing and printing. Composite
+// values (vectors, maps, sets), symbols and big ints are rejected: the
+// first are not hashable as Go map keys, the latter two only compare
+// by pointer identity, which would break lisp value equality.
 func ValidKey(obj MalType) bool {
 	switch obj.(type) {
-	case string, Keyword:
+	case nil, bool, int, float32, string, Keyword:
 		return true
 	}
 	return false
 }
 
+// keyRank groups valid keys by type for KeyLess: nil, booleans,
+// numbers, strings, keywords. (Strings before keywords matches the
+// order the sorted legacy ʞ encoding produced.)
+func keyRank(k MalType) int {
+	switch k.(type) {
+	case nil:
+		return 0
+	case bool:
+		return 1
+	case int:
+		return 2
+	case float32:
+		return 3
+	case string:
+		return 4
+	case Keyword:
+		return 5
+	}
+	return 6
+}
+
 // KeyLess is the total order over valid hash-map keys and set elements:
-// strings first, then keywords, each lexicographically. (Strings-first
-// matches the order the sorted legacy encoding produced, keywords
-// carrying a prefix above ASCII.)
+// by type group (keyRank), then by value within the group.
 func KeyLess(a, b MalType) bool {
-	as, aIsStr := a.(string)
-	bs, bIsStr := b.(string)
-	if aIsStr != bIsStr {
-		return aIsStr
+	ra, rb := keyRank(a), keyRank(b)
+	if ra != rb {
+		return ra < rb
 	}
-	if aIsStr {
-		return as < bs
+	switch a := a.(type) {
+	case bool:
+		return !a && b.(bool)
+	case int:
+		return a < b.(int)
+	case float32:
+		return a < b.(float32)
+	case string:
+		return a < b.(string)
+	case Keyword:
+		return a < b.(Keyword)
+	default: // nil, or invalid keys during error paths
+		return false
 	}
-	ak, _ := a.(Keyword)
-	bk, _ := b.(Keyword)
-	return ak < bk
 }
 
 type ExternalCall func(context.Context, []MalType) (MalType, error)
@@ -239,8 +269,8 @@ func GetSlice(seq MalType) ([]MalType, error) {
 
 // Hash Maps
 type HashMap struct {
-	// Items maps keys to values. Keys are restricted to string and
-	// Keyword (see ValidKey); every constructor validates, so map
+	// Items maps keys to values. Keys are restricted to immutable
+	// scalars (see ValidKey); every constructor validates, so map
 	// operations never hit a non-comparable key.
 	Items  map[MalType]MalType
 	Meta   MalType
@@ -268,7 +298,7 @@ func NewHashMap(cursor *Position, seq MalType) (MalType, error) {
 	m := map[MalType]MalType{}
 	for i := 0; i < len(lst); i += 2 {
 		if !ValidKey(lst[i]) {
-			return nil, fmt.Errorf("expected hash-map key string or keyword (found %T)", lst[i])
+			return nil, fmt.Errorf("hash-map keys must be scalar values — string, keyword, number, boolean or nil (found %T)", lst[i])
 		}
 		m[lst[i]] = lst[i+1]
 	}
@@ -297,7 +327,7 @@ func NewSet(seq MalType) (Set, error) {
 	m := map[MalType]struct{}{}
 	for _, item := range lst {
 		if !ValidKey(item) {
-			return Set{}, errors.New("set items must be strings or keywords")
+			return Set{}, fmt.Errorf("set items must be scalar values — string, keyword, number, boolean or nil (found %T)", item)
 		}
 		m[item] = struct{}{}
 	}
@@ -453,7 +483,7 @@ func ConvertTo(from []MalType, _to MalType, meta MalType) (MalType, error) {
 		to := Set{Items: map[MalType]struct{}{}}
 		for _, k := range from {
 			if !ValidKey(k) {
-				return nil, errors.New("set items must be strings or keywords")
+				return nil, fmt.Errorf("set items must be scalar values — string, keyword, number, boolean or nil (found %T)", k)
 			}
 			to.Items[k] = struct{}{}
 		}

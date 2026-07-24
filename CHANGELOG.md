@@ -35,6 +35,20 @@ producing plain string keys (as in Clojure), so
 `(get … "a")`. The old losslessness existed only because the prefix
 leaked into the wire format.
 
+### Added — scalar hash-map keys and set elements
+
+Hash-map keys and set elements accept any **immutable scalar**: nil,
+booleans, ints, floats, strings and keywords (previously strings and
+keywords only). `#{1 2 3}`, `{1 "one"}`, `(assoc m 42 v)`,
+`(contains? #{1.5} 1.5)` all work; entries and elements order by type
+group (nil < booleans < ints < floats < strings < keywords) then
+value, and `pr-str`/`str` now print maps and sets in that
+deterministic order. Composite values (vectors, maps, sets), symbols
+and radix big ints remain invalid keys — the first are not hashable,
+the latter two only compare by identity — and error at construction.
+`json-encode` of a map with non-string/keyword keys errors (JSON
+objects require string keys).
+
 ### Migration (embedders — Go code using jig/lisp)
 
 Scripts and lisp data files need no changes. Go code embedding the

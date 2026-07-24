@@ -660,9 +660,12 @@ func TestPassingLispDataFromGo(t *testing.T) {
 		},
 	}
 	v := []string{"hello", "world"}
-	vs := []MarshalExample{
-		{A: 0, B: "hello"},
-		{A: 1, B: "world"},
+	// Wrapped in LispMarshalExample so the placeholder prints readably
+	// via MarshalHashMap ({:a 0 :b "hello"}); the bare struct would print
+	// as Go's %v ({0 hello}), which is not valid lisp.
+	vs := []LispMarshalExample{
+		{MarshalExample{A: 0, B: "hello"}},
+		{MarshalExample{A: 1, B: "world"}},
 	}
 	source := `(do
 					(def hm $HM)
@@ -673,7 +676,7 @@ func TestPassingLispDataFromGo(t *testing.T) {
 					(assert (= 2 l))
 					(assert (contains? s "bob"))
 					(assert (= "hello" (get v 0)))
-					;; (assert (= "hello" (get-in vs [1 "b"])))
+					(assert (= "world" (get-in vs [1 :b])))
 					true)`
 	sentCode, err := AddPreamble(source, map[string]MalType{
 		"$HM": HM(m),
