@@ -8,6 +8,7 @@ go 1.25.0
 retract (
 	v0.3.0 // Published prematurely; use v0.2.24.
 	v0.3.1 // Contains only this retraction.
+	[v0.4.0, v0.4.99] // Never published: the 0.4 numbers are skipped (pre-release docs used "0.4" for what ships as 0.6.0).
 )
 
 require (

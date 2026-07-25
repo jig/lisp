@@ -6,9 +6,16 @@ pre-1.0, so minor tags can carry behaviour changes; the ones that may
 need action when upgrading are called out under **Changed** with a
 migration note.
 
-## 0.4.0 (unreleased)
+> **Version numbering note.** The 0.3.x tags were published
+> prematurely and are **retracted** (`@latest` resolves to v0.2.24);
+> the 0.4.x numbers are **skipped forever** (guarded by a `retract`
+> range) because pre-release documents used "0.4" for the keyword
+> work. The pre-keyword line ships as **v0.5.0** and the keyword
+> migration as **v0.6.0**.
 
-On top of v0.3.0. The headline change is the keyword
+## 0.6.0 (unreleased)
+
+On top of 0.5.0. The headline change is the keyword
 representation — a compile-time break for Go embedders (see the
 Migration section below); lisp code is almost entirely unaffected.
 
@@ -66,7 +73,7 @@ the data as a map up front.
 ### Added — destructuring in `loop`/`recur`
 
 `loop` bindings accept the same vector patterns as `fn` parameters and
-`let` bindings (introduced in v0.3.0), re-destructuring on every
+`let` bindings (introduced in 0.5.0), re-destructuring on every
 `recur`. Sequential destructuring now covers every binding form. Also
 new: `key`/`val` entry accessors in `coreextended`.
 
@@ -124,7 +131,11 @@ grep -rn 'ʞ' --include='*.go' .
 grep -rn 'case string\|\.(string)\|Keyword_Q' --include='*.go' .
 ```
 
-## v0.3.0 — 2026-07-24
+## 0.5.0 (unreleased)
+
+Everything since v0.2.24 up to (excluding) the keyword-type
+migration. Briefly tagged `v0.3.0` on 2026-07-24; that tag is
+retracted — this content ships as v0.5.0.
 
 ### ⚠️ Changed — file I/O moved from `core` to `system`
 

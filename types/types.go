@@ -82,7 +82,7 @@ func KW(s string) Keyword {
 // NewKeyword builds the keyword :s from its name (without the colon).
 //
 // Deprecated: use KW. NewKeyword returned the prefixed-string
-// representation before 0.4 and is kept so embedder code keeps
+// representation before 0.6.0 and is kept so embedder code keeps
 // compiling; it now returns a Keyword.
 func NewKeyword(s string) Keyword {
 	return Keyword(s)
@@ -423,7 +423,7 @@ func Equal_Q(a, b MalType) bool {
 }
 
 // MarshalJSON serialises keyword keys as their bare name (:a → "a"),
-// as Clojure JSON emitters do. (Before 0.4 the internal ʞ prefix leaked
+// as Clojure JSON emitters do. (Before 0.6.0 the internal ʞ prefix leaked
 // into the JSON output.) A map holding both :x and "x" produces
 // duplicate JSON keys — of which one survives, unspecified.
 func (hm HashMap) MarshalJSON() ([]byte, error) {
