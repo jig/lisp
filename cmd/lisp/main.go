@@ -14,6 +14,7 @@ import (
 	"github.com/jig/lisp/lib/git/nsgit"
 	"github.com/jig/lisp/lib/integrity/nsintegrity"
 	"github.com/jig/lisp/lib/lazy/nslazy"
+	"github.com/jig/lisp/lib/log/nslog"
 	"github.com/jig/lisp/lib/regexp/nsregexp"
 	"github.com/jig/lisp/lib/require/nsrequire"
 	"github.com/jig/lisp/lib/sql/nssql"
@@ -54,6 +55,9 @@ func libraries(scriptArgs []string) []library {
 		{"git", nsgit.Load},
 		{"term", nsterm.Load},
 		{"test", nstest.Load},
+
+		// new libraries on jig/lisp v0.6.0
+		{"log", nslog.Load},
 	}
 }
 

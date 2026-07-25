@@ -18,7 +18,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log/slog"
 	"maps"
 	"net/http"
 	"os"
@@ -579,58 +578,10 @@ func webVerifyJWT(token string, config MalType) (MalType, error) {
 	return jsonToMal(generic), nil
 }
 
-// --- logging -------------------------------------------------------------
-
-// webLogger emits structured JSON to stderr, matching the slog-JSON
-// convention used across the surrounding Go services.
-var webLogger = slog.New(slog.NewJSONHandler(os.Stderr, nil))
-
-// logValue renders a Lisp value for a log attribute: keywords lose their
-// sigil, strings/numbers pass through, everything else is printed.
-func logValue(v MalType) any {
-	switch v := v.(type) {
-	case Keyword:
-		return string(v)
-	case string:
-		return v
-	case int, float32, float64, bool, nil:
-		return v
-	default:
-		return printer.Pr_str(v, false)
-	}
-}
-
-// webLog logs msg at level with alternating key/value attributes:
-// (web-log :info "message" "key" value …).
-func webLog(level MalType, msg string, kv ...MalType) (MalType, error) {
-	attrs := make([]any, 0, len(kv))
-	for i, v := range kv {
-		if i%2 == 0 {
-			attrs = append(attrs, kwName(v))
-		} else {
-			attrs = append(attrs, logValue(v))
-		}
-	}
-	switch kwName(level) {
-	case "debug":
-		webLogger.Debug(msg, attrs...)
-	case "warn":
-		webLogger.Warn(msg, attrs...)
-	case "error":
-		webLogger.Error(msg, attrs...)
-	default:
-		webLogger.Info(msg, attrs...)
-	}
-	return nil, nil
-}
-
 // Load registers the web builtins. The Ring response helpers and
 // middleware are added by the header (see nsweb.Load).
 func Load(env EnvType) {
 	call.CallOverrideFN(env, "web-serve", webServe)
-	call.CallOverrideFN(env, "web-log", webLog)
-	call.Doc(env, "web-log", "[level msg & kv]",
-		"Emits a structured JSON log line to stderr at level (:debug/:info/:warn/:error) with alternating key/value attributes.")
 	call.CallOverrideFN(env, "web-encode-json", webEncodeJSON)
 	call.Doc(env, "web-encode-json", "[value]",
 		"Encodes Lisp data as JSON for an HTTP response: keyword keys and values become plain strings (:id → \"id\"), as core json-encode also does.")

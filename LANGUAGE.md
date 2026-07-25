@@ -493,7 +493,6 @@ Regular expressions (Go RE2): re-pattern, re-matches / re-find, re-seq, re-repla
 | `web-bad-request` | `[& msg]` | A 400 JSON response. |
 | `web-encode-json` | `[value]` | Encodes Lisp data as JSON for an HTTP response: keyword keys and values become plain strings (:id → "id"), as core json-encode also does. |
 | `web-json` | `[status-or-body & maybe-body]` | A JSON response: encodes body and sets content-type. (web-json data) is 200; (web-json status data) sets the status. |
-| `web-log` | `[level msg & kv]` | Emits a structured JSON log line to stderr at level (:debug/:info/:warn/:error) with alternating key/value attributes. |
 | `web-not-found` | `[& msg]` | A 404 JSON response. |
 | `web-redirect` | `[location & status]` | A redirect response (status 302 unless given as the second arg). |
 | `web-response` | `[status body & headers]` | Builds a response map with the given status and body, plus optional header pairs. |
@@ -505,7 +504,6 @@ Regular expressions (Go RE2): re-pattern, re-matches / re-find, re-seq, re-repla
 | `web-wrap-identity` | `[handler]` | Middleware: promotes a verified mTLS client certificate to :identity {:kind :mtls :subject cn}. |
 | `web-wrap-json-body` | `[handler]` | Middleware: when the request body is a non-empty JSON object, decodes it under :json (nil on parse error). |
 | `web-wrap-jwt` | `[config handler]` | Middleware: verifies a Bearer JWT against config (see web-verify-jwt) and sets :identity {:kind :jwt :claims …}; responds 401 when missing or invalid. config is the JWKS/issuer map. |
-| `web-wrap-log` | `[handler]` | Middleware: logs one structured JSON line per request with method, uri, status and elapsed ms. |
 | `web-wrap-recover` | `[handler]` | Middleware: turns any error escaping the handler into a 500 JSON response instead of dropping the connection. |
 
 ### git
@@ -570,6 +568,15 @@ Regular expressions (Go RE2): re-pattern, re-matches / re-find, re-seq, re-repla
 | `test/run-tests!` | `[]` | Runs every registered test and returns the results as data. |
 | `test/with-out-str*` | `[thunk]` | Runs thunk capturing standard output and returns it as a string; (with-out-str …) expands to this. |
 | `with-out-str ⁽ᵐ⁾` | `[& body]` | Evaluates body capturing standard output and returns it as a string (Clojure-style); output from concurrent goroutines is captured too. |
+
+### log
+
+| Name | Arguments | Description |
+| ---- | --------- | ----------- |
+| `log-debug` | `[msg & kv]` | Emits a structured JSON log line to stderr at debug level with alternating keyword/value attributes; suppressed unless LOG_LEVEL=debug. |
+| `log-error` | `[msg & kv]` | Emits a structured JSON log line to stderr at error level with alternating keyword/value attributes. |
+| `log-info` | `[msg & kv]` | Emits a structured JSON log line to stderr at info level with alternating keyword/value attributes, e.g. (log-info "user created" :id 42). |
+| `log-warn` | `[msg & kv]` | Emits a structured JSON log line to stderr at warn level with alternating keyword/value attributes. |
 
 ⁽ᵐ⁾ = macro (arguments are not evaluated before the call).
 
