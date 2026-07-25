@@ -2,6 +2,14 @@ module github.com/jig/lisp
 
 go 1.25.0
 
+// v0.3.0 was tagged prematurely (the 0.3 line was not ready) and
+// v0.3.1 exists only to carry this retraction. Keep both retracted in
+// every future release so they stay hidden from version listings.
+retract (
+	v0.3.0 // Published prematurely; use v0.2.24.
+	v0.3.1 // Contains only this retraction.
+)
+
 require (
 	github.com/MicahParks/keyfunc/v3 v3.8.0
 	github.com/alexflint/go-arg v1.6.1
