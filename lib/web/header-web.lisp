@@ -3,7 +3,7 @@
 ;; Ring-style response helpers and middleware for the web library.
 ;; A response is {:status :headers :body}; a handler is (fn [req] resp);
 ;; middleware is (fn [handler] (fn [req] resp)). Compose middleware with
-;; -> , e.g. (-> app http/wrap-json-body http/wrap-log http/wrap-recover).
+;; -> , e.g. (-> app web-wrap-json-body web-wrap-recover).
 (do
     (defn web-response
         "Builds a response map with the given status and body, plus optional header pairs."
@@ -62,19 +62,6 @@
                 (if (and (string? body) (not (= "" body)))
                     (handler (assoc req :json (try (json-decode {} body) (catch e nil))))
                     (handler req)))))
-
-    (defn web-wrap-log
-        "Middleware: logs one structured JSON line per request with method, uri, status and elapsed ms."
-        [handler]
-        (fn [req]
-            (let [start (time-ms)
-                  resp  (handler req)]
-                (web-log :info "http request"
-                    "method" (get req :method)
-                    "uri" (get req :uri)
-                    "status" (get resp :status)
-                    "ms" (- (time-ms) start))
-                resp)))
 
     (defn web-wrap-identity
         "Middleware: promotes a verified mTLS client certificate to :identity {:kind :mtls :subject cn}."

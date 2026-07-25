@@ -16,7 +16,6 @@ no socket required.
         [["/ping"        {:get (fn [req] (web-json {:pong true}))}]
          ["/certs/:id"   {:get (fn [req] (web-json {:id (get (get req :path-params) :id)}))}]])
       web-wrap-json-body     ; decodes a JSON body under :json
-      web-wrap-log           ; one structured JSON log line per request
       web-wrap-recover))     ; errors become 500 instead of dropping the connection
 
 (web-serve {:port 8443
@@ -93,8 +92,8 @@ underlying primitive if you need the claims directly.
 ## Middleware
 
 Middleware is `handler → handler`; compose with `->`. Built-in:
-`web-wrap-recover`, `web-wrap-log`, `web-wrap-json-body`,
-`web-wrap-identity`, `web-wrap-jwt`. Write your own the same way:
+`web-wrap-recover`, `web-wrap-json-body`, `web-wrap-identity`,
+`web-wrap-jwt`. Write your own the same way:
 
 ```clojure
 (defn wrap-require-role [role handler]
@@ -102,6 +101,21 @@ Middleware is `handler → handler`; compose with `->`. Built-in:
     (if (contains? (get-in req [:identity :claims :realm_access :roles]) role)
       (handler req)
       (web-unauthorized "forbidden"))))
+```
+
+For an access log, combine it with `lib/log`:
+
+```clojure
+(defn wrap-log [handler]
+  (fn [req]
+    (let [start (time-ms)
+          resp  (handler req)]
+      (log-info "http request"
+        :method (get req :method)
+        :uri (get req :uri)
+        :status (get resp :status)
+        :ms (- (time-ms) start))
+      resp)))
 ```
 
 ## Not yet

@@ -60,6 +60,23 @@ the latter two only compare by identity — and error at construction.
 `json-encode` of a map with non-string/keyword keys errors (JSON
 objects require string keys).
 
+### Added — `lib/log`, structured JSON logging
+
+New `log` namespace: `log-debug` / `log-info` / `log-warn` /
+`log-error` emit one slog-style JSON line to stderr with alternating
+key/value attributes — `(log-info "user created" :id 42)`. Keys are
+keywords or strings (keywords lose their sigil); primitive values pass
+through as JSON, anything else renders via the Lisp printer. The
+minimum level comes from the `LOG_LEVEL` environment variable
+(`debug`/`info`/`warn`/`error`, default `info`), read at load time.
+
+### ⚠️ Removed — `web-log` and `web-wrap-log`
+
+Logging moves out of `lib/web` into `lib/log`. Migration:
+`(web-log :info "msg" "k" v)` becomes `(log-info "msg" :k v)` (per
+level), and `web-wrap-log` users write the one-liner middleware over
+`log-info` themselves (example in `lib/web/README.md`).
+
 ### ⚠️ Changed — `reduce-kv` folds an associative collection
 
 `reduce-kv` now matches Clojure: it takes a hash-map (calling
