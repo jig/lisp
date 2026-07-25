@@ -1,5 +1,11 @@
 # ROADMAP: first-class keyword type
 
+> **Version numbering note (2026-07-25).** This document predates the
+> renumbering: what it calls "0.4" ships as **v0.6.0**, and the
+> pre-keyword line ("0.3.x" here) ships as **v0.5.0**. The 0.3.x tags
+> are retracted and the 0.4.x numbers are skipped forever. See
+> RELEASING.md.
+
 Study (2026-07-24) on replacing the current keyword representation — a Go
 `string` with the `ʞ` (U+029E) prefix, inherited from kanaka/mal — with a
 dedicated Go type. Includes the related gap that `seq`, `map`, `filter` and
