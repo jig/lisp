@@ -30,7 +30,7 @@ incident; the previous `main`-based flow is retired.
 | ≤ v0.2.24 | Historical releases; v0.2.24 is the current `@latest`. |
 | v0.3.0, v0.3.1 | **Retracted** (published prematurely; v0.3.1 is retraction-only). Never reuse. |
 | v0.4.x | **Skipped forever** — pre-release documents used "0.4" for the keyword work; a `retract [v0.4.0, v0.4.99]` guard hides any accidental tag. |
-| v0.5.0 | Will ship the pre-keyword line: everything since v0.2.24 up to (excluding) the keyword-type migration — the tree at the merge of #133 (`30349af`). |
+| v0.5.0 | Will ship the pre-keyword line: everything since v0.2.24 up to (excluding) the keyword-type migration — the tree at the merge of #133 (`30349af`). **`v0.5.0-rc.1` is published at that commit (2026-07-25)** for embedder validation; when validated, tag `v0.5.0` on the same commit to flip `@latest`. |
 | v0.6.0 | Will ship the keyword-type migration (the Go-embedder breaking change) and everything after. |
 
 The `retract` block in `go.mod` **must be carried unchanged into every
