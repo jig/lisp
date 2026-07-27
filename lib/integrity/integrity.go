@@ -10,10 +10,10 @@
 // diff-friendly. Keys and signatures are exchanged as standard base64
 // strings; digests as lowercase hex.
 //
-// The package also implements the interpreter's integrity mode
-// (`lisp --integrity <ref>`, see mode.go), which runs a script if and
+// The package also implements the interpreter's integrity mode (the
+// `lisp-integrity` binary, see mode.go), which runs a script if and
 // only if it — and, in cascade, its repo-local requires — match what is
-// committed in its Git repository at <ref>; the (assert-integrity)
+// committed in its Git repository at HEAD; the (assert-integrity)
 // builtin lets a script demand that mode.
 package integrity
 
@@ -38,7 +38,7 @@ func Load(env EnvType) {
 	call.Call(env, ed25519_generate)
 	call.Call(env, ed25519_sign)
 	call.Call(env, ed25519_verify)
-	call.Call(env, assert_integrity)
+	call.Call(env, assert_integrity, 0, 1)
 	call.Call(env, state_save, 2, 3)
 	call.Call(env, state_load, 1, 2)
 
@@ -52,17 +52,28 @@ func Load(env EnvType) {
 		"Signs string s with a base64 Ed25519 private key; returns the base64 signature (deterministic).")
 	call.Doc(env, "ed25519-verify", "[public s signature]",
 		"Reports whether the base64 signature of string s verifies against the base64 Ed25519 public key.")
-	call.Doc(env, "assert-integrity", "[]",
-		"Throws unless the interpreter runs under --integrity; returns the verified commit hash.")
+	call.Doc(env, "assert-integrity", "[& [:with-signature]]",
+		"Throws unless the interpreter runs under lisp-integrity; returns the verified commit hash. With :with-signature it additionally throws unless the run's signature rule was applied (an allowed-signers set was present and HEAD verified against it).")
 	call.Doc(env, "state-save", "[name value & [message]]",
-		"Writes value as canonical lisp data to .state/name.lisp at the repository root and commits it; returns the commit hash. message is the commit message (default \"state: name\"). Under --integrity-keys the commit is SSH-signed with the ssh-agent key listed there. Under --integrity the commit keeps the verified ref valid.")
+		"Writes value as canonical lisp data to .state/name.lisp at the repository root and commits it; returns the commit hash. message is the commit message (default \"state: name\"). When an allowed-signers set is active (lisp-integrity with /etc/lisp/allowed_signers) the commit is SSH-signed with the ssh-agent key listed there.")
 	call.Doc(env, "state-load", "[name & [default]]",
-		"Reads .state/name.lisp back as data (READ, never EVAL); returns default (or throws) when absent. Under --integrity the file must match its committed version at HEAD.")
+		"Reads .state/name.lisp back as data (READ, never EVAL); returns default (or throws) when absent. Under lisp-integrity the file must match its committed version at HEAD.")
 }
 
-func assert_integrity() (string, error) {
+func assert_integrity(opts ...MalType) (string, error) {
+	withSignature := false
+	for _, opt := range opts {
+		if kw, ok := opt.(Keyword); ok && string(kw) == "with-signature" {
+			withSignature = true
+			continue
+		}
+		return "", fmt.Errorf("assert-integrity: unknown option %v (only :with-signature is accepted)", opt)
+	}
 	if !Active() {
-		return "", fmt.Errorf("assert-integrity: source integrity is not verified (run with --integrity <ref>)")
+		return "", fmt.Errorf("assert-integrity: source integrity is not verified (run with lisp-integrity)")
+	}
+	if withSignature && !Signed() {
+		return "", fmt.Errorf("assert-integrity: signature verification was not performed (no allowed signers on this host)")
 	}
 	return CommitHash(), nil
 }

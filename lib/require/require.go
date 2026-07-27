@@ -90,7 +90,7 @@ func load(rootEnv types.EnvType, cfg Config) error {
 
 // VerifyModule is an optional hook that vets every module file before
 // it is evaluated; a non-nil error aborts the require. The command
-// package installs it when running under --integrity, so the
+// package installs it when running under lisp-integrity, so the
 // verification of the script cascades to its requires.
 var VerifyModule func(absPath string, content []byte) error
 

@@ -8,7 +8,7 @@ without stepping outside the threat model below.
 ## Objective and assets
 
 The mode promises the operator launching
-`lisp --integrity <ref> script.lisp` that every byte evaluated as code
+`lisp-integrity script.lisp` that every byte evaluated as code
 matches the repository content at `<ref>`, and that state read through
 `state-load` matches what a completed `state-save` committed. A
 successful attack makes the interpreter **run code (or accept state)

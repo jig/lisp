@@ -4,11 +4,11 @@ package integrity
 // canonical lisp data under <repo-root>/.state/<name>.lisp and commits
 // it in the same operation, so committed state is always the product of
 // a completed save; state-load reads it back as pure data (READ, never
-// EVAL). Under --integrity, state-load additionally requires the file
+// EVAL). Under lisp-integrity, state-load additionally requires the file
 // to byte-match its blob at the current HEAD — the commit the last
 // state-save created — so out-of-band edits fail closed. The mode's
 // startup check accepts these state-only commits above the code ref
-// (see verifyStateOnlyDescent), which keeps the original --integrity
+// (state commits touch only .state/), which keeps restarts verifying
 // ref valid across restarts.
 
 import (
@@ -37,7 +37,7 @@ const stateDir = ".state"
 var stateMu sync.Mutex
 
 // stateRepo returns the repository and worktree root the state store
-// lives in: the verified repository under --integrity, the repository
+// lives in: the verified repository under lisp-integrity, the repository
 // enclosing the working directory otherwise.
 func stateRepo(fnName string) (*gogit.Repository, string, error) {
 	if mode != nil {
@@ -152,7 +152,7 @@ func state_save(name string, value MalType, params ...MalType) (MalType, error) 
 		}
 		return nil, fmt.Errorf("state-save: %w", err)
 	}
-	// Sign the state commit when --integrity-keys installed a signing
+	// Sign the state commit when the allowed signers installed a signing
 	// policy (ssh-agent key); a no-op otherwise.
 	if hash, err = libgit.SignCommitIfPolicy(repo, hash); err != nil {
 		return nil, fmt.Errorf("state-save: sign commit: %w", err)

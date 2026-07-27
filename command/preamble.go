@@ -86,7 +86,7 @@ func runScript(ctx context.Context, env types.EnvType, fileName string, preamble
 	if err != nil {
 		return nil, err
 	}
-	// Under --integrity, verify the exact bytes about to be evaluated.
+	// Under lisp-integrity, verify the exact bytes about to be evaluated.
 	// integrity.Enable verified the script from an earlier, independent
 	// read; the preamble branch below evaluates *this* buffer directly
 	// (not through load-file/slurp-source), so without this check the

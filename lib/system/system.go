@@ -36,7 +36,7 @@ func Load(env EnvType) {
 	call.Doc(env, "setenv", "[name value]", "Sets the environment variable name to value.")
 	call.Doc(env, "unsetenv", "[name]", "Removes the environment variable name.")
 	call.Doc(env, "slurp", "[filename]", "Reads a file and returns its contents as a string.")
-	call.Doc(env, "slurp-source", "[filename]", "Reads a source file like slurp and, under --integrity, verifies it against the pinned commit; load-file builds on it.")
+	call.Doc(env, "slurp-source", "[filename]", "Reads a source file like slurp and, under lisp-integrity, verifies it against the verified HEAD commit; load-file builds on it.")
 	call.Doc(env, "spit", "[filename s & opts]", "Writes string s to a file, creating or truncating it; with :append true, appends instead.")
 	call.Doc(env, "chdir", "[path]",
 		"Changes the process working directory to path. Process-global: affects the working directory of all subsequent operations, including the .state store and git repository detection.")
@@ -96,13 +96,13 @@ func remove_all(path string) (MalType, error) {
 
 // VerifySource is an optional hook that vets a source file before
 // load-file (via slurp-source) evaluates it; a non-nil error aborts the
-// load. The command package installs it when running under --integrity,
+// load. The command package installs it when running under lisp-integrity,
 // so code loaded at runtime is verified like the script and its
 // requires. slurp itself is never hooked: it reads data, not code.
 var VerifySource func(absPath string, content []byte) error
 
 // slurp_source is slurp for files that will be evaluated as code:
-// identical, except that under --integrity the content is verified
+// identical, except that under lisp-integrity the content is verified
 // against the pinned commit. load-file builds on it.
 func slurp_source(fileName string) (MalType, error) {
 	v, err := slurp(fileName)

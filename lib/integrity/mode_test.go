@@ -104,7 +104,7 @@ func setupRepo(t *testing.T, ns types.EnvType, commitOpts string) (dir, hash str
 }
 
 // signWith installs a signing policy from a PEM private key (the test
-// stand-in for --integrity-keys' ssh-agent signer) and returns the
+// stand-in for the allowed signers' ssh-agent signer) and returns the
 // function that removes it. git-commit, git-tag and state-save then sign.
 func signWith(t *testing.T, privPEM string) func() {
 	t.Helper()
@@ -117,10 +117,10 @@ func signWith(t *testing.T, privPEM string) func() {
 }
 
 // enable calls integrity.Enable and registers cleanup of the global mode.
-func enable(t *testing.T, script, ref, signers string) error {
+func enable(t *testing.T, script, signers string) error {
 	t.Helper()
 	t.Cleanup(integrity.Disable)
-	return integrity.Enable(script, ref, signers)
+	return integrity.Enable(script, signers)
 }
 
 func TestEnableAndVerify(t *testing.T) {
@@ -128,7 +128,7 @@ func TestEnableAndVerify(t *testing.T) {
 	dir, hash := setupRepo(t, ns, "")
 	script := filepath.Join(dir, "script.lisp")
 
-	if err := enable(t, script, hash, ""); err != nil {
+	if err := enable(t, script, ""); err != nil {
 		t.Fatalf("Enable: %v", err)
 	}
 	if !integrity.Active() {
@@ -165,23 +165,14 @@ func TestVerifyFileNoOpWhenInactive(t *testing.T) {
 	}
 }
 
-func TestEnableTagRef(t *testing.T) {
-	ns := newGitEnv(t)
-	dir, _ := setupRepo(t, ns, "")
-	evalLisp(t, ns, `(git-tag r "v1")`)
-	if err := enable(t, filepath.Join(dir, "script.lisp"), "v1", ""); err != nil {
-		t.Fatalf("Enable with lightweight tag: %v", err)
-	}
-}
-
 func TestEnableModifiedScript(t *testing.T) {
 	ns := newGitEnv(t)
-	dir, hash := setupRepo(t, ns, "")
+	dir, _ := setupRepo(t, ns, "")
 	script := filepath.Join(dir, "script.lisp")
 	if err := os.WriteFile(script, []byte("(assert-integrity) (def evil 1)\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	if err := enable(t, script, hash, ""); err == nil || !strings.Contains(err.Error(), "differs") {
+	if err := enable(t, script, ""); err == nil || !strings.Contains(err.Error(), "differs") {
 		t.Fatalf("Enable(modified script) = %v, want 'differs' error", err)
 	}
 	if integrity.Active() {
@@ -189,7 +180,10 @@ func TestEnableModifiedScript(t *testing.T) {
 	}
 }
 
-func TestEnableHeadMoved(t *testing.T) {
+// TestEnableAfterLaterCommit pins the HEAD-anchored semantics: a later
+// commit moves HEAD, and verification simply anchors there — the pin
+// is the checkout, not an argument.
+func TestEnableAfterLaterCommit(t *testing.T) {
 	ns := newGitEnv(t)
 	dir, hash := setupRepo(t, ns, "")
 	if err := os.WriteFile(filepath.Join(dir, "later.txt"), []byte("x\n"), 0o644); err != nil {
@@ -197,9 +191,11 @@ func TestEnableHeadMoved(t *testing.T) {
 	}
 	evalLisp(t, ns, `(git-add r "later.txt")`)
 	evalLisp(t, ns, `(git-commit r "second" {:author `+author+`})`)
-	err := enable(t, filepath.Join(dir, "script.lisp"), hash, "")
-	if err == nil || !strings.Contains(err.Error(), "HEAD") {
-		t.Fatalf("Enable(old ref) = %v, want HEAD mismatch error", err)
+	if err := enable(t, filepath.Join(dir, "script.lisp"), ""); err != nil {
+		t.Fatalf("Enable(after later commit): %v", err)
+	}
+	if integrity.CommitHash() == hash {
+		t.Fatal("CommitHash() still reports the old commit; want the new HEAD")
 	}
 }
 
@@ -209,7 +205,7 @@ func TestEnableOutsideRepo(t *testing.T) {
 	if err := os.WriteFile(script, []byte("1\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	if err := enable(t, script, "HEAD", ""); err == nil ||
+	if err := enable(t, script, ""); err == nil ||
 		!strings.Contains(err.Error(), "not inside a git repository") {
 		t.Fatalf("Enable(no repo) = %v, want 'not inside a git repository'", err)
 	}
@@ -220,19 +216,24 @@ func TestEnableSignedCommit(t *testing.T) {
 	privPEM, authorized := testKey(t, "alice")
 	_, otherAuthorized := testKey(t, "mallory")
 	t.Cleanup(signWith(t, privPEM))
-	dir, hash := setupRepo(t, ns, "")
+	dir, _ := setupRepo(t, ns, "")
 	script := filepath.Join(dir, "script.lisp")
 
-	if err := enable(t, script, hash, authorized); err != nil {
+	if err := enable(t, script, authorized); err != nil {
 		t.Fatalf("Enable(signed commit, allowed key): %v", err)
 	}
+	if !integrity.Signed() || integrity.Signer() != "alice" {
+		t.Fatalf("Signed()/Signer() = %v/%q, want true/alice", integrity.Signed(), integrity.Signer())
+	}
 	integrity.Disable()
-	if err := enable(t, script, hash, otherAuthorized); err == nil {
+	if err := enable(t, script, otherAuthorized); err == nil {
 		t.Fatal("Enable(signed commit, wrong key) did not fail")
 	}
 }
 
 func TestEnableSignedTag(t *testing.T) {
+	// An unsigned HEAD commit verifies through a signed annotated tag
+	// pointing at it.
 	ns := newGitEnv(t)
 	privPEM, authorized := testKey(t, "alice")
 	dir, _ := setupRepo(t, ns, "")
@@ -241,14 +242,18 @@ func TestEnableSignedTag(t *testing.T) {
 	evalLisp(t, ns, `(git-tag r "v1" {:message "release" :tagger `+author+`})`)
 	clear()
 
-	if err := enable(t, script, "v1", authorized); err != nil {
+	if err := enable(t, script, authorized); err != nil {
 		t.Fatalf("Enable(signed tag, allowed key): %v", err)
 	}
-	integrity.Disable()
+}
 
-	// An unsigned annotated tag must be rejected when signers are required.
+func TestEnableUnsignedTagWithSigners(t *testing.T) {
+	// An unsigned annotated tag does not rescue an unsigned commit.
+	ns := newGitEnv(t)
+	_, authorized := testKey(t, "alice")
+	dir, _ := setupRepo(t, ns, "")
 	evalLisp(t, ns, `(git-tag r "v2" {:message "release" :tagger `+author+`})`)
-	if err := enable(t, script, "v2", authorized); err == nil ||
+	if err := enable(t, filepath.Join(dir, "script.lisp"), authorized); err == nil ||
 		!strings.Contains(err.Error(), "not signed") {
 		t.Fatalf("Enable(unsigned tag with signers) = %v, want 'not signed'", err)
 	}
@@ -257,10 +262,40 @@ func TestEnableSignedTag(t *testing.T) {
 func TestEnableUnsignedCommitWithSigners(t *testing.T) {
 	ns := newGitEnv(t)
 	_, authorized := testKey(t, "alice")
-	dir, hash := setupRepo(t, ns, "")
-	if err := enable(t, filepath.Join(dir, "script.lisp"), hash, authorized); err == nil ||
+	dir, _ := setupRepo(t, ns, "")
+	if err := enable(t, filepath.Join(dir, "script.lisp"), authorized); err == nil ||
 		!strings.Contains(err.Error(), "not signed") {
 		t.Fatalf("Enable(unsigned commit with signers) = %v, want 'not signed'", err)
+	}
+}
+
+func TestRepoName(t *testing.T) {
+	ns := newGitEnv(t)
+	dir, _ := setupRepo(t, ns, "")
+	script := filepath.Join(dir, "script.lisp")
+	if err := enable(t, script, ""); err != nil {
+		t.Fatal(err)
+	}
+	// No origin remote: the repository root's basename.
+	if got := integrity.RepoName(); got != filepath.Base(dir) {
+		t.Fatalf("RepoName() = %q, want %q", got, filepath.Base(dir))
+	}
+	integrity.Disable()
+
+	repo, err := gogit.PlainOpen(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := repo.CreateRemote(&gitconfig.RemoteConfig{
+		Name: "origin", URLs: []string{"git@github.com:jig/example.git"},
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if err := enable(t, script, ""); err != nil {
+		t.Fatal(err)
+	}
+	if got := integrity.RepoName(); got != "git@github.com:jig/example.git" {
+		t.Fatalf("RepoName() = %q, want the origin URL", got)
 	}
 }
 
@@ -554,29 +589,34 @@ func TestStateSaveMessage(t *testing.T) {
 	}
 }
 
-// TestStateChainSignedUnderKeys verifies that under --integrity-keys every
-// state commit above the ref must be SSH-signed by a listed key: a signed
-// chain verifies, an unsigned state commit on top fails closed.
+// TestStateChainSignedUnderKeys verifies that with allowed signers every
+// state commit between HEAD and the release commit must be SSH-signed by
+// a listed key: a signed chain verifies (with the release commit as the
+// reported signer), an unsigned state commit on top fails closed.
 func TestStateChainSignedUnderKeys(t *testing.T) {
 	ns := newGitEnv(t)
 	privPEM, authorized := testKey(t, "release")
 
-	// Signed release commit + one signed state commit.
+	// Signed release commit + one signed state commit; HEAD is the
+	// state commit.
 	clear := signWith(t, privPEM)
-	dir, hash := setupRepo(t, ns, "")
+	dir, _ := setupRepo(t, ns, "")
 	t.Chdir(dir)
 	evalLisp(t, ns, `(state-save "db" {:n 1})`)
 	clear()
 
 	script := filepath.Join(dir, "script.lisp")
-	if err := enable(t, script, hash, authorized); err != nil {
+	if err := enable(t, script, authorized); err != nil {
 		t.Fatalf("Enable(signed state chain): %v", err)
+	}
+	if integrity.Signer() != "release" {
+		t.Fatalf("Signer() = %q, want the release commit's key comment", integrity.Signer())
 	}
 	integrity.Disable()
 
-	// An unsigned state commit on top must fail closed under --integrity-keys.
+	// An unsigned state commit on top must fail closed.
 	evalLisp(t, ns, `(state-save "db" {:n 2})`)
-	if err := enable(t, script, hash, authorized); err == nil ||
+	if err := enable(t, script, authorized); err == nil ||
 		!strings.Contains(err.Error(), "not signed by an allowed key") {
 		t.Fatalf("Enable(unsigned state commit) = %v, want 'not signed by an allowed key'", err)
 	}
@@ -584,9 +624,9 @@ func TestStateChainSignedUnderKeys(t *testing.T) {
 
 func TestStateUnderIntegrity(t *testing.T) {
 	ns := newGitEnv(t)
-	dir, hash := setupRepo(t, ns, "")
+	dir, _ := setupRepo(t, ns, "")
 	script := filepath.Join(dir, "script.lisp")
-	if err := enable(t, script, hash, ""); err != nil {
+	if err := enable(t, script, ""); err != nil {
 		t.Fatal(err)
 	}
 
@@ -594,10 +634,10 @@ func TestStateUnderIntegrity(t *testing.T) {
 	evalLisp(t, ns, `(state-save "db" {:n 2})`)
 	expectTrue(t, ns, `(= 2 (get (state-load "db") :n))`)
 
-	// The original code ref stays valid across state commits: a restart
-	// with the same --integrity ref must verify.
+	// State commits move HEAD; a restart re-anchors there and the code
+	// (unchanged by state commits) still verifies.
 	integrity.Disable()
-	if err := integrity.Enable(script, hash, ""); err != nil {
+	if err := integrity.Enable(script, ""); err != nil {
 		t.Fatalf("Enable after state commits: %v", err)
 	}
 
@@ -619,33 +659,43 @@ func TestStateUnderIntegrity(t *testing.T) {
 	}
 }
 
-func TestEnableRejectsCodeCommitAfterRef(t *testing.T) {
-	ns := newGitEnv(t)
-	dir, hash := setupRepo(t, ns, "")
-	if err := os.WriteFile(filepath.Join(dir, "script.lisp"), []byte("(assert-integrity) 2\n"), 0o644); err != nil {
-		t.Fatal(err)
-	}
-	evalLisp(t, ns, `(git-add r "script.lisp")`)
-	evalLisp(t, ns, `(git-commit r "code change" {:author `+author+`})`)
-	err := enable(t, filepath.Join(dir, "script.lisp"), hash, "")
-	if err == nil || !strings.Contains(err.Error(), "outside .state/") {
-		t.Fatalf("Enable(ref below code commit) = %v, want 'outside .state/'", err)
-	}
-}
-
 func TestAssertIntegrityBuiltin(t *testing.T) {
 	ns := newGitEnv(t)
 	dir, hash := setupRepo(t, ns, "")
 
-	// Without --integrity the builtin throws (catchable).
+	// Without integrity mode the builtin throws (catchable).
 	if got := evalLisp(t, ns, `(try (assert-integrity) (catch e "caught"))`); got != "caught" {
 		t.Fatalf("assert-integrity without mode = %v, want caught throw", got)
 	}
 
-	if err := enable(t, filepath.Join(dir, "script.lisp"), hash, ""); err != nil {
+	if err := enable(t, filepath.Join(dir, "script.lisp"), ""); err != nil {
 		t.Fatal(err)
 	}
 	if got := evalLisp(t, ns, `(assert-integrity)`); got != hash {
 		t.Fatalf("assert-integrity = %v, want %q", got, hash)
+	}
+
+	// :with-signature demands the signature rule; this run had no
+	// allowed signers, so it throws (catchable), as does any unknown
+	// option.
+	if got := evalLisp(t, ns, `(try (assert-integrity :with-signature) (catch e "caught"))`); got != "caught" {
+		t.Fatalf("assert-integrity :with-signature without signers = %v, want caught throw", got)
+	}
+	if got := evalLisp(t, ns, `(try (assert-integrity :nonsense) (catch e "caught"))`); got != "caught" {
+		t.Fatalf("assert-integrity with unknown option = %v, want caught throw", got)
+	}
+}
+
+func TestAssertIntegrityWithSignature(t *testing.T) {
+	ns := newGitEnv(t)
+	privPEM, authorized := testKey(t, "alice")
+	t.Cleanup(signWith(t, privPEM))
+	dir, hash := setupRepo(t, ns, "")
+
+	if err := enable(t, filepath.Join(dir, "script.lisp"), authorized); err != nil {
+		t.Fatal(err)
+	}
+	if got := evalLisp(t, ns, `(assert-integrity :with-signature)`); got != hash {
+		t.Fatalf("assert-integrity :with-signature = %v, want %q", got, hash)
 	}
 }
