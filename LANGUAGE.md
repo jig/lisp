@@ -573,10 +573,10 @@ Regular expressions (Go RE2): re-pattern, re-matches / re-find, re-seq, re-repla
 
 | Name | Arguments | Description |
 | ---- | --------- | ----------- |
-| `log-debug` | `[msg & kv]` | Emits a structured JSON log line to stderr at debug level with alternating keyword/value attributes; suppressed unless LOG_LEVEL=debug. |
-| `log-error` | `[msg & kv]` | Emits a structured JSON log line to stderr at error level with alternating keyword/value attributes. |
-| `log-info` | `[msg & kv]` | Emits a structured JSON log line to stderr at info level with alternating keyword/value attributes, e.g. (log-info "user created" :id 42). |
-| `log-warn` | `[msg & kv]` | Emits a structured JSON log line to stderr at warn level with alternating keyword/value attributes. |
+| `log-debug` | `[msg & kv]` | Emits a structured log record at debug level with alternating keyword/value attributes; suppressed unless LOG_LEVEL=debug. Records go to systemd-journald, or to $XDG_STATE_HOME/lisp/<script>.log without it. |
+| `log-error` | `[msg & kv]` | Emits a structured log record at error level with alternating keyword/value attributes. Records go to systemd-journald, or to $XDG_STATE_HOME/lisp/<script>.log without it. |
+| `log-info` | `[msg & kv]` | Emits a structured log record at info level with alternating keyword/value attributes, e.g. (log-info "user created" :id 42). Records go to systemd-journald, or to $XDG_STATE_HOME/lisp/<script>.log without it. |
+| `log-warn` | `[msg & kv]` | Emits a structured log record at warn level with alternating keyword/value attributes. Records go to systemd-journald, or to $XDG_STATE_HOME/lisp/<script>.log without it. |
 
 ⁽ᵐ⁾ = macro (arguments are not evaluated before the call).
 

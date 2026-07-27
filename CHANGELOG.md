@@ -63,12 +63,21 @@ objects require string keys).
 ### Added — `lib/log`, structured JSON logging
 
 New `log` namespace: `log-debug` / `log-info` / `log-warn` /
-`log-error` emit one slog-style JSON line to stderr with alternating
-key/value attributes — `(log-info "user created" :id 42)`. Keys are
-keywords or strings (keywords lose their sigil); primitive values pass
-through as JSON, anything else renders via the Lisp printer. The
-minimum level comes from the `LOG_LEVEL` environment variable
+`log-error` emit one structured record with alternating key/value
+attributes — `(log-info "user created" :id 42)`. Keys are keywords or
+strings (keywords lose their sigil); primitive values pass through,
+anything else renders via the Lisp printer. The minimum level comes
+from the `LOG_LEVEL` environment variable
 (`debug`/`info`/`warn`/`error`, default `info`), read at load time.
+
+Records never go to the screen and the destination is not
+configurable by environment, by design: **systemd-journald** when its
+socket is available — native fields `MESSAGE` / `PRIORITY` /
+`SYSLOG_IDENTIFIER` (script basename) plus each attribute uppercased
+(`:trace-id` → `TRACE_ID`); read back with `journalctl -t <script> -o
+json` — and otherwise (macOS, no systemd) JSON lines appended to
+`$XDG_STATE_HOME/lisp/<script>.log` (default
+`~/.local/state/lisp/<script>.log`).
 
 ### ⚠️ Removed — `web-log` and `web-wrap-log`
 

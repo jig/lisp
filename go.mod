@@ -6,15 +6,16 @@ go 1.25.0
 // v0.3.1 exists only to carry this retraction. Keep both retracted in
 // every future release so they stay hidden from version listings.
 retract (
-	v0.3.0 // Published prematurely; use v0.2.24.
-	v0.3.1 // Contains only this retraction.
 	[v0.4.0, v0.4.99] // Never published: the 0.4 numbers are skipped (pre-release docs used "0.4" for what ships as 0.6.0).
+	v0.3.1 // Contains only this retraction.
+	v0.3.0 // Published prematurely; use v0.2.24.
 )
 
 require (
 	github.com/MicahParks/keyfunc/v3 v3.8.0
 	github.com/alexflint/go-arg v1.6.1
 	github.com/chzyer/readline v1.5.1
+	github.com/coreos/go-systemd/v22 v22.7.0
 	github.com/davecgh/go-spew v1.1.1
 	github.com/go-git/go-billy/v6 v6.0.0-alpha.1
 	github.com/go-git/go-git/v6 v6.0.0-alpha.4
