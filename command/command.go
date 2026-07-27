@@ -6,10 +6,12 @@ import (
 	"os"
 	"path/filepath"
 	"runtime/debug"
+	"strings"
 
 	"github.com/alexflint/go-arg"
 	"github.com/jig/lisp"
 	"github.com/jig/lisp/lib/core"
+	liblog "github.com/jig/lisp/lib/log"
 	"github.com/jig/lisp/repl"
 	"github.com/jig/lisp/tools/bat"
 	"github.com/jig/lisp/types"
@@ -194,7 +196,9 @@ func Execute(cmdArgs []string, repl_env types.EnvType) error {
 				return err
 			}
 		} else {
-			// Execute file
+			// Execute file. Name the log stream after the script (journal
+			// SYSLOG_IDENTIFIER / state-file basename).
+			liblog.SetIdentifier(strings.TrimSuffix(filepath.Base(parsedArgs.Script), ".lisp"))
 			result, err := runScript(context.Background(), repl_env, parsedArgs.Script, parsedArgs.Preamble,
 				types.NewCursorHere(parsedArgs.Script, -3, 1))
 			if err != nil {
