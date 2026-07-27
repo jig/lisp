@@ -97,7 +97,7 @@ func testKey(t *testing.T, comment string) (privPEM, authorized string) {
 }
 
 // signWith installs a signing policy from a PEM private key — the test
-// stand-in for --integrity-keys' ssh-agent signer — and clears it when
+// stand-in for the allowed signers' ssh-agent signer — and clears it when
 // the (sub)test ends. git-commit and annotated git-tag then sign.
 func signWith(t *testing.T, privPEM string) {
 	t.Helper()
@@ -278,7 +278,7 @@ func TestBranchesTagsStatus(t *testing.T) {
 	expectTrue(t, ns, `(= "master" (get (git-head r) :branch))`)
 
 	// tags: lightweight and annotated are unsigned; the signed one is
-	// created while a signing policy is active (as under --integrity-keys).
+	// created while a signing policy is active (as with allowed signers).
 	eval(t, ns, `(git-tag r "light")`)
 	eval(t, ns, `(git-tag r "annotated" {:message "v1" :tagger `+author+`})`)
 	signer, err := gossh.ParsePrivateKey([]byte(privPEM))

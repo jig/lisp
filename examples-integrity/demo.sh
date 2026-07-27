@@ -1,10 +1,17 @@
 #!/usr/bin/env bash
 # Replays every walkthrough of README.md in throwaway repositories,
 # failure cases included. A living check that the examples work as
-# documented. Usage: ./demo.sh  (or LISP=/path/to/lisp ./demo.sh)
+# documented. Usage: ./demo.sh
+#   (or LISP=/path/to/lisp LISP_INTEGRITY=/path/to/lisp-integrity ./demo.sh)
+#
+# 03-signed is NOT replayed: the signature rule activates through
+# /etc/lisp/allowed_signers, and a demo must never touch a real host's
+# trust anchor. Follow 03-signed/README.md manually on a disposable
+# host; the rule itself is covered by the Go tests.
 set -euo pipefail
 
 LISP=${LISP:-lisp}
+LISP_INTEGRITY=${LISP_INTEGRITY:-lisp-integrity}
 HERE=$(cd "$(dirname "$0")" && pwd)
 WORK=$(mktemp -d)
 trap 'rm -rf "$WORK"' EXIT
@@ -34,49 +41,32 @@ repo() { # repo <example-dir> → sets up $WORK/<example-dir> as a fresh tagged 
 	git tag v1
 }
 
-step "01-basic: verify a script against a ref"
+step "01-basic: verify a script against HEAD"
 repo 01-basic
-$LISP --integrity v1 service.lisp
-$LISP --integrity "$(git rev-parse v1)" service.lisp >/dev/null
-ok "a commit hash works like the tag"
-must_fail "running without --integrity (assert-integrity throws)" -- $LISP service.lisp
+$LISP_INTEGRITY -y service.lisp
+git checkout -q --detach v1
+$LISP_INTEGRITY -y service.lisp >/dev/null
+ok "a detached checkout pins the release across restarts"
+must_fail "running under plain lisp (assert-integrity throws)" -- $LISP service.lisp
 echo ";; patched" >> service.lisp
-must_fail "script modified after the release" -- $LISP --integrity v1 service.lisp
+must_fail "script modified after the release" -- $LISP_INTEGRITY -y service.lisp
 
 step "02-requires: the check cascades to required modules"
 repo 02-requires
-$LISP --integrity v1 service.lisp
+$LISP_INTEGRITY -y service.lisp
 echo "(def evil 1)" >> .lisp/util.lisp
-must_fail "module modified after the release" -- $LISP --integrity v1 service.lisp
-
-step "03-signed: trust a key, not the local repository"
-repo 03-signed
-git tag -d v1 >/dev/null
-ssh-keygen -q -t ed25519 -f release-key -N "" -C "release@example.com"
-git -c user.name=Demo -c user.email=demo@example.com \
-    -c gpg.format=ssh -c user.signingkey=./release-key tag -s v1 -m "signed release"
-$LISP --integrity v1 --integrity-keys release-key.pub service.lisp
-ssh-keygen -q -t ed25519 -f other-key -N ""
-must_fail "signed by a key not in the keys file" -- \
-	$LISP --integrity v1 --integrity-keys other-key.pub service.lisp
-# git allowed_signers format (principal-first) is refused, not misparsed.
-printf 'release@example.com %s\n' "$(cat release-key.pub)" > allowed_signers
-must_fail "allowed_signers format (principal-first) instead of .pub" -- \
-	$LISP --integrity v1 --integrity-keys allowed_signers service.lisp
-git tag -d v1 >/dev/null && git tag v1
-must_fail "unsigned tag with --integrity-keys" -- \
-	$LISP --integrity v1 --integrity-keys release-key.pub service.lisp
+must_fail "module modified after the release" -- $LISP_INTEGRITY -y service.lisp
 
 step "04-state: persistent state inside the integrity envelope"
 repo 04-state
-$LISP --integrity v1 service.lisp
-$LISP --integrity v1 service.lisp
-$LISP --integrity v1 service.lisp
-[ "$(git log --oneline | grep -c 'state: db')" -eq 3 ] && ok "three state commits, same ref throughout"
+$LISP_INTEGRITY -y service.lisp
+$LISP_INTEGRITY -y service.lisp
+$LISP_INTEGRITY -y service.lisp
+[ "$(git log --oneline | grep -c 'state: db')" -eq 3 ] && ok "three state commits, HEAD advances, still verifies"
 echo "{:visits 999}" > .state/db.lisp
-must_fail "state file edited out of band" -- $LISP --integrity v1 service.lisp
+must_fail "state file edited out of band" -- $LISP_INTEGRITY -y service.lisp
 git checkout -- .state/db.lisp
-$LISP --integrity v1 service.lisp >/dev/null
+$LISP_INTEGRITY -y service.lisp >/dev/null
 ok "operator restored the state; runs again"
 
-step "all examples behaved as documented"
+step "all examples behaved as documented (03-signed is manual, see its README)"

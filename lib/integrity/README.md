@@ -6,7 +6,7 @@ a `.lisp` file (formatting first, so cosmetic layout differences do not
 change the digest) and sign or verify it.
 
 The package also implements the interpreter's [integrity
-mode](#integrity-mode---integrity) (`lisp --integrity <ref>`).
+mode](#integrity-mode-lisp-integrity) (the `lisp-integrity` binary).
 
 ## Functions
 
@@ -17,8 +17,8 @@ mode](#integrity-mode---integrity) (`lisp --integrity <ref>`).
 | `(ed25519-generate)` | key pair `{:public "…" :private "…"}`, base64 |
 | `(ed25519-sign private s)` | base64 signature of `s` |
 | `(ed25519-verify public s signature)` | `true` or `false` |
-| `(assert-integrity)` | the verified commit hash; **throws** unless running under `--integrity` |
-| `(state-save name value & [message])` | writes `value` as canonical lisp data to `.state/name.lisp` and commits it (message defaults to `state: name`; SSH-signed with the ssh-agent key under `--integrity-keys`); returns the commit hash |
+| `(assert-integrity & [:with-signature])` | the verified commit hash; **throws** unless running under `lisp-integrity` (and, with `:with-signature`, unless the signature rule was applied) |
+| `(state-save name value & [message])` | writes `value` as canonical lisp data to `.state/name.lisp` and commits it (message defaults to `state: name`; SSH-signed with the ssh-agent key when an allowed-signers set is active); returns the commit hash |
 | `(state-load name & [default])` | the state read back as pure data (READ, never EVAL); `default` (or throws) when absent |
 
 Ed25519 signing is deterministic: the same key and message always yield
@@ -37,21 +37,22 @@ diff-friendly.
 (ed25519-verify (get keys :public) digest signature) ;; => true
 ```
 
-## Integrity mode (--integrity)
+## Integrity mode (lisp-integrity)
 
-`lisp --integrity <ref> script.lisp` runs `script.lisp` *if and only
-if* it matches what is committed in its enclosing Git repository at
-`<ref>` (a commit hash, tag or branch):
+`lisp-integrity script.lisp` runs `script.lisp` *if and only if* it
+matches what is committed in its enclosing Git repository at `HEAD`,
+and attests the run to systemd-journald:
 
-1. `HEAD` must be exactly the commit `<ref>` resolves to, or a linear
-   chain of `.state/`-only commits above it (the ones `state-save`
-   creates), so the same ref stays valid across restarts;
-2. the script must byte-match the blob committed at `<ref>`;
-3. in cascade, every file evaluated as code — `require` modules and
+1. the script must byte-match the blob committed at `HEAD` (pin a
+   release by checking it out: `git checkout --detach v1.4.2`);
+2. in cascade, every file evaluated as code — `require` modules and
    `load-file`/`load-file-once` targets — must resolve inside the same
    repository and byte-match its committed blob; a file resolving
    outside the repository (an `-i` directory elsewhere,
-   `~/.config/lisp/`, …) is refused.
+   `~/.config/lisp/`, …) is refused;
+3. the run leaves start/end records in the journal (commit, repo,
+   trace id, argv, exit code) and every `log-*` record carries the
+   same run fields.
 
 `(assert-integrity)` lets committed code demand the mode: it throws
 unless the run is verified, and returns the verified commit hash.
@@ -59,21 +60,23 @@ unless the run is verified, and returns the verified commit hash.
 state without leaving the integrity envelope (see
 [INTEGRITY.md](../../INTEGRITY.md), the full specification).
 
-With `--integrity-keys FILE` the ref must additionally carry an SSH
-signature made by one of the public keys in `FILE` (authorized_keys /
+When `/etc/lisp/allowed_signers` exists on the host (authorized_keys /
 `.pub` format, one key per line, as `git-verify-commit` — **not** git's
-`allowed_signers` format): the tag signature for annotated tags, the
-commit signature otherwise. The trust anchor then becomes the key list
-instead of the local repository state, so verification survives cloning
-the repository elsewhere.
+`allowed_signers` format), the `HEAD` chain must additionally be
+SSH-signed by a listed key: the release commit (itself or via a signed
+annotated tag pointing at it) and every state commit above it. The
+trust anchor then becomes the key list instead of the local repository
+state, so verification survives cloning the repository elsewhere.
+`(assert-integrity :with-signature)` demands that rule from code.
 
 What integrity mode is — and is not: it is an operational assurance
 for the operator launching the script (no accidental drift, no
-uncommitted edits, optionally "signed by a trusted key"). It is not a
-security boundary against an attacker who can rewrite the repository,
-the signers file or the `lisp` binary. `eval` over strings obtained by
-other means (`slurp`, network) is not covered, and uncommitted files
-that are never interpreted do not affect the check.
+uncommitted edits, optionally "signed by a trusted key") plus an
+append-only audit trail. It is not a security boundary against an
+attacker who can rewrite the repository, the signers file or the
+binary. `eval` over strings obtained by other means (`slurp`,
+network) is not covered, and uncommitted files that are never
+interpreted do not affect the check.
 
 ## Loading
 
@@ -88,4 +91,6 @@ nsintegrity.Load(env)
 The lisp-level functions have no dependencies beyond `core` (the
 example above uses `slurp` and `get` from core); the integrity mode
 machinery builds on go-git and `lib/git`'s SSH signature verification.
-The `lisp` binary loads the namespace by default.
+Both the `lisp` and `lisp-integrity` binaries load the namespace by
+default (under plain `lisp` the mode is never active, so
+`assert-integrity` always throws there).

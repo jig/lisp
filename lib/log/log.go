@@ -33,6 +33,7 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/coreos/go-systemd/v22/journal"
 
@@ -253,6 +254,39 @@ func logAt(fnName string, l slog.Level, msg string, kv []MalType) (MalType, erro
 	}
 	s.logger.Log(context.Background(), l, msg, attrs...)
 	return nil, nil
+}
+
+// Record emits a runtime record (a Go-level API, not a lisp builtin):
+// msg at level l with the given string fields plus the run fields. It
+// bypasses LOG_LEVEL — attestation records always emit.
+func Record(l slog.Level, msg string, fields map[string]string) error {
+	mu.Lock()
+	defer mu.Unlock()
+	s, err := resolve()
+	if err != nil {
+		return err
+	}
+	if s.journald {
+		out := make(map[string]string, len(fields)+len(runFields)+1)
+		out["SYSLOG_IDENTIFIER"] = identifier
+		for k, v := range runFields {
+			out[fieldName(k)] = v
+		}
+		for k, v := range fields {
+			out[fieldName(k)] = v
+		}
+		return journalSend(msg, priority(l), out)
+	}
+	// Handle directly on the handler: Logger.Log would apply the
+	// LOG_LEVEL filter, and these records must always emit.
+	rec := slog.NewRecord(time.Now(), l, msg, 0)
+	for k, v := range runFields {
+		rec.AddAttrs(slog.String(k, v))
+	}
+	for k, v := range fields {
+		rec.AddAttrs(slog.String(k, v))
+	}
+	return s.logger.Handler().Handle(context.Background(), rec)
 }
 
 func logDebug(msg string, kv ...MalType) (MalType, error) {

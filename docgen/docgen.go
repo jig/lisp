@@ -57,7 +57,7 @@ var sectionBlurb = map[string]struct{ title, desc string }{
 	"require":             {"require", "Module loading by name through a search path."},
 	"sql":                 {"sql", "SQL database access."},
 	"cli":                 {"cli", "Command-line option parsing (clojure/tools.cli style)."},
-	"integrity":           {"integrity", "Attest and verify lisp source (formatting, hashing, Ed25519 signatures, --integrity mode)."},
+	"integrity":           {"integrity", "Attest and verify lisp source (formatting, hashing, Ed25519 signatures, the lisp-integrity mode)."},
 	"regexp":              {"regexp", "Regular expressions (Go RE2): re-pattern, re-matches / re-find, re-seq, re-replace and re-split."},
 }
 

@@ -175,7 +175,7 @@ Changes respect to [kanaka/mal](https://github.com/kanaka/mal):
 - `spit`, the write counterpart of `slurp` (Clojure-style): `(spit filename s)` creates or truncates, `(spit filename s :append true)` appends
 - `*FILE*` holds the absolute path of the script being executed (cf. Clojure's `*file*`), so a script can read its own source; unset in the REPL and `-e`
 - `cli` library for command-line option parsing, modelled on [clojure/tools.cli](https://github.com/clojure/tools.cli) — `(cli-parse-opts *ARGV* specs)`. See [./lib/cli/README.md](./lib/cli/README.md)
-- `integrity` library to attest and verify lisp source: `fmt` (canonical formatting, as `lisp --fmt`), `sha2-256`, and deterministic Ed25519 signatures (`ed25519-generate`, `ed25519-sign`, `ed25519-verify`); plus the interpreter's integrity mode (`--integrity`, with the `assert-integrity` builtin). See [./lib/integrity/README.md](./lib/integrity/README.md)
+- `integrity` library to attest and verify lisp source: `fmt` (canonical formatting, as `lisp --fmt`), `sha2-256`, and deterministic Ed25519 signatures (`ed25519-generate`, `ed25519-sign`, `ed25519-verify`); plus the interpreter's integrity mode (the `lisp-integrity` binary, with the `assert-integrity` builtin). See [./lib/integrity/README.md](./lib/integrity/README.md)
 
 ## Embed jig/lisp in Go code
 
@@ -395,56 +395,55 @@ evaled to (first-arg second-arg)
 42
 ```
 
-### Run only committed code (--integrity)
+### Run only committed code (lisp-integrity)
 
-`--integrity REF` makes the interpreter run a script *if and only if*
-it matches what is committed in its Git repository at `REF` (a commit
-hash, tag or branch — an immutable commit hash is the strongest
-choice):
+The separate `lisp-integrity` binary runs a script *if and only if*
+it matches what is committed in its Git repository at `HEAD`, and
+attests every run to systemd-journald. Integrity is always on and
+cannot be disabled; there is no REPL, no `-e`, no stdin mode:
 
-- `HEAD` must be exactly the commit `REF` resolves to (or a
-  state-only descendant of it, see below),
-- the script must byte-match the blob committed at `REF`, and
+- the script must byte-match the blob committed at `HEAD`,
 - the check cascades to every file evaluated as code: `require`
   modules and `load-file`/`load-file-once` targets must resolve inside
   the same repository and match their committed blobs; files resolving
-  outside it (e.g. `~/.config/lisp/`) are refused.
+  outside it (e.g. `~/.config/lisp/`) are refused,
+- after the green verification block, it asks `proceed? [y/N]` on the
+  terminal (`-y` skips; without a terminal `-y` is mandatory), and
+- the run is attested to the journal: a start record (commit, repo,
+  trace id, argv), an end record (exit code), and every `log-*` call
+  in between carrying the same run fields.
 
 ```bash
-lisp --integrity v1.4.2 service.lisp
-lisp --integrity 9fceb02d service.lisp
+lisp-integrity service.lisp
+lisp-integrity -y service.lisp     # unattended (systemd units)
 ```
 
-A script can demand the flag with the `assert-integrity` builtin,
-which throws unless the run is verified (and returns the verified
-commit hash), so a committed program cannot silently be run
-unverified — as long as the operator knows it is supposed to carry
-that call:
+Pinning a release is a property of the checkout, not of the
+invocation: deploy with `git checkout --detach v1.4.2` and every
+restart runs exactly that commit. A script can demand the mode with
+the `assert-integrity` builtin, which throws unless the run is
+verified (and returns the verified commit hash):
 
 ```lisp
 (def release (assert-integrity))
 ```
 
-With `--integrity-keys FILE`, `REF` must additionally carry an SSH
-signature by one of the public keys listed in `FILE`
-(authorized_keys format, one key per line — the same format
-`git-verify-commit` takes). For an annotated tag the tag's signature
-is checked; otherwise the commit's. This upgrades the guarantee from
-"matches the local repository" to "matches what a trusted key signed",
-which survives cloning the repository onto other machines:
-
-```bash
-lisp --integrity v1.4.2 --integrity-keys /etc/lisp/release-keys service.lisp
-```
+If `/etc/lisp/allowed_signers` exists on the host (authorized_keys
+format, root-owned), every run additionally requires the `HEAD` chain
+to be SSH-signed by a listed key — the release commit itself or an
+annotated tag pointing at it, plus each state commit above it. This
+upgrades the guarantee from "matches the local repository" to
+"matches what a trusted key signed". `(assert-integrity
+:with-signature)` lets a script refuse to run unsigned even on hosts
+without the file.
 
 A verified program persists state through the `.state/` store instead
 of raw file writes: `(state-save "db" value)` writes
 `.state/db.lisp` (canonical lisp data, at the repository root next to
 `.lisp/`) and commits it in the same operation; `(state-load "db")`
-reads it back as pure data and, under `--integrity`, requires it to
-match its committed version at `HEAD`. State commits keep the original
-`--integrity REF` valid across restarts: the startup check accepts
-`HEAD` being a linear chain of state-only commits above `REF`.
+reads it back as pure data and requires it to match its committed
+version at `HEAD`. State commits advance `HEAD` as children of the
+release commit, so restarts keep verifying.
 
 Scope: this is an operational assurance for the operator — no
 accidental drift, no uncommitted edits — not a security boundary

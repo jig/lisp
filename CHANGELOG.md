@@ -86,6 +86,45 @@ Logging moves out of `lib/web` into `lib/log`. Migration:
 level), and `web-wrap-log` users write the one-liner middleware over
 `log-info` themselves (example in `lib/web/README.md`).
 
+### ⚠️ Changed — integrity moves to the `lisp-integrity` binary
+
+`--integrity REF` and `--integrity-keys FILE` are **removed** from the
+`lisp` binary. The new **`lisp-integrity`** binary is always-on: it
+runs only script files (no REPL, `-e`, stdin, test/fmt/debug or
+DAP/LSP modes) and verifies the script — and, in cascade, every file
+loaded as code — against **`HEAD`**. There is no ref argument:
+pinning a release is a property of the checkout
+(`git checkout --detach v1.4.2`); state commits advance `HEAD` as
+children of the release, so restarts keep verifying.
+
+- **Keys**: the flag is replaced by the fixed path
+  `/etc/lisp/allowed_signers` (authorized_keys format, root-owned).
+  Its presence activates the signature rule for every run on the
+  host: state commits above the release must each be signed, and the
+  release commit must be signed itself or via a signed annotated tag
+  pointing at it. The same set drives ssh-agent signing of
+  `git-commit` / `git-tag` / `state-save`, as `--integrity-keys` did.
+- **Consent**: after the green block, `lisp-integrity` asks
+  `proceed? [y/N]`; `-y` skips, and a non-TTY stdin without `-y`
+  fails closed (systemd units say `lisp-integrity -y …`).
+- **Attestation**: every run emits a start record (`COMMIT`, `REPO`,
+  `TRACE_ID`, `ARGV`, `SIGNER`, `PROTECTED`) and an end record
+  (`EXIT_CODE`) to journald — required on Linux, XDG state-file
+  fallback on macOS with `PROTECTED=false` — and every `log-*` record
+  carries the same run fields. A start without an end means abnormal
+  termination. Never pass secrets on the command line: `ARGV` is
+  recorded in append-only storage.
+- **`(assert-integrity)`** now suggests `lisp-integrity` in its error
+  and gains **`(assert-integrity :with-signature)`**, which throws
+  unless the signature rule was applied.
+- INTEGRITY.md is rewritten as the v2 specification (v1 differences
+  are summarised at its end).
+
+Migration: `lisp --integrity v1.4.2 s.lisp` becomes
+`git checkout --detach v1.4.2 && lisp-integrity -y s.lisp`, and
+`--integrity-keys FILE` becomes installing FILE at
+`/etc/lisp/allowed_signers`.
+
 ### ⚠️ Changed — `reduce-kv` folds an associative collection
 
 `reduce-kv` now matches Clojure: it takes a hash-map (calling

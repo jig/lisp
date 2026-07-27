@@ -36,7 +36,7 @@ func TestRunScriptPreambleTOCTOU(t *testing.T) {
 	if err := os.WriteFile(scriptPath, []byte(committed), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	hash := gitInitCommit(t, dir)
+	gitInitCommit(t, dir)
 	t.Chdir(dir)
 	t.Cleanup(func() {
 		integrity.Disable()
@@ -45,8 +45,8 @@ func TestRunScriptPreambleTOCTOU(t *testing.T) {
 	})
 
 	// Enable verifies the committed script; wire the hooks exactly as
-	// setupIntegrity does.
-	if err := integrity.Enable(scriptPath, hash, ""); err != nil {
+	// ExecuteIntegrity does.
+	if err := integrity.Enable(scriptPath, ""); err != nil {
 		t.Fatalf("Enable: %v", err)
 	}
 	require.VerifyModule = integrity.VerifyFile
