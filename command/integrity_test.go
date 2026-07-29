@@ -2,6 +2,7 @@ package command
 
 import (
 	"errors"
+	"io"
 	"log/slog"
 	"os"
 	"os/exec"
@@ -356,6 +357,65 @@ func TestExecuteIntegrityRequiresJournald(t *testing.T) {
 	if err == nil || !strings.Contains(err.Error(), "journald") {
 		t.Fatalf("ExecuteIntegrity without journald = %v, want refusal", err)
 	}
+}
+
+// TestExecuteIntegrityMissingFile pins the laconic typo path: a missing
+// script (or test target) is reported as "no such file" — never as an
+// integrity failure — and nothing is attested.
+func TestExecuteIntegrityMissingFile(t *testing.T) {
+	records := stubAttestation(t)
+	ns := newIntegrityEnv(t)
+
+	for _, cmdline := range [][]string{
+		{"lisp-integrity", "-y", "./nope.lisp"},
+		{"lisp-integrity", "-y", "--test", "./nope"},
+	} {
+		stderr := captureStderr(t, func() {
+			if err := ExecuteIntegrity(cmdline, ns); !errors.Is(err, ErrIntegrityReported) {
+				t.Errorf("ExecuteIntegrity(%v) = %v, want ErrIntegrityReported", cmdline, err)
+			}
+		})
+		if !strings.Contains(stderr, "lisp-integrity: no such file: ./nope") {
+			t.Errorf("stderr %q: want the laconic no-such-file line", stderr)
+		}
+		if strings.Contains(stderr, "integrity check failed") {
+			t.Errorf("stderr %q: must not print the red audit block for a typo", stderr)
+		}
+	}
+
+	// A directory where a script is expected is the same kind of typo.
+	dir := t.TempDir()
+	stderr := captureStderr(t, func() {
+		if err := ExecuteIntegrity([]string{"lisp-integrity", "-y", dir}, ns); !errors.Is(err, ErrIntegrityReported) {
+			t.Errorf("ExecuteIntegrity(dir) = %v, want ErrIntegrityReported", err)
+		}
+	})
+	if !strings.Contains(stderr, "is a directory") {
+		t.Errorf("stderr %q: want the directory notice", stderr)
+	}
+
+	if len(*records) != 0 {
+		t.Fatalf("typo runs must not be attested: %+v", *records)
+	}
+}
+
+// captureStderr runs f capturing os.Stderr.
+func captureStderr(t *testing.T, f func()) string {
+	t.Helper()
+	r, w, err := os.Pipe()
+	if err != nil {
+		t.Fatal(err)
+	}
+	old := os.Stderr
+	os.Stderr = w
+	defer func() { os.Stderr = old }()
+	f()
+	_ = w.Close()
+	data, err := io.ReadAll(r)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return string(data)
 }
 
 func TestExecuteIntegrityArgValidation(t *testing.T) {
