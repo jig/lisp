@@ -126,7 +126,7 @@ func ExecuteIntegrity(cmdArgs []string, repl_env types.EnvType) error {
 		enableErr = integrity.Enable(parsedArgs.Script, keys)
 	}
 	if enableErr != nil {
-		return reportIntegrity(false, "", "", "", enableErr)
+		return reportIntegrity(false, "", "", "", "", false, enableErr)
 	}
 	require.VerifyModule = integrity.VerifyFile
 	system.VerifySource = integrity.VerifyFile
@@ -139,7 +139,8 @@ func ExecuteIntegrity(cmdArgs []string, repl_env types.EnvType) error {
 		libgit.SetSigningKeys(os.Getenv("SSH_AUTH_SOCK"), keys)
 	}
 
-	if err := reportIntegrity(true, integrity.RepoName(), integrity.CommitHash(), integrity.Signer(), nil); err != nil {
+	if err := reportIntegrity(true, integrity.RepoName(), integrity.CommitHash(),
+		integrity.Signer(), integrity.SignerFingerprint(), integrity.Signed(), nil); err != nil {
 		return err
 	}
 
@@ -184,9 +185,11 @@ func ExecuteIntegrity(cmdArgs []string, repl_env types.EnvType) error {
 	startFields := map[string]string{
 		"argv":      string(argv),
 		"protected": fmt.Sprintf("%t", protected),
+		"signed":    fmt.Sprintf("%t", integrity.Signed()),
 	}
-	if signer := integrity.Signer(); signer != "" {
-		startFields["signer"] = signer
+	if integrity.Signed() {
+		startFields["signer"] = integrity.Signer()
+		startFields["signer_fingerprint"] = integrity.SignerFingerprint()
 	}
 	if err := emitRecord(slog.LevelInfo, "run started", startFields); err != nil {
 		return err
@@ -229,20 +232,20 @@ func ExecuteIntegrity(cmdArgs []string, repl_env types.EnvType) error {
 // on mismatch, so a green block does not mean the whole run is
 // pre-verified. Returns nil on success, ErrIntegrityReported on
 // a terminal failure (already shown), or the cause when redirected.
-func reportIntegrity(ok bool, repo, commit, signer string, cause error) error {
+func reportIntegrity(ok bool, repo, commit, signer, fingerprint string, signed bool, cause error) error {
 	if !libterm.StderrIsTerminal() {
 		if !ok {
 			return cause // the normal error path reports it
 		}
-		attrs := []any{"repo", repo, "commit", commit}
-		if signer != "" {
-			attrs = append(attrs, "signer", signer)
+		attrs := []any{"repo", repo, "commit", commit, "signed", signed}
+		if signed {
+			attrs = append(attrs, "signer", signer, "signer_fingerprint", fingerprint)
 		}
 		slog.New(slog.NewJSONHandler(os.Stderr, nil)).Info("integrity: verified at HEAD", attrs...)
 		return nil
 	}
 
-	fmt.Fprint(os.Stderr, integrityBlock(ok, repo, commit, signer, cause))
+	fmt.Fprint(os.Stderr, integrityBlock(ok, repo, commit, signer, fingerprint, signed, cause))
 	if ok {
 		return nil
 	}
@@ -250,7 +253,11 @@ func reportIntegrity(ok bool, repo, commit, signer string, cause error) error {
 }
 
 // integrityBlock renders the coloured, one-field-per-line audit block.
-func integrityBlock(ok bool, repo, commit, signer string, cause error) string {
+// The signature line is always present: the signer's comment and key
+// fingerprint when the rule was applied, a yellow "signed no" notice
+// when the host has no allowed-signers set — consistency-only runs must
+// be visibly weaker, not silently green.
+func integrityBlock(ok bool, repo, commit, signer, fingerprint string, signed bool, cause error) string {
 	field := func(label, value string) string {
 		return fmt.Sprintf("    %-6s  %s\n", label, value)
 	}
@@ -259,10 +266,12 @@ func integrityBlock(ok bool, repo, commit, signer string, cause error) string {
 		return libterm.StderrStyle("red", true, "✗ integrity check failed") + "\n" +
 			libterm.StderrStyle("red", false, field("reason", reason))
 	}
-	body := field("repo", repo) + field("commit", commit)
-	if signer != "" {
-		body += field("signer", signer)
+	body := libterm.StderrStyle("green", false, field("repo", repo)+field("commit", commit))
+	if signed {
+		id := strings.TrimSpace(signer + " " + fingerprint)
+		body += libterm.StderrStyle("green", false, field("signer", id))
+	} else {
+		body += libterm.StderrStyle("yellow", false, field("signed", "no (no "+allowedSignersPath+")"))
 	}
-	return libterm.StderrStyle("green", true, "✓ integrity verified") + "\n" +
-		libterm.StderrStyle("green", false, body)
+	return libterm.StderrStyle("green", true, "✓ integrity verified") + "\n" + body
 }

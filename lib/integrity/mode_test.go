@@ -260,6 +260,9 @@ func TestEnableSignedCommit(t *testing.T) {
 	if !integrity.Signed() || integrity.Signer() != "alice" {
 		t.Fatalf("Signed()/Signer() = %v/%q, want true/alice", integrity.Signed(), integrity.Signer())
 	}
+	if fp := integrity.SignerFingerprint(); !strings.HasPrefix(fp, "SHA256:") {
+		t.Fatalf("SignerFingerprint() = %q, want an SSH SHA256 fingerprint", fp)
+	}
 	integrity.Disable()
 	if err := enable(t, script, otherAuthorized); err == nil {
 		t.Fatal("Enable(signed commit, wrong key) did not fail")
@@ -464,7 +467,7 @@ func TestStateSaveSignedCommit(t *testing.T) {
 				if err != nil {
 					t.Fatal(err)
 				}
-				if _, err := libgit.VerifyCommitSSH(commit, authorized); err != nil {
+				if _, _, err := libgit.VerifyCommitSSH(commit, authorized); err != nil {
 					t.Fatalf("verify signed state commit: %v", err)
 				}
 				if commit.Author.Name != "state-save" || commit.Author.Email != "state-save@lisp" {

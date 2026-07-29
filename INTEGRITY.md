@@ -95,8 +95,11 @@ At startup:
    touching only state paths), each such commit must carry an SSH
    signature by a listed key, and the first non-state commit under
    them — the **release commit** — must be signed itself or via an
-   annotated tag pointing at it. The release signer is reported in
-   the green block and the start record.
+   annotated tag pointing at it. The release signer (key comment and
+   SHA256 fingerprint) is reported in the green block and the start
+   record. Without the file the block still verifies consistency but
+   carries an explicit yellow `signed  no` line — a consistency-only
+   run is visibly weaker, never silently green.
 
 At runtime, while the mode is active:
 
@@ -131,8 +134,9 @@ Records emitted by the runtime itself (exactly two, never more):
 
 - **start** — after verification and confirmation, before evaluation:
   `MESSAGE="run started"`, `ARGV` (script and arguments — or
-  `["--test", target]` — as JSON), `SIGNER` when rule 3 applied,
-  `PROTECTED`.
+  `["--test", target]` — as JSON), `PROTECTED`, `SIGNED`
+  (always; filter unsigned runs with `journalctl SIGNED=false`), and
+  `SIGNER` + `SIGNER_FINGERPRINT` (SHA256) when rule 3 applied.
 - **end** — from a deferred handler covering normal return, error and
   panic: `MESSAGE="run ended"`, `EXIT_CODE` (and `PANIC` on one). A
   start record with no matching end record means abnormal termination
