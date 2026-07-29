@@ -45,6 +45,7 @@ type modeState struct {
 	repoRoot string
 	repoName string
 	signer   string
+	signerFP string
 	signed   bool
 	commit   *object.Commit
 	tree     *object.Tree
@@ -83,6 +84,16 @@ func Signer() string {
 		return ""
 	}
 	return mode.signer
+}
+
+// SignerFingerprint returns the SHA256 fingerprint of the key that
+// signed the verified anchor, or "" when inactive or no signers were
+// required.
+func SignerFingerprint() string {
+	if mode == nil {
+		return ""
+	}
+	return mode.signerFP
 }
 
 // Signed reports whether signature verification was performed (an
@@ -168,9 +179,9 @@ func enableAt(path, allowedSigners string) (*modeState, string, error) {
 		return nil, "", fmt.Errorf("integrity: HEAD does not resolve to a commit: %w", err)
 	}
 
-	signer := ""
+	signer, signerFP := "", ""
 	if allowedSigners != "" {
-		signer, err = verifyHeadSignature(repo, commit, allowedSigners)
+		signer, signerFP, err = verifyHeadSignature(repo, commit, allowedSigners)
 		if err != nil {
 			return nil, "", fmt.Errorf("integrity: %w", err)
 		}
@@ -185,6 +196,7 @@ func enableAt(path, allowedSigners string) (*modeState, string, error) {
 		repoRoot: root,
 		repoName: repoName(repo, root),
 		signer:   signer,
+		signerFP: signerFP,
 		signed:   allowedSigners != "",
 		commit:   commit,
 		tree:     tree,
@@ -227,34 +239,34 @@ func isStateOnly(commit *object.Commit) (bool, error) {
 // every state-save commit from HEAD down to the release commit under
 // them must be SSH-signed by an allowed key, and the release commit
 // must be signed itself or via a signed annotated tag pointing at it.
-// It returns the release signer's key comment.
-func verifyHeadSignature(repo *gogit.Repository, head *object.Commit, allowedSigners string) (string, error) {
+// It returns the release signer's key comment and SHA256 fingerprint.
+func verifyHeadSignature(repo *gogit.Repository, head *object.Commit, allowedSigners string) (signer, fingerprint string, err error) {
 	cur := head
 	for {
 		stateOnly, err := isStateOnly(cur)
 		if err != nil {
-			return "", err
+			return "", "", err
 		}
 		if !stateOnly {
 			break
 		}
-		if _, err := libgit.VerifyCommitSSH(cur, allowedSigners); err != nil {
-			return "", fmt.Errorf("state commit %s is not signed by an allowed key: %w", cur.Hash, err)
+		if _, _, err := libgit.VerifyCommitSSH(cur, allowedSigners); err != nil {
+			return "", "", fmt.Errorf("state commit %s is not signed by an allowed key: %w", cur.Hash, err)
 		}
 		cur, err = cur.Parent(0)
 		if err != nil {
-			return "", err
+			return "", "", err
 		}
 	}
 	// cur is the release commit: its own signature, or a signed
 	// annotated tag targeting it.
-	signer, commitErr := libgit.VerifyCommitSSH(cur, allowedSigners)
+	signer, fingerprint, commitErr := libgit.VerifyCommitSSH(cur, allowedSigners)
 	if commitErr == nil {
-		return signer, nil
+		return signer, fingerprint, nil
 	}
 	tags, err := repo.TagObjects()
 	if err != nil {
-		return "", commitErr
+		return "", "", commitErr
 	}
 	defer tags.Close()
 	var tagErr error
@@ -266,16 +278,16 @@ func verifyHeadSignature(repo *gogit.Repository, head *object.Commit, allowedSig
 		if tag.Target != cur.Hash || tag.TargetType != plumbing.CommitObject {
 			continue
 		}
-		s, err := libgit.VerifyTagSSH(tag, allowedSigners)
+		s, f, err := libgit.VerifyTagSSH(tag, allowedSigners)
 		if err == nil {
-			return s, nil
+			return s, f, nil
 		}
 		tagErr = err
 	}
 	if tagErr != nil {
-		return "", fmt.Errorf("commit %s: %w (and no annotated tag pointing at it is signed by an allowed key: %v)", cur.Hash, commitErr, tagErr)
+		return "", "", fmt.Errorf("commit %s: %w (and no annotated tag pointing at it is signed by an allowed key: %v)", cur.Hash, commitErr, tagErr)
 	}
-	return "", fmt.Errorf("commit %s: %w", cur.Hash, commitErr)
+	return "", "", fmt.Errorf("commit %s: %w", cur.Hash, commitErr)
 }
 
 // VerifyFile checks that absPath lies inside the verified repository

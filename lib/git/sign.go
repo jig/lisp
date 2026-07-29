@@ -275,47 +275,51 @@ func gitVerifyTag(rv MalType, name string, allowedKeys string) (MalType, error) 
 
 // VerifyCommitSSH checks that commit c carries an SSH signature made by
 // one of the allowed public keys (authorized_keys-format lines, as
-// git-verify-commit) and returns the matching key's comment. Exported
-// for the integrity mode of the CLI.
-func VerifyCommitSSH(c *object.Commit, allowedKeys string) (signer string, err error) {
+// git-verify-commit) and returns the matching key's comment and its
+// SHA256 fingerprint. Exported for the integrity mode of the CLI.
+func VerifyCommitSSH(c *object.Commit, allowedKeys string) (signer, fingerprint string, err error) {
 	armored := c.SignatureSHA256
 	if armored == "" {
 		armored = c.Signature
 	}
 	if armored == "" {
-		return "", fmt.Errorf("commit %s is not signed", c.Hash)
+		return "", "", fmt.Errorf("commit %s is not signed", c.Hash)
 	}
 	v, err := verifySignature(c, armored, allowedKeys)
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
-	return signerOf(v), nil
+	signer, fingerprint = signerOf(v)
+	return signer, fingerprint, nil
 }
 
 // VerifyTagSSH is VerifyCommitSSH for annotated tag objects.
-func VerifyTagSSH(tag *object.Tag, allowedKeys string) (signer string, err error) {
+func VerifyTagSSH(tag *object.Tag, allowedKeys string) (signer, fingerprint string, err error) {
 	armored := tag.SignatureSHA256
 	if armored == "" {
 		armored = tag.Signature
 	}
 	if armored == "" {
-		return "", fmt.Errorf("tag %q is not signed", tag.Name)
+		return "", "", fmt.Errorf("tag %q is not signed", tag.Name)
 	}
 	v, err := verifySignature(tag, armored, allowedKeys)
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
-	return signerOf(v), nil
+	signer, fingerprint = signerOf(v)
+	return signer, fingerprint, nil
 }
 
-// signerOf extracts the :signer comment from a verifySignature result.
-func signerOf(v MalType) string {
+// signerOf extracts the :signer comment and :fingerprint from a
+// verifySignature result.
+func signerOf(v MalType) (signer, fingerprint string) {
 	m, ok := v.(HashMap)
 	if !ok {
-		return ""
+		return "", ""
 	}
 	s, _ := m.Items[KW("signer")].(string)
-	return s
+	f, _ := m.Items[KW("fingerprint")].(string)
+	return s, f
 }
 
 // verifySignature checks the armored SSH signature of a commit or tag

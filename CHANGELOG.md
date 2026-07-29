@@ -132,6 +132,13 @@ children of the release, so restarts keep verifying.
 - **`(assert-integrity)`** now suggests `lisp-integrity` in its error
   and gains **`(assert-integrity :with-signature)`**, which throws
   unless the signature rule was applied.
+- **Signature visibility**: the green block always carries a signature
+  line — `signer <comment> SHA256:<fingerprint>` when the rule
+  applied, a yellow `signed no (no /etc/lisp/allowed_signers)` notice
+  otherwise — and the start record always carries `SIGNED=true/false`
+  (plus `SIGNER`/`SIGNER_FINGERPRINT` when signed), so
+  consistency-only runs are visibly weaker and auditable
+  (`journalctl SIGNED=false`).
 - **`lisp-integrity --test DIR|FILE`** (with optional `--test-json`)
   runs a deftest suite under the same guarantees: the mode anchors on
   the repository enclosing the target and every test file — and, in
