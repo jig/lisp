@@ -101,6 +101,22 @@ func ExecuteIntegrity(cmdArgs []string, repl_env types.EnvType) error {
 		return fmt.Errorf("lisp-integrity requires a script file or --test (stdin is not supported)")
 	}
 
+	// A missing path is an operator typo, not an integrity failure:
+	// report it laconically instead of the red audit block.
+	target := parsedArgs.Script
+	if testMode {
+		target = parsedArgs.Test
+	}
+	if info, err := os.Stat(target); errors.Is(err, os.ErrNotExist) {
+		fmt.Fprintf(os.Stderr, "lisp-integrity: no such file: %s\n", target)
+		return ErrIntegrityReported
+	} else if err != nil {
+		return err
+	} else if !testMode && info.IsDir() {
+		fmt.Fprintf(os.Stderr, "lisp-integrity: %s is a directory, expected a script file\n", target)
+		return ErrIntegrityReported
+	}
+
 	// The audit trail must be protected before anything is attested:
 	// journald on Linux — or refuse; the XDG state file only on macOS
 	// (development convenience, explicitly weaker).
@@ -166,10 +182,8 @@ func ExecuteIntegrity(cmdArgs []string, repl_env types.EnvType) error {
 	if _, err := rand.Read(traceID); err != nil {
 		return err
 	}
-	target := parsedArgs.Script
 	argvList := append([]string{parsedArgs.Script}, parsedArgs.Args...)
 	if testMode {
-		target = parsedArgs.Test
 		argvList = []string{"--test", parsedArgs.Test}
 	}
 	liblog.SetIdentifier(strings.TrimSuffix(filepath.Base(filepath.Clean(target)), ".lisp"))
