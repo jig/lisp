@@ -67,6 +67,29 @@ func PreParseArgs(cmdArgs []string) []string {
 	return parsedArgs.Args
 }
 
+// printVersion writes the version report to stdout: the program's own
+// identity first when it is not jig/lisp (an embedder's main module,
+// or its version.SetMain branding), then the jig/lisp and jig/scanner
+// components and the full Go build info. Shared by lisp's and
+// lisp-integrity's --version.
+func printVersion() {
+	lispVer, scannerVer, _ := libversion.Versions()
+	if lispVer == "" {
+		lispVer = "(unknown)"
+	}
+	if scannerVer == "" {
+		scannerVer = "(unknown)"
+	}
+	if name, ver := libversion.Main(); name != "" && name != "github.com/jig/lisp" {
+		fmt.Printf("%s %s\n", name, ver)
+	}
+	fmt.Printf("jig/lisp    %s\n", lispVer)
+	fmt.Printf("jig/scanner %s\n", scannerVer)
+	if versionInfo, ok := debug.ReadBuildInfo(); ok {
+		fmt.Println(versionInfo)
+	}
+}
+
 // Execute is the main function of a command line MAL interpreter.
 // args are usually the os.Args, and repl_env contains the environment filled
 // with the symbols required for the interpreter.
@@ -137,26 +160,7 @@ func Execute(cmdArgs []string, repl_env types.EnvType) error {
 
 	// Handle --version
 	if parsedArgs.Version {
-		lispVer, scannerVer, _ := libversion.Versions()
-		if lispVer == "" {
-			lispVer = "(unknown)"
-		}
-		if scannerVer == "" {
-			scannerVer = "(unknown)"
-		}
-		// An embedder's binary identifies itself first: the main module
-		// (or its version.SetMain branding) when it is not jig/lisp.
-		if name, ver := libversion.Main(); name != "" && name != "github.com/jig/lisp" {
-			fmt.Printf("%s %s\n", name, ver)
-		}
-		fmt.Printf("jig/lisp    %s\n", lispVer)
-		fmt.Printf("jig/scanner %s\n", scannerVer)
-
-		versionInfo, ok := debug.ReadBuildInfo()
-		if !ok {
-			return nil
-		}
-		fmt.Println(versionInfo)
+		printVersion()
 		return nil
 	}
 

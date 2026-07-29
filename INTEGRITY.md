@@ -50,7 +50,9 @@ lisp-integrity -y service.lisp [args…]
 lisp-integrity -y --test ./tests [--test-json report.json]
 ```
 
-- Only script-file execution and the verified test runner. No REPL,
+- `--version` reports version information (and accepts no other
+  argument). Otherwise: only script-file execution and the verified
+  test runner. No REPL,
   no `-e`, no stdin, no `--fmt` / `--debug`, no DAP/LSP servers, no
   environment variables selecting behaviour (`LOG_LEVEL` for
   verbosity is the one exception, inherited from `lib/log`). Use

@@ -48,6 +48,7 @@ var (
 // its arguments and the consent flag — nothing else, by design (no
 // REPL, no -e, no environment overrides).
 type integrityArgs struct {
+	Version  bool     `arg:"-v,--version" help:"show version information (accepts no other arguments)"`
 	Yes      bool     `arg:"-y,--yes" help:"run without asking for confirmation (required when stdin is not a terminal)"`
 	Test     string   `arg:"-t,--test" help:"verify and run the test suite from a directory or a single test file" placeholder:"DIR|FILE"`
 	TestJSON string   `arg:"--test-json" help:"with --test, also write a JSON report to the given file" placeholder:"FILE"`
@@ -91,6 +92,17 @@ func ExecuteIntegrity(cmdArgs []string, repl_env types.EnvType) error {
 			return err
 		}
 	}
+	// --version is pure introspection: report and exit, refusing any
+	// other argument so it can never be half of a run invocation.
+	if parsedArgs.Version {
+		if parsedArgs.Yes || parsedArgs.Test != "" || parsedArgs.TestJSON != "" ||
+			parsedArgs.Script != "" || len(parsedArgs.Args) > 0 {
+			return fmt.Errorf("--version accepts no other arguments")
+		}
+		printVersion()
+		return nil
+	}
+
 	testMode := parsedArgs.Test != ""
 	switch {
 	case parsedArgs.TestJSON != "" && !testMode:
