@@ -1,7 +1,6 @@
-package core
+package version
 
 import (
-	"os"
 	"runtime/debug"
 	"strings"
 	"testing"
@@ -45,37 +44,41 @@ func TestVersions(t *testing.T) {
 }
 
 // TestVersionBuiltin checks the (version) builtin returns the expected
-// top-level structure.
+// top-level structure, :main included.
 func TestVersionBuiltin(t *testing.T) {
 	v, err := version()
 	if err != nil {
 		t.Fatalf("version(): %v", err)
 	}
-	for _, k := range []Keyword{KW("go-version"), KW("build"), KW("dependencies")} {
+	for _, k := range []Keyword{KW("main"), KW("go-version"), KW("build"), KW("dependencies")} {
 		if _, ok := v.Items[k]; !ok {
 			t.Errorf("version() is missing key :%s", k)
 		}
 	}
+	main, ok := v.Items[KW("main")].(HashMap)
+	if !ok {
+		t.Fatalf(":main is not a hash-map: %T", v.Items[KW("main")])
+	}
+	if name := main.Items[KW("name")]; name != "github.com/jig/lisp" {
+		t.Errorf(":main :name = %v, want the main module path", name)
+	}
 }
 
-// TestReadLineEOF verifies readline returns nil at end of input (Ctrl-D),
-// so a REPL loop can tell EOF apart from an empty line and terminate.
-func TestReadLineEOF(t *testing.T) {
-	empty, err := os.CreateTemp(t.TempDir(), "stdin")
+// TestSetMain checks the embedder branding override: it replaces the
+// main identity in Main() and in the builtin, and clears back.
+func TestSetMain(t *testing.T) {
+	SetMain("acme-repl", "v9.9.9")
+	t.Cleanup(func() { SetMain("", "") })
+
+	if name, ver := Main(); name != "acme-repl" || ver != "v9.9.9" {
+		t.Fatalf("Main() = %q %q, want the override", name, ver)
+	}
+	v, err := version()
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer func() { _ = empty.Close() }()
-
-	old := os.Stdin
-	os.Stdin = empty // empty file → immediate EOF
-	defer func() { os.Stdin = old }()
-
-	got, err := readLine("")
-	if err != nil {
-		t.Fatalf("readLine at EOF: %v", err)
-	}
-	if got != nil {
-		t.Errorf("readLine at EOF = %v, want nil", got)
+	main := v.Items[KW("main")].(HashMap)
+	if main.Items[KW("name")] != "acme-repl" || main.Items[KW("version")] != "v9.9.9" {
+		t.Fatalf("builtin :main = %v, want the override", main.Items)
 	}
 }

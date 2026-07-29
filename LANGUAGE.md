@@ -283,7 +283,6 @@ Arithmetic, collections, predicates, strings, JSON, errors — always loaded.
 | `vec` | `[coll]` | coll as a vector. |
 | `vector` | `[& items]` | Creates a vector of the given items. |
 | `vector?` | `[x]` | Whether x is a vector. |
-| `version` | `[]` | Interpreter build information as a hash-map. |
 | `when ⁽ᵐ⁾` | `[condition & body]` | Evaluates body in an implicit do when condition is truthy; otherwise nil. |
 | `with-meta` | `[obj m]` | Copy of obj with metadata m. |
 
@@ -577,6 +576,14 @@ Regular expressions (Go RE2): re-pattern, re-matches / re-find, re-seq, re-repla
 | `log-error` | `[msg & kv]` | Emits a structured log record at error level with alternating keyword/value attributes. Records go to systemd-journald, or to $XDG_STATE_HOME/lisp/<script>.log without it. |
 | `log-info` | `[msg & kv]` | Emits a structured log record at info level with alternating keyword/value attributes, e.g. (log-info "user created" :id 42). Records go to systemd-journald, or to $XDG_STATE_HOME/lisp/<script>.log without it. |
 | `log-warn` | `[msg & kv]` | Emits a structured log record at warn level with alternating keyword/value attributes. Records go to systemd-journald, or to $XDG_STATE_HOME/lisp/<script>.log without it. |
+
+### version
+
+Build information of the running program (the version builtin).
+
+| Name | Arguments | Description |
+| ---- | --------- | ----------- |
+| `version` | `[]` | Build information of the running program as a hash-map: :main {:name :version} (the program itself — an embedder's module, or its version.SetMain branding), :go-version, :build settings and :dependencies. |
 
 ⁽ᵐ⁾ = macro (arguments are not evaluated before the call).
 

@@ -16,6 +16,7 @@ import (
 	"github.com/jig/lisp/lib/system/nssystem"
 	"github.com/jig/lisp/lib/term/nsterm"
 	"github.com/jig/lisp/lib/test/nstest"
+	"github.com/jig/lisp/lib/version/nsversion"
 	"github.com/jig/lisp/lib/web/nsweb"
 	"github.com/jig/lisp/types"
 )
@@ -51,6 +52,7 @@ func standardLibraries() []library {
 		{"term", nsterm.Load},
 		{"test", nstest.Load},
 		{"log", nslog.Load},
+		{"version", nsversion.Load},
 	}
 }
 

@@ -17,7 +17,6 @@ import (
 	"fmt"
 	"math/big"
 	"os"
-	"runtime/debug"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -157,7 +156,6 @@ func Load(env EnvType) {
 	call.CallOverrideFN(env, "type?", istype)
 	call.Call(env, new_error, 1, 2)
 	call.Call(env, new_go_error)
-	call.Call(env, version)
 
 	call.Call(env, take)
 	call.Call(env, take_last)
@@ -303,66 +301,6 @@ func LoadInput(env EnvType) {
 	call.Call(env, exit, 0, 1)
 
 	loadInputDocs(env)
-}
-
-// moduleVersion returns the version of the module at importPath, looking
-// in both the main module and the dependencies: github.com/jig/lisp is
-// the main module when the binary is built from this repo, but a
-// dependency when jig/lisp is embedded in another Go program.
-func moduleVersion(bi *debug.BuildInfo, importPath string) string {
-	if bi.Main.Path == importPath {
-		return bi.Main.Version
-	}
-	for _, d := range bi.Deps {
-		if d.Path == importPath {
-			return d.Version
-		}
-	}
-	return ""
-}
-
-// Versions returns the jig/lisp, jig/scanner and Go toolchain versions of
-// the running binary, shared by the (version) builtin and --version. Each
-// value is "" when build information is unavailable.
-func Versions() (lispVer, scannerVer, goVer string) {
-	bi, ok := debug.ReadBuildInfo()
-	if !ok {
-		return "", "", ""
-	}
-	return moduleVersion(bi, "github.com/jig/lisp"),
-		moduleVersion(bi, "github.com/jig/scanner"),
-		bi.GoVersion
-}
-
-func version() (HashMap, error) {
-	bi, ok := debug.ReadBuildInfo()
-	if !ok {
-		return HashMap{}, nil
-	}
-	build := map[MalType]MalType{}
-	for _, s := range bi.Settings {
-		build[s.Key] = s.Value
-	}
-	deps := map[MalType]MalType{}
-	for _, d := range bi.Deps {
-		if d.Replace == nil {
-			deps[d.Path] = HashMap{Items: map[MalType]MalType{
-				KW("version"): d.Version,
-				KW("sum"):     d.Sum,
-			}}
-		} else {
-			deps[d.Path] = HashMap{Items: map[MalType]MalType{
-				KW("version"): d.Version,
-				KW("sum"):     d.Sum,
-				KW("replace"): d.Replace,
-			}}
-		}
-	}
-	return HashMap{Items: map[MalType]MalType{
-		KW("go-version"):   bi.GoVersion,
-		KW("build"):        HashMap{Items: build},
-		KW("dependencies"): HashMap{Items: deps},
-	}}, nil
 }
 
 func new_go_error(str string) (error, error) {
