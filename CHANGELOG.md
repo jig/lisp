@@ -117,6 +117,11 @@ children of the release, so restarts keep verifying.
 - **`(assert-integrity)`** now suggests `lisp-integrity` in its error
   and gains **`(assert-integrity :with-signature)`**, which throws
   unless the signature rule was applied.
+- **`lisp-integrity --test DIR|FILE`** (with optional `--test-json`)
+  runs a deftest suite under the same guarantees: the mode anchors on
+  the repository enclosing the target and every test file — and, in
+  cascade, everything it loads — is verified against `HEAD` as it
+  loads; the attested exit code records which commit's tests passed.
 - INTEGRITY.md is rewritten as the v2 specification (v1 differences
   are summarised at its end).
 

@@ -47,13 +47,19 @@ they cannot do is produce a *verified-looking* attestation for it.
 ```bash
 lisp-integrity script.lisp [args…]
 lisp-integrity -y service.lisp [args…]
+lisp-integrity -y --test ./tests [--test-json report.json]
 ```
 
-- Only script-file execution. No REPL, no `-e`, no stdin, no
-  `--test` / `--fmt` / `--debug`, no DAP/LSP servers, no environment
-  variables selecting behaviour (`LOG_LEVEL` for verbosity is the one
-  exception, inherited from `lib/log`). Use `lisp` for everything
-  else.
+- Only script-file execution and the verified test runner. No REPL,
+  no `-e`, no stdin, no `--fmt` / `--debug`, no DAP/LSP servers, no
+  environment variables selecting behaviour (`LOG_LEVEL` for
+  verbosity is the one exception, inherited from `lib/log`). Use
+  `lisp` for everything else.
+- `--test DIR|FILE` verifies and runs a deftest suite: the mode
+  anchors on the repository enclosing the target, and every test file
+  — and, in cascade, everything it loads — is verified against `HEAD`
+  as it loads. The attested exit code reflects the suite result, so a
+  CI run leaves an append-only record of *which commit's tests passed*.
 - After verification succeeds and the green block is printed,
   `lisp-integrity` asks for confirmation on the terminal
   (`proceed? [y/N]`) before evaluating anything.
@@ -81,7 +87,9 @@ At startup:
 
 1. The script must lie inside a Git repository with a resolvable
    `HEAD` commit `C`.
-2. The script must byte-match its blob in `C`'s tree.
+2. The script must byte-match its blob in `C`'s tree. (With `--test`
+   there is no entry script: the anchor is the repository enclosing
+   the target, and rule 4 covers each test file as it loads.)
 3. If `/etc/lisp/allowed_signers` exists: walking from `C` down
    through consecutive state-save commits (commits with one parent
    touching only state paths), each such commit must carry an SSH
@@ -122,8 +130,9 @@ Every record shares three fields:
 Records emitted by the runtime itself (exactly two, never more):
 
 - **start** — after verification and confirmation, before evaluation:
-  `MESSAGE="run started"`, `ARGV` (script and arguments, as JSON),
-  `SIGNER` when rule 3 applied, `PROTECTED`.
+  `MESSAGE="run started"`, `ARGV` (script and arguments — or
+  `["--test", target]` — as JSON), `SIGNER` when rule 3 applied,
+  `PROTECTED`.
 - **end** — from a deferred handler covering normal return, error and
   panic: `MESSAGE="run ended"`, `EXIT_CODE` (and `PANIC` on one). A
   start record with no matching end record means abnormal termination

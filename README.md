@@ -415,8 +415,13 @@ cannot be disabled; there is no REPL, no `-e`, no stdin mode:
 
 ```bash
 lisp-integrity service.lisp
-lisp-integrity -y service.lisp     # unattended (systemd units)
+lisp-integrity -y service.lisp        # unattended (systemd units)
+lisp-integrity -y --test ./tests      # verified test run (CI attestation)
 ```
+
+`--test` anchors on the repository and verifies every test file — and
+whatever it loads — against `HEAD` as it loads; the attested exit code
+records which commit's tests passed.
 
 Pinning a release is a property of the checkout, not of the
 invocation: deploy with `git checkout --detach v1.4.2` and every

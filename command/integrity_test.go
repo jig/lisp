@@ -19,6 +19,7 @@ import (
 	"github.com/jig/lisp/lib/require/nsrequire"
 	"github.com/jig/lisp/lib/system"
 	"github.com/jig/lisp/lib/system/nssystem"
+	"github.com/jig/lisp/lib/test/nstest"
 	"github.com/jig/lisp/types"
 )
 
@@ -191,6 +192,133 @@ func TestExecuteIntegrityRejectsTamperedModule(t *testing.T) {
 	}
 }
 
+// gitRepoWithTests builds a repository whose tests/ dir holds a passing
+// deftest suite that also requires a module — exercising the verified
+// load cascade under --test.
+func gitRepoWithTests(t *testing.T) (dir string) {
+	t.Helper()
+	dir = t.TempDir()
+	if err := os.Mkdir(filepath.Join(dir, "tests"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	suite := "(require \"util\")\n(deftest util-works\n  (is (= \"hola\" (util/hello))))\n"
+	if err := os.WriteFile(filepath.Join(dir, "tests", "suite_test.lisp"), []byte(suite), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Mkdir(filepath.Join(dir, ".lisp"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, ".lisp", "util.lisp"), []byte(`(def hello (fn [] "hola"))`+"\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	git := func(args ...string) string { return runGit(t, dir, args...) }
+	git("init", "-q")
+	git("add", "-A")
+	git("commit", "-q", "-m", "first")
+
+	t.Chdir(dir)
+	t.Cleanup(func() {
+		integrity.Disable()
+		require.VerifyModule = nil
+		system.VerifySource = nil
+	})
+	return dir
+}
+
+// newIntegrityTestEnv is newIntegrityEnv plus the test namespace
+// (deftest/is) the --test mode needs.
+func newIntegrityTestEnv(t *testing.T) types.EnvType {
+	t.Helper()
+	ns := newIntegrityEnv(t)
+	if err := nstest.Load(ns); err != nil {
+		t.Fatal(err)
+	}
+	return ns
+}
+
+func TestExecuteIntegrityRunsVerifiedTests(t *testing.T) {
+	records := stubAttestation(t)
+	gitRepoWithTests(t)
+	ns := newIntegrityTestEnv(t)
+	out, err := captureStdout(t, func() error {
+		return ExecuteIntegrity([]string{"lisp-integrity", "-y", "--test", "./tests"}, ns)
+	})
+	if err != nil {
+		t.Fatalf("ExecuteIntegrity --test: %v", err)
+	}
+	if !strings.Contains(out, "PASS: 1 tests") {
+		t.Fatalf("output %q: want the suite to pass", out)
+	}
+	if len(*records) != 2 {
+		t.Fatalf("expected start+end records, got %d: %+v", len(*records), *records)
+	}
+	start, end := (*records)[0], (*records)[1]
+	if !strings.Contains(start.fields["argv"], `"--test"`) || !strings.Contains(start.fields["argv"], `"./tests"`) {
+		t.Fatalf("unexpected start argv: %+v", start.fields)
+	}
+	if end.fields["exit_code"] != "0" || end.level != slog.LevelInfo {
+		t.Fatalf("unexpected end record: %+v", end)
+	}
+}
+
+func TestExecuteIntegrityRejectsTamperedTest(t *testing.T) {
+	records := stubAttestation(t)
+	dir := gitRepoWithTests(t)
+	tampered := "(require \"util\")\n(deftest util-works\n  (is (= \"evil\" (util/hello))))\n"
+	if err := os.WriteFile(filepath.Join(dir, "tests", "suite_test.lisp"), []byte(tampered), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	ns := newIntegrityTestEnv(t)
+	_, err := captureStdout(t, func() error {
+		return ExecuteIntegrity([]string{"lisp-integrity", "-y", "--test", "./tests"}, ns)
+	})
+	if err == nil || !strings.Contains(err.Error(), "integrity") {
+		t.Fatalf("ExecuteIntegrity with tampered test = %v, want integrity error", err)
+	}
+	end := (*records)[len(*records)-1]
+	if end.fields["exit_code"] != "1" {
+		t.Fatalf("unexpected end record after tamper: %+v", end)
+	}
+}
+
+func TestExecuteIntegrityRejectsTamperedTestModule(t *testing.T) {
+	stubAttestation(t)
+	dir := gitRepoWithTests(t)
+	if err := os.WriteFile(filepath.Join(dir, ".lisp", "util.lisp"), []byte(`(def hello (fn [] "evil"))`+"\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	ns := newIntegrityTestEnv(t)
+	_, err := captureStdout(t, func() error {
+		return ExecuteIntegrity([]string{"lisp-integrity", "-y", "--test", "./tests"}, ns)
+	})
+	if err == nil || !strings.Contains(err.Error(), "integrity") {
+		t.Fatalf("ExecuteIntegrity with tampered module = %v, want integrity error", err)
+	}
+}
+
+func TestExecuteIntegrityFailingSuiteExitsNonZero(t *testing.T) {
+	records := stubAttestation(t)
+	dir := gitRepoWithTests(t)
+	failing := "(deftest fails\n  (is (= 1 2)))\n"
+	if err := os.WriteFile(filepath.Join(dir, "tests", "suite_test.lisp"), []byte(failing), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	git := func(args ...string) string { return runGit(t, dir, args...) }
+	git("add", "-A")
+	git("commit", "-q", "-m", "failing suite")
+	ns := newIntegrityTestEnv(t)
+	_, err := captureStdout(t, func() error {
+		return ExecuteIntegrity([]string{"lisp-integrity", "-y", "--test", "./tests"}, ns)
+	})
+	if err == nil || !strings.Contains(err.Error(), "test(s) failed") {
+		t.Fatalf("ExecuteIntegrity with failing suite = %v, want suite failure", err)
+	}
+	end := (*records)[len(*records)-1]
+	if end.fields["exit_code"] != "1" || end.level != slog.LevelError {
+		t.Fatalf("unexpected end record for failing suite: %+v", end)
+	}
+}
+
 func TestExecuteAssertIntegrityUnderPlainLisp(t *testing.T) {
 	gitRepoWithScript(t)
 	ns := newIntegrityEnv(t)
@@ -234,12 +362,14 @@ func TestExecuteIntegrityArgValidation(t *testing.T) {
 	stubAttestation(t)
 	ns := newIntegrityEnv(t)
 	for _, cmdline := range [][]string{
-		{"lisp-integrity"},                        // no script
-		{"lisp-integrity", "-y", "-"},             // stdin
-		{"lisp-integrity", "-e", "1", "x.lisp"},   // unknown flag
-		{"lisp-integrity", "--fmt", "x.lisp"},     // unknown flag
-		{"lisp-integrity", "--test", ".", "x.l"},  // unknown flag
-		{"lisp-integrity", "--integrity", "HEAD"}, // v1 flag is gone
+		{"lisp-integrity"},                            // no script
+		{"lisp-integrity", "-y", "-"},                 // stdin
+		{"lisp-integrity", "-e", "1", "x.lisp"},       // unknown flag
+		{"lisp-integrity", "--fmt", "x.lisp"},         // unknown flag
+		{"lisp-integrity", "--test", ".", "x.lisp"},   // test + script
+		{"lisp-integrity", "--test-json", "r.json"},   // test-json alone
+		{"lisp-integrity", "--integrity", "HEAD"},     // v1 flag is gone
+		{"lisp-integrity", "--debug", "-y", "x.lisp"}, // unknown flag
 	} {
 		if err := ExecuteIntegrity(cmdline, ns); err == nil {
 			t.Errorf("ExecuteIntegrity(%v) did not fail", cmdline)
