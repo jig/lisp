@@ -132,6 +132,9 @@ children of the release, so restarts keep verifying.
 - **`(assert-integrity)`** now suggests `lisp-integrity` in its error
   and gains **`(assert-integrity :with-signature)`**, which throws
   unless the signature rule was applied.
+- **`lisp-integrity --version`** reports version information like
+  `lisp --version` (main identity first for embedders) and refuses to
+  be combined with any other argument.
 - **Signature visibility**: the green block always carries a signature
   line — `signer <comment> SHA256:<fingerprint>` when the rule
   applied, a yellow `signed no (no /etc/lisp/allowed_signers)` notice

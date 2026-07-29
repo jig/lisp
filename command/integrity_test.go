@@ -418,6 +418,36 @@ func captureStderr(t *testing.T, f func()) string {
 	return string(data)
 }
 
+// TestExecuteIntegrityVersion pins --version: it reports like lisp's
+// and refuses to be combined with anything else.
+func TestExecuteIntegrityVersion(t *testing.T) {
+	records := stubAttestation(t)
+	ns := newIntegrityEnv(t)
+	out, err := captureStdout(t, func() error {
+		return ExecuteIntegrity([]string{"lisp-integrity", "--version"}, ns)
+	})
+	if err != nil {
+		t.Fatalf("ExecuteIntegrity --version: %v", err)
+	}
+	if !strings.Contains(out, "jig/lisp") || !strings.Contains(out, "jig/scanner") {
+		t.Fatalf("version output %q: want the component lines", out)
+	}
+	if len(*records) != 0 {
+		t.Fatalf("--version must not attest anything: %+v", *records)
+	}
+
+	for _, cmdline := range [][]string{
+		{"lisp-integrity", "--version", "x.lisp"},
+		{"lisp-integrity", "--version", "-y"},
+		{"lisp-integrity", "--version", "--test", "./tests"},
+	} {
+		if err := ExecuteIntegrity(cmdline, ns); err == nil ||
+			!strings.Contains(err.Error(), "no other arguments") {
+			t.Errorf("ExecuteIntegrity(%v) = %v, want the no-other-arguments error", cmdline, err)
+		}
+	}
+}
+
 func TestExecuteIntegrityArgValidation(t *testing.T) {
 	stubAttestation(t)
 	ns := newIntegrityEnv(t)
