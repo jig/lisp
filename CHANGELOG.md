@@ -86,6 +86,21 @@ Logging moves out of `lib/web` into `lib/log`. Migration:
 level), and `web-wrap-log` users write the one-liner middleware over
 `log-info` themselves (example in `lib/web/README.md`).
 
+### ⚠️ Changed — `(version)` moves to `lib/version` and identifies the embedder
+
+The `version` builtin leaves core for a new `lib/version` +
+`nsversion` namespace, and its hash-map gains `:main {:name
+:version}` — the running program itself: an embedder's module (from
+Go build info) or whatever the new `version.SetMain(name, ver)` Go
+API sets (e.g. values injected with `-ldflags -X`). `--version`
+prints that main identity first when it is not jig/lisp, so an
+embedder's REPL built on `command.Execute` reports itself correctly;
+jig/lisp and jig/scanner remain listed as components.
+
+Migration (embedders): load the namespace —
+`nsversion.Load(env)` — to keep the `(version)` builtin; core's
+`Versions()` helper moved to `lib/version` unchanged.
+
 ### ⚠️ Changed — integrity moves to the `lisp-integrity` binary
 
 `--integrity REF` and `--integrity-keys FILE` are **removed** from the

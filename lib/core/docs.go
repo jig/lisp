@@ -139,7 +139,6 @@ var coreDocs = []struct{ name, arglist, doc string }{
 	{"time-add", "[ms deltas]", "Shifts epoch milliseconds ms by the deltas hash-map. :years :months :days are calendar-aware (via UTC); :hours :minutes :seconds :milliseconds add a fixed duration. Missing keys are 0, values may be negative; an unknown key or non-integer value errors."},
 	{"time-before?", "[t1 t2]", "Reports whether epoch milliseconds t1 is strictly before t2."},
 	{"time-after?", "[t1 t2]", "Reports whether epoch milliseconds t1 is strictly after t2."},
-	{"version", "[]", "Interpreter build information as a hash-map."},
 
 	// Bytes, base64 & JSON
 	{"base64", "[bytes]", "Encodes a byte string to a base64 string."},

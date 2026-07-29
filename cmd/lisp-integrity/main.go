@@ -27,6 +27,7 @@ import (
 	"github.com/jig/lisp/lib/system/nssystem"
 	"github.com/jig/lisp/lib/term/nsterm"
 	"github.com/jig/lisp/lib/test/nstest"
+	"github.com/jig/lisp/lib/version/nsversion"
 	"github.com/jig/lisp/lib/web/nsweb"
 	"github.com/jig/lisp/types"
 )
@@ -62,6 +63,7 @@ func libraries(scriptArgs []string) []library {
 
 		// new libraries on jig/lisp v0.6.0
 		{"log", nslog.Load},
+		{"version", nsversion.Load},
 	}
 }
 

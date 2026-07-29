@@ -10,8 +10,8 @@ import (
 
 	"github.com/alexflint/go-arg"
 	"github.com/jig/lisp"
-	"github.com/jig/lisp/lib/core"
 	liblog "github.com/jig/lisp/lib/log"
+	libversion "github.com/jig/lisp/lib/version"
 	"github.com/jig/lisp/repl"
 	"github.com/jig/lisp/tools/bat"
 	"github.com/jig/lisp/types"
@@ -137,12 +137,17 @@ func Execute(cmdArgs []string, repl_env types.EnvType) error {
 
 	// Handle --version
 	if parsedArgs.Version {
-		lispVer, scannerVer, _ := core.Versions()
+		lispVer, scannerVer, _ := libversion.Versions()
 		if lispVer == "" {
 			lispVer = "(unknown)"
 		}
 		if scannerVer == "" {
 			scannerVer = "(unknown)"
+		}
+		// An embedder's binary identifies itself first: the main module
+		// (or its version.SetMain branding) when it is not jig/lisp.
+		if name, ver := libversion.Main(); name != "" && name != "github.com/jig/lisp" {
+			fmt.Printf("%s %s\n", name, ver)
 		}
 		fmt.Printf("jig/lisp    %s\n", lispVer)
 		fmt.Printf("jig/scanner %s\n", scannerVer)
