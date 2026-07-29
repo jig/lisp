@@ -199,6 +199,41 @@ func TestEnableAfterLaterCommit(t *testing.T) {
 	}
 }
 
+// TestEnableDir anchors on a directory without an entry script; files
+// still verify (or fail) through VerifyFile as they load.
+func TestEnableDir(t *testing.T) {
+	ns := newGitEnv(t)
+	dir, hash := setupRepo(t, ns, "")
+
+	t.Cleanup(integrity.Disable)
+	if err := integrity.EnableDir(filepath.Join(dir, ".lisp"), ""); err != nil {
+		t.Fatalf("EnableDir: %v", err)
+	}
+	if got := integrity.CommitHash(); got != hash {
+		t.Fatalf("CommitHash() = %q, want %q", got, hash)
+	}
+
+	module := filepath.Join(dir, ".lisp", "util.lisp")
+	content, err := os.ReadFile(module)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := integrity.VerifyFile(module, content); err != nil {
+		t.Fatalf("VerifyFile(committed module): %v", err)
+	}
+	if err := integrity.VerifyFile(module, append(content, "(def evil 1)\n"...)); err == nil {
+		t.Fatal("VerifyFile(modified module) did not fail")
+	}
+}
+
+func TestEnableDirOutsideRepo(t *testing.T) {
+	t.Cleanup(integrity.Disable)
+	if err := integrity.EnableDir(t.TempDir(), ""); err == nil ||
+		!strings.Contains(err.Error(), "not inside a git repository") {
+		t.Fatalf("EnableDir(no repo) = %v, want 'not inside a git repository'", err)
+	}
+}
+
 func TestEnableOutsideRepo(t *testing.T) {
 	dir := t.TempDir()
 	script := filepath.Join(dir, "script.lisp")

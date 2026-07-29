@@ -44,13 +44,15 @@ var (
 	stdinIsTerminal = func() bool { return term.IsTerminal(int(os.Stdin.Fd())) }
 )
 
-// integrityArgs is the lisp-integrity CLI: a script, its arguments and
-// the consent flag — nothing else, by design (no REPL, no -e, no
-// environment overrides).
+// integrityArgs is the lisp-integrity CLI: a script (or a test target),
+// its arguments and the consent flag — nothing else, by design (no
+// REPL, no -e, no environment overrides).
 type integrityArgs struct {
-	Yes    bool     `arg:"-y,--yes" help:"run without asking for confirmation (required when stdin is not a terminal)"`
-	Script string   `arg:"positional,required" help:"lisp script to execute"`
-	Args   []string `arg:"positional" help:"arguments to pass to the script"`
+	Yes      bool     `arg:"-y,--yes" help:"run without asking for confirmation (required when stdin is not a terminal)"`
+	Test     string   `arg:"-t,--test" help:"verify and run the test suite from a directory or a single test file" placeholder:"DIR|FILE"`
+	TestJSON string   `arg:"--test-json" help:"with --test, also write a JSON report to the given file" placeholder:"FILE"`
+	Script   string   `arg:"positional" help:"lisp script to execute"`
+	Args     []string `arg:"positional" help:"arguments to pass to the script"`
 }
 
 // PreParseIntegrityArgs extracts the script arguments before the
@@ -89,8 +91,14 @@ func ExecuteIntegrity(cmdArgs []string, repl_env types.EnvType) error {
 			return err
 		}
 	}
-	if parsedArgs.Script == "" || parsedArgs.Script == "-" {
-		return fmt.Errorf("lisp-integrity requires a script file (stdin is not supported)")
+	testMode := parsedArgs.Test != ""
+	switch {
+	case parsedArgs.TestJSON != "" && !testMode:
+		return fmt.Errorf("--test-json requires --test")
+	case testMode && parsedArgs.Script != "":
+		return fmt.Errorf("--test cannot be combined with a script file")
+	case !testMode && (parsedArgs.Script == "" || parsedArgs.Script == "-"):
+		return fmt.Errorf("lisp-integrity requires a script file or --test (stdin is not supported)")
 	}
 
 	// The audit trail must be protected before anything is attested:
@@ -108,8 +116,17 @@ func ExecuteIntegrity(cmdArgs []string, repl_env types.EnvType) error {
 		return fmt.Errorf("reading %s: %w", allowedSignersPath, err)
 	}
 
-	if err := integrity.Enable(parsedArgs.Script, keys); err != nil {
-		return reportIntegrity(false, "", "", "", err)
+	// A script anchors on itself (verified at startup); a test target
+	// anchors on its repository, and every test file is verified as it
+	// loads (runTests reads through load-file, which is hooked).
+	var enableErr error
+	if testMode {
+		enableErr = integrity.EnableDir(parsedArgs.Test, keys)
+	} else {
+		enableErr = integrity.Enable(parsedArgs.Script, keys)
+	}
+	if enableErr != nil {
+		return reportIntegrity(false, "", "", "", enableErr)
 	}
 	require.VerifyModule = integrity.VerifyFile
 	system.VerifySource = integrity.VerifyFile
@@ -148,13 +165,19 @@ func ExecuteIntegrity(cmdArgs []string, repl_env types.EnvType) error {
 	if _, err := rand.Read(traceID); err != nil {
 		return err
 	}
-	liblog.SetIdentifier(strings.TrimSuffix(filepath.Base(parsedArgs.Script), ".lisp"))
+	target := parsedArgs.Script
+	argvList := append([]string{parsedArgs.Script}, parsedArgs.Args...)
+	if testMode {
+		target = parsedArgs.Test
+		argvList = []string{"--test", parsedArgs.Test}
+	}
+	liblog.SetIdentifier(strings.TrimSuffix(filepath.Base(filepath.Clean(target)), ".lisp"))
 	liblog.SetRunFields(map[string]string{
 		"commit":   integrity.CommitHash(),
 		"repo":     integrity.RepoName(),
 		"trace_id": hex.EncodeToString(traceID),
 	})
-	argv, err := json.Marshal(append([]string{parsedArgs.Script}, parsedArgs.Args...))
+	argv, err := json.Marshal(argvList)
 	if err != nil {
 		return err
 	}
@@ -181,23 +204,30 @@ func ExecuteIntegrity(cmdArgs []string, repl_env types.EnvType) error {
 		_ = emitRecord(endLevel, "run ended", fields)
 	}()
 
-	result, err := runScript(context.Background(), repl_env, parsedArgs.Script, nil,
-		types.NewCursorHere(parsedArgs.Script, -3, 1))
-	if err != nil {
-		return err
+	if testMode {
+		if err := runTests(parsedArgs.Test, parsedArgs.TestJSON, repl_env); err != nil {
+			return err
+		}
+	} else {
+		result, err := runScript(context.Background(), repl_env, parsedArgs.Script, nil,
+			types.NewCursorHere(parsedArgs.Script, -3, 1))
+		if err != nil {
+			return err
+		}
+		fmt.Println(result)
 	}
 	exitCode, endLevel = "0", slog.LevelInfo
-	fmt.Println(result)
 	return nil
 }
 
 // reportIntegrity writes the audit outcome to stderr. On an interactive
 // terminal it prints a human-readable block — green when integrity is
 // satisfied, red when not; when stderr is redirected it emits a
-// machine-readable JSON line instead. The block attests the entry
-// script only: each require/load-file is verified as it loads and
-// aborts the run on mismatch, so a green block does not mean the whole
-// run is pre-verified. Returns nil on success, ErrIntegrityReported on
+// machine-readable JSON line instead. The block attests the anchor
+// (and, in script mode, the entry script) only: each require/load-file
+// — test files included — is verified as it loads and aborts the run
+// on mismatch, so a green block does not mean the whole run is
+// pre-verified. Returns nil on success, ErrIntegrityReported on
 // a terminal failure (already shown), or the cause when redirected.
 func reportIntegrity(ok bool, repo, commit, signer string, cause error) error {
 	if !libterm.StderrIsTerminal() {
@@ -208,7 +238,7 @@ func reportIntegrity(ok bool, repo, commit, signer string, cause error) error {
 		if signer != "" {
 			attrs = append(attrs, "signer", signer)
 		}
-		slog.New(slog.NewJSONHandler(os.Stderr, nil)).Info("integrity: entry script verified at HEAD", attrs...)
+		slog.New(slog.NewJSONHandler(os.Stderr, nil)).Info("integrity: verified at HEAD", attrs...)
 		return nil
 	}
 

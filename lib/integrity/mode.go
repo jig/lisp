@@ -109,49 +109,9 @@ func repoName(repo *gogit.Repository, root string) string {
 // additionally require the HEAD chain to be SSH-signed by them (see
 // verifyHeadSignature).
 func Enable(scriptPath, allowedSigners string) error {
-	abs, err := filepath.Abs(scriptPath)
+	m, abs, err := enableAt(scriptPath, allowedSigners)
 	if err != nil {
-		return fmt.Errorf("integrity: %w", err)
-	}
-	repo, err := gogit.PlainOpenWithOptions(filepath.Dir(abs), &gogit.PlainOpenOptions{DetectDotGit: true})
-	if err != nil {
-		return fmt.Errorf("integrity: %s is not inside a git repository", abs)
-	}
-	wt, err := repo.Worktree()
-	if err != nil {
-		return fmt.Errorf("integrity: %w", err)
-	}
-	root := wt.Filesystem().Root()
-
-	head, err := repo.Head()
-	if err != nil {
-		return fmt.Errorf("integrity: %w", err)
-	}
-	commit, err := repo.CommitObject(head.Hash())
-	if err != nil {
-		return fmt.Errorf("integrity: HEAD does not resolve to a commit: %w", err)
-	}
-
-	signer := ""
-	if allowedSigners != "" {
-		signer, err = verifyHeadSignature(repo, commit, allowedSigners)
-		if err != nil {
-			return fmt.Errorf("integrity: %w", err)
-		}
-	}
-
-	tree, err := commit.Tree()
-	if err != nil {
-		return fmt.Errorf("integrity: %w", err)
-	}
-	m := &modeState{
-		repo:     repo,
-		repoRoot: root,
-		repoName: repoName(repo, root),
-		signer:   signer,
-		signed:   allowedSigners != "",
-		commit:   commit,
-		tree:     tree,
+		return err
 	}
 	content, err := os.ReadFile(abs)
 	if err != nil {
@@ -162,6 +122,73 @@ func Enable(scriptPath, allowedSigners string) error {
 	}
 	mode = m
 	return nil
+}
+
+// EnableDir anchors integrity mode on the repository enclosing target
+// (a directory, or a file whose directory is used) without verifying
+// an entry script: every code file is verified as it loads through the
+// VerifyFile cascade instead. The test runner mode uses it — test
+// files reach evaluation via load-file, which is hooked.
+func EnableDir(target, allowedSigners string) error {
+	m, _, err := enableAt(target, allowedSigners)
+	if err != nil {
+		return err
+	}
+	mode = m
+	return nil
+}
+
+// enableAt builds the verification context anchored at HEAD of the
+// repository enclosing path, without installing it.
+func enableAt(path, allowedSigners string) (*modeState, string, error) {
+	abs, err := filepath.Abs(path)
+	if err != nil {
+		return nil, "", fmt.Errorf("integrity: %w", err)
+	}
+	openFrom := filepath.Dir(abs)
+	if info, err := os.Stat(abs); err == nil && info.IsDir() {
+		openFrom = abs
+	}
+	repo, err := gogit.PlainOpenWithOptions(openFrom, &gogit.PlainOpenOptions{DetectDotGit: true})
+	if err != nil {
+		return nil, "", fmt.Errorf("integrity: %s is not inside a git repository", abs)
+	}
+	wt, err := repo.Worktree()
+	if err != nil {
+		return nil, "", fmt.Errorf("integrity: %w", err)
+	}
+	root := wt.Filesystem().Root()
+
+	head, err := repo.Head()
+	if err != nil {
+		return nil, "", fmt.Errorf("integrity: %w", err)
+	}
+	commit, err := repo.CommitObject(head.Hash())
+	if err != nil {
+		return nil, "", fmt.Errorf("integrity: HEAD does not resolve to a commit: %w", err)
+	}
+
+	signer := ""
+	if allowedSigners != "" {
+		signer, err = verifyHeadSignature(repo, commit, allowedSigners)
+		if err != nil {
+			return nil, "", fmt.Errorf("integrity: %w", err)
+		}
+	}
+
+	tree, err := commit.Tree()
+	if err != nil {
+		return nil, "", fmt.Errorf("integrity: %w", err)
+	}
+	return &modeState{
+		repo:     repo,
+		repoRoot: root,
+		repoName: repoName(repo, root),
+		signer:   signer,
+		signed:   allowedSigners != "",
+		commit:   commit,
+		tree:     tree,
+	}, abs, nil
 }
 
 // isStateOnly reports whether commit has exactly one parent and
