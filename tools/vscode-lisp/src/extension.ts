@@ -1,3 +1,4 @@
+import { execFile } from "child_process";
 import * as vscode from "vscode";
 import {
   LanguageClient,
@@ -7,6 +8,35 @@ import {
 import { activateTesting } from "./tests";
 
 let client: LanguageClient | undefined;
+
+const installHint =
+  "go install -tags debugger github.com/jig/lisp/cmd/lisp@latest";
+
+type Probe = "ok" | "release-build" | "not-found";
+
+/**
+ * probeDebugBuild checks that `command --dap` gets past the build-tag
+ * gate (a debug build proceeds to its own argument validation; a
+ * release build refuses with "requires a debug build"). Lets us show
+ * an actionable message instead of VSCode's generic "the debug
+ * adapter exited unexpectedly".
+ */
+function probeDebugBuild(command: string): Promise<Probe> {
+  return new Promise((resolve) => {
+    execFile(command, ["--dap"], { timeout: 5000 }, (error, _stdout, stderr) => {
+      const err = error as (Error & { code?: string }) | null;
+      if (err && err.code === "ENOENT") {
+        resolve("not-found");
+        return;
+      }
+      if (typeof stderr === "string" && stderr.includes("requires a debug build")) {
+        resolve("release-build");
+        return;
+      }
+      resolve("ok");
+    });
+  });
+}
 
 /**
  * Activate the extension. Registers a DebugAdapterDescriptorFactory for
@@ -64,6 +94,16 @@ export function activate(context: vscode.ExtensionContext): void {
     // surfaced by the client in its output channel without breaking
     // the debugger features.
     void client.start();
+    // A release-build binary dies instantly on --lsp; explain how to
+    // fix it instead of leaving only the client's cryptic crash note.
+    void probeDebugBuild(command).then((probe) => {
+      if (probe === "release-build") {
+        void vscode.window.showWarningMessage(
+          `jig/lisp: '${command}' is a release build — the language server ` +
+            `and debugger need a debug build. Reinstall with: ${installHint}`,
+        );
+      }
+    });
   }
 }
 
@@ -73,13 +113,25 @@ export function deactivate(): Thenable<void> | undefined {
 
 class LispDebugAdapterDescriptorFactory
   implements vscode.DebugAdapterDescriptorFactory {
-  createDebugAdapterDescriptor(
+  async createDebugAdapterDescriptor(
     session: vscode.DebugSession,
     _executable: vscode.DebugAdapterExecutable | undefined,
-  ): vscode.ProviderResult<vscode.DebugAdapterDescriptor> {
+  ): Promise<vscode.DebugAdapterDescriptor> {
     const cfg = vscode.workspace.getConfiguration("lisp");
     const command = cfg.get<string>("debugAdapter.command", "lisp");
     const extra = cfg.get<string[]>("debugAdapter.extraArgs", []);
+
+    switch (await probeDebugBuild(command)) {
+      case "not-found":
+        throw new Error(
+          `lisp debug: '${command}' not found on PATH — install it with: ${installHint}`,
+        );
+      case "release-build":
+        throw new Error(
+          `lisp debug: '${command}' is a release build without the debugger — ` +
+            `reinstall with: ${installHint}`,
+        );
+    }
 
     const program = session.configuration.program;
     if (typeof program !== "string" || program.length === 0) {
