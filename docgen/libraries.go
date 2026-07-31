@@ -1,6 +1,8 @@
 package docgen
 
 import (
+	"fmt"
+
 	"github.com/jig/lisp/env"
 	"github.com/jig/lisp/lib/cli/nscli"
 	"github.com/jig/lisp/lib/concurrent/nsconcurrent"
@@ -73,14 +75,37 @@ func standardLibraries() []library {
 // the binary builds.
 func StandardSymbols() ([]string, error) { return SymbolsFor(nil) }
 
+// mergeLibraries appends an embedder's libraries to the standard list,
+// failing closed on a nil loader or a name that collides with a
+// namespace already listed (a silent collision would hijack that
+// section's heading and attribution).
+func mergeLibraries(extra []Library) ([]library, error) {
+	libs := standardLibraries()
+	names := map[string]bool{}
+	for _, l := range libs {
+		names[l.name] = true
+	}
+	for _, e := range extra {
+		if e.Load == nil {
+			return nil, fmt.Errorf("docgen: library %q has a nil Load", e.Name)
+		}
+		if names[e.Name] {
+			return nil, fmt.Errorf("docgen: library %q collides with an already listed namespace", e.Name)
+		}
+		names[e.Name] = true
+		libs = append(libs, library{name: e.Name, load: e.Load})
+	}
+	return libs, nil
+}
+
 // SymbolsFor is StandardSymbols with an embedder's libraries loaded too,
 // so an embedder can assert the same way that its reference documents
 // exactly the environment its binary builds.
 func SymbolsFor(extra []Library) ([]string, error) {
 	ns := env.NewEnv()
-	libs := standardLibraries()
-	for _, e := range extra {
-		libs = append(libs, library{name: e.Name, load: e.Load})
+	libs, err := mergeLibraries(extra)
+	if err != nil {
+		return nil, err
 	}
 	for _, lib := range libs {
 		if err := lib.load(ns); err != nil {

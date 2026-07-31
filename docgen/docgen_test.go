@@ -83,6 +83,34 @@ func TestMarkdownForEmbedder(t *testing.T) {
 
 func embedderProbe() (types.MalType, error) { return nil, nil }
 
+// TestMarkdownForRejectsBadLibraries pins the fail-closed guards: a
+// name colliding with a standard namespace (which would silently
+// hijack its section) and a nil loader both error instead of rendering.
+func TestMarkdownForRejectsBadLibraries(t *testing.T) {
+	noop := func(ns types.EnvType) error { return nil }
+	for _, tc := range []struct {
+		name string
+		lib  docgen.Library
+		want string
+	}{
+		{"standard-name collision", docgen.Library{Name: "log", Load: noop}, "collides"},
+		{"nil Load", docgen.Library{Name: "probe"}, "nil Load"},
+	} {
+		if _, err := docgen.MarkdownFor([]docgen.Library{tc.lib}); err == nil ||
+			!strings.Contains(err.Error(), tc.want) {
+			t.Errorf("%s: MarkdownFor = %v, want error containing %q", tc.name, err, tc.want)
+		}
+	}
+	// Duplicates within the extra list collide too.
+	dup := []docgen.Library{
+		{Name: "probe", Load: noop},
+		{Name: "probe", Load: noop},
+	}
+	if _, err := docgen.SymbolsFor(dup); err == nil || !strings.Contains(err.Error(), "collides") {
+		t.Errorf("duplicate extra names: SymbolsFor = %v, want a collision error", err)
+	}
+}
+
 // TestSymbolsForIncludesEmbedder checks that SymbolsFor reports the
 // embedder's symbols on top of the standard ones.
 func TestSymbolsForIncludesEmbedder(t *testing.T) {

@@ -12,9 +12,10 @@
 //
 // A Go program that embeds the interpreter and adds namespaces of its
 // own can document them the same way by passing them as []Library to
-// MarkdownFor / SpliceFor / UpdateFileFor: they are loaded after the
-// standard libraries and rendered as further sections, so the embedder's
-// own LANGUAGE.md describes exactly the environment its binary builds.
+// MarkdownFor / SpliceFor / UpdateFileFor (and assert coverage with
+// SymbolsFor): they are loaded after the standard libraries and rendered
+// as further sections, so the embedder's own LANGUAGE.md describes
+// exactly the environment its binary builds.
 package docgen
 
 //go:generate go run ./gen.go -o ../LANGUAGE.md
@@ -99,9 +100,9 @@ func collect(extra []Library) ([]section, error) {
 	seen := map[string]bool{}
 	var sections []section
 
-	libs := standardLibraries()
-	for _, e := range extra {
-		libs = append(libs, library{name: e.Name, load: e.Load})
+	libs, err := mergeLibraries(extra)
+	if err != nil {
+		return nil, err
 	}
 	overrides := map[string]struct{ title, desc string }{}
 	for _, e := range extra {
