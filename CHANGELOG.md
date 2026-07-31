@@ -179,6 +179,13 @@ value did not parse, deferring the failure to an unrelated error deep
 inside the program; it now returns a read error naming the
 placeholder.
 
+### Fixed — `state-save` signing failures are atomic
+
+With an allowed-signers policy active, `state-save` now rolls back the
+temporary unsigned commit, index entry and `.state/` file write when SSH
+signing fails. A missing authorised ssh-agent key therefore returns an
+error without wedging the checkout at an unsigned state commit.
+
 ### Migration (embedders — Go code using jig/lisp)
 
 Scripts and lisp data files need no changes. Go code embedding the
