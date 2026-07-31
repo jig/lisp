@@ -6,6 +6,9 @@
 name: jig/lisp
 file_extensions:
   - lisp
+# Extensionless scripts are recognised by their shebang (lisp or
+# lisp-integrity as the interpreter, directly or via env).
+first_line_match: '^#!.*\blisp(-integrity)?\b'
 scope: source.lisp
 
 contexts:
