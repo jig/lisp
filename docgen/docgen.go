@@ -59,6 +59,11 @@ var sectionBlurb = map[string]struct{ title, desc string }{
 	"cli":                 {"cli", "Command-line option parsing (clojure/tools.cli style)."},
 	"integrity":           {"integrity", "Attest and verify lisp source (formatting, hashing, Ed25519 signatures, the lisp-integrity mode)."},
 	"regexp":              {"regexp", "Regular expressions (Go RE2): re-pattern, re-matches / re-find, re-seq, re-replace and re-split."},
+	"web":                 {"web", "Ring-style HTTP server: router, response helpers, middleware, JWT/mTLS identity."},
+	"git":                 {"git", "Git operations backed by go-git: init/clone/commit/push, tags, and SSH signature verification."},
+	"term":                {"term", "Terminal styling (ANSI colors, NO_COLOR-aware) and width detection."},
+	"test":                {"test", "Clojure-style unit testing: deftest / is / are; run with `lisp --test`."},
+	"log":                 {"log", "Structured logging: log-debug / log-info / log-warn / log-error emit records to systemd-journald (or $XDG_STATE_HOME/lisp/<script>.log without it), filtered by the LOG_LEVEL environment variable (debug/info/warn/error, default info)."},
 	"version":             {"version", "Build information of the running program (the version builtin)."},
 }
 

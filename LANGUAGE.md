@@ -20,8 +20,9 @@ this file is generated from the interpreter's own documentation metadata
 lisp script.lisp            # run a file
 lisp -e "(+ 1 2)"           # evaluate one expression and print it
 lisp                        # REPL (Ctrl-D to exit)
-lisp --test DIR             # run every *_test.mal under DIR
+lisp --test DIR             # run every *_test.lisp (and legacy *_test.mal) under DIR
 lisp --fmt script.lisp      # canonical formatting
+lisp-integrity script.lisp  # verified & attested run (separate binary; see INTEGRITY.md)
 ```
 
 Command-line arguments after the script are visible to it as the list
@@ -486,6 +487,8 @@ Regular expressions (Go RE2): re-pattern, re-matches / re-find, re-seq, re-repla
 
 ### web
 
+Ring-style HTTP server: router, response helpers, middleware, JWT/mTLS identity.
+
 | Name | Arguments | Description |
 | ---- | --------- | ----------- |
 | `web--bearer-token` | `[req]` | Extracts the bearer token from a request's Authorization header, or nil. |
@@ -506,6 +509,8 @@ Regular expressions (Go RE2): re-pattern, re-matches / re-find, re-seq, re-repla
 | `web-wrap-recover` | `[handler]` | Middleware: turns any error escaping the handler into a 500 JSON response instead of dropping the connection. |
 
 ### git
+
+Git operations backed by go-git: init/clone/commit/push, tags, and SSH signature verification.
 
 | Name | Arguments | Description |
 | ---- | --------- | ----------- |
@@ -537,6 +542,8 @@ Regular expressions (Go RE2): re-pattern, re-matches / re-find, re-seq, re-repla
 
 ### term
 
+Terminal styling (ANSI colors, NO_COLOR-aware) and width detection.
+
 | Name | Arguments | Description |
 | ---- | --------- | ----------- |
 | `term-blue` | `[s]` | — |
@@ -554,6 +561,8 @@ Regular expressions (Go RE2): re-pattern, re-matches / re-find, re-seq, re-repla
 
 ### test
 
+Clojure-style unit testing: deftest / is / are; run with `lisp --test`.
+
 | Name | Arguments | Description |
 | ---- | --------- | ----------- |
 | `are ⁽ᵐ⁾` | `[argv expr & rows]` | Template assertion: substitutes each row of values for argv in expr and asserts every instance, e.g. (are [x y] (= x y) 2 (+ 1 1) 4 (* 2 2)). |
@@ -569,6 +578,8 @@ Regular expressions (Go RE2): re-pattern, re-matches / re-find, re-seq, re-repla
 | `with-out-str ⁽ᵐ⁾` | `[& body]` | Evaluates body capturing standard output and returns it as a string (Clojure-style); output from concurrent goroutines is captured too. |
 
 ### log
+
+Structured logging: log-debug / log-info / log-warn / log-error emit records to systemd-journald (or $XDG_STATE_HOME/lisp/<script>.log without it), filtered by the LOG_LEVEL environment variable (debug/info/warn/error, default info).
 
 | Name | Arguments | Description |
 | ---- | --------- | ----------- |
