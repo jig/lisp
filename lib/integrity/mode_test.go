@@ -5,8 +5,10 @@ import (
 	"crypto/ed25519"
 	"crypto/rand"
 	"encoding/pem"
+	"errors"
 	"fmt"
 	"io"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
@@ -535,6 +537,120 @@ func TestStateSaveSignedCommit(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestStateSaveRollsBackWhenSigningFails(t *testing.T) {
+	ns := newGitEnv(t)
+	dir, _ := setupRepo(t, ns, "")
+	t.Chdir(dir)
+
+	first := evalLisp(t, ns, `(state-save "db" {:n 1})`).(string)
+	statePath := filepath.Join(dir, ".state", "db.lisp")
+	originalState, err := os.ReadFile(statePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	repo, err := gogit.PlainOpen(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	originalIndexData := indexBlobContents(t, repo, ".state/db.lisp")
+
+	libgit.SetSigner(func() (gossh.Signer, error) {
+		return nil, errors.New("no ssh-agent key is listed in the allowed signers")
+	})
+	t.Cleanup(libgit.ClearSigner)
+
+	if err := evalErr(t, ns, `(state-save "db" {:n 2})`); !strings.Contains(err.Error(), "sign commit") {
+		t.Fatalf("state-save with failing signer = %v, want sign commit error", err)
+	}
+	head, err := repo.Head()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if head.Hash().String() != first {
+		t.Fatalf("HEAD = %s, want pre-save commit %s", head.Hash(), first)
+	}
+	restoredState, err := os.ReadFile(statePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(restoredState) != string(originalState) {
+		t.Fatalf("worktree state = %q, want restored %q", restoredState, originalState)
+	}
+	if got := indexBlobContents(t, repo, ".state/db.lisp"); got != originalIndexData {
+		t.Fatalf("index state = %q, want restored %q", got, originalIndexData)
+	}
+
+	// Re-saving the unchanged value remains a no-op and does not require a signer.
+	if got := evalLisp(t, ns, `(state-save "db" {:n 1})`).(string); got != first {
+		t.Fatalf("unchanged save = %s, want existing HEAD %s", got, first)
+	}
+}
+
+func TestStateSaveRemovesNewStateFileWhenSigningFails(t *testing.T) {
+	ns := newGitEnv(t)
+	dir, release := setupRepo(t, ns, "")
+	t.Chdir(dir)
+	repo, err := gogit.PlainOpen(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	libgit.SetSigner(func() (gossh.Signer, error) {
+		return nil, errors.New("no ssh-agent key is listed in the allowed signers")
+	})
+	t.Cleanup(libgit.ClearSigner)
+
+	if err := evalErr(t, ns, `(state-save "db" {:n 1})`); !strings.Contains(err.Error(), "sign commit") {
+		t.Fatalf("state-save with failing signer = %v, want sign commit error", err)
+	}
+	head, err := repo.Head()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if head.Hash().String() != release {
+		t.Fatalf("HEAD = %s, want release commit %s", head.Hash(), release)
+	}
+	if _, err := os.Stat(filepath.Join(dir, ".state", "db.lisp")); !errors.Is(err, fs.ErrNotExist) {
+		t.Fatalf("state file after rollback = %v, want absent", err)
+	}
+	idx, err := repo.Storer.Index()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := idx.Entry(".state/db.lisp"); err == nil {
+		t.Fatal("index still contains rolled-back state file")
+	}
+}
+
+func indexBlobContents(t *testing.T, repo *gogit.Repository, path string) string {
+	t.Helper()
+	idx, err := repo.Storer.Index()
+	if err != nil {
+		t.Fatal(err)
+	}
+	entry, err := idx.Entry(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	blob, err := repo.BlobObject(entry.Hash)
+	if err != nil {
+		t.Fatal(err)
+	}
+	rd, err := blob.Reader()
+	if err != nil {
+		t.Fatal(err)
+	}
+	data, err := io.ReadAll(rd)
+	if closeErr := rd.Close(); err == nil {
+		err = closeErr
+	}
+	if err != nil {
+		t.Fatal(err)
+	}
+	return string(data)
 }
 
 // TestStateSaveIdempotentUnchanged verifies that saving a byte-identical

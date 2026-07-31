@@ -22,6 +22,8 @@ import (
 	"time"
 
 	gogit "github.com/go-git/go-git/v6"
+	"github.com/go-git/go-git/v6/plumbing"
+	gitindex "github.com/go-git/go-git/v6/plumbing/format/index"
 	"github.com/go-git/go-git/v6/plumbing/object"
 	"github.com/jig/lisp/internal/gogitutil"
 	libgit "github.com/jig/lisp/lib/git"
@@ -117,6 +119,10 @@ func state_save(name string, value MalType, params ...MalType) (MalType, error) 
 	}
 
 	abs := filepath.Join(root, filepath.FromSlash(rel))
+	snapshot, err := newStateSaveSnapshot(repo, abs)
+	if err != nil {
+		return nil, fmt.Errorf("state-save: %w", err)
+	}
 	if err := os.MkdirAll(filepath.Dir(abs), 0o755); err != nil {
 		return nil, fmt.Errorf("state-save: %w", err)
 	}
@@ -155,9 +161,160 @@ func state_save(name string, value MalType, params ...MalType) (MalType, error) 
 	// Sign the state commit when the allowed signers installed a signing
 	// policy (ssh-agent key); a no-op otherwise.
 	if hash, err = libgit.SignCommitIfPolicy(repo, hash); err != nil {
+		if rollbackErr := snapshot.restore(repo, abs); rollbackErr != nil {
+			return nil, fmt.Errorf("state-save: sign commit: %w (rollback failed: %v)", err, rollbackErr)
+		}
 		return nil, fmt.Errorf("state-save: sign commit: %w", err)
 	}
 	return hash.String(), nil
+}
+
+type stateSaveSnapshot struct {
+	head      *plumbing.Reference
+	headHash  plumbing.Hash
+	hasHead   bool
+	index     *gitindex.Index
+	file      stateFileSnapshot
+	emptyDirs []string
+}
+
+type stateFileSnapshot struct {
+	exists bool
+	data   []byte
+	mode   fs.FileMode
+}
+
+func newStateSaveSnapshot(repo *gogit.Repository, abs string) (*stateSaveSnapshot, error) {
+	directHead, err := repo.Storer.Reference(plumbing.HEAD)
+	if err != nil && !errors.Is(err, plumbing.ErrReferenceNotFound) {
+		return nil, err
+	}
+	resolvedHead, err := repo.Head()
+	hasHead := err == nil
+	if err != nil && !errors.Is(err, plumbing.ErrReferenceNotFound) {
+		return nil, err
+	}
+	var headHash plumbing.Hash
+	if hasHead {
+		headHash = resolvedHead.Hash()
+	}
+	idx, err := repo.Storer.Index()
+	if err != nil {
+		return nil, err
+	}
+	file, err := snapshotStateFile(abs)
+	if err != nil {
+		return nil, err
+	}
+	return &stateSaveSnapshot{
+		head:      directHead,
+		headHash:  headHash,
+		hasHead:   hasHead,
+		index:     cloneIndex(idx),
+		file:      file,
+		emptyDirs: missingStateParents(abs),
+	}, nil
+}
+
+func snapshotStateFile(abs string) (stateFileSnapshot, error) {
+	info, err := os.Stat(abs)
+	if errors.Is(err, fs.ErrNotExist) {
+		return stateFileSnapshot{}, nil
+	}
+	if err != nil {
+		return stateFileSnapshot{}, err
+	}
+	data, err := os.ReadFile(abs)
+	if err != nil {
+		return stateFileSnapshot{}, err
+	}
+	return stateFileSnapshot{exists: true, data: data, mode: info.Mode().Perm()}, nil
+}
+
+func cloneIndex(idx *gitindex.Index) *gitindex.Index {
+	if idx == nil {
+		return nil
+	}
+	clone := *idx
+	clone.Entries = make([]*gitindex.Entry, len(idx.Entries))
+	for i, entry := range idx.Entries {
+		if entry == nil {
+			continue
+		}
+		entryClone := *entry
+		clone.Entries[i] = &entryClone
+	}
+	return &clone
+}
+
+func missingStateParents(abs string) []string {
+	var dirs []string
+	for dir := filepath.Dir(abs); ; dir = filepath.Dir(dir) {
+		if _, err := os.Stat(dir); errors.Is(err, fs.ErrNotExist) {
+			dirs = append(dirs, dir)
+		}
+		if filepath.Base(dir) == stateDir {
+			break
+		}
+		if parent := filepath.Dir(dir); parent == dir {
+			break
+		}
+	}
+	return dirs
+}
+
+func (s *stateSaveSnapshot) restore(repo *gogit.Repository, abs string) error {
+	var errs []error
+	if err := s.restoreHead(repo); err != nil {
+		errs = append(errs, fmt.Errorf("HEAD: %w", err))
+	}
+	if err := repo.Storer.SetIndex(s.index); err != nil {
+		errs = append(errs, fmt.Errorf("index: %w", err))
+	}
+	if err := s.restoreFile(abs); err != nil {
+		errs = append(errs, fmt.Errorf("worktree: %w", err))
+	}
+	return errors.Join(errs...)
+}
+
+func (s *stateSaveSnapshot) restoreHead(repo *gogit.Repository) error {
+	if s.head == nil {
+		return nil
+	}
+	name := s.head.Name()
+	if s.head.Type() == plumbing.SymbolicReference {
+		name = s.head.Target()
+		if err := repo.Storer.SetReference(s.head); err != nil {
+			return err
+		}
+	}
+	if s.hasHead {
+		return repo.Storer.SetReference(plumbing.NewHashReference(name, s.headHash))
+	}
+	return repo.Storer.RemoveReference(name)
+}
+
+func (s *stateSaveSnapshot) restoreFile(abs string) error {
+	if s.file.exists {
+		if err := os.MkdirAll(filepath.Dir(abs), 0o755); err != nil {
+			return err
+		}
+		return os.WriteFile(abs, s.file.data, s.file.mode)
+	}
+	if err := os.Remove(abs); err != nil && !errors.Is(err, fs.ErrNotExist) {
+		return err
+	}
+	for _, dir := range s.emptyDirs {
+		if err := os.Remove(dir); err != nil && !errors.Is(err, fs.ErrNotExist) && !dirHasEntries(dir) {
+			return err
+		}
+	}
+	return nil
+}
+
+func dirHasEntries(dir string) bool {
+	entries, err := os.ReadDir(dir)
+	return err == nil && len(entries) > 0
 }
 
 func state_load(name string, defaultValue ...MalType) (MalType, error) {

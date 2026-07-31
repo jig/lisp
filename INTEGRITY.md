@@ -162,7 +162,7 @@ journalctl -t <script> TRACE_ID=<id> -o json
 |---|---|
 | `(assert-integrity)` | Throws unless running under `lisp-integrity`; returns the verified commit hash. Committed code uses it to demand the mode — effective as long as operators know the program is supposed to carry it. |
 | `(assert-integrity :with-signature)` | Additionally throws unless startup rule 3 was applied (an `/etc/lisp/allowed_signers` file existed and the chain verified). For code that must not run unsigned even on hosts lacking the keys file. |
-| `(state-save name value & [message])` | Writes `value` as canonical lisp data to `.state/name.lisp` and **commits it in the same operation**; returns the commit hash. The commit `message` defaults to `state: name`. With an allowed-signers set active, the commit is SSH-signed via ssh-agent (no per-call key). Saving an unchanged value is a no-op returning the current commit. Works with or without the mode; requires a Git repository. |
+| `(state-save name value & [message])` | Writes `value` as canonical lisp data to `.state/name.lisp` and **commits it in the same operation**; returns the commit hash. The commit `message` defaults to `state: name`. With an allowed-signers set active, the commit is SSH-signed via ssh-agent (no per-call key), and signing failure rolls the repository back to its pre-save HEAD, index and state file. Saving an unchanged value is a no-op returning the current commit. Works with or without the mode; requires a Git repository. |
 | `(state-load name)` / `(state-load name default)` | Reads the state back as pure data (READ, never EVAL — state cannot smuggle code). Returns `default`, or throws without one, when the state does not exist. Under the mode, enforces invariant 5. |
 | `(slurp-source path)` | `slurp` for files about to be evaluated: identical, plus invariant 4 under the mode. `load-file` builds on it. |
 
@@ -204,7 +204,10 @@ integrity envelope:
   inside `state-save`. Committed state is therefore always the product
   of a completed save. State commits are authored `state-save
   <state-save@lisp>`; they are Git-compatible SSH-signed when an
-  allowed-signers set is active (ssh-agent key), unsigned otherwise.
+  allowed-signers set is active (ssh-agent key), unsigned otherwise. If
+  that signing step fails, `state-save` restores the pre-save HEAD,
+  index and state file before returning the error, so an unsigned state
+  commit is not left at `HEAD`.
 - **Crash recovery** — a save interrupted between write and commit
   leaves the file differing from `HEAD`; the next `state-load` under
   the mode fails closed and the operator resolves it (commit the
