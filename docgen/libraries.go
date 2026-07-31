@@ -1,6 +1,8 @@
 package docgen
 
 import (
+	"fmt"
+
 	"github.com/jig/lisp/env"
 	"github.com/jig/lisp/lib/cli/nscli"
 	"github.com/jig/lisp/lib/concurrent/nsconcurrent"
@@ -25,6 +27,17 @@ import (
 type library struct {
 	name string
 	load func(ns types.EnvType) error
+}
+
+// Library is a namespace an embedder wants documented alongside the
+// standard ones. Name identifies the library in the reference; Load
+// registers its symbols. Title and Desc override the section heading and
+// its one-line description, which otherwise fall back to Name and none.
+type Library struct {
+	Name  string
+	Load  func(ns types.EnvType) error
+	Title string
+	Desc  string
 }
 
 // standardLibraries lists the namespaces documented in LANGUAGE.md, in
@@ -60,9 +73,41 @@ func standardLibraries() []library {
 // names bound in the resulting environment. It exists so a test in the
 // cmd/lisp package can assert docgen documents exactly the environment
 // the binary builds.
-func StandardSymbols() ([]string, error) {
+func StandardSymbols() ([]string, error) { return SymbolsFor(nil) }
+
+// mergeLibraries appends an embedder's libraries to the standard list,
+// failing closed on a nil loader or a name that collides with a
+// namespace already listed (a silent collision would hijack that
+// section's heading and attribution).
+func mergeLibraries(extra []Library) ([]library, error) {
+	libs := standardLibraries()
+	names := map[string]bool{}
+	for _, l := range libs {
+		names[l.name] = true
+	}
+	for _, e := range extra {
+		if e.Load == nil {
+			return nil, fmt.Errorf("docgen: library %q has a nil Load", e.Name)
+		}
+		if names[e.Name] {
+			return nil, fmt.Errorf("docgen: library %q collides with an already listed namespace", e.Name)
+		}
+		names[e.Name] = true
+		libs = append(libs, library{name: e.Name, load: e.Load})
+	}
+	return libs, nil
+}
+
+// SymbolsFor is StandardSymbols with an embedder's libraries loaded too,
+// so an embedder can assert the same way that its reference documents
+// exactly the environment its binary builds.
+func SymbolsFor(extra []Library) ([]string, error) {
 	ns := env.NewEnv()
-	for _, lib := range standardLibraries() {
+	libs, err := mergeLibraries(extra)
+	if err != nil {
+		return nil, err
+	}
+	for _, lib := range libs {
 		if err := lib.load(ns); err != nil {
 			return nil, err
 		}

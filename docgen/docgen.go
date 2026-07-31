@@ -9,6 +9,13 @@
 // their arglist/doc in the types.Func value (attached with call.Doc);
 // lisp-defined functions and macros carry a docstring in their :doc
 // metadata and their parameter vector in the value itself.
+//
+// A Go program that embeds the interpreter and adds namespaces of its
+// own can document them the same way by passing them as []Library to
+// MarkdownFor / SpliceFor / UpdateFileFor (and assert coverage with
+// SymbolsFor): they are loaded after the standard libraries and rendered
+// as further sections, so the embedder's own LANGUAGE.md describes
+// exactly the environment its binary builds.
 package docgen
 
 //go:generate go run ./gen.go -o ../LANGUAGE.md
@@ -85,13 +92,24 @@ type section struct {
 
 // collect loads every library in order and returns one section per
 // library, each holding the symbols that library added to the
-// environment.
-func collect() ([]section, error) {
+// environment. extra are an embedder's libraries, documented after the
+// standard ones: they load last, so a symbol they rebind is still
+// attributed to the library that introduced it.
+func collect(extra []Library) ([]section, error) {
 	ns := env.NewEnv()
 	seen := map[string]bool{}
 	var sections []section
 
-	for _, lib := range standardLibraries() {
+	libs, err := mergeLibraries(extra)
+	if err != nil {
+		return nil, err
+	}
+	overrides := map[string]struct{ title, desc string }{}
+	for _, e := range extra {
+		overrides[e.Name] = struct{ title, desc string }{e.Title, e.Desc}
+	}
+
+	for _, lib := range libs {
 		if err := lib.load(ns); err != nil {
 			return nil, fmt.Errorf("load %q: %w", lib.name, err)
 		}
@@ -116,6 +134,9 @@ func collect() ([]section, error) {
 		sort.Slice(added, func(i, j int) bool { return added[i].name < added[j].name })
 
 		blurb := sectionBlurb[lib.name]
+		if o, ok := overrides[lib.name]; ok {
+			blurb.title, blurb.desc = o.title, o.desc
+		}
 		title := blurb.title
 		if title == "" {
 			title = lib.name
@@ -189,8 +210,12 @@ func malFuncDoc(f types.MalFunc) string {
 
 // Markdown renders the full generated reference block (without the
 // surrounding markers).
-func Markdown() (string, error) {
-	sections, err := collect()
+func Markdown() (string, error) { return MarkdownFor(nil) }
+
+// MarkdownFor renders the reference block for the standard libraries
+// plus an embedder's own, documented after them.
+func MarkdownFor(extra []Library) (string, error) {
+	sections, err := collect(extra)
 	if err != nil {
 		return "", err
 	}
@@ -275,7 +300,11 @@ func defaultDoc(doc string) string {
 // Splice replaces the text between BeginMarker and EndMarker in doc with
 // a freshly generated reference block, leaving the hand-written parts
 // untouched. It errors if the markers are missing or out of order.
-func Splice(doc string) (string, error) {
+func Splice(doc string) (string, error) { return SpliceFor(doc, nil) }
+
+// SpliceFor is Splice with an embedder's libraries documented alongside
+// the standard ones.
+func SpliceFor(doc string, extra []Library) (string, error) {
 	begin := strings.Index(doc, BeginMarker)
 	end := strings.Index(doc, EndMarker)
 	if begin == -1 || end == -1 {
@@ -284,7 +313,7 @@ func Splice(doc string) (string, error) {
 	if end < begin {
 		return "", fmt.Errorf("docgen: %q appears before %q", EndMarker, BeginMarker)
 	}
-	block, err := Markdown()
+	block, err := MarkdownFor(extra)
 	if err != nil {
 		return "", err
 	}
@@ -294,12 +323,16 @@ func Splice(doc string) (string, error) {
 // UpdateFile rewrites path in place, regenerating the block between the
 // markers. It is the entry point of the go:generate runner and reports
 // whether the file actually changed.
-func UpdateFile(path string) (changed bool, err error) {
+func UpdateFile(path string) (changed bool, err error) { return UpdateFileFor(path, nil) }
+
+// UpdateFileFor is UpdateFile with an embedder's libraries documented
+// alongside the standard ones.
+func UpdateFileFor(path string, extra []Library) (changed bool, err error) {
 	current, err := os.ReadFile(path)
 	if err != nil {
 		return false, err
 	}
-	updated, err := Splice(string(current))
+	updated, err := SpliceFor(string(current), extra)
 	if err != nil {
 		return false, err
 	}
