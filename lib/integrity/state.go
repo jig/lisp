@@ -22,8 +22,6 @@ import (
 	"time"
 
 	gogit "github.com/go-git/go-git/v6"
-	"github.com/go-git/go-git/v6/plumbing"
-	gitindex "github.com/go-git/go-git/v6/plumbing/format/index"
 	"github.com/go-git/go-git/v6/plumbing/object"
 	"github.com/jig/lisp/internal/gogitutil"
 	libgit "github.com/jig/lisp/lib/git"
@@ -170,10 +168,7 @@ func state_save(name string, value MalType, params ...MalType) (MalType, error) 
 }
 
 type stateSaveSnapshot struct {
-	head      *plumbing.Reference
-	headHash  plumbing.Hash
-	hasHead   bool
-	index     *gitindex.Index
+	repo      *libgit.RepoSnapshot
 	file      stateFileSnapshot
 	emptyDirs []string
 }
@@ -185,20 +180,7 @@ type stateFileSnapshot struct {
 }
 
 func newStateSaveSnapshot(repo *gogit.Repository, abs string) (*stateSaveSnapshot, error) {
-	directHead, err := repo.Storer.Reference(plumbing.HEAD)
-	if err != nil && !errors.Is(err, plumbing.ErrReferenceNotFound) {
-		return nil, err
-	}
-	resolvedHead, err := repo.Head()
-	hasHead := err == nil
-	if err != nil && !errors.Is(err, plumbing.ErrReferenceNotFound) {
-		return nil, err
-	}
-	var headHash plumbing.Hash
-	if hasHead {
-		headHash = resolvedHead.Hash()
-	}
-	idx, err := repo.Storer.Index()
+	repoSnap, err := libgit.NewRepoSnapshot(repo)
 	if err != nil {
 		return nil, err
 	}
@@ -207,10 +189,7 @@ func newStateSaveSnapshot(repo *gogit.Repository, abs string) (*stateSaveSnapsho
 		return nil, err
 	}
 	return &stateSaveSnapshot{
-		head:      directHead,
-		headHash:  headHash,
-		hasHead:   hasHead,
-		index:     cloneIndex(idx),
+		repo:      repoSnap,
 		file:      file,
 		emptyDirs: missingStateParents(abs),
 	}, nil
@@ -231,22 +210,6 @@ func snapshotStateFile(abs string) (stateFileSnapshot, error) {
 	return stateFileSnapshot{exists: true, data: data, mode: info.Mode().Perm()}, nil
 }
 
-func cloneIndex(idx *gitindex.Index) *gitindex.Index {
-	if idx == nil {
-		return nil
-	}
-	clone := *idx
-	clone.Entries = make([]*gitindex.Entry, len(idx.Entries))
-	for i, entry := range idx.Entries {
-		if entry == nil {
-			continue
-		}
-		entryClone := *entry
-		clone.Entries[i] = &entryClone
-	}
-	return &clone
-}
-
 func missingStateParents(abs string) []string {
 	var dirs []string
 	for dir := filepath.Dir(abs); ; dir = filepath.Dir(dir) {
@@ -265,33 +228,13 @@ func missingStateParents(abs string) []string {
 
 func (s *stateSaveSnapshot) restore(repo *gogit.Repository, abs string) error {
 	var errs []error
-	if err := s.restoreHead(repo); err != nil {
-		errs = append(errs, fmt.Errorf("HEAD: %w", err))
-	}
-	if err := repo.Storer.SetIndex(s.index); err != nil {
-		errs = append(errs, fmt.Errorf("index: %w", err))
+	if err := s.repo.Restore(repo); err != nil {
+		errs = append(errs, err)
 	}
 	if err := s.restoreFile(abs); err != nil {
 		errs = append(errs, fmt.Errorf("worktree: %w", err))
 	}
 	return errors.Join(errs...)
-}
-
-func (s *stateSaveSnapshot) restoreHead(repo *gogit.Repository) error {
-	if s.head == nil {
-		return nil
-	}
-	name := s.head.Name()
-	if s.head.Type() == plumbing.SymbolicReference {
-		name = s.head.Target()
-		if err := repo.Storer.SetReference(s.head); err != nil {
-			return err
-		}
-	}
-	if s.hasHead {
-		return repo.Storer.SetReference(plumbing.NewHashReference(name, s.headHash))
-	}
-	return repo.Storer.RemoveReference(name)
 }
 
 func (s *stateSaveSnapshot) restoreFile(abs string) error {

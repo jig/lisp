@@ -520,7 +520,7 @@ Git operations backed by go-git: init/clone/commit/push, tags, and SSH signature
 | `git-checkout` | `[repo ref & {:create :force}]` | Checks out a branch, tag or revision; :create true creates the branch first. |
 | `git-clone` | `[url path & {:auth :branch :depth :single-branch :bare}]` | Clones url into path and returns a handle; see git-push for the :auth map. |
 | `git-close` | `[repo]` | Closes a repository handle. |
-| `git-commit` | `[repo msg & {:author {:name :email} :committer :all :allow-empty :amend}]` | Commits staged changes and returns the commit map. When an allowed-signers set is active the commit is SSH-signed with the ssh-agent key listed there; otherwise it is unsigned (there is no per-call key option). |
+| `git-commit` | `[repo msg & {:author {:name :email} :committer :all :allow-empty :amend}]` | Commits staged changes and returns the commit map. When an allowed-signers set is active the commit is SSH-signed with the ssh-agent key listed there (a signing failure rolls HEAD and the index back); otherwise it is unsigned (there is no per-call key option). |
 | `git-fetch` | `[repo & {:auth :remote :refspecs :depth :prune :force}]` | Fetches from :remote (default origin); returns :ok or :up-to-date. |
 | `git-head` | `[repo]` | Returns {:name :branch :hash} for HEAD. |
 | `git-init` | `[path & {:bare :object-format}]` | Creates a repository at path and returns a handle; :object-format "sha256" for a SHA-256 repo. |
@@ -532,7 +532,7 @@ Git operations backed by go-git: init/clone/commit/push, tags, and SSH signature
 | `git-remotes` | `[repo]` | Returns a vector of {:name :urls} for the configured remotes. |
 | `git-show` | `[repo rev]` | Returns the commit map for rev (hash, "HEAD", branch or tag name). |
 | `git-status` | `[repo]` | Returns {:clean bool :files {path {:staging kw :worktree kw}}} for the worktree. |
-| `git-tag` | `[repo name & {:at :message :tagger {:name :email}}]` | Creates a tag at HEAD (or :at rev); :message makes it annotated. When an allowed-signers set is active an annotated tag is SSH-signed with the ssh-agent key listed there. |
+| `git-tag` | `[repo name & {:at :message :tagger {:name :email}}]` | Creates a tag at HEAD (or :at rev); :message makes it annotated. When an allowed-signers set is active an annotated tag is SSH-signed with the ssh-agent key listed there (a signing failure deletes the tag again). |
 | `git-tag-verified?` | `[repo name allowed-keys]` | (git-tag-verified? repo name allowed-keys) is true when the tag's SSH signature verifies against allowed-keys. |
 | `git-tags` | `[repo]` | Returns a vector of {:name :hash :target :annotated} for all tags. |
 | `git-verified?` | `[repo rev allowed-keys]` | (git-verified? repo rev allowed-keys) is true when the commit's SSH signature verifies against allowed-keys. |

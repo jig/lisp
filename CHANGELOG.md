@@ -185,6 +185,10 @@ With an allowed-signers policy active, `state-save` now rolls back the
 temporary unsigned commit, index entry and `.state/` file write when SSH
 signing fails. A missing authorised ssh-agent key therefore returns an
 error without wedging the checkout at an unsigned state commit.
+`git-commit` and annotated `git-tag` get the same guarantee: a signing
+failure restores HEAD and the index (the staged changes survive for a
+retry) or deletes the just-created tag, instead of leaving unsigned
+objects that every subsequent verified run would refuse.
 
 ### Migration (embedders — Go code using jig/lisp)
 
