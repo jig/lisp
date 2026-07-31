@@ -2,9 +2,12 @@ package docgen_test
 
 import (
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/jig/lisp/docgen"
+	"github.com/jig/lisp/lib/call"
+	"github.com/jig/lisp/types"
 )
 
 const langDoc = "../LANGUAGE.md"
@@ -36,5 +39,68 @@ func TestMarkdownRenders(t *testing.T) {
 	}
 	if len(md) < 1000 {
 		t.Fatalf("generated reference suspiciously short (%d bytes)", len(md))
+	}
+}
+
+// TestMarkdownForEmbedder checks the embedder path: an extra library is
+// rendered as its own section, with the title and description given, and
+// its symbols are attributed to it rather than to a standard library.
+func TestMarkdownForEmbedder(t *testing.T) {
+	load := func(ns types.EnvType) error {
+		call.CallOverrideFN(ns, "embedder-probe", embedderProbe)
+		call.Doc(ns, "embedder-probe", "[]", "Probe builtin used by the docgen test.")
+		return nil
+	}
+	md, err := docgen.MarkdownFor([]docgen.Library{{
+		Name:  "probe",
+		Load:  load,
+		Title: "probe",
+		Desc:  "Namespace added by an embedder.",
+	}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []string{
+		"### probe",
+		"Namespace added by an embedder.",
+		"embedder-probe",
+		"Probe builtin used by the docgen test.",
+	} {
+		if !strings.Contains(md, want) {
+			t.Errorf("generated reference is missing %q", want)
+		}
+	}
+
+	// Without the extra library none of it appears.
+	std, err := docgen.Markdown()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(std, "embedder-probe") {
+		t.Error("the standard reference must not contain the embedder's symbols")
+	}
+}
+
+func embedderProbe() (types.MalType, error) { return nil, nil }
+
+// TestSymbolsForIncludesEmbedder checks that SymbolsFor reports the
+// embedder's symbols on top of the standard ones.
+func TestSymbolsForIncludesEmbedder(t *testing.T) {
+	std, err := docgen.StandardSymbols()
+	if err != nil {
+		t.Fatal(err)
+	}
+	all, err := docgen.SymbolsFor([]docgen.Library{{
+		Name: "probe",
+		Load: func(ns types.EnvType) error {
+			call.CallOverrideFN(ns, "embedder-probe", embedderProbe)
+			return nil
+		},
+	}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(all) != len(std)+1 {
+		t.Fatalf("SymbolsFor returned %d symbols, want %d", len(all), len(std)+1)
 	}
 }

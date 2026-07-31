@@ -27,6 +27,17 @@ type library struct {
 	load func(ns types.EnvType) error
 }
 
+// Library is a namespace an embedder wants documented alongside the
+// standard ones. Name identifies the library in the reference; Load
+// registers its symbols. Title and Desc override the section heading and
+// its one-line description, which otherwise fall back to Name and none.
+type Library struct {
+	Name  string
+	Load  func(ns types.EnvType) error
+	Title string
+	Desc  string
+}
+
 // standardLibraries lists the namespaces documented in LANGUAGE.md, in
 // load order. It deliberately mirrors cmd/lisp's own libraries() list so
 // the reference describes exactly what the binary ships; the two lists
@@ -60,9 +71,18 @@ func standardLibraries() []library {
 // names bound in the resulting environment. It exists so a test in the
 // cmd/lisp package can assert docgen documents exactly the environment
 // the binary builds.
-func StandardSymbols() ([]string, error) {
+func StandardSymbols() ([]string, error) { return SymbolsFor(nil) }
+
+// SymbolsFor is StandardSymbols with an embedder's libraries loaded too,
+// so an embedder can assert the same way that its reference documents
+// exactly the environment its binary builds.
+func SymbolsFor(extra []Library) ([]string, error) {
 	ns := env.NewEnv()
-	for _, lib := range standardLibraries() {
+	libs := standardLibraries()
+	for _, e := range extra {
+		libs = append(libs, library{name: e.Name, load: e.Load})
+	}
+	for _, lib := range libs {
 		if err := lib.load(ns); err != nil {
 			return nil, err
 		}
