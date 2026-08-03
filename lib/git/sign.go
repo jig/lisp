@@ -8,7 +8,6 @@ import (
 	"strings"
 	"sync"
 
-	gogit "github.com/go-git/go-git/v6"
 	"github.com/go-git/go-git/v6/plumbing"
 	"github.com/go-git/go-git/v6/plumbing/object"
 	"github.com/hiddeco/sshsig"
@@ -29,8 +28,8 @@ const gitNamespace = "git"
 // when an allowed-signers set is active; tests inject a signer with SetSigner.
 var signerResolve func() (gossh.Signer, error)
 
-// SetSigner installs a signing policy: git-commit, git-tag and
-// state-save sign with the signer it returns. A resolver returning an
+// SetSigner installs a signing policy: git-commit and annotated
+// git-tag sign with the signer it returns. A resolver returning an
 // error fails the commit/tag closed.
 func SetSigner(resolve func() (gossh.Signer, error)) { signerResolve = resolve }
 
@@ -124,19 +123,6 @@ func signTagIfPolicy(r *Repo, ref *plumbing.Reference) (*plumbing.Reference, err
 		return nil, err
 	}
 	return resignTag(r, ref, signer)
-}
-
-// SignCommitIfPolicy is signCommitIfPolicy for callers holding a
-// *gogit.Repository (state-save).
-func SignCommitIfPolicy(repo *gogit.Repository, hash plumbing.Hash) (plumbing.Hash, error) {
-	if signerResolve == nil {
-		return hash, nil
-	}
-	r, err := newRepo(repo, "")
-	if err != nil {
-		return plumbing.ZeroHash, err
-	}
-	return signCommitIfPolicy(r, hash)
 }
 
 // payloadEncoder is the part of commits and tags that reproduces the exact

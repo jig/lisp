@@ -39,8 +39,6 @@ func Load(env EnvType) {
 	call.Call(env, ed25519_sign)
 	call.Call(env, ed25519_verify)
 	call.Call(env, assert_integrity, 0, 1)
-	call.Call(env, state_save, 2, 3)
-	call.Call(env, state_load, 1, 2)
 
 	call.Doc(env, "fmt", "[s]",
 		"Formats lisp source s into its canonical form (as lisp --fmt does); errors if s does not parse.")
@@ -54,10 +52,6 @@ func Load(env EnvType) {
 		"Reports whether the base64 signature of string s verifies against the base64 Ed25519 public key.")
 	call.Doc(env, "assert-integrity", "[& [:with-signature]]",
 		"Throws unless the interpreter runs under lisp-integrity; returns the verified commit hash. With :with-signature it additionally throws unless the run's signature rule was applied (an allowed-signers set was present and HEAD verified against it).")
-	call.Doc(env, "state-save", "[name value & [message]]",
-		"Writes value as canonical lisp data to .state/name.lisp at the repository root and commits it; returns the commit hash. message is the commit message (default \"state: name\"). When an allowed-signers set is active (lisp-integrity with /etc/lisp/allowed_signers) the commit is SSH-signed with the ssh-agent key listed there.")
-	call.Doc(env, "state-load", "[name & [default]]",
-		"Reads .state/name.lisp back as data (READ, never EVAL); returns default (or throws) when absent. Under lisp-integrity the file must match its committed version at HEAD.")
 }
 
 func assert_integrity(opts ...MalType) (string, error) {

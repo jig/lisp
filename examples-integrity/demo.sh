@@ -57,16 +57,4 @@ $LISP_INTEGRITY -y service.lisp
 echo "(def evil 1)" >> .lisp/util.lisp
 must_fail "module modified after the release" -- $LISP_INTEGRITY -y service.lisp
 
-step "04-state: persistent state inside the integrity envelope"
-repo 04-state
-$LISP_INTEGRITY -y service.lisp
-$LISP_INTEGRITY -y service.lisp
-$LISP_INTEGRITY -y service.lisp
-[ "$(git log --oneline | grep -c 'state: db')" -eq 3 ] && ok "three state commits, HEAD advances, still verifies"
-echo "{:visits 999}" > .state/db.lisp
-must_fail "state file edited out of band" -- $LISP_INTEGRITY -y service.lisp
-git checkout -- .state/db.lisp
-$LISP_INTEGRITY -y service.lisp >/dev/null
-ok "operator restored the state; runs again"
-
 step "all examples behaved as documented (03-signed is manual, see its README)"

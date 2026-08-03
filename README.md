@@ -434,21 +434,20 @@ verified (and returns the verified commit hash):
 ```
 
 If `/etc/lisp/allowed_signers` exists on the host (authorized_keys
-format, root-owned), every run additionally requires the `HEAD` chain
-to be SSH-signed by a listed key — the release commit itself or an
-annotated tag pointing at it, plus each state commit above it. This
+format, root-owned), every run additionally requires `HEAD` to be
+SSH-signed by a listed key — the commit itself or an annotated tag
+pointing at it. This
 upgrades the guarantee from "matches the local repository" to
 "matches what a trusted key signed". `(assert-integrity
 :with-signature)` lets a script refuse to run unsigned even on hosts
 without the file.
 
-A verified program persists state through the `.state/` store instead
-of raw file writes: `(state-save "db" value)` writes
-`.state/db.lisp` (canonical lisp data, at the repository root next to
-`.lisp/`) and commits it in the same operation; `(state-load "db")`
-reads it back as pure data and requires it to match its committed
-version at `HEAD`. State commits advance `HEAD` as children of the
-release commit, so restarts keep verifying.
+The code repository holds code and configuration only, verified
+uniformly against `HEAD`; the running program needs no write access to
+the checkout. Mutable data lives outside it — a separate data
+repository managed from lisp with `lib/git`, a database via `lib/sql`,
+or plain files — data integrity is the application's concern, by
+design.
 
 Scope: this is an operational assurance for the operator — no
 accidental drift, no uncommitted edits — not a security boundary
@@ -458,8 +457,8 @@ and binary; unprivileged process). `eval` over strings obtained by
 other means (`slurp`, network) is not covered; uncommitted files that
 are never interpreted do not affect the check.
 
-The full specification — invariants, state commit protocol, crash
-recovery, deployment recipe — lives in [INTEGRITY.md](./INTEGRITY.md);
+The full specification — invariants, signature rule, attestation,
+deployment recipe — lives in [INTEGRITY.md](./INTEGRITY.md);
 runnable mini-examples of each concept (and each failure mode) in
 [examples-integrity/](./examples-integrity/).
 

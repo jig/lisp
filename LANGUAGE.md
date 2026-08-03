@@ -376,7 +376,7 @@ Host OS: environment variables, files (slurp/spit, load-file), working directory
 
 | Name | Arguments | Description |
 | ---- | --------- | ----------- |
-| `chdir` | `[path]` | Changes the process working directory to path. Process-global: affects the working directory of all subsequent operations, including the .state store and git repository detection. |
+| `chdir` | `[path]` | Changes the process working directory to path. Process-global: affects the working directory of all subsequent operations, including git repository detection. |
 | `cwd` | `[]` | Returns the process working directory as an absolute path string. |
 | `getenv` | `[name]` | Value of the environment variable name, or nil. |
 | `load-file` | `[file-path]` | Reads and evaluates the lisp file at file-path in the current environment; returns the value of its last form. |
@@ -466,8 +466,6 @@ Attest and verify lisp source (formatting, hashing, Ed25519 signatures, the lisp
 | `ed25519-verify` | `[public s signature]` | Reports whether the base64 signature of string s verifies against the base64 Ed25519 public key. |
 | `fmt` | `[s]` | Formats lisp source s into its canonical form (as lisp --fmt does); errors if s does not parse. |
 | `sha2-256` | `[s]` | SHA2-256 digest of string s, as lowercase hex. |
-| `state-load` | `[name & [default]]` | Reads .state/name.lisp back as data (READ, never EVAL); returns default (or throws) when absent. Under lisp-integrity the file must match its committed version at HEAD. |
-| `state-save` | `[name value & [message]]` | Writes value as canonical lisp data to .state/name.lisp at the repository root and commits it; returns the commit hash. message is the commit message (default "state: name"). When an allowed-signers set is active (lisp-integrity with /etc/lisp/allowed_signers) the commit is SSH-signed with the ssh-agent key listed there. |
 
 ### regexp
 

@@ -18,8 +18,6 @@ mode](#integrity-mode-lisp-integrity) (the `lisp-integrity` binary).
 | `(ed25519-sign private s)` | base64 signature of `s` |
 | `(ed25519-verify public s signature)` | `true` or `false` |
 | `(assert-integrity & [:with-signature])` | the verified commit hash; **throws** unless running under `lisp-integrity` (and, with `:with-signature`, unless the signature rule was applied) |
-| `(state-save name value & [message])` | writes `value` as canonical lisp data to `.state/name.lisp` and commits it (message defaults to `state: name`; SSH-signed with the ssh-agent key when an allowed-signers set is active); returns the commit hash |
-| `(state-load name & [default])` | the state read back as pure data (READ, never EVAL); `default` (or throws) when absent |
 
 Ed25519 signing is deterministic: the same key and message always yield
 the same signature bytes, so signatures are reproducible and
@@ -55,16 +53,15 @@ and attests the run to systemd-journald:
    same run fields.
 
 `(assert-integrity)` lets committed code demand the mode: it throws
-unless the run is verified, and returns the verified commit hash.
-`state-save`/`state-load` give a verified program a way to persist
-state without leaving the integrity envelope (see
-[INTEGRITY.md](../../INTEGRITY.md), the full specification).
+unless the run is verified, and returns the verified commit hash. The
+code repository holds code and configuration only; mutable data lives
+outside it (see [INTEGRITY.md](../../INTEGRITY.md), the full
+specification).
 
 When `/etc/lisp/allowed_signers` exists on the host (authorized_keys /
 `.pub` format, one key per line, as `git-verify-commit` — **not** git's
-`allowed_signers` format), the `HEAD` chain must additionally be
-SSH-signed by a listed key: the release commit (itself or via a signed
-annotated tag pointing at it) and every state commit above it. The
+`allowed_signers` format), `HEAD` must additionally be SSH-signed by a
+listed key — itself or via a signed annotated tag pointing at it. The
 trust anchor then becomes the key list instead of the local repository
 state, so verification survives cloning the repository elsewhere.
 `(assert-integrity :with-signature)` demands that rule from code.

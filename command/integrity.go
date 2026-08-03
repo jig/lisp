@@ -159,10 +159,10 @@ func ExecuteIntegrity(cmdArgs []string, repl_env types.EnvType) error {
 	require.VerifyModule = integrity.VerifyFile
 	system.VerifySource = integrity.VerifyFile
 
-	// With an allowed-signers set, git commits/tags and state-save made
-	// during the run are SSH-signed with the ssh-agent key that is
-	// listed in it. No private key ever enters the process; the
-	// resolution is lazy and fails closed if no listed key is loaded.
+	// With an allowed-signers set, git commits and tags made during the
+	// run are SSH-signed with the ssh-agent key that is listed in it.
+	// No private key ever enters the process; the resolution is lazy
+	// and fails closed if no listed key is loaded.
 	if keys != "" {
 		libgit.SetSigningKeys(os.Getenv("SSH_AUTH_SOCK"), keys)
 	}
