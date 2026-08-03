@@ -181,6 +181,16 @@ value did not parse, deferring the failure to an unrelated error deep
 inside the program; it now returns a read error naming the
 placeholder.
 
+### Added — `git-commits-since`
+
+`(git-commits-since repo rev)` reports where a commit sits relative to
+`HEAD`: a vector of the hashes stacked on top of `rev` in `HEAD`'s
+first-parent history, newest first — `[]` when `rev` is `HEAD` itself,
+`(count …)` its distance behind. Unknown revisions, and revisions off
+the first-parent chain (side branches, the non-mainline side of a
+merge), throw distinct errors. Combine with `git-show` to print the
+pending commits.
+
 ### ⚠️ Removed — the `.state/` store
 
 `state-save` and `state-load` are **removed**, together with the

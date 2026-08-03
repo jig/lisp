@@ -519,6 +519,7 @@ Git operations backed by go-git: init/clone/commit/push, tags, and SSH signature
 | `git-clone` | `[url path & {:auth :branch :depth :single-branch :bare}]` | Clones url into path and returns a handle; see git-push for the :auth map. |
 | `git-close` | `[repo]` | Closes a repository handle. |
 | `git-commit` | `[repo msg & {:author {:name :email} :committer :all :allow-empty :amend}]` | Commits staged changes and returns the commit map. When the Go embedder has installed a signing policy the commit is SSH-signed (a signing failure rolls HEAD and the index back); under the lisp and lisp-integrity binaries no policy is installed and commits are unsigned (there is no per-call key option). |
+| `git-commits-since` | `[repo rev]` | Vector of the commit hashes stacked on top of rev in HEAD's first-parent history, newest first — [] when rev is HEAD itself, (count …) its distance behind. rev is a hash, branch or tag. Throws when rev is unknown, and when it exists but is not in the first-parent history (a side branch, or the non-mainline side of a merge). |
 | `git-fetch` | `[repo & {:auth :remote :refspecs :depth :prune :force}]` | Fetches from :remote (default origin); returns :ok or :up-to-date. |
 | `git-head` | `[repo]` | Returns {:name :branch :hash} for HEAD. |
 | `git-init` | `[path & {:bare :object-format}]` | Creates a repository at path and returns a handle; :object-format "sha256" for a SHA-256 repo. |
