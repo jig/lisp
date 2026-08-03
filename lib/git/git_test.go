@@ -461,3 +461,40 @@ func TestTagRollsBackWhenSigningFails(t *testing.T) {
 	eval(t, ns, `(git-tag r "v1" {:message "rel" :tagger `+author+`})`)
 	expectTrue(t, ns, `(= 2 (count (git-tags r)))`)
 }
+
+// TestCommitsSince pins the git-commits-since contract: [] at HEAD,
+// newest-first hashes for an ancestor, tag revs resolve, and the two
+// error modes (unknown revision; exists but off the first-parent chain)
+// are distinct.
+func TestCommitsSince(t *testing.T) {
+	ns := newEnv(t)
+	dir := t.TempDir()
+	eval(t, ns, fmt.Sprintf(`(def r (git-init %q))`, dir))
+	commit := func(n string) string {
+		if err := os.WriteFile(filepath.Join(dir, "a.txt"), []byte(n+"\n"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		eval(t, ns, `(git-add r "a.txt")`)
+		return eval(t, ns, `(get (git-commit r "`+n+`" {:author `+author+`}) :hash)`).(string)
+	}
+	first := commit("one")
+	eval(t, ns, `(git-tag r "v1")`)
+	second := commit("two")
+	third := commit("three")
+
+	expectTrue(t, ns, fmt.Sprintf(`(= [] (git-commits-since r %q))`, third))
+	expectTrue(t, ns, `(= [] (git-commits-since r "HEAD"))`)
+	expectTrue(t, ns, fmt.Sprintf(`(= [%q] (git-commits-since r %q))`, third, second))
+	expectTrue(t, ns, fmt.Sprintf(`(= [%q %q] (git-commits-since r %q))`, third, second, first))
+	expectTrue(t, ns, fmt.Sprintf(`(= [%q %q] (git-commits-since r "v1"))`, third, second))
+	expectTrue(t, ns, fmt.Sprintf(`(= 2 (count (git-commits-since r %q)))`, first))
+
+	expectThrow(t, ns, `(git-commits-since r "0000000000000000000000000000000000000000")`)
+	expectThrow(t, ns, `(git-commits-since r "no-such-branch")`)
+
+	// A commit on a side branch exists but is not first-parent history.
+	eval(t, ns, `(git-branch r "side" {:checkout true})`)
+	sideHash := commit("side-work")
+	eval(t, ns, `(git-checkout r "master")`)
+	expectThrow(t, ns, fmt.Sprintf(`(git-commits-since r %q)`, sideHash))
+}

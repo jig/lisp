@@ -72,6 +72,7 @@ func Load(env EnvType) {
 	call.CallOverrideFN(env, "git-commit", gitCommit, 2, 3)
 	call.CallOverrideFN(env, "git-log", gitLog, 1, 2)
 	call.CallOverrideFN(env, "git-show", gitShow)
+	call.CallOverrideFN(env, "git-commits-since", gitCommitsSince)
 	call.CallOverrideFN(env, "git-status", gitStatus)
 	call.CallOverrideFN(env, "git-head", gitHead)
 	call.CallOverrideFN(env, "git-branch", gitBranch, 2, 3)
@@ -103,6 +104,8 @@ func Load(env EnvType) {
 		"Returns a vector of commit maps from HEAD (or :from rev), newest first.")
 	call.Doc(env, "git-show", "[repo rev]",
 		"Returns the commit map for rev (hash, \"HEAD\", branch or tag name).")
+	call.Doc(env, "git-commits-since", "[repo rev]",
+		"Vector of the commit hashes stacked on top of rev in HEAD's first-parent history, newest first — [] when rev is HEAD itself, (count …) its distance behind. rev is a hash, branch or tag. Throws when rev is unknown, and when it exists but is not in the first-parent history (a side branch, or the non-mainline side of a merge).")
 	call.Doc(env, "git-status", "[repo]",
 		"Returns {:clean bool :files {path {:staging kw :worktree kw}}} for the worktree.")
 	call.Doc(env, "git-head", "[repo]",
@@ -651,6 +654,40 @@ func gitTags(rv MalType) (MalType, error) {
 		return nil, err
 	}
 	return Vector{Val: out}, nil
+}
+
+// gitCommitsSince walks HEAD's first-parent chain down to rev and
+// returns the hashes stacked on top of it, newest first. [] means rev
+// is HEAD; the walk fails when rev is unknown or not on the chain, so
+// a caller can tell "current", "N behind" and "not deployed" apart.
+func gitCommitsSince(rv MalType, rev string) (MalType, error) {
+	r, err := asRepo("git-commits-since", rv)
+	if err != nil {
+		return nil, err
+	}
+	target, err := commitAt(r, rev)
+	if err != nil {
+		return nil, fmt.Errorf("git-commits-since: unknown revision %q: %w", rev, err)
+	}
+	head, err := r.repo.Head()
+	if err != nil {
+		return nil, fmt.Errorf("git-commits-since: %w", err)
+	}
+	cur, err := r.repo.CommitObject(head.Hash())
+	if err != nil {
+		return nil, fmt.Errorf("git-commits-since: %w", err)
+	}
+	since := []MalType{}
+	for cur.Hash != target.Hash {
+		since = append(since, cur.Hash.String())
+		if cur.NumParents() == 0 {
+			return nil, fmt.Errorf("git-commits-since: %s is not in the first-parent history of HEAD", target.Hash)
+		}
+		if cur, err = cur.Parent(0); err != nil {
+			return nil, fmt.Errorf("git-commits-since: %w", err)
+		}
+	}
+	return Vector{Val: since}, nil
 }
 
 // resolve turns a revision string (hash, HEAD, branch, tag, ...) into a hash.
