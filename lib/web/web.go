@@ -635,7 +635,7 @@ func webRequest(ctx context.Context, req MalType) (MalType, error) {
 			return nil, fmt.Errorf("web-request: :headers must be a hash-map, got %T", hs)
 		}
 		for k, v := range hmap.Items {
-			httpReq.Header.Set(http.CanonicalHeaderKey(kwName(k)), toStr(v))
+			httpReq.Header.Set(kwName(k), toStr(v))
 		}
 	}
 
