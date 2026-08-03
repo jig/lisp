@@ -119,8 +119,8 @@ deployments.
   annotated tag pointing at it. The set is **verification-only** —
   unlike `--integrity-keys`, it never drives signing: the host holds
   public keys and needs no ssh-agent, and code is signed by whoever
-  releases it, orthogonally to execution. (`lib/git`'s signing policy
-  remains as a Go embedder API that no lisp path activates.)
+  releases it, orthogonally to execution. (Git data signing is
+  per-call via `git-commit`/`git-tag` `:sign`.)
 - **Consent**: after the green block, `lisp-integrity` asks
   `proceed? [y/N]`; `-y` skips, and a non-TTY stdin without `-y`
   fails closed (systemd units say `lisp-integrity -y …`).
@@ -180,6 +180,21 @@ new: `key`/`val` entry accessors in `coreextended`.
 value did not parse, deferring the failure to an unrelated error deep
 inside the program; it now returns a read error naming the
 placeholder.
+
+### ⚠️ Changed — git signing is per-call (`:sign`), not a process switch
+
+`git-commit` and annotated `git-tag` take a `:sign` option carrying an
+allowed-signers list (authorized_keys-format **public** keys): the
+runtime signs with a matching key from the ssh-agent — or from a
+signer a Go embedder registered with `SetSigner` (e.g. a
+`crypto.Signer` via `gossh.NewSignerFromSigner`) — resolved **before
+anything is written**, so a missing key refuses up front and leaves
+the repository untouched; a late signing failure still rolls back
+(commit) or deletes the tag. Without `:sign` nothing signs: the
+process-global signing policy (`SetSigningKeys`) is **removed**, so
+code declares its own data-signing identities per operation — usually
+different keys from `/etc/lisp/allowed_signers`, which verifies code
+and never signs.
 
 ### Added — `git-commits-since`
 

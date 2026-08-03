@@ -100,9 +100,9 @@ func setupRepo(t *testing.T, ns types.EnvType, commitOpts string) (dir, hash str
 	return dir, h
 }
 
-// signWith installs a signing policy from a PEM private key (the test
-// stand-in for the allowed signers' ssh-agent signer) and returns the
-// function that removes it. git-commit and annotated git-tag then sign.
+// signWith installs a signer source from a PEM private key (the test
+// stand-in for the ssh-agent) and returns the function that removes
+// it. Commits and tags sign when the call passes :sign including it.
 func signWith(t *testing.T, privPEM string) func() {
 	t.Helper()
 	signer, err := gossh.ParsePrivateKey([]byte(privPEM))
@@ -248,7 +248,7 @@ func TestEnableSignedCommit(t *testing.T) {
 	privPEM, authorized := testKey(t, "alice")
 	_, otherAuthorized := testKey(t, "mallory")
 	t.Cleanup(signWith(t, privPEM))
-	dir, _ := setupRepo(t, ns, "")
+	dir, _ := setupRepo(t, ns, fmt.Sprintf(":sign %q", authorized))
 	script := filepath.Join(dir, "script.lisp")
 
 	if err := enable(t, script, authorized); err != nil {
@@ -274,7 +274,7 @@ func TestEnableSignedTag(t *testing.T) {
 	dir, _ := setupRepo(t, ns, "")
 	script := filepath.Join(dir, "script.lisp")
 	clear := signWith(t, privPEM)
-	evalLisp(t, ns, `(git-tag r "v1" {:message "release" :tagger `+author+`})`)
+	evalLisp(t, ns, fmt.Sprintf(`(git-tag r "v1" {:message "release" :tagger `+author+` :sign %q})`, authorized))
 	clear()
 
 	if err := enable(t, script, authorized); err != nil {
@@ -365,7 +365,7 @@ func TestAssertIntegrityWithSignature(t *testing.T) {
 	ns := newGitEnv(t)
 	privPEM, authorized := testKey(t, "alice")
 	t.Cleanup(signWith(t, privPEM))
-	dir, hash := setupRepo(t, ns, "")
+	dir, hash := setupRepo(t, ns, fmt.Sprintf(":sign %q", authorized))
 
 	if err := enable(t, filepath.Join(dir, "script.lisp"), authorized); err != nil {
 		t.Fatal(err)
