@@ -334,28 +334,6 @@ func TestRepoName(t *testing.T) {
 	}
 }
 
-// evalErr evaluates src and requires a (catchable) lisp error.
-func evalErr(t *testing.T, ns types.EnvType, src string) error {
-	t.Helper()
-	ast, err := lisp.READ(src, types.NewCursorFile(t.Name()), ns)
-	if err != nil {
-		t.Fatalf("READ %s: %v", src, err)
-	}
-	_, err = lisp.EVAL(context.Background(), ast, ns)
-	if err == nil {
-		t.Fatalf("%s did not throw", src)
-	}
-	return err
-}
-
-// expectTrue evaluates src and requires the result to be true.
-func expectTrue(t *testing.T, ns types.EnvType, src string) {
-	t.Helper()
-	if v := evalLisp(t, ns, src); v != true {
-		t.Fatalf("%s = %v, want true", src, v)
-	}
-}
-
 func TestAssertIntegrityBuiltin(t *testing.T) {
 	ns := newGitEnv(t)
 	dir, hash := setupRepo(t, ns, "")
