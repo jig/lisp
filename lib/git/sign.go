@@ -25,7 +25,7 @@ const gitNamespace = "git"
 // nil when no signing policy is installed. It is the single knob for
 // signing — there is no per-call key option and no private key ever
 // enters the process. The command package installs it (SetSigningKeys)
-// when an allowed-signers set is active; tests inject a signer with SetSigner.
+// when a Go embedder installs one; tests inject a signer with SetSigner.
 var signerResolve func() (gossh.Signer, error)
 
 // SetSigner installs a signing policy: git-commit and annotated
@@ -37,12 +37,13 @@ func SetSigner(resolve func() (gossh.Signer, error)) { signerResolve = resolve }
 // unsigned). Used by the command package and tests to reset state.
 func ClearSigner() { signerResolve = nil }
 
-// SetSigningKeys installs the ssh-agent signing policy used under
-// an allowed-signers set: commits and tags are signed with the agent key (at
+// SetSigningKeys installs an ssh-agent signing policy (a Go embedder
+// API; the lisp binaries never call it): commits and tags are signed
+// with the agent key (at
 // sshAuthSock) whose public key appears in allowedKeys (authorized_keys
 // / .pub format). Resolution is lazy and cached on first use, so a run
 // that never commits needs no agent; a run that commits under
-// an allowed-signers set with no matching agent key fails closed.
+// a policy with no matching agent key fails closed.
 func SetSigningKeys(sshAuthSock, allowedKeys string) {
 	var once sync.Once
 	var s gossh.Signer
@@ -58,7 +59,7 @@ func SetSigningKeys(sshAuthSock, allowedKeys string) {
 // process lifetime because the returned signer calls back over it.
 func resolveAgentSigner(sshAuthSock, allowedKeys string) (gossh.Signer, error) {
 	if sshAuthSock == "" {
-		return nil, fmt.Errorf("signing with an allowed-signers set needs an ssh-agent, but SSH_AUTH_SOCK is unset")
+		return nil, fmt.Errorf("the signing policy needs an ssh-agent, but SSH_AUTH_SOCK is unset")
 	}
 	conn, err := net.Dial("unix", sshAuthSock)
 	if err != nil {

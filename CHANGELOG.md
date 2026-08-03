@@ -116,8 +116,11 @@ deployments.
   `/etc/lisp/allowed_signers` (authorized_keys format, root-owned).
   Its presence activates the signature rule for every run on the
   host: `HEAD` must be signed by a listed key, itself or via a signed
-  annotated tag pointing at it. The same set drives ssh-agent signing
-  of `git-commit` / annotated `git-tag`, as `--integrity-keys` did.
+  annotated tag pointing at it. The set is **verification-only** —
+  unlike `--integrity-keys`, it never drives signing: the host holds
+  public keys and needs no ssh-agent, and code is signed by whoever
+  releases it, orthogonally to execution. (`lib/git`'s signing policy
+  remains as a Go embedder API that no lisp path activates.)
 - **Consent**: after the green block, `lisp-integrity` asks
   `proceed? [y/N]`; `-y` skips, and a non-TTY stdin without `-y`
   fails closed (systemd units say `lisp-integrity -y …`).
@@ -193,11 +196,10 @@ repository may return in a future release.
 
 ### Fixed — signing failures are atomic
 
-With an allowed-signers policy active, a signing failure in
-`git-commit` restores HEAD and the index (the staged changes survive
-for a retry), and one in annotated `git-tag` deletes the just-created
-tag — instead of leaving unsigned objects that every subsequent
-verified run would refuse.
+When a signing policy is installed (a Go embedder API), a signing
+failure in `git-commit` restores HEAD and the index (the staged
+changes survive for a retry), and one in annotated `git-tag` deletes
+the just-created tag — instead of leaving unsigned objects behind.
 
 ### Migration (embedders — Go code using jig/lisp)
 

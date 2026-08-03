@@ -167,12 +167,12 @@ expiry).
 
 The file's **mere presence activates rule 3** for every
 `lisp-integrity` run on the host. It must be owned by root, outside
-the repository and outside the process user's write reach. The same
-key set also **drives signing**: while it is present, every
-`git-commit` and annotated `git-tag` made during a run is SSH-signed
-with the **ssh-agent** key whose public key is listed (no private key
-ever enters the process; fails closed if no listed key is loaded in
-the agent; a signing failure rolls the operation back).
+the repository and outside the process user's write reach. It is
+**verification-only**: the host needs public keys and nothing else —
+no ssh-agent, no private key, ever. Code is signed by whoever
+releases it (a programmer or CI, with their own tooling and keys),
+orthogonally to execution; `lisp-integrity` never writes to the code
+repository, so it has nothing to sign.
 
 Future evolution: keys baked into the binary at build time
 (`-ldflags -X`), shrinking the trust anchor to the binary alone.

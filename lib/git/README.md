@@ -26,7 +26,7 @@ nsgit.Load(env)
 
 ## Signed commits and tags
 
-There is **no per-call signing key**. `git-commit` and annotated `git-tag` are SSH-signed only when a signing policy is installed, which the interpreter does when an allowed-signers set is active (`lisp-integrity` with `/etc/lisp/allowed_signers`): it signs with the **ssh-agent** key whose public key is listed in FILE (the same trusted-key list that verifies the code ref). The private key never enters the process — it stays in the agent, unlocked however the agent is (keychain, `ssh-add`, …). No policy → commits and tags are unsigned.
+There is **no per-call signing key**. `git-commit` and annotated `git-tag` are SSH-signed only when a signing policy is installed — a Go embedder API (`SetSigner` / `SetSigningKeys`); neither the `lisp` nor the `lisp-integrity` binary installs one (`/etc/lisp/allowed_signers` is verification-only). An agent policy signs with the **ssh-agent** key whose public key is listed in FILE (the same trusted-key list that verifies the code ref). The private key never enters the process — it stays in the agent, unlocked however the agent is (keychain, `ssh-add`, …). No policy → commits and tags are unsigned.
 
 The signature uses the SSH signature format with namespace `git` and SHA-512, exactly what `ssh-keygen -Y sign` and `git commit -S` produce with `gpg.format=ssh`. In sha256 repositories the commit signature is stored under the `gpgsig-sha256` header, as git expects; tag signatures are appended to the tag body in both formats. (Go embedders install their own policy with `git.SetSigner`.)
 
