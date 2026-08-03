@@ -118,8 +118,30 @@ For an access log, combine it with `lib/log`:
       resp)))
 ```
 
+## Client
+
+The same Ring symmetry, outbound: a client response is shaped exactly
+like the maps your handlers return.
+
+```clojure
+(web-get "http://localhost:8080/")
+;=> {:status 200 :headers {:content-type "text/plain; …"} :body "OK"}
+
+(web-request {:method :post
+              :url "http://api.example.com/things"
+              :headers {:authorization "Bearer …"}
+              :body (web-encode-json {:name "Ada"})
+              :timeout-ms 5000})
+```
+
+`web-request` takes `:url` (required), `:method` (default `:get`),
+`:headers`, `:body` (a string) and `:timeout-ms` (default 30000).
+Network errors and timeouts throw (catch with `try`); a non-2xx status
+is returned, not thrown. Connections are pooled per host (keep-alive),
+so tight request loops reuse sockets. `(future (web-get …))` gives you
+an async request for free.
+
 ## Not yet
 
 Streaming, Server-Sent Events, WebSockets and multipart uploads are out
-of scope for now (the body is read as a string); an HTTP client is
-planned separately.
+of scope for now (the body is read as a string), for the client too.

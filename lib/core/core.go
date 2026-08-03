@@ -17,6 +17,7 @@ import (
 	"fmt"
 	"math/big"
 	"os"
+	"sort"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -49,6 +50,8 @@ func Load(env EnvType) {
 	call.CallOverrideFN(env, ">", gtN, 1)
 	call.CallOverrideFN(env, ">=", geN, 1)
 	call.CallOverrideFN(env, "+", addN)
+	call.CallOverrideFN(env, "sort", sortColl)
+	call.CallOverrideFN(env, "sort-by", sortByColl)
 	call.CallOverrideFN(env, "-", subN, 1)
 	call.CallOverrideFN(env, "*", mulN)
 	call.CallOverrideFN(env, "/", divN, 1)
@@ -293,6 +296,88 @@ func drop_last(n int, arg MalType) (MalType, error) {
 		return nil, fmt.Errorf("drop called on non-list and non-vector (it was %T)", arg)
 	}
 	return new_list, nil
+}
+
+// sortElems copies the elements of a list or vector (nil sorts to an
+// empty list) and validates each one is an orderable scalar — the same
+// total order hash-map keys use (nil < booleans < ints < floats <
+// strings < keywords).
+func sortElems(fnName string, coll MalType) ([]MalType, error) {
+	var src []MalType
+	switch c := coll.(type) {
+	case List:
+		src = c.Val
+	case Vector:
+		src = c.Val
+	case nil:
+		src = nil
+	default:
+		return nil, fmt.Errorf("%s: expected a list or vector, got %T", fnName, coll)
+	}
+	out := make([]MalType, len(src))
+	copy(out, src)
+	return out, nil
+}
+
+func validOrderKey(fnName string, k MalType) error {
+	switch k.(type) {
+	case nil, bool, int, float32, string, Keyword:
+		return nil
+	}
+	return fmt.Errorf("%s: cannot order by %T (nil, booleans, numbers, strings and keywords have a defined order)", fnName, k)
+}
+
+func sortColl(coll MalType) (MalType, error) {
+	elems, err := sortElems("sort", coll)
+	if err != nil {
+		return nil, err
+	}
+	for _, e := range elems {
+		if err := validOrderKey("sort", e); err != nil {
+			return nil, err
+		}
+	}
+	sort.SliceStable(elems, func(i, j int) bool { return KeyLess(elems[i], elems[j]) })
+	return List{Val: elems}, nil
+}
+
+// sortByColl sorts by (f element). f is a function, or a keyword used
+// as a map accessor (Clojure-style, so (sort-by :ms results) reads
+// naturally even though bare keywords are not callable here).
+func sortByColl(ctx context.Context, f MalType, coll MalType) (MalType, error) {
+	elems, err := sortElems("sort-by", coll)
+	if err != nil {
+		return nil, err
+	}
+	keys := make([]MalType, len(elems))
+	for i, e := range elems {
+		var k MalType
+		if kw, ok := f.(Keyword); ok {
+			if hm, ok := e.(HashMap); ok {
+				k = hm.Items[kw]
+			} else {
+				return nil, fmt.Errorf("sort-by: keyword key %v needs hash-map elements, got %T", f, e)
+			}
+		} else {
+			if k, err = Apply(ctx, f, []MalType{e}); err != nil {
+				return nil, err
+			}
+		}
+		if err := validOrderKey("sort-by", k); err != nil {
+			return nil, err
+		}
+		keys[i] = k
+	}
+	idx := make([]int, len(elems))
+	for i := range idx {
+		idx[i] = i
+	}
+	sort.SliceStable(idx, func(a, b int) bool { return KeyLess(keys[idx[a]], keys[idx[b]]) })
+	out := make([]MalType, len(elems))
+	for i, j := range idx {
+		out[i] = elems[j]
+	}
+	return List{Val: out}, nil
 }
 
 func LoadInput(env EnvType) {

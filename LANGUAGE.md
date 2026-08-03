@@ -253,6 +253,8 @@ Arithmetic, collections, predicates, strings, JSON, errors — always loaded.
 | `set` | `[coll]` | Creates a set from the elements of coll. |
 | `set?` | `[x]` | Whether x is a set. |
 | `sleep` | `[ms]` | Sleeps for ms milliseconds. |
+| `sort` | `[coll]` | Elements of a list or vector as a sorted list (stable; the scalar order nil < booleans < numbers < strings < keywords). Elements must be orderable scalars. |
+| `sort-by` | `[f coll]` | Sorts by (f element): f is a function, or a keyword used as a map accessor — (sort-by :ms results). The derived keys must be orderable scalars. |
 | `spew` | `[x]` | Dumps x to stderr in Go syntax for debugging; returns nil. |
 | `split` | `[string cutset]` | Splits string on any character of cutset, returning a vector. |
 | `starts-with?` | `[s prefix]` | Whether string s starts with prefix. |
@@ -492,9 +494,11 @@ Ring-style HTTP server: router, response helpers, middleware, JWT/mTLS identity.
 | `web--bearer-token` | `[req]` | Extracts the bearer token from a request's Authorization header, or nil. |
 | `web-bad-request` | `[& msg]` | A 400 JSON response. |
 | `web-encode-json` | `[value]` | Encodes Lisp data as JSON for an HTTP response: keyword keys and values become plain strings (:id → "id"), as core json-encode also does. |
+| `web-get` | `[url]` | GETs url and returns {:status :headers :body}; shorthand for (web-request {:method :get :url url}). |
 | `web-json` | `[status-or-body & maybe-body]` | A JSON response: encodes body and sets content-type. (web-json data) is 200; (web-json status data) sets the status. |
 | `web-not-found` | `[& msg]` | A 404 JSON response. |
 | `web-redirect` | `[location & status]` | A redirect response (status 302 unless given as the second arg). |
+| `web-request` | `[req]` | Performs an HTTP request described by a Ring-style hash-map — :url (required), :method (:get default), :headers, :body (string), :timeout-ms (30000 default) — and returns {:status :headers :body}, the same shape a handler produces. Network errors and timeouts throw; a non-2xx status does not. |
 | `web-response` | `[status body & headers]` | Builds a response map with the given status and body, plus optional header pairs. |
 | `web-router` | `[routes]` | Returns a Ring handler that dispatches on method and path. routes is a vector of ["/path/:param" {:get handler :post handler}] pairs; matched params appear under the request's :path-params. |
 | `web-serve` | `[config]` | Starts an HTTP(S) server and blocks until interrupted. config is a hash-map: :handler (a Ring handler fn), :port or :addr, and optional :tls {:cert :key :client-ca :client-auth} for HTTPS/mTLS. |

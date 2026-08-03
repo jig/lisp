@@ -196,6 +196,25 @@ code declares its own data-signing identities per operation — usually
 different keys from `/etc/lisp/allowed_signers`, which verifies code
 and never signs.
 
+### Added — HTTP client: `web-request` / `web-get`
+
+`lib/web` gains the outbound half, Ring-symmetric: `(web-get url)` and
+`(web-request {:method :url :headers :body :timeout-ms})` return
+`{:status :headers :body}` — the same shape a handler produces (as
+clj-http does in Clojure). Network errors and timeouts throw; a
+non-2xx status is returned, not thrown. Connections are pooled per
+host (keep-alive). See `examples/httpclient.lisp` and
+`examples/httpbench.lisp` (a miniature ApacheBench on futures +
+loop/recur).
+
+### Added — `sort` and `sort-by`
+
+`(sort coll)` returns the elements of a list or vector as a sorted
+list (stable), using the language's scalar order (nil < booleans <
+numbers < strings < keywords) — the one hash-map printing already
+uses. `(sort-by f coll)` sorts by `(f element)`; `f` may be a keyword
+used as a map accessor, Clojure-style: `(sort-by :ms results)`.
+
 ### Added — `git-commits-since`
 
 `(git-commits-since repo rev)` reports where a commit sits relative to

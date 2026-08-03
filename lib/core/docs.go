@@ -74,6 +74,8 @@ var coreDocs = []struct{ name, arglist, doc string }{
 	{"take", "[n coll]", "First n elements of coll."},
 	{"drop", "[n coll]", "coll without its first n elements."},
 	{"empty?", "[coll]", "Whether coll has no elements."},
+	{"sort", "[coll]", "Elements of a list or vector as a sorted list (stable; the scalar order nil < booleans < numbers < strings < keywords). Elements must be orderable scalars."},
+	{"sort-by", "[f coll]", "Sorts by (f element): f is a function, or a keyword used as a map accessor — (sort-by :ms results). The derived keys must be orderable scalars."},
 	{"seq", "[coll]", "coll as a sequence, or nil when empty. Hash-maps seq as [key value] entry vectors and sets as their elements, both in sorted order."},
 	{"vec", "[coll]", "coll as a vector."},
 

@@ -578,11 +578,106 @@ func webVerifyJWT(token string, config MalType) (MalType, error) {
 	return jsonToMal(generic), nil
 }
 
+// --- client --------------------------------------------------------------
+
+// httpClient is shared by every web-request: Go's default transport
+// pools connections per host (keep-alive), so sequential requests to
+// the same server reuse the socket.
+var httpClient = &http.Client{}
+
+// webRequest performs an HTTP request described by a Ring-style map
+// and returns the response as {:status :headers :body} — the same
+// shape a server handler produces.
+func webRequest(ctx context.Context, req MalType) (MalType, error) {
+	hm, ok := req.(HashMap)
+	if !ok {
+		return nil, fmt.Errorf("web-request: expected a request hash-map, got %T", req)
+	}
+	rawURL, ok := hget(hm, "url")
+	urlStr, isStr := rawURL.(string)
+	if !ok || !isStr || urlStr == "" {
+		return nil, errors.New("web-request: :url (a string) is required")
+	}
+	method := "GET"
+	if m, ok := hget(hm, "method"); ok {
+		method = strings.ToUpper(kwName(m))
+	}
+	var bodyReader io.Reader
+	if b, ok := hget(hm, "body"); ok {
+		bs, ok := b.(string)
+		if !ok {
+			return nil, fmt.Errorf("web-request: :body must be a string, got %T", b)
+		}
+		bodyReader = strings.NewReader(bs)
+	}
+
+	timeout := 30 * time.Second
+	if t, ok := hget(hm, "timeout-ms"); ok {
+		ms, ok := t.(int)
+		if !ok || ms <= 0 {
+			return nil, fmt.Errorf("web-request: :timeout-ms must be a positive integer, got %v", t)
+		}
+		timeout = time.Duration(ms) * time.Millisecond
+	}
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	ctx, cancel := context.WithTimeout(ctx, timeout)
+	defer cancel()
+
+	httpReq, err := http.NewRequestWithContext(ctx, method, urlStr, bodyReader)
+	if err != nil {
+		return nil, fmt.Errorf("web-request: %w", err)
+	}
+	if hs, ok := hget(hm, "headers"); ok {
+		hmap, ok := hs.(HashMap)
+		if !ok {
+			return nil, fmt.Errorf("web-request: :headers must be a hash-map, got %T", hs)
+		}
+		for k, v := range hmap.Items {
+			httpReq.Header.Set(http.CanonicalHeaderKey(kwName(k)), toStr(v))
+		}
+	}
+
+	resp, err := httpClient.Do(httpReq)
+	if err != nil {
+		return nil, fmt.Errorf("web-request: %w", err)
+	}
+	defer func() { _ = resp.Body.Close() }()
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("web-request: reading body: %w", err)
+	}
+	headers := map[MalType]MalType{}
+	for k, vs := range resp.Header {
+		headers[kw(strings.ToLower(k))] = strings.Join(vs, ", ")
+	}
+	return HashMap{Items: map[MalType]MalType{
+		kw("status"):  resp.StatusCode,
+		kw("headers"): HashMap{Items: headers},
+		kw("body"):    string(body),
+	}}, nil
+}
+
+// webGet is the one-liner GET: (web-get url).
+func webGet(ctx context.Context, url string) (MalType, error) {
+	return webRequest(ctx, HashMap{Items: map[MalType]MalType{
+		kw("method"): KW("get"),
+		kw("url"):    url,
+	}})
+}
+
 // Load registers the web builtins. The Ring response helpers and
 // middleware are added by the header (see nsweb.Load).
 func Load(env EnvType) {
 	call.CallOverrideFN(env, "web-serve", webServe)
+	call.CallOverrideFN(env, "web-request", webRequest)
+	call.CallOverrideFN(env, "web-get", webGet)
 	call.CallOverrideFN(env, "web-encode-json", webEncodeJSON)
+	call.Doc(env, "web-request", "[req]",
+		"Performs an HTTP request described by a Ring-style hash-map — :url (required), :method (:get default), :headers, :body (string), :timeout-ms (30000 default) — and returns {:status :headers :body}, the same shape a handler produces. Network errors and timeouts throw; a non-2xx status does not.")
+	call.Doc(env, "web-get", "[url]",
+		"GETs url and returns {:status :headers :body}; shorthand for (web-request {:method :get :url url}).")
 	call.Doc(env, "web-encode-json", "[value]",
 		"Encodes Lisp data as JSON for an HTTP response: keyword keys and values become plain strings (:id → \"id\"), as core json-encode also does.")
 	call.Doc(env, "web-serve", "[config]",
