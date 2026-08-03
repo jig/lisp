@@ -9,9 +9,8 @@ without stepping outside the threat model below.
 
 The mode promises the operator launching
 `lisp-integrity script.lisp` that every byte evaluated as code
-matches the repository content at `<ref>`, and that state read through
-`state-load` matches what a completed `state-save` committed. A
-successful attack makes the interpreter **run code (or accept state)
+matches the repository content at `HEAD`. A
+successful attack makes the interpreter **run code
 that differs from the committed content while the run is reported as
 verified** — including the startup audit line and a successful
 `(assert-integrity)`.
@@ -39,8 +38,7 @@ Everything enforcing the invariants, with what to probe:
 
 | File | Role — suggested attack angles |
 |---|---|
-| `lib/integrity/mode.go` | `Enable`: ref resolution (`ResolveRevision`), annotated-tag peeling, HEAD rule. `verifyStateOnlyDescent`: linear walk, merge/root commits, rename `From`/`To` names, pathological histories. `modeState.verify`: `filepath.Rel` containment, byte-compare vs `tree.File` — symlinked files or parent directories, case-insensitive filesystems (macOS), NFC/NFD unicode paths, CRLF/`.gitattributes` filters (does go-git apply them to blobs? the worktree does), SHA-1 collision surface on sha1 repos. |
-| `lib/integrity/state.go` | `statePath` name validation (unicode tricks, `.lisp` suffix collisions with code files — can a state name shadow a module?). `stateRepo` cwd-based resolution when the mode is off. Commit protocol atomicity; cross-process races against `state-save`; `headStateBlob` freshness. |
+| `lib/integrity/mode.go` | `Enable`/`EnableDir`: HEAD resolution (symbolic, detached, unborn), repository detection from the target path. `verifyHeadSignature`: commit signature vs signed annotated tag targeting HEAD. `modeState.verify`: `filepath.Rel` containment, byte-compare vs `tree.File` — symlinked files or parent directories, case-insensitive filesystems (macOS), NFC/NFD unicode paths, CRLF/`.gitattributes` filters (does go-git apply them to blobs? the worktree does), SHA-1 collision surface on sha1 repos. |
 | `lib/integrity/integrity.go` | Builtin registration; can a verified script's environment rebind `assert-integrity` / hooks in a way that matters? |
 | `command/integrity.go` | Flag validation completeness (mode combinations, `PreParseArgs` double-parse quirks); hook installation (`require.VerifyModule`, `core.VerifySource`) — anything evaluating code without passing through a hook? |
 | `command/command.go` + `command/preamble.go` | **The script is read twice**: `Enable` reads and verifies it, `runScript` re-reads it for evaluation — examine the TOCTOU window between the two reads. |

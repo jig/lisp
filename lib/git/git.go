@@ -98,7 +98,7 @@ func Load(env EnvType) {
 	call.Doc(env, "git-add", "[repo path & {:all :glob}]",
 		"Stages path (\".\" for everything); :all true stages all modified/deleted files, :glob true treats path as a glob pattern.")
 	call.Doc(env, "git-commit", "[repo msg & {:author {:name :email} :committer :all :allow-empty :amend}]",
-		"Commits staged changes and returns the commit map. When an allowed-signers set is active the commit is SSH-signed with the ssh-agent key listed there (a signing failure rolls HEAD and the index back); otherwise it is unsigned (there is no per-call key option).")
+		"Commits staged changes and returns the commit map. When the Go embedder has installed a signing policy the commit is SSH-signed (a signing failure rolls HEAD and the index back); under the lisp and lisp-integrity binaries no policy is installed and commits are unsigned (there is no per-call key option).")
 	call.Doc(env, "git-log", "[repo & {:max :from :all :path}]",
 		"Returns a vector of commit maps from HEAD (or :from rev), newest first.")
 	call.Doc(env, "git-show", "[repo rev]",
@@ -114,7 +114,7 @@ func Load(env EnvType) {
 	call.Doc(env, "git-checkout", "[repo ref & {:create :force}]",
 		"Checks out a branch, tag or revision; :create true creates the branch first.")
 	call.Doc(env, "git-tag", "[repo name & {:at :message :tagger {:name :email}}]",
-		"Creates a tag at HEAD (or :at rev); :message makes it annotated. When an allowed-signers set is active an annotated tag is SSH-signed with the ssh-agent key listed there (a signing failure deletes the tag again).")
+		"Creates a tag at HEAD (or :at rev); :message makes it annotated. When the Go embedder has installed a signing policy an annotated tag is SSH-signed (a signing failure deletes the tag again); under the lisp and lisp-integrity binaries tags are unsigned.")
 	call.Doc(env, "git-tags", "[repo]",
 		"Returns a vector of {:name :hash :target :annotated} for all tags.")
 	call.Doc(env, "git-remote-add", "[repo name url]",

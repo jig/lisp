@@ -376,7 +376,7 @@ Host OS: environment variables, files (slurp/spit, load-file), working directory
 
 | Name | Arguments | Description |
 | ---- | --------- | ----------- |
-| `chdir` | `[path]` | Changes the process working directory to path. Process-global: affects the working directory of all subsequent operations, including the .state store and git repository detection. |
+| `chdir` | `[path]` | Changes the process working directory to path. Process-global: affects the working directory of all subsequent operations, including git repository detection. |
 | `cwd` | `[]` | Returns the process working directory as an absolute path string. |
 | `getenv` | `[name]` | Value of the environment variable name, or nil. |
 | `load-file` | `[file-path]` | Reads and evaluates the lisp file at file-path in the current environment; returns the value of its last form. |
@@ -466,8 +466,6 @@ Attest and verify lisp source (formatting, hashing, Ed25519 signatures, the lisp
 | `ed25519-verify` | `[public s signature]` | Reports whether the base64 signature of string s verifies against the base64 Ed25519 public key. |
 | `fmt` | `[s]` | Formats lisp source s into its canonical form (as lisp --fmt does); errors if s does not parse. |
 | `sha2-256` | `[s]` | SHA2-256 digest of string s, as lowercase hex. |
-| `state-load` | `[name & [default]]` | Reads .state/name.lisp back as data (READ, never EVAL); returns default (or throws) when absent. Under lisp-integrity the file must match its committed version at HEAD. |
-| `state-save` | `[name value & [message]]` | Writes value as canonical lisp data to .state/name.lisp at the repository root and commits it; returns the commit hash. message is the commit message (default "state: name"). When an allowed-signers set is active (lisp-integrity with /etc/lisp/allowed_signers) the commit is SSH-signed with the ssh-agent key listed there. |
 
 ### regexp
 
@@ -520,7 +518,7 @@ Git operations backed by go-git: init/clone/commit/push, tags, and SSH signature
 | `git-checkout` | `[repo ref & {:create :force}]` | Checks out a branch, tag or revision; :create true creates the branch first. |
 | `git-clone` | `[url path & {:auth :branch :depth :single-branch :bare}]` | Clones url into path and returns a handle; see git-push for the :auth map. |
 | `git-close` | `[repo]` | Closes a repository handle. |
-| `git-commit` | `[repo msg & {:author {:name :email} :committer :all :allow-empty :amend}]` | Commits staged changes and returns the commit map. When an allowed-signers set is active the commit is SSH-signed with the ssh-agent key listed there (a signing failure rolls HEAD and the index back); otherwise it is unsigned (there is no per-call key option). |
+| `git-commit` | `[repo msg & {:author {:name :email} :committer :all :allow-empty :amend}]` | Commits staged changes and returns the commit map. When the Go embedder has installed a signing policy the commit is SSH-signed (a signing failure rolls HEAD and the index back); under the lisp and lisp-integrity binaries no policy is installed and commits are unsigned (there is no per-call key option). |
 | `git-fetch` | `[repo & {:auth :remote :refspecs :depth :prune :force}]` | Fetches from :remote (default origin); returns :ok or :up-to-date. |
 | `git-head` | `[repo]` | Returns {:name :branch :hash} for HEAD. |
 | `git-init` | `[path & {:bare :object-format}]` | Creates a repository at path and returns a handle; :object-format "sha256" for a SHA-256 repo. |
@@ -532,7 +530,7 @@ Git operations backed by go-git: init/clone/commit/push, tags, and SSH signature
 | `git-remotes` | `[repo]` | Returns a vector of {:name :urls} for the configured remotes. |
 | `git-show` | `[repo rev]` | Returns the commit map for rev (hash, "HEAD", branch or tag name). |
 | `git-status` | `[repo]` | Returns {:clean bool :files {path {:staging kw :worktree kw}}} for the worktree. |
-| `git-tag` | `[repo name & {:at :message :tagger {:name :email}}]` | Creates a tag at HEAD (or :at rev); :message makes it annotated. When an allowed-signers set is active an annotated tag is SSH-signed with the ssh-agent key listed there (a signing failure deletes the tag again). |
+| `git-tag` | `[repo name & {:at :message :tagger {:name :email}}]` | Creates a tag at HEAD (or :at rev); :message makes it annotated. When the Go embedder has installed a signing policy an annotated tag is SSH-signed (a signing failure deletes the tag again); under the lisp and lisp-integrity binaries tags are unsigned. |
 | `git-tag-verified?` | `[repo name allowed-keys]` | (git-tag-verified? repo name allowed-keys) is true when the tag's SSH signature verifies against allowed-keys. |
 | `git-tags` | `[repo]` | Returns a vector of {:name :hash :target :annotated} for all tags. |
 | `git-verified?` | `[repo rev allowed-keys]` | (git-verified? repo rev allowed-keys) is true when the commit's SSH signature verifies against allowed-keys. |

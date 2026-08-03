@@ -8,13 +8,12 @@ always on, in every execution, and cannot be disabled. The regular
 `lisp` binary has no integrity mode at all.
 
 This document is both the user guide and the specification the
-implementation is held to (`lib/integrity/mode.go`, `state.go`;
-enforced by `lib/integrity/mode_test.go` and
-`command/integrity_test.go`).
+implementation is held to (`lib/integrity/mode.go`; enforced by
+`lib/integrity/mode_test.go` and `command/integrity_test.go`).
 
 Runnable mini-examples of every concept below — basic verification,
-the require cascade, signatures, the state store, and what each
-failure looks like — live in
+the require cascade, signatures, and what each failure looks like —
+live in
 [examples-integrity/](./examples-integrity/), with a `demo.sh` that
 replays all of them in throwaway repositories. Reviewers trying to
 break the mode should start from the adversarial review brief in
@@ -73,8 +72,7 @@ lisp-integrity -y --test ./tests [--test-json report.json]
 There is no ref argument. **Pinning a release is a property of the
 checkout, not of the invocation**: deploy with
 `git checkout --detach v1.4.2` and `HEAD` stays on that commit across
-restarts (`git pull` does not move a detached `HEAD`; only the
-script's own `state-save` commits advance it, as children of it).
+restarts (`git pull` does not move a detached `HEAD`).
 
 ## The invariant
 
@@ -83,7 +81,6 @@ Definitions:
 - **code file** — any file evaluated as code: the script, every module
   loaded through `require`, and every file loaded through `load-file` /
   `load-file-once` (which read via the `slurp-source` builtin).
-- **state path** — any path under `.state/` at the repository root.
 
 At startup:
 
@@ -92,16 +89,13 @@ At startup:
 2. The script must byte-match its blob in `C`'s tree. (With `--test`
    there is no entry script: the anchor is the repository enclosing
    the target, and rule 4 covers each test file as it loads.)
-3. If `/etc/lisp/allowed_signers` exists: walking from `C` down
-   through consecutive state-save commits (commits with one parent
-   touching only state paths), each such commit must carry an SSH
-   signature by a listed key, and the first non-state commit under
-   them — the **release commit** — must be signed itself or via an
-   annotated tag pointing at it. The release signer (key comment and
-   SHA256 fingerprint) is reported in the green block and the start
-   record. Without the file the block still verifies consistency but
-   carries an explicit yellow `signed  no` line — a consistency-only
-   run is visibly weaker, never silently green.
+3. If `/etc/lisp/allowed_signers` exists: `C` must carry an SSH
+   signature by a listed key — itself or via an annotated tag
+   pointing at it. The signer (key comment and SHA256 fingerprint) is
+   reported in the green block and the start record. Without the file
+   the block still verifies consistency but carries an explicit
+   yellow `signed  no` line — a consistency-only run is visibly
+   weaker, never silently green.
 
 At runtime, while the mode is active:
 
@@ -109,10 +103,6 @@ At runtime, while the mode is active:
    repository and byte-match its blob in `C`'s tree. A code file
    resolving outside the repository (an `-i` include dir elsewhere,
    `~/.config/lisp/`, `/usr/local/share/lisp/`) is refused.
-5. Every state file, when read through `state-load`, must byte-match
-   its blob at the **current** `HEAD` (the commit the last
-   `state-save` created). Missing-but-committed, present-but-
-   uncommitted, and differing files all fail closed.
 
 Uncommitted repository files that are never interpreted do not affect
 any check.
@@ -154,16 +144,14 @@ journalctl -t <script> TRACE_ID=<id> -o json
 
 > `ARGV` is recorded verbatim and the journal is append-only by
 > design: **never pass secrets on the command line** (they would also
-> land in shell history). Use files or the state store.
+> land in shell history). Read them from files instead.
 
 ## Builtins
 
 | Builtin | Behaviour |
 |---|---|
 | `(assert-integrity)` | Throws unless running under `lisp-integrity`; returns the verified commit hash. Committed code uses it to demand the mode — effective as long as operators know the program is supposed to carry it. |
-| `(assert-integrity :with-signature)` | Additionally throws unless startup rule 3 was applied (an `/etc/lisp/allowed_signers` file existed and the chain verified). For code that must not run unsigned even on hosts lacking the keys file. |
-| `(state-save name value & [message])` | Writes `value` as canonical lisp data to `.state/name.lisp` and **commits it in the same operation**; returns the commit hash. The commit `message` defaults to `state: name`. With an allowed-signers set active, the commit is SSH-signed via ssh-agent (no per-call key), and signing failure rolls the repository back to its pre-save HEAD, index and state file. Saving an unchanged value is a no-op returning the current commit. Works with or without the mode; requires a Git repository. |
-| `(state-load name)` / `(state-load name default)` | Reads the state back as pure data (READ, never EVAL — state cannot smuggle code). Returns `default`, or throws without one, when the state does not exist. Under the mode, enforces invariant 5. |
+| `(assert-integrity :with-signature)` | Additionally throws unless startup rule 3 was applied (an `/etc/lisp/allowed_signers` file existed and `HEAD` verified). For code that must not run unsigned even on hosts lacking the keys file. |
 | `(slurp-source path)` | `slurp` for files about to be evaluated: identical, plus invariant 4 under the mode. `load-file` builds on it. |
 
 ## Keys
@@ -179,45 +167,26 @@ expiry).
 
 The file's **mere presence activates rule 3** for every
 `lisp-integrity` run on the host. It must be owned by root, outside
-the repository and outside the process user's write reach. The same
-key set also **drives signing**: while it is present, every
-`git-commit`, annotated `git-tag` and `state-save` made during a run
-is SSH-signed with the **ssh-agent** key whose public key is listed
-(no private key ever enters the process; fails closed if no listed
-key is loaded in the agent).
+the repository and outside the process user's write reach. It is
+**verification-only**: the host needs public keys and nothing else —
+no ssh-agent, no private key, ever. Code is signed by whoever
+releases it (a programmer or CI, with their own tooling and keys),
+orthogonally to execution; `lisp-integrity` never writes to the code
+repository, so it has nothing to sign.
 
 Future evolution: keys baked into the binary at build time
 (`-ldflags -X`), shrinking the trust anchor to the binary alone.
 
-## The state store
+## Data and state
 
-`.state/` sits at the repository root, sibling of `.lisp/`. It is the
-sanctioned way for a verified program to persist state (a database as
-a hash-map, counters, checkpoints) without stepping outside the
-integrity envelope:
-
-- **Canonical form** — values are printed readably and passed through
-  the formatter, so state files diff cleanly and hash
-  deterministically. Values the reader cannot round-trip (live
-  handles, functions) are rejected at save time. State is data only.
-- **Commit protocol** — write file → `git add` → `git commit`, all
-  inside `state-save`. Committed state is therefore always the product
-  of a completed save. State commits are authored `state-save
-  <state-save@lisp>`; they are Git-compatible SSH-signed when an
-  allowed-signers set is active (ssh-agent key), unsigned otherwise. If
-  that signing step fails, `state-save` restores the pre-save HEAD,
-  index and state file before returning the error, so an unsigned state
-  commit is not left at `HEAD`.
-- **Crash recovery** — a save interrupted between write and commit
-  leaves the file differing from `HEAD`; the next `state-load` under
-  the mode fails closed and the operator resolves it (commit the
-  orphan or check it out). There is deliberately no auto-repair.
-- **Concurrency** — one writer process per repository (in-process
-  saves are serialized; git itself rejects concurrent index writes
-  from other processes).
-- `slurp` and `spit` remain available for plain data files, but for
-  state that must be trustworthy they are **discouraged** in favour of
-  `state-load`/`state-save`: they participate in no invariant.
+The code repository holds **code and configuration only**; everything
+under it is verified uniformly against `HEAD`, and nothing in it is
+writable by the running program. Mutable data lives **outside**: a
+separate data repository managed explicitly from lisp (`lib/git`, with
+allowed-signers signing included), a database (`lib/sql`), or plain
+files. Data integrity is the application's concern, by design — the
+interpreter attests *code*. (A `state-*` helper family over a separate
+data repository may return in a future revision.)
 
 ## Deployment: hardening the assurance into a boundary
 
@@ -228,10 +197,8 @@ attacker cannot write to what the interpreter reads:
   `lisp-integrity` binary owned by `root` (or a dedicated `deploy`
   user);
 - the process running as an unprivileged user with **no write access**
-  to any of the three;
-- if `state-save` is used, grant the process user write access to
-  `.state/` and `.git` only — or accept that state (unlike code) is
-  writable by the process by design;
+  to any of the three — nothing in the mode requires the process to
+  write inside the checkout;
 - persistent journald (`/var/log/journal/` present) on hosts where
   the audit trail must survive reboots; journald FSS sealing
   (`journalctl --setup-keys`) adds cryptographic tamper-evidence —
@@ -255,7 +222,7 @@ attacker cannot write to what the interpreter reads:
   clean/smudge filter (`.gitattributes`: `text eol=crlf`, `filter=…`)
   to a verified file makes the two differ, so verification fails
   closed — it is not a bypass, but such repositories must keep their
-  `.lisp` and `.state/` files unfiltered. On case-insensitive or
+  `.lisp` files unfiltered. On case-insensitive or
   unicode-normalizing filesystems (macOS), a committed path and the
   on-disk path that resolves to it must match exactly; a mismatch
   fails closed rather than verifying the wrong file.
@@ -275,4 +242,8 @@ attacker cannot write to what the interpreter reads:
   records enriched with the same fields; macOS falls back to the XDG
   state file with `PROTECTED=false`.
 - `(assert-integrity)` gained the `:with-signature` variant.
+- **The `.state/` store is removed** (`state-save` / `state-load` and
+  the state-commit rules): the code repository is code and
+  configuration only, and mutable data lives outside it (see Data and
+  state). HEAD is therefore fully static between deployments.
 - The preamble flags (`-P`) are not part of `lisp-integrity`.

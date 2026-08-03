@@ -1,7 +1,7 @@
 package git
 
 // RepoSnapshot captures HEAD and the index so an operation that
-// commits before signing (git-commit, state-save) can roll back to the
+// commits before signing (git-commit) can roll back to the
 // pre-operation state when the signing step fails — instead of leaving
 // an unsigned commit at HEAD, which an allowed-signers policy would
 // then refuse on every subsequent verified run.

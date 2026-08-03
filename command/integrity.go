@@ -16,7 +16,6 @@ import (
 
 	"github.com/alexflint/go-arg"
 	"github.com/coreos/go-systemd/v22/journal"
-	libgit "github.com/jig/lisp/lib/git"
 	"github.com/jig/lisp/lib/integrity"
 	liblog "github.com/jig/lisp/lib/log"
 	"github.com/jig/lisp/lib/require"
@@ -158,14 +157,6 @@ func ExecuteIntegrity(cmdArgs []string, repl_env types.EnvType) error {
 	}
 	require.VerifyModule = integrity.VerifyFile
 	system.VerifySource = integrity.VerifyFile
-
-	// With an allowed-signers set, git commits/tags and state-save made
-	// during the run are SSH-signed with the ssh-agent key that is
-	// listed in it. No private key ever enters the process; the
-	// resolution is lazy and fails closed if no listed key is loaded.
-	if keys != "" {
-		libgit.SetSigningKeys(os.Getenv("SSH_AUTH_SOCK"), keys)
-	}
 
 	if err := reportIntegrity(true, integrity.RepoName(), integrity.CommitHash(),
 		integrity.Signer(), integrity.SignerFingerprint(), integrity.Signed(), nil); err != nil {

@@ -11,15 +11,13 @@ package integrity
 // its committed blob too; anything outside the repository is refused.
 // Pinning a release is a property of the checkout, not of the
 // invocation: `git checkout --detach <tag>` keeps HEAD (and therefore
-// every restart) on that exact commit; only the script's own
-// state-save commits advance it, as children of it.
+// every restart) on that exact commit.
 //
 // With an allowed-signers file, Enable additionally requires the
-// anchor to carry an SSH signature by one of the listed keys: HEAD's
-// state-save commits (if any) must each be signed, and the release
-// commit under them must be signed itself or via an annotated tag
-// pointing at it — turning the guarantee from "matches the local
-// repository" into "matches what a trusted key released".
+// anchor to carry an SSH signature by one of the listed keys — the
+// HEAD commit itself or an annotated tag pointing at it — turning the
+// guarantee from "matches the local repository" into "matches what a
+// trusted key released".
 //
 // This is an operational assurance for the operator launching the
 // script — no accidental drift, no uncommitted edits — not a security
@@ -203,63 +201,12 @@ func enableAt(path, allowedSigners string) (*modeState, string, error) {
 	}, abs, nil
 }
 
-// isStateOnly reports whether commit has exactly one parent and
-// touches only .state/ paths — the shape of a state-save commit.
-func isStateOnly(commit *object.Commit) (bool, error) {
-	if commit.NumParents() != 1 {
-		return false, nil
-	}
-	parent, err := commit.Parent(0)
-	if err != nil {
-		return false, err
-	}
-	curTree, err := commit.Tree()
-	if err != nil {
-		return false, err
-	}
-	parentTree, err := parent.Tree()
-	if err != nil {
-		return false, err
-	}
-	changes, err := object.DiffTree(parentTree, curTree)
-	if err != nil {
-		return false, err
-	}
-	for _, ch := range changes {
-		for _, name := range []string{ch.From.Name, ch.To.Name} {
-			if name != "" && !strings.HasPrefix(name, stateDir+"/") {
-				return false, nil
-			}
-		}
-	}
-	return true, nil
-}
-
-// verifyHeadSignature enforces the signature rule on the HEAD chain:
-// every state-save commit from HEAD down to the release commit under
-// them must be SSH-signed by an allowed key, and the release commit
-// must be signed itself or via a signed annotated tag pointing at it.
-// It returns the release signer's key comment and SHA256 fingerprint.
+// verifyHeadSignature enforces the signature rule on the anchor: the
+// HEAD commit must be SSH-signed by an allowed key, itself or via a
+// signed annotated tag pointing at it. It returns the signer's key
+// comment and SHA256 fingerprint.
 func verifyHeadSignature(repo *gogit.Repository, head *object.Commit, allowedSigners string) (signer, fingerprint string, err error) {
 	cur := head
-	for {
-		stateOnly, err := isStateOnly(cur)
-		if err != nil {
-			return "", "", err
-		}
-		if !stateOnly {
-			break
-		}
-		if _, _, err := libgit.VerifyCommitSSH(cur, allowedSigners); err != nil {
-			return "", "", fmt.Errorf("state commit %s is not signed by an allowed key: %w", cur.Hash, err)
-		}
-		cur, err = cur.Parent(0)
-		if err != nil {
-			return "", "", err
-		}
-	}
-	// cur is the release commit: its own signature, or a signed
-	// annotated tag targeting it.
 	signer, fingerprint, commitErr := libgit.VerifyCommitSSH(cur, allowedSigners)
 	if commitErr == nil {
 		return signer, fingerprint, nil

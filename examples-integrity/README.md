@@ -90,27 +90,3 @@ sudo rm /etc/lisp/allowed_signers    # clean up the host!
 
 `(assert-integrity :with-signature)` in the script makes it refuse to
 run on hosts *without* the file, closing the "quietly unsigned" gap.
-
-## 04-state — persistent state inside the integrity envelope
-
-`state-save` writes `.state/db.lisp` as canonical lisp data and
-commits it in the same operation; `state-load` reads it back as pure
-data and requires it to match `HEAD`. State commits advance HEAD as
-children of the release, so **every restart keeps verifying**:
-
-```bash
-cp 04-state/service.lisp /tmp/demo && cd /tmp/demo
-git init && git add -A && git commit -m "release"
-
-lisp-integrity service.lisp          # visit number 1
-lisp-integrity service.lisp          # visit number 2
-lisp-integrity service.lisp          # visit number 3
-git log --oneline                    # release + three "state: db" commits
-
-echo "{:visits 999}" > .state/db.lisp
-lisp-integrity service.lisp          # ✗ differs from its committed version at HEAD
-git checkout .state/db.lisp          # operator resolves; runs again
-```
-
-Code changes require a new commit (a new release checkout); only
-`.state/` moves between releases.

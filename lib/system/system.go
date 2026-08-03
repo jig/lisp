@@ -39,7 +39,7 @@ func Load(env EnvType) {
 	call.Doc(env, "slurp-source", "[filename]", "Reads a source file like slurp and, under lisp-integrity, verifies it against the verified HEAD commit; load-file builds on it.")
 	call.Doc(env, "spit", "[filename s & opts]", "Writes string s to a file, creating or truncating it; with :append true, appends instead.")
 	call.Doc(env, "chdir", "[path]",
-		"Changes the process working directory to path. Process-global: affects the working directory of all subsequent operations, including the .state store and git repository detection.")
+		"Changes the process working directory to path. Process-global: affects the working directory of all subsequent operations, including git repository detection.")
 	call.Doc(env, "cwd", "[]",
 		"Returns the process working directory as an absolute path string.")
 	call.Doc(env, "mkdtemp", "[& prefix]",

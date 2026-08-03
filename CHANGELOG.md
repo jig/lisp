@@ -109,16 +109,18 @@ runs only script files (no REPL, `-e`, stdin, test/fmt/debug or
 DAP/LSP modes) and verifies the script — and, in cascade, every file
 loaded as code — against **`HEAD`**. There is no ref argument:
 pinning a release is a property of the checkout
-(`git checkout --detach v1.4.2`); state commits advance `HEAD` as
-children of the release, so restarts keep verifying.
+(`git checkout --detach v1.4.2`), and `HEAD` is fully static between
+deployments.
 
 - **Keys**: the flag is replaced by the fixed path
   `/etc/lisp/allowed_signers` (authorized_keys format, root-owned).
   Its presence activates the signature rule for every run on the
-  host: state commits above the release must each be signed, and the
-  release commit must be signed itself or via a signed annotated tag
-  pointing at it. The same set drives ssh-agent signing of
-  `git-commit` / `git-tag` / `state-save`, as `--integrity-keys` did.
+  host: `HEAD` must be signed by a listed key, itself or via a signed
+  annotated tag pointing at it. The set is **verification-only** —
+  unlike `--integrity-keys`, it never drives signing: the host holds
+  public keys and needs no ssh-agent, and code is signed by whoever
+  releases it, orthogonally to execution. (`lib/git`'s signing policy
+  remains as a Go embedder API that no lisp path activates.)
 - **Consent**: after the green block, `lisp-integrity` asks
   `proceed? [y/N]`; `-y` skips, and a non-TTY stdin without `-y`
   fails closed (systemd units say `lisp-integrity -y …`).
@@ -179,16 +181,25 @@ value did not parse, deferring the failure to an unrelated error deep
 inside the program; it now returns a read error naming the
 placeholder.
 
-### Fixed — `state-save` signing failures are atomic
+### ⚠️ Removed — the `.state/` store
 
-With an allowed-signers policy active, `state-save` now rolls back the
-temporary unsigned commit, index entry and `.state/` file write when SSH
-signing fails. A missing authorised ssh-agent key therefore returns an
-error without wedging the checkout at an unsigned state commit.
-`git-commit` and annotated `git-tag` get the same guarantee: a signing
-failure restores HEAD and the index (the staged changes survive for a
-retry) or deletes the just-created tag, instead of leaving unsigned
-objects that every subsequent verified run would refuse.
+`state-save` and `state-load` are **removed**, together with the
+state-commit rules of integrity mode: the code repository holds code
+and configuration only, verified uniformly against `HEAD`, and the
+running program needs no write access to the checkout. Mutable data
+lives outside the code repository — a separate data repository managed
+from lisp with `lib/git` (allowed-signers signing included), a
+database via `lib/sql`, or plain files. Migration: replace
+`(state-save name v)` / `(state-load name)` with your own persistence
+outside the checkout; a `state-*` family over a separate data
+repository may return in a future release.
+
+### Fixed — signing failures are atomic
+
+When a signing policy is installed (a Go embedder API), a signing
+failure in `git-commit` restores HEAD and the index (the staged
+changes survive for a retry), and one in annotated `git-tag` deletes
+the just-created tag — instead of leaving unsigned objects behind.
 
 ### Migration (embedders — Go code using jig/lisp)
 
