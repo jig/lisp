@@ -31,6 +31,8 @@ import (
 	_ "embed"
 
 	"github.com/jig/lisp/internal/gogitutil"
+	gossh "golang.org/x/crypto/ssh"
+
 	"github.com/jig/lisp/lib/call"
 	. "github.com/jig/lisp/types"
 )
@@ -98,8 +100,8 @@ func Load(env EnvType) {
 		"Closes a repository handle.")
 	call.Doc(env, "git-add", "[repo path & {:all :glob}]",
 		"Stages path (\".\" for everything); :all true stages all modified/deleted files, :glob true treats path as a glob pattern.")
-	call.Doc(env, "git-commit", "[repo msg & {:author {:name :email} :committer :all :allow-empty :amend}]",
-		"Commits staged changes and returns the commit map. When the Go embedder has installed a signing policy the commit is SSH-signed (a signing failure rolls HEAD and the index back); under the lisp and lisp-integrity binaries no policy is installed and commits are unsigned (there is no per-call key option).")
+	call.Doc(env, "git-commit", "[repo msg & {:author {:name :email} :committer :all :allow-empty :amend :sign}]",
+		"Commits staged changes and returns the commit map. :sign takes an allowed-signers list (authorized_keys-format public keys): the commit is SSH-signed by a matching ssh-agent (or Go-registered) key, resolved before anything is written; a late signing failure rolls HEAD and the index back. Without :sign the commit is unsigned — there is no global signing switch.")
 	call.Doc(env, "git-log", "[repo & {:max :from :all :path}]",
 		"Returns a vector of commit maps from HEAD (or :from rev), newest first.")
 	call.Doc(env, "git-show", "[repo rev]",
@@ -116,8 +118,8 @@ func Load(env EnvType) {
 		"Returns a vector of {:name :hash :head} for local branches.")
 	call.Doc(env, "git-checkout", "[repo ref & {:create :force}]",
 		"Checks out a branch, tag or revision; :create true creates the branch first.")
-	call.Doc(env, "git-tag", "[repo name & {:at :message :tagger {:name :email}}]",
-		"Creates a tag at HEAD (or :at rev); :message makes it annotated. When the Go embedder has installed a signing policy an annotated tag is SSH-signed (a signing failure deletes the tag again); under the lisp and lisp-integrity binaries tags are unsigned.")
+	call.Doc(env, "git-tag", "[repo name & {:at :message :tagger {:name :email} :sign}]",
+		"Creates a tag at HEAD (or :at rev); :message makes it annotated. :sign (allowed-signers list, annotated only) SSH-signs the tag with a matching ssh-agent or Go-registered key; a signing failure deletes the tag again. Without :sign tags are unsigned.")
 	call.Doc(env, "git-tags", "[repo]",
 		"Returns a vector of {:name :hash :target :annotated} for all tags.")
 	call.Doc(env, "git-remote-add", "[repo name url]",
@@ -304,6 +306,21 @@ func gitCommit(rv MalType, msg string, params ...MalType) (MalType, error) {
 	if commitOpts.Committer, err = optSignature(o, "committer"); err != nil {
 		return nil, err
 	}
+	// Signing is per-call and declared by the code: :sign carries the
+	// allowed-signers list (public keys) the signing key must match —
+	// no :sign, no signature, and there is no process-global fallback.
+	// The signer resolves before anything is written, so the common
+	// failure (no matching key available) leaves the repo untouched.
+	signKeys, signRequested, err := optString(o, "sign")
+	if err != nil {
+		return nil, err
+	}
+	var signer gossh.Signer
+	if signRequested {
+		if signer, err = resolveSigner(signKeys); err != nil {
+			return nil, fmt.Errorf("git-commit: sign: %w", err)
+		}
+	}
 	wt, err := worktree(r)
 	if err != nil {
 		return nil, err
@@ -316,17 +333,17 @@ func gitCommit(rv MalType, msg string, params ...MalType) (MalType, error) {
 	if err != nil {
 		return nil, err
 	}
-	// Signing is driven by the installed policy (allowed signers, via
-	// the ssh-agent), never a per-call key. It is done after the fact
-	// (see resignCommit) so the signature lands in the header matching
-	// the repo's object format; go-git's own Signer always writes gpgsig.
-	// A signing failure rolls HEAD and the index back so the unsigned
-	// commit is not left behind (it would wedge every verified run).
-	if hash, err = signCommitIfPolicy(r, hash); err != nil {
-		if rollbackErr := snapshot.Restore(r.repo); rollbackErr != nil {
-			return nil, fmt.Errorf("git-commit: sign: %w (rollback failed: %v)", err, rollbackErr)
+	// The signature is applied after the fact (see resignCommit) so it
+	// lands in the header matching the repo's object format; go-git's
+	// own Signer always writes gpgsig. A signing failure rolls HEAD and
+	// the index back so no unsigned commit is left behind.
+	if signRequested {
+		if hash, err = resignCommit(r, hash, signer); err != nil {
+			if rollbackErr := snapshot.Restore(r.repo); rollbackErr != nil {
+				return nil, fmt.Errorf("git-commit: sign: %w (rollback failed: %v)", err, rollbackErr)
+			}
+			return nil, fmt.Errorf("git-commit: sign: %w", err)
 		}
-		return nil, fmt.Errorf("git-commit: sign: %w", err)
 	}
 	c, err := r.repo.CommitObject(hash)
 	if err != nil {
@@ -594,6 +611,22 @@ func gitTag(rv MalType, name string, params ...MalType) (MalType, error) {
 	if err != nil {
 		return nil, err
 	}
+	// Signing is per-call: :sign carries the allowed-signers list the
+	// signing key must match, and only annotated tags can carry a
+	// signature. The signer resolves before the tag is created.
+	signKeys, signRequested, err := optString(o, "sign")
+	if err != nil {
+		return nil, err
+	}
+	if signRequested && !annotated {
+		return nil, fmt.Errorf("git-tag: :sign requires an annotated tag (add :message)")
+	}
+	var signer gossh.Signer
+	if signRequested {
+		if signer, err = resolveSigner(signKeys); err != nil {
+			return nil, fmt.Errorf("git-tag: sign: %w", err)
+		}
+	}
 	var tagOpts *gogit.CreateTagOptions
 	if annotated {
 		tagOpts = &gogit.CreateTagOptions{Message: message, Signer: gogitutil.NoSign{}}
@@ -605,11 +638,9 @@ func gitTag(rv MalType, name string, params ...MalType) (MalType, error) {
 	if err != nil {
 		return nil, err
 	}
-	// Only annotated tags carry a signature; a lightweight tag is just a
-	// ref and is left unsigned even when a signing policy is active. A
-	// signing failure deletes the just-created unsigned tag.
-	if annotated {
-		if ref, err = signTagIfPolicy(r, ref); err != nil {
+	// A signing failure deletes the just-created unsigned tag.
+	if signRequested {
+		if ref, err = resignTag(r, ref, signer); err != nil {
 			if rollbackErr := r.repo.DeleteTag(name); rollbackErr != nil {
 				return nil, fmt.Errorf("git-tag: sign: %w (rollback failed: %v)", err, rollbackErr)
 			}

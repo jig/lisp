@@ -7,6 +7,7 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -97,9 +98,10 @@ func testKey(t *testing.T, comment string) (privPEM, authorized string) {
 	return string(pem.EncodeToMemory(block)), line
 }
 
-// signWith installs a signing policy from a PEM private key — the test
-// stand-in for the allowed signers' ssh-agent signer — and clears it when
-// the (sub)test ends. git-commit and annotated git-tag then sign.
+// signWith installs a signer source from a PEM private key — the test
+// stand-in for the ssh-agent — and clears it when the (sub)test ends.
+// Commits and tags still only sign when the call passes :sign with a
+// list that includes this key.
 func signWith(t *testing.T, privPEM string) {
 	t.Helper()
 	signer, err := gossh.ParsePrivateKey([]byte(privPEM))
@@ -185,7 +187,7 @@ func TestSignedCommitVerify(t *testing.T) {
 			}
 			eval(t, ns, `(git-add r "a.txt")`)
 			signWith(t, privPEM)
-			eval(t, ns, fmt.Sprintf(`(def c (git-commit r "signed" {:author %s}))`, author))
+			eval(t, ns, fmt.Sprintf(`(def c (git-commit r "signed" {:author %s :sign %q}))`, author, authorized))
 			expectTrue(t, ns, `(get c :signed)`)
 			eval(t, ns, fmt.Sprintf(`(def v (git-verify-commit r "HEAD" %q))`, authorized))
 			expectTrue(t, ns, `(get v :valid)`)
@@ -220,7 +222,7 @@ func TestVerifyFailClosed(t *testing.T) {
 	}
 	eval(t, ns, `(git-add r "a.txt")`)
 	signWith(t, privPEM)
-	eval(t, ns, fmt.Sprintf(`(git-commit r "signed" {:author %s})`, author))
+	eval(t, ns, fmt.Sprintf(`(git-commit r "signed" {:author %s :sign %q})`, author, authorized))
 
 	// wrong key throws; a multi-line allowed-keys with the right key passes
 	expectThrow(t, ns, fmt.Sprintf(`(git-verify-commit r "HEAD" %q)`, otherAuthorized))
@@ -247,7 +249,7 @@ func TestRejectAllowedSignersFormat(t *testing.T) {
 	}
 	eval(t, ns, `(git-add r "a.txt")`)
 	signWith(t, privPEM)
-	eval(t, ns, fmt.Sprintf(`(git-commit r "signed" {:author %s})`, author))
+	eval(t, ns, fmt.Sprintf(`(git-commit r "signed" {:author %s :sign %q})`, author, authorized))
 
 	// authorized_keys format (key-first) verifies.
 	expectTrue(t, ns, fmt.Sprintf(`(get (git-verify-commit r "HEAD" %q) :valid)`, authorized))
@@ -282,13 +284,9 @@ func TestBranchesTagsStatus(t *testing.T) {
 	// created while a signing policy is active (as with allowed signers).
 	eval(t, ns, `(git-tag r "light")`)
 	eval(t, ns, `(git-tag r "annotated" {:message "v1" :tagger `+author+`})`)
-	signer, err := gossh.ParsePrivateKey([]byte(privPEM))
-	if err != nil {
-		t.Fatal(err)
-	}
-	libgit.SetSigner(func() (gossh.Signer, error) { return signer, nil })
-	eval(t, ns, fmt.Sprintf(`(git-tag r "signed" {:message "v2" :tagger %s})`, author))
-	// A lightweight tag is not signed even while the policy is active.
+	signWith(t, privPEM)
+	eval(t, ns, fmt.Sprintf(`(git-tag r "signed" {:message "v2" :tagger %s :sign %q})`, author, authorized))
+	// A lightweight tag never signs.
 	eval(t, ns, `(git-tag r "light2")`)
 	libgit.ClearSigner()
 
@@ -368,8 +366,8 @@ func TestGitCLIInterop(t *testing.T) {
 			}
 			eval(t, ns, `(git-add r "a.txt")`)
 			signWith(t, privPEM)
-			eval(t, ns, fmt.Sprintf(`(git-commit r "signed" {:author %s})`, author))
-			eval(t, ns, fmt.Sprintf(`(git-tag r "v1" {:message "v1" :tagger %s})`, author))
+			eval(t, ns, fmt.Sprintf(`(git-commit r "signed" {:author %s :sign %q})`, author, authorized))
+			eval(t, ns, fmt.Sprintf(`(git-tag r "v1" {:message "v1" :tagger %s :sign %q})`, author, authorized))
 			eval(t, ns, `(git-close r)`)
 
 			for _, args := range [][]string{
@@ -384,82 +382,6 @@ func TestGitCLIInterop(t *testing.T) {
 			}
 		})
 	}
-}
-
-// failSigning installs a signing policy whose resolution always fails —
-// the shape of an ssh-agent without any allowed key — and clears it
-// when the (sub)test ends.
-func failSigning(t *testing.T) {
-	t.Helper()
-	libgit.SetSigner(func() (gossh.Signer, error) {
-		return nil, errors.New("no ssh-agent key is listed in the allowed signers")
-	})
-	t.Cleanup(libgit.ClearSigner)
-}
-
-// TestCommitRollsBackWhenSigningFails pins git-commit's atomicity: a
-// signing failure must leave HEAD and the staged index exactly as
-// before the call, on a branch and on a detached HEAD.
-func TestCommitRollsBackWhenSigningFails(t *testing.T) {
-	ns := newEnv(t)
-	dir := t.TempDir()
-	eval(t, ns, fmt.Sprintf(`(def r (git-init %q))`, dir))
-	if err := os.WriteFile(filepath.Join(dir, "a.txt"), []byte("one\n"), 0o644); err != nil {
-		t.Fatal(err)
-	}
-	eval(t, ns, `(git-add r "a.txt")`)
-	first := eval(t, ns, `(get (git-commit r "first" {:author `+author+`}) :hash)`).(string)
-
-	if err := os.WriteFile(filepath.Join(dir, "a.txt"), []byte("two\n"), 0o644); err != nil {
-		t.Fatal(err)
-	}
-	eval(t, ns, `(git-add r "a.txt")`)
-
-	failSigning(t)
-	expectThrow(t, ns, `(git-commit r "second" {:author `+author+`})`)
-	expectTrue(t, ns, fmt.Sprintf(`(= %q (get (git-head r) :hash))`, first))
-
-	// The staged change survived the rollback: fixing the agent and
-	// retrying commits it.
-	libgit.ClearSigner()
-	second := eval(t, ns, `(get (git-commit r "second" {:author `+author+`}) :hash)`).(string)
-	if second == first {
-		t.Fatal("retry after rollback did not commit the staged change")
-	}
-
-	// Detached HEAD: same guarantee.
-	eval(t, ns, fmt.Sprintf(`(git-checkout r %q)`, first))
-	if err := os.WriteFile(filepath.Join(dir, "a.txt"), []byte("three\n"), 0o644); err != nil {
-		t.Fatal(err)
-	}
-	eval(t, ns, `(git-add r "a.txt")`)
-	failSigning(t)
-	expectThrow(t, ns, `(git-commit r "third" {:author `+author+`})`)
-	expectTrue(t, ns, fmt.Sprintf(`(= %q (get (git-head r) :hash))`, first))
-}
-
-// TestTagRollsBackWhenSigningFails pins git-tag's atomicity: a signing
-// failure must not leave an unsigned annotated tag behind.
-func TestTagRollsBackWhenSigningFails(t *testing.T) {
-	ns := newEnv(t)
-	dir := t.TempDir()
-	eval(t, ns, fmt.Sprintf(`(def r (git-init %q))`, dir))
-	if err := os.WriteFile(filepath.Join(dir, "a.txt"), []byte("one\n"), 0o644); err != nil {
-		t.Fatal(err)
-	}
-	eval(t, ns, `(git-add r "a.txt")`)
-	eval(t, ns, `(git-commit r "first" {:author `+author+`})`)
-
-	failSigning(t)
-	expectThrow(t, ns, `(git-tag r "v1" {:message "rel" :tagger `+author+`})`)
-	expectTrue(t, ns, `(= [] (git-tags r))`)
-
-	// A lightweight tag never signs, so it succeeds under the failing
-	// policy; retrying the annotated one after fixing the agent works.
-	eval(t, ns, `(git-tag r "lw")`)
-	libgit.ClearSigner()
-	eval(t, ns, `(git-tag r "v1" {:message "rel" :tagger `+author+`})`)
-	expectTrue(t, ns, `(= 2 (count (git-tags r)))`)
 }
 
 // TestCommitsSince pins the git-commits-since contract: [] at HEAD,
@@ -497,4 +419,150 @@ func TestCommitsSince(t *testing.T) {
 	sideHash := commit("side-work")
 	eval(t, ns, `(git-checkout r "master")`)
 	expectThrow(t, ns, fmt.Sprintf(`(git-commits-since r %q)`, sideHash))
+}
+
+// failSigning installs a signer source whose resolution always fails —
+// the shape of an unreachable agent — and clears it when the (sub)test
+// ends.
+func failSigning(t *testing.T) {
+	t.Helper()
+	libgit.SetSigner(func() (gossh.Signer, error) {
+		return nil, errors.New("cannot reach ssh-agent")
+	})
+	t.Cleanup(libgit.ClearSigner)
+}
+
+// brokenSigner resolves fine (its public key is listed) but fails at
+// signature time — the shape of an agent dying mid-run. It forces the
+// post-commit rollback path, since the resolution preflight passes.
+type brokenSigner struct{ gossh.Signer }
+
+func (b brokenSigner) Sign(rand io.Reader, data []byte) (*gossh.Signature, error) {
+	return nil, errors.New("agent connection lost")
+}
+
+func signBrokenWith(t *testing.T, privPEM string) {
+	t.Helper()
+	signer, err := gossh.ParsePrivateKey([]byte(privPEM))
+	if err != nil {
+		t.Fatal(err)
+	}
+	libgit.SetSigner(func() (gossh.Signer, error) { return brokenSigner{signer}, nil })
+	t.Cleanup(libgit.ClearSigner)
+}
+
+// TestCommitSignPreflight pins the resolution preflight: when no
+// matching signer is available, git-commit with :sign refuses before
+// writing anything — HEAD and the staged index are untouched — and a
+// signer outside the :sign list is refused the same way.
+func TestCommitSignPreflight(t *testing.T) {
+	ns := newEnv(t)
+	dir := t.TempDir()
+	_, authorized := testKey(t, "data")
+	eval(t, ns, fmt.Sprintf(`(def r (git-init %q))`, dir))
+	if err := os.WriteFile(filepath.Join(dir, "a.txt"), []byte("one\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	eval(t, ns, `(git-add r "a.txt")`)
+	first := eval(t, ns, `(get (git-commit r "first" {:author `+author+`}) :hash)`).(string)
+
+	if err := os.WriteFile(filepath.Join(dir, "a.txt"), []byte("two\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	eval(t, ns, `(git-add r "a.txt")`)
+
+	failSigning(t)
+	expectThrow(t, ns, fmt.Sprintf(`(git-commit r "second" {:author `+author+` :sign %q})`, authorized))
+	expectTrue(t, ns, fmt.Sprintf(`(= %q (get (git-head r) :hash))`, first))
+	expectTrue(t, ns, `(= 1 (count (git-log r)))`)
+
+	// A signer that resolves but is not in the :sign list is refused
+	// up front too.
+	otherPEM, _ := testKey(t, "other")
+	signWith(t, otherPEM)
+	expectThrow(t, ns, fmt.Sprintf(`(git-commit r "second" {:author `+author+` :sign %q})`, authorized))
+	expectTrue(t, ns, `(= 1 (count (git-log r)))`)
+
+	// A matching source lets the retry commit the still-staged change.
+	dataPEM, dataAuthorized := testKey(t, "data")
+	signWith(t, dataPEM)
+	second := eval(t, ns, fmt.Sprintf(`(get (git-commit r "second" {:author `+author+` :sign %q}) :hash)`, dataAuthorized)).(string)
+	if second == first {
+		t.Fatal("retry did not commit the staged change")
+	}
+	expectTrue(t, ns, `(get (git-show r "HEAD") :signed)`)
+}
+
+// TestCommitRollsBackWhenSigningFails pins the post-commit rollback: a
+// signer that resolves but fails at signature time must leave HEAD and
+// the staged index exactly as before the call, on a branch and on a
+// detached HEAD.
+func TestCommitRollsBackWhenSigningFails(t *testing.T) {
+	ns := newEnv(t)
+	dir := t.TempDir()
+	privPEM, authorized := testKey(t, "data")
+	eval(t, ns, fmt.Sprintf(`(def r (git-init %q))`, dir))
+	if err := os.WriteFile(filepath.Join(dir, "a.txt"), []byte("one\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	eval(t, ns, `(git-add r "a.txt")`)
+	first := eval(t, ns, `(get (git-commit r "first" {:author `+author+`}) :hash)`).(string)
+
+	if err := os.WriteFile(filepath.Join(dir, "a.txt"), []byte("two\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	eval(t, ns, `(git-add r "a.txt")`)
+
+	signBrokenWith(t, privPEM)
+	expectThrow(t, ns, fmt.Sprintf(`(git-commit r "second" {:author `+author+` :sign %q})`, authorized))
+	expectTrue(t, ns, fmt.Sprintf(`(= %q (get (git-head r) :hash))`, first))
+
+	// The staged change survived the rollback: a healthy signer commits it.
+	signWith(t, privPEM)
+	second := eval(t, ns, fmt.Sprintf(`(get (git-commit r "second" {:author `+author+` :sign %q}) :hash)`, authorized)).(string)
+	if second == first {
+		t.Fatal("retry after rollback did not commit the staged change")
+	}
+
+	// Detached HEAD: same guarantee.
+	eval(t, ns, fmt.Sprintf(`(git-checkout r %q)`, first))
+	if err := os.WriteFile(filepath.Join(dir, "a.txt"), []byte("three\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	eval(t, ns, `(git-add r "a.txt")`)
+	signBrokenWith(t, privPEM)
+	expectThrow(t, ns, fmt.Sprintf(`(git-commit r "third" {:author `+author+` :sign %q})`, authorized))
+	expectTrue(t, ns, fmt.Sprintf(`(= %q (get (git-head r) :hash))`, first))
+}
+
+// TestTagSignPerCall pins git-tag's :sign contract: annotated-only, a
+// late signing failure deletes the tag, no :sign means no signature.
+func TestTagSignPerCall(t *testing.T) {
+	ns := newEnv(t)
+	dir := t.TempDir()
+	privPEM, authorized := testKey(t, "data")
+	eval(t, ns, fmt.Sprintf(`(def r (git-init %q))`, dir))
+	if err := os.WriteFile(filepath.Join(dir, "a.txt"), []byte("one\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	eval(t, ns, `(git-add r "a.txt")`)
+	eval(t, ns, `(git-commit r "first" {:author `+author+`})`)
+
+	// :sign on a lightweight tag is a contract error.
+	expectThrow(t, ns, fmt.Sprintf(`(git-tag r "lw-signed" {:sign %q})`, authorized))
+
+	// Late signing failure deletes the just-created tag.
+	signBrokenWith(t, privPEM)
+	expectThrow(t, ns, fmt.Sprintf(`(git-tag r "v1" {:message "rel" :tagger `+author+` :sign %q})`, authorized))
+	expectTrue(t, ns, `(= [] (git-tags r))`)
+
+	// Healthy signer: the annotated tag signs and verifies.
+	signWith(t, privPEM)
+	eval(t, ns, fmt.Sprintf(`(git-tag r "v1" {:message "rel" :tagger `+author+` :sign %q})`, authorized))
+	expectTrue(t, ns, fmt.Sprintf(`(git-tag-verified? r "v1" %q)`, authorized))
+
+	// Without :sign, annotated tags stay unsigned even with a source
+	// installed.
+	eval(t, ns, `(git-tag r "v2" {:message "rel" :tagger `+author+`})`)
+	expectThrow(t, ns, fmt.Sprintf(`(git-verify-tag r "v2" %q)`, authorized))
 }

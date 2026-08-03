@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"os"
 	"strings"
-	"sync"
 
 	"github.com/go-git/go-git/v6/plumbing"
 	"github.com/go-git/go-git/v6/plumbing/object"
@@ -21,37 +21,50 @@ import (
 // signatures (see gitformat-signature).
 const gitNamespace = "git"
 
-// signerResolve returns the SSH signer to sign commits and tags with, or
-// nil when no signing policy is installed. It is the single knob for
-// signing — there is no per-call key option and no private key ever
-// enters the process. The command package installs it (SetSigningKeys)
-// when a Go embedder installs one; tests inject a signer with SetSigner.
-var signerResolve func() (gossh.Signer, error)
+// signerSource, when set, supplies candidate signers instead of the
+// ssh-agent. It is a Go-embedder / test seam: signing itself only ever
+// happens when lisp code passes :sign with an allowed-signers list,
+// and the supplied signer must still match that list. No private key
+// ever enters the lisp side.
+var signerSource func() ([]gossh.Signer, error)
 
-// SetSigner installs a signing policy: git-commit and annotated
-// git-tag sign with the signer it returns. A resolver returning an
-// error fails the commit/tag closed.
-func SetSigner(resolve func() (gossh.Signer, error)) { signerResolve = resolve }
+// SetSigner installs a signer source of one (a Go embedder API — e.g.
+// a crypto.Signer adapted with gossh.NewSignerFromSigner — and the
+// test seam). It does not by itself sign anything: each git-commit /
+// git-tag call still decides with :sign, and the signer's public key
+// must be listed there.
+func SetSigner(resolve func() (gossh.Signer, error)) {
+	signerSource = func() ([]gossh.Signer, error) {
+		s, err := resolve()
+		if err != nil {
+			return nil, err
+		}
+		return []gossh.Signer{s}, nil
+	}
+}
 
-// ClearSigner removes the signing policy (commits and tags are left
-// unsigned). Used by the command package and tests to reset state.
-func ClearSigner() { signerResolve = nil }
+// ClearSigner removes the signer source (resolution falls back to the
+// ssh-agent). Used by tests to reset state.
+func ClearSigner() { signerSource = nil }
 
-// SetSigningKeys installs an ssh-agent signing policy (a Go embedder
-// API; the lisp binaries never call it): commits and tags are signed
-// with the agent key (at
-// sshAuthSock) whose public key appears in allowedKeys (authorized_keys
-// / .pub format). Resolution is lazy and cached on first use, so a run
-// that never commits needs no agent; a run that commits under
-// a policy with no matching agent key fails closed.
-func SetSigningKeys(sshAuthSock, allowedKeys string) {
-	var once sync.Once
-	var s gossh.Signer
-	var e error
-	SetSigner(func() (gossh.Signer, error) {
-		once.Do(func() { s, e = resolveAgentSigner(sshAuthSock, allowedKeys) })
-		return s, e
-	})
+// resolveSigner finds a signer whose public key is listed in
+// allowedKeys: from the installed signer source when present, from the
+// ssh-agent (SSH_AUTH_SOCK) otherwise. Fails closed when nothing
+// matches.
+func resolveSigner(allowedKeys string) (gossh.Signer, error) {
+	if signerSource != nil {
+		signers, err := signerSource()
+		if err != nil {
+			return nil, err
+		}
+		for _, s := range signers {
+			if keyListed(s.PublicKey(), allowedKeys) {
+				return s, nil
+			}
+		}
+		return nil, fmt.Errorf("no registered signer is listed in the :sign keys")
+	}
+	return resolveAgentSigner(os.Getenv("SSH_AUTH_SOCK"), allowedKeys)
 }
 
 // resolveAgentSigner finds the ssh-agent signer whose public key is
@@ -59,7 +72,7 @@ func SetSigningKeys(sshAuthSock, allowedKeys string) {
 // process lifetime because the returned signer calls back over it.
 func resolveAgentSigner(sshAuthSock, allowedKeys string) (gossh.Signer, error) {
 	if sshAuthSock == "" {
-		return nil, fmt.Errorf("the signing policy needs an ssh-agent, but SSH_AUTH_SOCK is unset")
+		return nil, fmt.Errorf(":sign needs an ssh-agent (or a Go-registered signer), but SSH_AUTH_SOCK is unset")
 	}
 	conn, err := net.Dial("unix", sshAuthSock)
 	if err != nil {
@@ -76,7 +89,7 @@ func resolveAgentSigner(sshAuthSock, allowedKeys string) (gossh.Signer, error) {
 		}
 	}
 	_ = conn.Close()
-	return nil, fmt.Errorf("no ssh-agent key is listed in the allowed signers")
+	return nil, fmt.Errorf("no ssh-agent key is listed in the :sign keys")
 }
 
 // keyListed reports whether pub appears in allowedKeys (authorized_keys
@@ -98,32 +111,6 @@ func keyListed(pub gossh.PublicKey, allowedKeys string) bool {
 		}
 	}
 	return false
-}
-
-// signCommitIfPolicy signs the commit at hash with the installed policy,
-// or returns it unchanged when none is installed.
-func signCommitIfPolicy(r *Repo, hash plumbing.Hash) (plumbing.Hash, error) {
-	if signerResolve == nil {
-		return hash, nil
-	}
-	signer, err := signerResolve()
-	if err != nil {
-		return plumbing.ZeroHash, err
-	}
-	return resignCommit(r, hash, signer)
-}
-
-// signTagIfPolicy signs annotated tag ref with the installed policy, or
-// returns it unchanged when none is installed.
-func signTagIfPolicy(r *Repo, ref *plumbing.Reference) (*plumbing.Reference, error) {
-	if signerResolve == nil {
-		return ref, nil
-	}
-	signer, err := signerResolve()
-	if err != nil {
-		return nil, err
-	}
-	return resignTag(r, ref, signer)
 }
 
 // payloadEncoder is the part of commits and tags that reproduces the exact
