@@ -9,7 +9,7 @@ This implementation is focused on _embeddability_ in Go projects. See [lisp main
 > whole (by a person or an LLM). The builtin reference there is generated
 > from the interpreter itself, so it never drifts from the code.
 
-It requires Go 1.25.
+It requires Go 1.26.
 
 > **Upgrading?** See [CHANGELOG.md](./CHANGELOG.md) for behaviour changes
 > that may need action — notably the error-message format changed since

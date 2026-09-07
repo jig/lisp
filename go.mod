@@ -1,6 +1,6 @@
 module github.com/jig/lisp
 
-go 1.25.0
+go 1.26.0
 
 // v0.3.0 was tagged prematurely (the 0.3 line was not ready) and
 // v0.3.1 exists only to carry this retraction. Keep both retracted in
@@ -24,7 +24,7 @@ require (
 	github.com/hiddeco/sshsig v0.2.0
 	github.com/jackc/pgx/v5 v5.10.0
 	github.com/jig/scanner v1.3.1
-	golang.org/x/crypto v0.54.0
+	golang.org/x/crypto v0.56.0
 	golang.org/x/term v0.45.0
 	modernc.org/sqlite v1.53.0
 )
@@ -51,7 +51,7 @@ require (
 	golang.org/x/net v0.57.0 // indirect
 	golang.org/x/sync v0.22.0 // indirect
 	golang.org/x/sys v0.47.0 // indirect
-	golang.org/x/text v0.40.0 // indirect
+	golang.org/x/text v0.41.0 // indirect
 	golang.org/x/time v0.9.0 // indirect
 	modernc.org/libc v1.73.4 // indirect
 	modernc.org/mathutil v1.7.1 // indirect
