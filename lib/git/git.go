@@ -188,7 +188,7 @@ func worktree(r *Repo) (*gogit.Worktree, error) {
 // refreshIndex rewrites the index so its on-disk timestamp becomes
 // strictly newer than the worktree files. go-git trusts index metadata
 // only in that case (the racy-git rule) and otherwise re-hashes worktree
-// files — with a hardcoded sha1 hasher (alpha.4,
+// files — with a hardcoded sha1 hasher (still in beta.1,
 // utils/merkletrie/filesystem/node.go), so in sha256 repositories every
 // freshly written file is spuriously reported as modified, which breaks
 // status and pull. Rewriting the index after operations that touch both
