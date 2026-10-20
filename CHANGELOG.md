@@ -30,9 +30,10 @@ issues, unbounded `Range` headers, `net/textproto` memory limits, TLS
 ECH parsing and `html/template` (GO-2026-6599…6617) — all reachable
 through `web-serve`. Build with Go ≥ 1.26.9 or ≥ 1.27.2.
 
-Dependencies: `go-git/v6` v6.0.0-alpha.5 (CVE-2026-71556 symlink
-following, CVE-2026-71557 reference-name path traversal; the `Signer`
-interface gained a `context.Context`), `golang.org/x/crypto` v0.58.0,
+Dependencies: `go-git/v6` and `go-billy/v6` v6.0.0-beta.1 (includes
+the alpha.5 fixes for CVE-2026-71556 symlink following and
+CVE-2026-71557 reference-name path traversal; the `Signer` interface
+gained a `context.Context`), `golang.org/x/crypto` v0.58.0,
 `golang.org/x/net` v0.61.0, `golang.org/x/term` v0.47.0, `pgx` v5.11.0,
 `keyfunc` v3.8.2, `modernc.org/sqlite` v1.60.1. `govulncheck` reports no
 vulnerabilities affecting this code.
