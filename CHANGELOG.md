@@ -23,20 +23,21 @@ Migration section below); lisp code is almost entirely unaffected.
 
 Embedders now need a **Go 1.26** toolchain (`go 1.26.0` in `go.mod`;
 `golang.org/x/crypto` v0.56+ requires it). The module also declares
-`toolchain go1.26.10`: with the default `GOTOOLCHAIN=auto`, building or
-`go install`-ing jig/lisp with an older 1.26.x downloads 1.26.10, which
+`toolchain go1.26.11`: with the default `GOTOOLCHAIN=auto`, building or
+`go install`-ing jig/lisp with an older 1.26.x downloads 1.26.11, which
 carries the standard-library fixes for the HTTP/2 server crash and DoS
 issues, unbounded `Range` headers, `net/textproto` memory limits, TLS
-ECH parsing and `html/template` (GO-2026-6599…6617) — all reachable
-through `web-serve`. Build with Go ≥ 1.26.9 or ≥ 1.27.2.
+ECH parsing and `html/template` (GO-2026-6599…6617), and the HTTP/1
+server `MaxBytesReader` header race (GO-2026-6859) — all reachable
+through `web-serve`. Build with Go ≥ 1.26.11 or ≥ 1.27.4.
 
 Dependencies: `go-git/v6` and `go-billy/v6` v6.0.0-beta.1 (includes
 the alpha.5 fixes for CVE-2026-71556 symlink following and
 CVE-2026-71557 reference-name path traversal; the `Signer` interface
-gained a `context.Context`), `golang.org/x/crypto` v0.58.0,
-`golang.org/x/net` v0.61.0, `golang.org/x/term` v0.47.0, `pgx` v5.11.0,
-`keyfunc` v3.8.2, `modernc.org/sqlite` v1.60.1. `govulncheck` reports no
-vulnerabilities affecting this code.
+gained a `context.Context`), `golang.org/x/crypto` v0.59.0,
+`golang.org/x/net` v0.63.0 (GO-2026-6860, GO-2026-6866 in `x/net/html`),
+`golang.org/x/term` v0.48.0, `pgx` v5.13.0, `keyfunc` v3.9.2,
+`modernc.org/sqlite` v1.63.0. `govulncheck` reports no vulnerabilities.
 
 ### ⚠️ Changed — keywords are a first-class type
 
